@@ -18,6 +18,7 @@ import { WelcomeScreen } from "./screens/onboarding/Welcome";
 import { Placeholder } from "./screens/Placeholder";
 import { StudentsScreen } from "./screens/staff/Students";
 import { MembersScreen } from "./screens/owner/Members";
+import { LibraryScreen } from "./screens/staff/Library";
 import { Toaster } from "./ui";
 
 /**
@@ -81,7 +82,7 @@ const staffRoutes = [
   r(S, "/alunos", StudentsScreen),
   r(S, "/alunos/$id", todo("Aluno", "F11")),
   r(S, "/planejamento", todo("Planejamento", "F9")),
-  r(S, "/biblioteca", todo("Biblioteca", "F8")),
+  r(S, "/biblioteca", LibraryScreen),
   r(S, "/biblioteca/novo", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
   r(S, "/biblioteca/$id", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
   r(S, "/planilhas", todo("Planilhas", "F14")),

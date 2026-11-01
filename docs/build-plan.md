@@ -17,7 +17,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F5 | Invite page (club-themed) + student onboarding: consent → profile and goal → connect Strava (mock) | A3, A4 | [x] |
 | F6 | Members and invites (owner); students list + groups (trainer) | O2, W2 | [x] |
 | F7 | Workout builder: structured editor + quick text (`10' aquec + 6x1km @4:30 c/ 2' trote`) + intensity preview; run, swim and strength blocks | W5 | [x] |
-| F8 | Library (templates by sport, search, duplicate, archive) | W6 | [ ] |
+| F8 | Library (templates by sport, search, duplicate, archive) | W6 | [x] |
 | F9 | Planning: students × week grid, assign (athletes or group), drag to move, copy week | W4 | [ ] |
 | F10 | Student: Hoje, workout detail, feedback sheet, agenda | M1, M2, M5, M3 | [ ] |
 | F11 | Activities (list, detail, manual log) + student detail for trainers | M4, W3 | [ ] |
