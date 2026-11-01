@@ -1,6 +1,7 @@
 /** pt-BR formatting for training data. Club-local dates are "YYYY-MM-DD" strings (no timezone math). */
 const nf1 = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const nf0 = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 });
+const nfKm = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 });
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /** 270 → "4:30" (seconds per km or per 100 m). */
@@ -27,7 +28,7 @@ export function duration(s: number | null | undefined): string {
 export function distance(m: number | null | undefined, opts: { swim?: boolean } = {}): string {
   if (m == null || !isFinite(m)) return "–";
   if (opts.swim || m < 1000) return `${nf0.format(m)} m`;
-  return `${nf1.format(m / 1000)} km`;
+  return `${nfKm.format(m / 1000)} km`;
 }
 export function km(m: number | null | undefined): string {
   return m == null ? "–" : nf1.format(m / 1000);
@@ -73,4 +74,4 @@ export function ago(iso: string, now = Date.now()): string {
   if (d < 7) return `há ${d} dias`;
   return shortDate(localDate(iso));
 }
-export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");
+export const initials = (name: string) => name.replace(/[^\p{L}\s]/gu, " ").split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");

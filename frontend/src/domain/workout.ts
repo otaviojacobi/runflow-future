@@ -1,0 +1,120 @@
+/** Workout structure v1 (api/endpoints.md § Workout structure) + pure helpers. */
+import type { Sport } from "@/api/types";
+import { clock, distance as fmtDistance, pace as fmtPace } from "@/lib/format";
+import { t } from "@/i18n";
+
+export type ZoneN = 1 | 2 | 3 | 4 | 5;
+export type Duration = { type: "time"; s: number } | { type: "distance"; m: number } | { type: "open" };
+export type Target =
+  | { type: "open" }
+  | { type: "zone"; metric: "hr" | "pace" | "power"; zone: ZoneN }
+  | { type: "pace"; min_s: number; max_s: number }
+  | { type: "hr"; min: number; max: number }
+  | { type: "power"; min: number; max: number }
+  | { type: "rpe"; value: number };
+export type Intent = "warmup" | "active" | "recovery" | "rest" | "cooldown" | "other";
+export type Stroke = "free" | "back" | "breast" | "fly" | "im" | "choice" | "kick" | "drill";
+export type Equipment = "pullbuoy" | "kickboard" | "fins" | "paddles" | "snorkel";
+export interface Step { kind: "step"; intent: Intent; duration: Duration; target: Target; note?: string; stroke?: Stroke; equipment?: Equipment[]; send_off_s?: number }
+export interface Repeat { kind: "repeat"; count: number; steps: Step[] }
+export interface Load { type: "kg" | "pct_1rm" | "bodyweight" | "rpe"; value?: number }
+export interface Exercise { kind: "exercise"; name: string; sets: number; reps: string; load?: Load; rest_s?: number; tempo?: string; note?: string }
+export type Block = Step | Repeat | Exercise;
+export interface Structure { v: 1; blocks: Block[] }
+
+export const INTENT_LABEL: Record<Intent, string> = {
+  warmup: "Aquecimento", active: "Principal", recovery: "Recuperação", rest: "Descanso", cooldown: "Desaquecimento", other: "Livre",
+};
+export const STROKE_LABEL: Record<Stroke, string> = {
+  free: "crawl", back: "costas", breast: "peito", fly: "borboleta", im: "medley", choice: "livre escolha", kick: "pernada", drill: "educativo",
+};
+export const EQUIPMENT_LABEL: Record<Equipment, string> = { pullbuoy: "pullbuoy", kickboard: "prancha", fins: "nadadeira", paddles: "palmar", snorkel: "snorkel" };
+
+const RUN_ZONE_PACE: Record<ZoneN, number> = { 1: 390, 2: 345, 3: 310, 4: 285, 5: 260 }; // s/km, generic athlete
+const SWIM_ZONE_PACE: Record<ZoneN, number> = { 1: 160, 2: 140, 3: 120, 4: 105, 5: 90 }; // s/100 m
+const BIKE_KMH = 28;
+
+/** Zone (1–5) a step represents, for intensity profiles. */
+export function zoneOf(step: Step, sport: Sport): ZoneN {
+  const tg = step.target;
+  if (tg.type === "zone") return tg.zone;
+  if (tg.type === "rpe") return tg.value >= 9 ? 5 : tg.value >= 7 ? 4 : tg.value >= 5 ? 3 : tg.value >= 3 ? 2 : 1;
+  if (tg.type === "pace") {
+    const mid = (tg.min_s + tg.max_s) / 2;
+    const table = sport === "swim" ? SWIM_ZONE_PACE : RUN_ZONE_PACE;
+    return ([5, 4, 3, 2] as ZoneN[]).find((z) => mid <= table[z] + 5) ?? 1;
+  }
+  return ({ warmup: 2, active: 3, recovery: 1, rest: 1, cooldown: 1, other: 2 } as const)[step.intent];
+}
+
+/** Seconds per meter for a step (estimates only). */
+function secPerMeter(step: Step, sport: Sport): number {
+  const tg = step.target;
+  if (sport === "swim") return (tg.type === "pace" ? (tg.min_s + tg.max_s) / 2 : SWIM_ZONE_PACE[zoneOf(step, sport)]) / 100;
+  if (sport === "bike") return 3600 / (BIKE_KMH * 1000);
+  return (tg.type === "pace" ? (tg.min_s + tg.max_s) / 2 : RUN_ZONE_PACE[zoneOf(step, sport)]) / 1000;
+}
+
+export interface Segment { seconds: number; zone: ZoneN; intent: Intent }
+/** Flatten repeats into timed segments (exercises become one block each). */
+export function segments(structure: Structure, sport: Sport): Segment[] {
+  const out: Segment[] = [];
+  const stepSeconds = (st: Step) =>
+    st.duration.type === "time" ? st.duration.s : st.duration.type === "distance" ? st.duration.m * secPerMeter(st, sport) : 300;
+  for (const b of structure.blocks) {
+    if (b.kind === "repeat") for (let i = 0; i < b.count; i++) for (const st of b.steps) out.push({ seconds: stepSeconds(st), zone: zoneOf(st, sport), intent: st.intent });
+    else if (b.kind === "exercise") out.push({ seconds: b.sets * (45 + (b.rest_s ?? 60)), zone: 3, intent: "active" });
+    else out.push({ seconds: stepSeconds(b), zone: zoneOf(b, sport), intent: b.intent });
+  }
+  return out;
+}
+
+/** Estimated total duration (s) and distance (m, null for strength/mobility). */
+export function estimate(structure: Structure, sport: Sport): { duration_s: number; distance_m: number | null } {
+  let s = 0, m = 0;
+  const walk = (blocks: Block[], mult: number) => {
+    for (const b of blocks) {
+      if (b.kind === "repeat") walk(b.steps, mult * b.count);
+      else if (b.kind === "exercise") s += mult * b.sets * (45 + (b.rest_s ?? 60));
+      else if (b.duration.type === "time") { s += mult * b.duration.s; m += (mult * b.duration.s) / secPerMeter(b, sport); }
+      else if (b.duration.type === "distance") { m += mult * b.duration.m; s += mult * b.duration.m * secPerMeter(b, sport); }
+      else s += mult * 300;
+    }
+  };
+  walk(structure.blocks, 1);
+  const hasDistance = sport === "run" || sport === "swim" || sport === "bike";
+  return { duration_s: Math.round(s / 60) * 60, distance_m: hasDistance ? Math.round(m / 100) * 100 : null };
+}
+
+const minutes = (s: number) => (s % 60 === 0 ? `${s / 60}′` : clock(s));
+export function durationText(d: Duration, sport: Sport): string {
+  if (d.type === "time") return minutes(d.s);
+  if (d.type === "distance") return fmtDistance(d.m, { swim: sport === "swim" });
+  return t("até apertar a volta");
+}
+export function targetText(tg: Target, sport: Sport): string | null {
+  switch (tg.type) {
+    case "open": return null;
+    case "zone": return `Z${tg.zone}${tg.metric === "hr" ? " " + t("FC") : tg.metric === "power" ? " " + t("potência") : ""}`;
+    case "pace": return `${fmtPace(tg.min_s)}–${fmtPace(tg.max_s)} ${sport === "swim" ? "/100 m" : "/km"}`;
+    case "hr": return `${tg.min}–${tg.max} bpm`;
+    case "power": return `${tg.min}–${tg.max} W`;
+    case "rpe": return t("PSE {n}", { n: tg.value });
+  }
+}
+/** "10′ aquecimento · Z2" / "1 km · 4:25–4:35 /km" / "100 m crawl · saída 2:00". */
+export function stepText(st: Step, sport: Sport): string {
+  const parts = [durationText(st.duration, sport)];
+  if (st.intent !== "active") parts[0] += " " + t(INTENT_LABEL[st.intent]).toLowerCase();
+  if (st.stroke) parts[0] += " " + t(STROKE_LABEL[st.stroke]);
+  const tgt = targetText(st.target, sport);
+  if (tgt) parts.push(tgt);
+  if (st.send_off_s) parts.push(t("saída {t}", { t: clock(st.send_off_s) }));
+  if (st.equipment?.length) parts.push(st.equipment.map((e) => t(EQUIPMENT_LABEL[e])).join(", "));
+  return parts.join(" · ");
+}
+export function exerciseText(e: Exercise): string {
+  const load = e.load ? (e.load.type === "kg" ? `${e.load.value} kg` : e.load.type === "pct_1rm" ? `${e.load.value}% 1RM` : e.load.type === "rpe" ? t("PSE {n}", { n: e.load.value ?? 0 }) : t("peso corporal")) : null;
+  return [`${e.sets} × ${e.reps}`, load, e.rest_s ? t("descanso {t}", { t: minutes(e.rest_s) }) : null].filter(Boolean).join(" · ");
+}
+export const emptyStructure = (): Structure => ({ v: 1, blocks: [] });
