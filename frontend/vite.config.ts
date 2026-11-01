@@ -10,7 +10,8 @@ export default defineConfig({
   // @runflow/design/color is a UMD/CommonJS file: pre-bundle it so ESM imports work in dev.
   optimizeDeps: { include: ["@runflow/design/color"] },
   server: {
-    port: 5173,
+    port: 8080,
+    strictPort: true,
     host: true,
     proxy: { "/api": { target: "http://localhost:8787", rewrite: (p) => p.replace(/^\/api/, "") } },
   },

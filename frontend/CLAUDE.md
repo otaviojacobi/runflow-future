@@ -7,7 +7,7 @@ Read `../root.md` (§4, §6, §7.4, §7.8) and `../docs/build-plan.md` first. Fu
 
 | From the repo root | What |
 |---|---|
-| `npm run dev` | Mock API (:8787) + web (:5173). The web proxies `/api/*` → mock. |
+| `npm run dev` | Mock API (:8787) + web (:8080, keep it running: the founder previews there; `/dev/status` = plan progress). The web proxies `/api/*` → mock. |
 | `npm run check -w @runflow/frontend` | typecheck + unit tests + production build (must be green before committing) |
 | `npm run check` | Everything: design + API contract + frontend |
 

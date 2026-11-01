@@ -9,7 +9,7 @@ Read `../root.md` first, especially §6 (design direction, screen inventory) and
 |---|---|
 | `node build.mjs` | Regenerates `dist/` from `tokens.json` + `src/color.js` |
 | `node build.mjs --check` | **The `check` command.** Fails if `dist/` is stale or any contrast guarantee breaks. CI runs it. |
-| `node serve.mjs` | Dev server on http://localhost:8080 (`PORT=…` to change). `/` opens the showcase. |
+| `node serve.mjs` | Dev server on http://localhost:8081 (`PORT=…` to change). `/` opens the showcase. |
 
 Zero dependencies: Node ≥ 20 only. No `npm install`.
 

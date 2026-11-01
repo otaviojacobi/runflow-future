@@ -3,7 +3,7 @@
 **How to resume (any session):** read `root.md` §0–§4, then this file. Take the **first unchecked step**, build it, tick its box here, run the checks, then commit and push (founder-authorized). One step is one commit, or a few small ones.
 Contract: `api/schema.sql` (DB) · `api/endpoints.md` (API) · `api/mock/` (runnable mock). If a screen needs data that isn't in the contract, **change the contract first** (schema + endpoints + mock) in the same step.
 
-Run everything: `npm install` at the repo root, then `npm run dev`. That starts the mock API on :8787 and the web app on :5173.
+Run everything: `npm install` at the repo root, then `npm run dev`. That starts the mock API on :8787 and the web app on **:8080**, which must always stay running: the founder follows progress there. `/dev/status` shows this plan live.
 
 ## Phase 1: web app on the mock API (`frontend/`)
 

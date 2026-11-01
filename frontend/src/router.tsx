@@ -11,6 +11,7 @@ import { queryClient } from "./queryClient";
 import { SignInScreen } from "./screens/auth/SignIn";
 import { ClubsScreen } from "./screens/clubs/Clubs";
 import { ComponentsScreen } from "./screens/dev/Components";
+import { StatusScreen } from "./screens/dev/Status";
 import { CreateClubScreen } from "./screens/onboarding/CreateClub";
 import { InviteScreen } from "./screens/onboarding/Invite";
 import { WelcomeScreen } from "./screens/onboarding/Welcome";
@@ -44,6 +45,7 @@ const signIn = createRoute({
 });
 const invite = createRoute({ getParentRoute: () => root, path: "/convite/$token", component: InviteScreen });
 const devComponents = createRoute({ getParentRoute: () => root, path: "/dev/componentes", component: ComponentsScreen });
+const devStatus = createRoute({ getParentRoute: () => root, path: "/dev/status", component: StatusScreen });
 const devStripe = createRoute({ getParentRoute: () => root, path: "/dev/stripe/$kind", component: todo("Stripe (simulado)", "F17") });
 
 // ---------------------------------------------------------------- signed in, outside the shell
@@ -108,7 +110,7 @@ const commonRoutes = [
 ];
 
 const routeTree = root.addChildren([
-  index, signIn, invite, devComponents, devStripe,
+  index, signIn, invite, devComponents, devStatus, devStripe,
   authed.addChildren([
     clubs, createClub, welcome,
     shell.addChildren([staff.addChildren(staffRoutes), owner.addChildren(ownerRoutes), student.addChildren(studentRoutes), ...commonRoutes]),

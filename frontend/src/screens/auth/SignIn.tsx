@@ -98,6 +98,7 @@ export function SignInScreen() {
                   <Button type="submit" size="lg" block icon={<Mail />} loading={start.isPending}>{t("Receber código por e-mail")}</Button>
                 </form>
               </div>
+              {IS_MOCK && <a href="/dev/status" className="w-fit rounded-md bg-info-soft px-3 py-2 text-sm font-semibold text-on-info-soft hover:underline">{t("Modo de demonstração: ver o status do desenvolvimento")}</a>}
               <p className="text-sm text-fg-muted">
                 {t("Ao continuar, você aceita os")} <a href="#" className="font-semibold text-brand-text underline-offset-2 hover:underline">{t("Termos de uso")}</a> {t("e a")} <a href="#" className="font-semibold text-brand-text underline-offset-2 hover:underline">{t("Política de privacidade")}</a>.
               </p>

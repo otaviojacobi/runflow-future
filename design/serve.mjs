@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Zero-dependency static server for the design area (showcase + mocks).
- *   node serve.mjs            -> http://localhost:8080 (root redirects to /showcase/)
+ *   node serve.mjs            -> http://localhost:8081 (root redirects to /showcase/)
  *   PORT=3000 node serve.mjs
  * Development only: no caching, serves files under design/ and nothing else.
  */
@@ -11,7 +11,7 @@ import { dirname, extname, join, normalize, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = dirname(fileURLToPath(import.meta.url));
-const port = Number(process.env.PORT) || 8080;
+const port = Number(process.env.PORT) || 8081;
 const host = process.env.HOST || "0.0.0.0";
 const TYPES = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
