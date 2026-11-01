@@ -88,7 +88,7 @@ export function estimate(sport, structure) {
   return { est_duration_s: Math.round(s / 60) * 60, est_distance_m: sport === "run" || sport === "swim" || sport === "bike" ? Math.round(m / 100) * 100 : null };
 }
 
-const LIB = {
+export const LIB = {
   easy6: ["run", "Rodagem leve 6 km", S([step("active", dist(6000), zone(2))]), ["base"]],
   regen5: ["run", "Regenerativo 5 km", S([step("active", dist(5000), zone(1), { note: "Bem leve, conversando." })]), ["recuperação"]],
   int6x1k: ["run", "Intervalado 6×1 km", S([step("warmup", time(600), zone(2)), rep(6, [step("active", dist(1000), pace(265, 275)), step("recovery", time(120), open, { note: "trote" })]), step("cooldown", time(600), zone(1))]), ["intervalado", "vo2"]],

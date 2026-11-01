@@ -69,15 +69,16 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 ### Clubs, branding, invites, members
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
-| POST | `/clubs` `{name, city, state, modalities}` | Create club; caller becomes owner (free plan) | A5 |
+| POST | `/clubs` `{name, city, state, modalities}` | Create club → `{club, membership, branding, subscription}`. Caller becomes owner (free plan); a student invite link and a starter library for the chosen modalities are created | A5 |
 | GET / PATCH | `/clubs/{club_id}` | Club settings (name, city, timezone, modalities, trainer_label, subdomain) | O3 |
 | GET | `/clubs/{club_id}/branding` | `{primary_color, secondary_color, logo_url, theme_rev, theme}` | O1 |
 | PUT | `/clubs/{club_id}/branding` `{primary_color?, secondary_color?, logo_asset_id?}` | Save; server derives the theme, bumps `theme_rev` | A5, O1 |
-| POST | `/clubs/{club_id}/assets` (multipart or `{data_url}`) | Upload a logo → `{id, url}` | A5, O1 |
+| POST | `/clubs/{club_id}/assets` (multipart or `{data_url, kind, width, height}`) | Upload a logo (≤ 5 MB; PNG, JPG, WebP, SVG) → `{id, url}` | A5, O1 |
+| GET | `/assets/{id}` | The image (immutable, cache forever) | all |
 | GET | `/public/clubs/{slug}` | Public name + theme (subdomain, invite pages) | A3 |
-| GET | `/public/invites/{token}` | `{club, role, valid, reason?}` (reason: `expired` `revoked` `club_full`) | A3 |
+| GET | `/public/invites/{token}` | `{club, branding, role, valid, reason, invited_by, members, already_member}` (reason: `expired` `revoked` `used_up` `club_full`) | A3 |
 | POST | `/invites/{token}/accept` | Join the club → membership | A3 |
-| GET / POST | `/clubs/{club_id}/invites` | List / create invite links (role, max_uses, expires_at) | A5, O2 |
+| GET / POST | `/clubs/{club_id}/invites` | List / create invite links (role, max_uses, expires_at); each has `url` | A5, O2 |
 | DELETE | `/clubs/{club_id}/invites/{id}` | Revoke | O2 |
 | GET | `/clubs/{club_id}/members?role&q&status` | Members with role and status | O2 |
 | PATCH / DELETE | `/clubs/{club_id}/members/{membership_id}` | Change role or status / remove | O2 |

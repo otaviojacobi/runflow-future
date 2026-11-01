@@ -36,3 +36,18 @@ export interface MembershipContext { membership: Membership; club: Club; brandin
 export interface NotificationPrefs { user_id: ID; push_workouts: boolean; push_comments: boolean; push_classes: boolean; email_weekly: boolean }
 export interface Me { user: User; memberships: MembershipContext[]; prefs: NotificationPrefs | null; unread_notifications: number }
 export interface AuthResult { token: string; user: User; is_new: boolean }
+
+export interface Invitation {
+  id: ID; club_id: ID; role: "trainer" | "student"; token: string; email: string | null; created_by: ID;
+  max_uses: number | null; uses: number; expires_at: ISOTime | null; revoked_at: ISOTime | null; created_at: ISOTime; url: string;
+}
+export interface PublicInvite {
+  club: Pick<Club, "id" | "slug" | "name" | "city" | "state" | "modalities" | "trainer_label">; branding: Branding | null;
+  role: "trainer" | "student"; valid: boolean; reason: "expired" | "revoked" | "used_up" | "club_full" | null;
+  invited_by: string | null; members: number; already_member: boolean;
+}
+export interface WorkoutTemplate {
+  id: ID; club_id: ID; author_membership_id: ID; sport: Sport; name: string; description: string | null;
+  structure: import("@/domain/workout").Structure; est_duration_s: number | null; est_distance_m: number | null; tags: string[];
+  created_at: ISOTime; updated_at: ISOTime; archived_at: ISOTime | null;
+}

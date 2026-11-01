@@ -11,6 +11,7 @@ import { queryClient } from "./queryClient";
 import { SignInScreen } from "./screens/auth/SignIn";
 import { ClubsScreen } from "./screens/clubs/Clubs";
 import { ComponentsScreen } from "./screens/dev/Components";
+import { CreateClubScreen } from "./screens/onboarding/CreateClub";
 import { Placeholder } from "./screens/Placeholder";
 import { Toaster } from "./ui";
 
@@ -47,7 +48,7 @@ const authed = createRoute({
   beforeLoad: ({ location }) => { if (!session.isSignedIn()) throw redirect({ to: "/entrar", search: { redirect: location.href } }); },
 });
 const clubs = createRoute({ getParentRoute: () => authed, path: "/clubes", component: ClubsScreen, loader: ({ context }) => ensureMe(context.queryClient) });
-const createClub = createRoute({ getParentRoute: () => authed, path: "/criar-clube", component: todo("Criar clube", "F4") });
+const createClub = createRoute({ getParentRoute: () => authed, path: "/criar-clube", component: CreateClubScreen });
 const welcome = createRoute({ getParentRoute: () => authed, path: "/bem-vindo", component: todo("Boas-vindas", "F5") });
 
 // ---------------------------------------------------------------- the club shell (role-gated groups)
