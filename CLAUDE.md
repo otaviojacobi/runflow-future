@@ -5,17 +5,17 @@ Runflow is a training platform for Brazilian clubs (running, gyms, swimming, hyb
 
 ## Session protocol
 
-1. Read `root.md` §0–§4 and §9. Then read the §10 item you're doing, the §6/§7 sections it touches, and the `CLAUDE.md` of the area you're working in (`design/`, `backend/`, `frontend/`, `mobile/`), if it exists.
-2. Do **one** §10 work item. Don't build ahead. If something belongs to a later item, write it down in `root.md` instead.
-3. Finish by:
-   - running the area's `check` command and getting it green;
-   - updating `root.md` §10 (status and session log), plus §9 if a decision changed;
-   - committing.
+1. Read `root.md` §0–§4 and §9, then `docs/build-plan.md`. Then read the `CLAUDE.md` of the area you're working in (`design/`, `api/`, `frontend/`, `mobile/`, `backend/`).
+2. Take the **first unchecked step** in `docs/build-plan.md` and build it. Don't build ahead; note later work in the plan instead.
+3. Finish each step by:
+   - running the checks (`npm run check` at the root) and getting them green;
+   - ticking the step in `docs/build-plan.md` (plus `root.md` §9 and the session log if a decision changed);
+   - committing **and pushing**. The founder authorized this after every step, so no need to ask.
 
 ## Hard rules
 
 - **No AI attribution in git.** Never add `Co-Authored-By:` trailers, "Generated with Claude Code" footers, or any mention of an AI assistant in commits, PRs or code. The founder is the only author.
-- **Phase 0 is design only (D-015).** Until the founder signs off on the mocks (D7), write no backend, frontend or mobile code. Remove this rule after sign-off.
+- **Contract first (D-020).** Screens only use endpoints listed in `api/endpoints.md` and tables in `api/schema.sql`. If a screen needs more, change the schema, catalog and mock first, in the same step.
 - **Decisions are sticky.** Never contradict §9 silently. Ask the founder, then update §9 and every affected section.
 - **Language (D-013).** Everything a person sees is pt-BR by default: app UI, the design system pages, mocks, emails, notifications and **error messages, including backend API errors** (pt-BR `title`/`detail` plus a stable English `code`). Internals are English: code, comments, commits, logs, `root.md`, docs. Apps use i18n keys; mocks and design pages may inline pt-BR text.
 - **Tokens only.** Never hardcode colors, spacing, radii, fonts or durations. Use the `design/` tokens.
@@ -28,11 +28,13 @@ Runflow is a training platform for Brazilian clubs (running, gyms, swimming, hyb
 ```
 root.md     intent, decisions, roadmap: start here
 CLAUDE.md   this file
-design/     tokens, club-theme engine, showcase, mocks   (D1: node design/serve.mjs → :8080)
-backend/    Rust · axum · sqlx · PostgreSQL               (from S1)
-frontend/   React · TypeScript · Vite SPA                 (from S4)
-mobile/     Expo · React Native · TypeScript              (from S5)
-ops/        Pi deployment, backups                        (from S7)
+docs/       build-plan.md: every screen, in order, with status
+design/     tokens, club-theme engine, foundations page   (node design/serve.mjs → :8080)
+api/        contract: schema.sql, endpoints.md, mock/     (mock API → :8787)
+frontend/   React · TypeScript · Vite SPA                 (web app → :5173)
+mobile/     Expo · React Native · TypeScript              (Phase 2)
+backend/    Rust · axum · sqlx · PostgreSQL               (Phase 3)
+ops/        Pi deployment, backups                        (S8)
 ```
 
 Each area documents its own commands in its own `CLAUDE.md`, created in its bootstrap session.

@@ -1,0 +1,25 @@
+# api/: CLAUDE.md
+
+The **contract** between the apps and the backend (D-020). Future standalone repo: part of `runflow-backend`.
+
+| File | What it is |
+|---|---|
+| `schema.sql` | PostgreSQL schema: the source of truth for tables and columns. Backend migrations start from it. |
+| `endpoints.md` | REST catalog: paths, payloads, conventions, workout structure, error format. |
+| `mock/seed.mjs` | Deterministic generator for `mock/db.json` (realistic pt-BR data). |
+| `mock/db.json` | Seed data: one key per table, rows shaped exactly like `schema.sql`. |
+| `mock/server.mjs` | Zero-dependency mock API on `:8787` implementing `endpoints.md`. |
+
+## Commands (from the repo root)
+
+- `npm run dev:api` starts the mock. State persists in `api/mock/.data/` (gitignored). Add `-- --reset` to start from the seed again.
+- `node api/mock/seed.mjs` regenerates `db.json`.
+- `npm run check:api` validates `schema.sql` on real PostgreSQL (PGlite) and smoke-tests the mock.
+
+## Rules
+
+- **Change the contract before the screen.** A new field or endpoint goes into `schema.sql`, then `endpoints.md`, then `seed.mjs` + `server.mjs`, all in the same commit as the screen that needs it.
+- **Mock rows mirror `schema.sql` exactly** (same table and column names). Computed fields in responses (counts, joins) are documented in `endpoints.md`.
+- **Dates stay current.** `db.json` has `meta.anchor_date`; on load the server shifts every date and timestamp by (today − anchor), so the demo always looks like "this week".
+- **Errors** are problem+json with pt-BR `title`/`detail` and an English `code`.
+- Mock-only affordances (fake Google chooser, fake Stripe, fake Strava) live under `/v1/mock/*` or are documented as mock-only. Never rely on them outside dev.

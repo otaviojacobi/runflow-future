@@ -5,7 +5,7 @@
 > Implementation details live in each area's own `CLAUDE.md` and docs (`design/`, `backend/`, `frontend/`, `mobile/`).
 >
 > Domain: **runflow.club** · Market: **Brazil** · UI language: **Portuguese (pt-BR)** · Hosting: **São Paulo region**
-> Status: **Phase 0 (Foundations)** · Last updated: 2026-11-01
+> Status: **Phase 1: web app on the mock API** · Last updated: 2026-11-01
 
 ---
 
@@ -207,7 +207,7 @@ Auth is **Sign in with Google** or an **email one-time code**. There are no pass
 
 ## 6. Design direction
 
-The design system lives in **`design/`**, a deliberately small package (§7.1). This section sets its intent. **Before any implementation, the whole UI is mocked on the real tokens and signed off by the founder** (D-015, §6.1).
+The design system lives in **`design/`**, a deliberately small package (§7.1). This section sets its intent. The founder approved the foundations (D1). Screens are now built directly as the real apps on a mock API (D-020, §6.1).
 
 **Principles**
 1. **Runflow is the app; the club is the theme.** Structure, components and voice are Runflow's everywhere. The club's logo and colors sit on top, so students feel at home in their club.
@@ -228,47 +228,9 @@ The design system lives in **`design/`**, a deliberately small package (§7.1). 
 - **Icons:** Lucide, which ships both React and React Native packages, plus custom sport icons on the same grid.
 - **Spacing and shape:** 4 px spacing grid. Radii: 10 for controls, 14 for cards, 20 for sheets. Controls are 40 px tall on web and 48 px on mobile for primary actions.
 
-### 6.1 Mocks (Phase 0)
+### 6.1 Screens
 
-- **What a mock is:** a static HTML/CSS page in `design/mocks/`. It uses the real tokens, so a palette change shows up in every screen. A shared mock shell gives each page a light/dark toggle and a club-theme switcher (Runflow default plus a few sample clubs), and frames mobile screens in a phone outline.
-- **How to view:** open `design/mocks/index.html` in a browser. No build needed. A session can also publish a private link for viewing on a phone.
-- **Copy:** real pt-BR text and realistic Brazilian data (names, clubs, paces, races). No lorem ipsum.
-- **After sign-off,** the mocks are the visual spec for `frontend/` and `mobile/`.
-
-**Screen inventory.** IDs are used in §10 and in commits.
-
-| ID | Screen | Surface | Role |
-|---|---|---|---|
-| DS1 | Foundations: palettes, type, spacing, radii, elevation, motion, club-theme preview | web | — |
-| DS2 | Core components: buttons, inputs, selects, chips, badges, tabs, segmented control, switch, cards, lists, table, dialog/sheet, toast, empty state, skeleton | web + mobile | — |
-| DS3 | Domain components: workout card, step row, intensity profile, zone bar, week strip, calendar cell, stat tile, compliance badge, sport chip, pace/duration inputs, class slot | web + mobile | — |
-| A1 | Landing and pricing (runflow.club) | web | public |
-| A2 | Sign in (Google, email code), Runflow and club-themed variants | web + mobile | all |
-| A3 | Invite / join page (club-themed) | web + mobile | all |
-| A4 | Student onboarding: consent, profile, goal, connect Strava | mobile + web | student |
-| A5 | Owner onboarding: create club → Studio quick step → invite → first workout → checklist | web | owner |
-| A6 | Club switcher | web + mobile | all |
-| M1 | Hoje: today's workout, week strip, last activity, next class | mobile | student |
-| M2 | Workout detail: steps, intensity profile, personal targets, trainer notes | mobile | student |
-| M3 | Agenda: planned workouts and booked classes | mobile | student |
-| M4 | Activity detail: synced data, compliance vs plan, comment thread | mobile | student |
-| M5 | Feedback sheet: PSE, how it felt, comment | mobile | student |
-| M6 | Aulas: class schedule, booking, waitlist, check-in QR | mobile | student |
-| M7 | Perfil: zones, connections, consents, account deletion | mobile | student |
-| M8 | Trainer on mobile: students, feedback inbox, quick edit of today's workout | mobile | trainer |
-| W1 | Painel: who trained, who missed, new feedback | web | trainer |
-| W2 | Alunos: list with compliance, last activity, group | web | trainer |
-| W3 | Student detail: calendar, metrics, zones, feedback history | web | trainer |
-| W4 | Planejamento: students × days grid, drag and drop, assign to a group, copy a week | web | trainer |
-| W5 | Workout builder: structured + quick text + intensity preview (run, swim, strength) | web | trainer |
-| W6 | Biblioteca: templates by sport | web | trainer |
-| W7 | Planilhas: multi-week plan editor | web | trainer |
-| W8 | Feedbacks: inbox and threads | web | trainer |
-| W9 | Aulas (management): weekly schedule, class editor, roster and attendance | web | trainer |
-| O1 | Club Studio: logo, color, suggestions, contrast notes, phone + desktop preview | web | owner |
-| O2 | Membros: trainers, students, invites | web | owner |
-| O3 | Configurações: modalities, terminology, timezone, subdomain | web | owner |
-| O4 | Plano: Free/Pro, usage, Stripe checkout (shown as "em breve" during the beta) | web | owner |
+The design system was approved after D1. The HTML-mock phase (D-015) was replaced by building the real web app, then the mobile app, against a mock API (D-020). **The full screen inventory, routes and build order live in [`docs/build-plan.md`](docs/build-plan.md).** Component pages (DS2/DS3) become a `/dev/componentes` route in the web app.
 
 ---
 
@@ -281,7 +243,8 @@ The design system lives in **`design/`**, a deliberately small package (§7.1). 
 ```
 runflow-future/
 ├── root.md          ← this file: intent, decisions, roadmap
-├── docs/            ← cross-cutting product/design/eng detail (when root.md sections outgrow it)
+├── docs/            ← cross-cutting detail; docs/build-plan.md = screen-by-screen plan and status
+├── api/             → the CONTRACT: schema.sql (DB) · endpoints.md (API) · mock/ (db.json + mock server)
 ├── ops/             ← Pi deployment, backups, restore runbooks (S8)
 ├── design/          → future runflow-design (package + showcase/ + mocks/)
 ├── backend/         → future runflow-backend
@@ -299,6 +262,7 @@ runflow-future/
 | **root** (`root.md`, `docs/`, `ops/`) | Intent, product/design/engineering basis, decision log, roadmap, deployment | Markdown, Docker Compose | Images and bundles from the areas | — |
 | **`design/`** | **Small and framework-agnostic.** Design tokens (source of truth), the club-theme color engine, generated outputs, fonts, icons, a showcase page, and component *specs* (names, variants, states, anatomy). **No React or RN components**, because DOM and native primitives differ. Also holds `showcase/` and `mocks/` (§6.1), which aren't part of the published package. | `tokens.json` + a zero-dependency build | — | **`@runflow/design`** package: CSS variables, TS tokens, theme engine, assets. **Golden color fixtures** (JSON) for ports. |
 | **`backend/`** | API, background worker, integrations, migrations. Serves the web-app shell with the club theme injected. | Rust · axum/tokio · sqlx · PostgreSQL | Golden color fixtures (to test the Rust theme port) | **OpenAPI 3.1 spec** (committed as `backend/openapi.json`). Multi-arch container image (arm64 + amd64) and a single binary. |
+| **`api/`** | **The contract (D-020).** `schema.sql` (PostgreSQL), `endpoints.md` (REST catalog), `mock/` (a zero-dependency mock server over `db.json`). The apps are built against the mock; `backend/` implements the same contract later. | SQL, Markdown, Node (mock) | — | DB schema, API catalog, mock server on `:8787` |
 | **`frontend/`** | Web app (trainer-heavy desktop, responsive for students). Later, the marketing site for `runflow.club`. | React · TypeScript · Vite (SPA) | `@runflow/design`, OpenAPI | Static bundle |
 | **`mobile/`** | iOS and Android app (all roles in one app). | Expo (React Native) · TypeScript | `@runflow/design`, OpenAPI | Store builds and OTA updates |
 
@@ -455,7 +419,8 @@ flowchart LR
 | D-012 | Hosting: Pi + Cloudflare Tunnel → AWS sa-east-1 | Near-zero cost now; Brazilian data residency | Accepted (founder) |
 | D-013 | Everything user-facing is pt-BR by default: apps, design system pages, mocks, emails, notifications and all error messages, backend included. i18n-ready. Code, comments, commits, logs and docs in English | Market focus without future rewrites | Accepted (founder) |
 | D-014 | Club theming takes 0, 1 or 2 colors (none: Runflow defaults; one: derived secondary; two: primary + secondary) and produces an accessible light/dark theme. Same engine in all areas (golden fixtures) | Most clubs have two colors; contrast and coherence are never left to chance | Accepted (founder) |
-| D-015 | Design first ("waterfall"): the whole UI is mocked as HTML/CSS on the real tokens and signed off by the founder before any implementation | Validate look and flows cheaply before writing code | Accepted (founder) |
+| D-015 | Design first ("waterfall"): mock the whole UI as HTML before implementing | Validate look and flows cheaply | **Superseded by D-020** after D1 approval |
+| D-020 | Contract first: `api/schema.sql` + `api/endpoints.md` + a mock server over `api/mock/db.json`. Build the real web app on it screen by screen, then mobile, then the Rust backend implements the same contract | Real, testable UI early; the backend can't drift from what the screens need | Accepted (founder) |
 | D-016 | Payments via Stripe; no charging during the beta; NFS-e handled by the founder outside the product | Founder decision | Accepted (founder) |
 | D-017 | Trainers see all students in their club | Simple default; per-trainer assignment can come later if clubs ask | Accepted (founder) |
 | D-019 | Club themes: the DB stores the owner's choices plus the theme derived at save time. Web inlines it in the HTML; mobile caches it on the device; both revalidate by `rev`/ETag (§7.8) | The first paint is already in the club's colors; one engine run per save, not per request | Proposed |
@@ -468,47 +433,24 @@ flowchart LR
 ## 10. Roadmap and session plan
 
 **Phases**
-| Phase | Goal | Outcome |
+| Phase | Goal | Status |
 |---|---|---|
-| **0: Design & validation** | Design system plus the whole UI mocked on real tokens (§6.1) | **Founder signs off** on look and flows. No implementation before this. |
-| **1: Foundations** | All areas bootstrapped, auth, clubs, Club Studio basics, Pi deployment | A themed club exists and people can join it |
-| **2: Running MVP** | Prescription engine for running, end to end: builder, quick text, library, calendar, Hoje, Strava, feedback | Private beta with friendly running clubs |
-| **3: Multi-modality** | Swim and strength builders, groups, multi-week *planilhas*, zones and tests | Swimming and strength clubs onboard |
-| **4: Scheduling** | Classes, bookings, waitlist, check-in, hybrid clubs | Gyms and swim schools onboard |
-| **5: Monetization** | Stripe billing (Pro), subdomains, plan limits, notifications, trainer analytics, cloud migration plan | **Public launch** |
-| **6: Growth** | Garmin, Sign in with Apple + iOS App Store, club finances, events, challenges, AI assistant, Apple Health / Health Connect, Max, Enterprise | Expansion |
+| **0: Design system** | Tokens, club-theme engine, foundations page | **Done.** D1 approved by the founder (2026-11-01) |
+| **1: Web app on the mock API** | Every screen, wired to the mock: auth, onboarding, coaching loop, library, planilhas, classes, Club Studio, billing (Stripe mock), account | In progress: `docs/build-plan.md` F0–F20 |
+| **2: Mobile app on the mock API** | Expo app mirroring the web flows | `docs/build-plan.md` X0–X9 |
+| **3: Real backend** | Rust API on PostgreSQL implementing the contract; Pi deployment | `docs/build-plan.md` S1–S8 |
+| **4: Private beta** | Friendly running clubs; Strava app review; LGPD texts | — |
+| **5: Public launch** | Stripe live (Pro), subdomains, cloud migration plan | — |
+| **6: Growth** | Garmin, Sign in with Apple + iOS App Store, club finances, events, challenges, AI assistant, Apple Health / Health Connect, Max, Enterprise | — |
 
-**Phase 0 sessions (next).** Do them in order. Each one fits in one session and ends with something the founder can look at.
-
-| # | Work item | Screens | Done when |
-|---|---|---|---|
-| D1 | Bootstrap `design/`: `tokens.json`, club-theme engine with contrast guarantees and golden fixtures, zero-dependency build to CSS/TS/JSON, `design/CLAUDE.md`, foundations page. **Delivered; in founder review.** | DS1 | Founder approves palette, type and club theming |
-| D2 | Component pages, each component in its web and mobile rendering | DS2, DS3 | Founder approves components |
-| D3 | Mock shell (theme and club switcher, phone frame, index page) and the student app | A2–A4, A6, M1–M7 | Founder approves the student flow |
-| D4 | Trainer web, part 1 | W1–W5 | Founder approves planning and the workout builder |
-| D5 | Trainer web, part 2, plus trainer on mobile | W6–W9, M8 | Founder approves |
-| D6 | Owner flows and the public site | A1, A5, O1–O4 | Founder approves |
-| D7 | Review: consistency pass over every screen, fix the gaps, freeze the spec, update §4/§6 with what changed | all | **Phase 0 sign-off** |
-
-**Phase 1 sessions (after sign-off)**
-
-| # | Area | Work item | Done when |
-|---|---|---|---|
-| S1 | `backend/` | Bootstrap: workspace, axum `/health`, config, sqlx + migrations, Dockerfile (multi-arch), CI, `CLAUDE.md` | `check` is green; image runs on the Pi |
-| S2 | `backend/` | Auth: Google, email code, sessions, `users` | Can sign in from curl or a test harness |
-| S3 | `backend/` | Clubs, memberships, roles, invites, Club Studio (logo upload + Rust theme port passing the fixtures) | OpenAPI published |
-| S4 | `frontend/` | Bootstrap: Vite/React/TS, router, query, Tailwind ↔ tokens, i18n pt-BR, generated client, sign-in screens matching the mocks | Signs in against S2 |
-| S5 | `mobile/` | Bootstrap: Expo, tokens, runtime club theme, sign-in matching the mocks | Runs on an Android dev build |
-| S6 | frontend + mobile | Onboarding flows from §4.5 (screens A2–A6), end to end | An owner creates a club and a student joins via WhatsApp link |
-| S7 | root | `ops/`: Pi compose, Cloudflare Tunnel, backups, restore drill | Public `app.runflow.club` running on the Pi |
-
-Every bootstrap session (D1, S1, S4, S5) creates its area folder with its own `CLAUDE.md`, `check` command and path-filtered CI workflow.
+**Next step:** the first unchecked row in `docs/build-plan.md`. Each step ends with its box ticked, the checks green, and a commit pushed.
 
 **Session log**
 - 2026-11-01. S0: `root.md` created. Researched sisrun pricing and features, the Strava API Agreement (2026-06-01), and the Garmin developer program. A prototype of the club-theme color engine exists and will seed S1.
 - 2026-11-01. Founder set the provider sync model (D-011): students connect their own accounts and activities sync into Runflow's training model for trainers. A re-read of Strava's agreement confirmed that sharing needs explicit consent. Ran `git init` on the root.
 - 2026-11-01. Founder created a single repo, `github.com/otaviojacobi/runflow-future`, for all code, with areas splittable into repos later (D-001 replaces the submodule plan). Added the rule against AI attribution in commits (§8). First commit pushed.
 - 2026-11-01. **D1 delivered, in founder review.** `design/` has the tokens, the color engine, `build.mjs --check`, self-hosted fonts, CI, and the foundations page in pt-BR (`node design/serve.mjs`, then http://localhost:8080). Founder decisions made during the review: everything user-facing is pt-BR, including the design system and all error messages (D-013); clubs can set 0, 1 or 2 colors (D-014); club themes are stored in the DB and delivered without a flash of Runflow colors (D-019, §7.8).
+- 2026-11-01. **Founder approved the design system (D1).** New approach (D-020): contract first (`api/schema.sql` validated on PostgreSQL 18, `api/endpoints.md`), then the real web app on a mock API screen by screen, then mobile, then the Rust backend. Plan and status: `docs/build-plan.md`. The founder authorized committing and pushing after each step.
 - 2026-11-01. Founder decisions: design-first Phase 0 with the full UI mocked before implementation (D-015); Stripe, no charging during the beta, NFS-e outside the product (D-016); trainers see all students (D-017); Runflow is the app and clubs only theme it (D-018); Apple and Garmin developer programs deferred (D-007, D-011); no guardian accounts. Added the screen inventory (§6.1) and `CLAUDE.md`. Roadmap renumbered: Phase 0 is now design and validation, and **D1 is next**.
 
 ---
