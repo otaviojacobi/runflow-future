@@ -12,6 +12,8 @@ import { SignInScreen } from "./screens/auth/SignIn";
 import { ClubsScreen } from "./screens/clubs/Clubs";
 import { ComponentsScreen } from "./screens/dev/Components";
 import { CreateClubScreen } from "./screens/onboarding/CreateClub";
+import { InviteScreen } from "./screens/onboarding/Invite";
+import { WelcomeScreen } from "./screens/onboarding/Welcome";
 import { Placeholder } from "./screens/Placeholder";
 import { Toaster } from "./ui";
 
@@ -38,7 +40,7 @@ const signIn = createRoute({
   validateSearch: (s: Record<string, unknown>): { redirect?: string } => ({ redirect: typeof s.redirect === "string" ? s.redirect : undefined }),
   beforeLoad: () => { if (session.isSignedIn()) throw redirect({ to: "/" }); },
 });
-const invite = createRoute({ getParentRoute: () => root, path: "/convite/$token", component: todo("Convite", "F5") });
+const invite = createRoute({ getParentRoute: () => root, path: "/convite/$token", component: InviteScreen });
 const devComponents = createRoute({ getParentRoute: () => root, path: "/dev/componentes", component: ComponentsScreen });
 const devStripe = createRoute({ getParentRoute: () => root, path: "/dev/stripe/$kind", component: todo("Stripe (simulado)", "F17") });
 
@@ -49,7 +51,7 @@ const authed = createRoute({
 });
 const clubs = createRoute({ getParentRoute: () => authed, path: "/clubes", component: ClubsScreen, loader: ({ context }) => ensureMe(context.queryClient) });
 const createClub = createRoute({ getParentRoute: () => authed, path: "/criar-clube", component: CreateClubScreen });
-const welcome = createRoute({ getParentRoute: () => authed, path: "/bem-vindo", component: todo("Boas-vindas", "F5") });
+const welcome = createRoute({ getParentRoute: () => authed, path: "/bem-vindo", component: WelcomeScreen, loader: ({ context }) => ensureMe(context.queryClient) });
 
 // ---------------------------------------------------------------- the club shell (role-gated groups)
 const shell = createRoute({

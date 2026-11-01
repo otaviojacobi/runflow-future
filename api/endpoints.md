@@ -58,7 +58,7 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 ### Providers and activities (user-owned)
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
-| GET | `/me/connections` | Strava / Garmin connection status | A4, C1 |
+| GET | `/me/connections` | `{items: [{provider, available, connection}]}` (Garmin: `available: false` until the program is approved) | A4, C1 |
 | POST | `/me/connections/strava/start` | → `{authorize_url}` (mock: in-app fake consent page) | A4, C1 |
 | POST | `/me/connections/strava/callback` `{code}` | Finish OAuth; mock imports sample activities | A4, C1 |
 | DELETE | `/me/connections/{provider}` | Disconnect and delete that provider's data (§5) | C1 |
@@ -91,7 +91,8 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | GET | `/clubs/{club_id}/dashboard?date` | Today's counts, who trained or missed, unread feedback, upcoming classes | W1 |
 | GET | `/clubs/{club_id}/athletes?q&group_id` | Students + compliance (28 d), last activity, groups, Strava/Garmin status | W2, W4 |
 | GET | `/clubs/{club_id}/athletes/{membership_id}` | Profile, zones, stats, recent workouts | W3 |
-| PUT | `/clubs/{club_id}/athletes/{membership_id}/profile` | Goal, level, physiology, notes | W3, A4 |
+| PUT | `/clubs/{club_id}/athletes/{membership_id}/profile` | Goal, level, physiology, trainer notes | W3 |
+| GET / PUT | `/clubs/{club_id}/my/profile` | Student's own profile: goal, goal_date, level, weekly_sessions, recent_race, HR (a race result estimates the threshold pace) | A4, M7 |
 | PUT | `/clubs/{club_id}/athletes/{membership_id}/zones` `{kind, source, bounds}` | Set zones | W3, M7 |
 | GET | `/clubs/{club_id}/athletes/{membership_id}/activities` | Activities shared by consent | W3 |
 

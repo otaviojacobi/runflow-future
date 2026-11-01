@@ -12,7 +12,7 @@ const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 function push(kind: Kind, title: string, detail?: string) {
   const id = ++seq;
-  toasts = [...toasts.slice(-2), { id, kind, title, detail }];
+  toasts = [...toasts.slice(-1), { id, kind, title, detail }];
   emit();
   setTimeout(() => dismiss(id), kind === "error" ? 6000 : 3500);
 }
@@ -31,7 +31,7 @@ export function Toaster() {
   const list = useSyncExternalStore((l) => (listeners.add(l), () => listeners.delete(l)), () => toasts);
   const Icon = { success: CircleCheck, error: CircleAlert, info: Info };
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+80px)] z-[60] flex flex-col items-center gap-2 px-4 lg:bottom-6">
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+12px)] z-[60] flex flex-col items-center gap-2 px-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:items-end">
       {list.map((x) => {
         const I = Icon[x.kind];
         return (

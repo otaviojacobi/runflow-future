@@ -14,7 +14,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F2 | Sign-in (Google mock chooser + email code), session, route guards, "no club yet" | A2, A7 | [x] |
 | F3 | App shell per role (sidebar on desktop, bottom tabs on phones), club context, club theme without a flash (§7.8), club switcher | A6 | [x] |
 | F4 | Owner onboarding wizard: create club → Studio quick step (0–2 colors, logo, live preview) → invite (link, WhatsApp, QR) → starter library → done | A5 | [x] |
-| F5 | Invite page (club-themed) + student onboarding: consent → profile and goal → connect Strava (mock) | A3, A4 | [ ] |
+| F5 | Invite page (club-themed) + student onboarding: consent → profile and goal → connect Strava (mock) | A3, A4 | [x] |
 | F6 | Members and invites (owner); students list + groups (trainer) | O2, W2 | [ ] |
 | F7 | Workout builder: structured editor + quick text (`10' aquec + 6x1km @4:30 c/ 2' trote`) + intensity preview; run, swim and strength blocks | W5 | [ ] |
 | F8 | Library (templates by sport, search, duplicate, archive) | W6 | [ ] |

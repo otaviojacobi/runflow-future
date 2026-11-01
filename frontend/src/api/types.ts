@@ -51,3 +51,15 @@ export interface WorkoutTemplate {
   structure: import("@/domain/workout").Structure; est_duration_s: number | null; est_distance_m: number | null; tags: string[];
   created_at: ISOTime; updated_at: ISOTime; archived_at: ISOTime | null;
 }
+
+export type Goal = "health" | "5k" | "10k" | "21k" | "42k" | "trail" | "triathlon" | "swim" | "strength" | "other";
+export type Level = "beginner" | "intermediate" | "advanced";
+export interface AthleteProfile {
+  membership_id: ID; goal: Goal | null; goal_date: ISODate | null; level: Level | null; weekly_sessions: number | null;
+  max_hr: number | null; resting_hr: number | null; threshold_pace_s_per_km: number | null; css_s_per_100m: number | null; ftp_w: number | null;
+  recent_race: { distance_m: number; time_s: number; date?: ISODate } | null; trainer_notes?: string | null; updated_at: ISOTime;
+}
+export interface Connection { id: ID; provider: "strava" | "garmin"; athlete_name: string | null; status: "active" | "error" | "revoked"; connected_at: ISOTime; last_sync_at: ISOTime | null }
+export interface ProviderStatus { provider: "strava" | "garmin"; available: boolean; connection: Connection | null }
+export type ConsentKind = "terms" | "privacy" | "share_training_data" | "share_strava" | "share_garmin";
+export interface Consent { id: ID; user_id: ID; club_id: ID | null; kind: ConsentKind; text_version: string; granted_at: ISOTime; revoked_at: ISOTime | null }
