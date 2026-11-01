@@ -9,7 +9,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 
 | Step | Scope | Screens | Status |
 |---|---|---|---|
-| F0 | Scaffold: npm workspaces, Vite + React + TS, Tailwind v4 bound to `@runflow/design` tokens, TanStack Router + Query, i18n (pt-BR source strings), API client + problem+json errors, mock API core (auth, `/me`), `check` script | — | [ ] |
+| F0 | Scaffold: npm workspaces, Vite + React + TS, Tailwind v4 bound to `@runflow/design` tokens, TanStack Router + Query, i18n (pt-BR source strings), API client + problem+json errors, mock API core (auth, `/me`), `check` script | — | [x] |
 | F1 | UI kit `src/ui/*` + domain components `src/components/*`, plus a `/dev/componentes` page (replaces the DS2/DS3 HTML pages) | DS2, DS3 | [ ] |
 | F2 | Sign-in (Google mock chooser + email code), session, route guards, "no club yet" | A2, A7 | [ ] |
 | F3 | App shell per role (sidebar on desktop, bottom tabs on phones), club context, club theme without a flash (§7.8), club switcher | A6 | [ ] |

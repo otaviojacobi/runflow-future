@@ -1,0 +1,25 @@
+{
+  "name": "runflow",
+  "private": true,
+  "description": "Runflow monorepo root. See root.md.",
+  "workspaces": [
+    "design",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "node api/mock/server.mjs & npm run dev -w @runflow/frontend",
+    "dev:api": "node api/mock/server.mjs",
+    "dev:web": "npm run dev -w @runflow/frontend",
+    "dev:design": "node design/serve.mjs",
+    "seed": "node api/mock/seed.mjs",
+    "check": "npm run check:design && npm run check:api && npm run check -w @runflow/frontend",
+    "check:design": "node design/build.mjs --check",
+    "check:api": "node api/mock/check.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.14"
+  }
+}

@@ -7,7 +7,7 @@ Screen IDs (A*, M*, W*, O*, C*) refer to `docs/build-plan.md`.
 ## Conventions
 
 - **Base path** `/v1`. The web app calls it same-origin as `/api/v1/...` (dev proxy → mock on `:8787`). Mobile calls `https://api.runflow.club/v1`.
-- **Auth**: `Authorization: Bearer <token>`. The real web app will use an HttpOnly cookie carrying the same token (§7.3). Mock tokens: `mock_<user_id>`.
+- **Auth**: `Authorization: Bearer <token>`. The real web app will use an HttpOnly cookie carrying the same token (§7.3). Mock tokens start with `mock_`; in the mock, the e-mail code is always `000000`.
 - **JSON** is `snake_case`, identical to the column names in `schema.sql`. Dates are `YYYY-MM-DD` (club-local); timestamps are ISO 8601 UTC.
 - **Lists** return `{ "items": [...], "next_cursor": string | null }`. Query: `?cursor=&limit=` (default 50).
 - **Errors** are RFC 9457 `application/problem+json`. `title` and `detail` are **pt-BR** for people; `code` is stable English for code (D-013):

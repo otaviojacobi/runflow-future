@@ -1,0 +1,397 @@
+#!/usr/bin/env node
+/**
+ * Deterministic demo data for the mock API. Every table key and column mirrors api/schema.sql.
+ *
+ *   node api/mock/seed.mjs [YYYY-MM-DD]   -> writes api/mock/db.json (default anchor: 2026-11-03, a Tuesday)
+ *   import { generate } from "./seed.mjs"  -> the mock server seeds relative to *today* on first run / --reset
+ *
+ * Story: "Pace Forte Assessoria" (running club, São Paulo, Free plan, 9/10 students, primary + secondary colors)
+ * and "Equipe Maré Natação" (swim school, Santos, Pro plan, one color, classes). Ana is a student in both.
+ */
+import { createHash } from "node:crypto";
+import { writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const Color = require("@runflow/design/color");
+const Tokens = require("@runflow/design/tokens.json");
+const DEFAULTS = { brand: Tokens.seeds.brand, accent: Tokens.seeds.accent };
+
+// ---------------------------------------------------------------- helpers
+export const uuid = (name) => {
+  const h = createHash("sha256").update("runflow:" + name).digest("hex");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-4${h.slice(13, 16)}-a${h.slice(17, 20)}-${h.slice(20, 32)}`;
+};
+function prng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const DAY = 86400000;
+const parseDate = (s) => new Date(s + "T00:00:00Z");
+const fmtDate = (d) => d.toISOString().slice(0, 10);
+const addDays = (s, n) => fmtDate(new Date(parseDate(s).getTime() + n * DAY));
+const isoWeekday = (s) => ((parseDate(s).getUTCDay() + 6) % 7) + 1; // 1 = Monday
+const mondayOf = (s) => addDays(s, 1 - isoWeekday(s));
+/** Club-local (America/Sao_Paulo, UTC-3) date + "HH:MM" -> UTC ISO timestamp. */
+const at = (date, hhmm) => new Date(parseDate(date).getTime() + (Number(hhmm.slice(0, 2)) + 3) * 3600000 + Number(hhmm.slice(3, 5)) * 60000).toISOString();
+export function themeFor(primary, secondary) {
+  const input = { primary, secondary };
+  const r = Color.resolveClubColors(input, DEFAULTS);
+  const roles = (mode) => {
+    const pick = (seed) => Object.fromEntries(Color.ROLE_KEYS.map((k) => [k, Color.roles(seed, mode, Tokens.env[mode])[k]]));
+    return { brand: pick(r.primary), accent: pick(r.secondary) };
+  };
+  return { theme: { ...r, roles: { light: roles("light"), dark: roles("dark") } }, theme_css: Color.clubThemeCss(input, Tokens.env, DEFAULTS) };
+}
+
+// ---------------------------------------------------------------- workout structures
+const time = (s) => ({ type: "time", s });
+const dist = (m) => ({ type: "distance", m });
+const open = { type: "open" };
+const zone = (z, metric = "pace") => ({ type: "zone", metric, zone: z });
+const pace = (min_s, max_s) => ({ type: "pace", min_s, max_s });
+const step = (intent, duration, target = open, extra = {}) => ({ kind: "step", intent, duration, target, ...extra });
+const rep = (count, steps) => ({ kind: "repeat", count, steps });
+const ex = (name, sets, reps, load, rest_s, note) => ({ kind: "exercise", name, sets, reps, load, rest_s, ...(note ? { note } : {}) });
+const S = (blocks) => ({ v: 1, blocks });
+
+const ZONE_PACE = { 1: 390, 2: 345, 3: 310, 4: 285, 5: 260 };
+/** Rough duration/distance estimate (the frontend has its own, richer estimator). */
+export function estimate(sport, structure) {
+  let s = 0, m = 0;
+  const per = sport === "swim" ? 120 / 100 : 1 / 1000; // seconds per meter factor base
+  const speedOf = (t) => {
+    if (sport === "swim") return t && t.type === "pace" ? (t.min_s + t.max_s) / 2 / 100 : 1.25;
+    if (t && t.type === "pace") return (t.min_s + t.max_s) / 2 / 1000;
+    if (t && t.type === "zone") return ZONE_PACE[t.zone] / 1000;
+    return 330 / 1000;
+  };
+  const walk = (blocks, mult) => {
+    for (const b of blocks) {
+      if (b.kind === "repeat") walk(b.steps, mult * b.count);
+      else if (b.kind === "exercise") s += mult * b.sets * (45 + (b.rest_s || 60));
+      else if (b.duration.type === "time") { s += mult * b.duration.s; if (sport === "run" || sport === "swim") m += (mult * b.duration.s) / speedOf(b.target); }
+      else if (b.duration.type === "distance") { m += mult * b.duration.m; s += mult * b.duration.m * speedOf(b.target); }
+      else s += mult * 300;
+    }
+  };
+  walk(structure.blocks, 1);
+  void per;
+  return { est_duration_s: Math.round(s / 60) * 60, est_distance_m: sport === "run" || sport === "swim" || sport === "bike" ? Math.round(m / 100) * 100 : null };
+}
+
+const LIB = {
+  easy6: ["run", "Rodagem leve 6 km", S([step("active", dist(6000), zone(2))]), ["base"]],
+  regen5: ["run", "Regenerativo 5 km", S([step("active", dist(5000), zone(1), { note: "Bem leve, conversando." })]), ["recuperação"]],
+  int6x1k: ["run", "Intervalado 6×1 km", S([step("warmup", time(600), zone(2)), rep(6, [step("active", dist(1000), pace(265, 275)), step("recovery", time(120), open, { note: "trote" })]), step("cooldown", time(600), zone(1))]), ["intervalado", "vo2"]],
+  int8x400: ["run", "Intervalado 8×400 m", S([step("warmup", time(900), zone(2)), rep(8, [step("active", dist(400), pace(235, 245)), step("recovery", time(90), open, { note: "trote" })]), step("cooldown", time(600), zone(1))]), ["intervalado", "velocidade"]],
+  fartlek: ["run", "Fartlek 40′", S([step("warmup", time(600), zone(2)), rep(8, [step("active", time(60), zone(5)), step("recovery", time(120), zone(2))]), step("cooldown", time(360), zone(1))]), ["fartlek"]],
+  tempo: ["run", "Tempo run 30′", S([step("warmup", time(600), zone(2)), step("active", time(1800), pace(280, 290)), step("cooldown", time(600), zone(1))]), ["limiar"]],
+  long: ["run", "Longão 18 km", S([step("active", dist(18000), zone(2), { note: "Hidratação a cada 5 km." })]), ["longão"]],
+  prog10: ["run", "Progressivo 10 km", S([step("active", dist(4000), zone(2)), step("active", dist(3000), zone(3)), step("active", dist(3000), zone(4))]), ["progressivo"]],
+  test5k: ["run", "Teste de 5 km", S([step("warmup", time(900), zone(2)), step("active", dist(5000), { type: "rpe", value: 9 }, { note: "Forte e constante." }), step("cooldown", time(600), zone(1))]), ["teste"]],
+  forcaA: ["strength", "Força A: inferiores", S([ex("Agachamento livre", 4, "8", { type: "pct_1rm", value: 70 }, 90), ex("Levantamento terra romeno", 3, "10", { type: "kg", value: 40 }, 90), ex("Afundo alternado", 3, "12", { type: "bodyweight" }, 60), ex("Panturrilha em pé", 4, "15", { type: "bodyweight" }, 45)]), ["força"]],
+  forcaB: ["strength", "Força B: superiores e core", S([ex("Supino com halteres", 4, "8-10", { type: "kg", value: 14 }, 90), ex("Remada curvada", 4, "10", { type: "kg", value: 30 }, 90), ex("Prancha", 3, "45 s", { type: "bodyweight" }, 45), ex("Elevação pélvica", 3, "12", { type: "kg", value: 40 }, 60)]), ["força", "core"]],
+  mob: ["mobility", "Mobilidade 20′", S([step("other", time(1200), open, { note: "Quadril, tornozelo e coluna torácica." })]), ["mobilidade"]],
+  swimTech: ["swim", "Técnica de crawl 2.000 m", S([step("warmup", dist(300), open, { stroke: "free" }), rep(8, [step("active", dist(50), open, { stroke: "drill", note: "Educativo: polegar na coxa" })]), rep(6, [step("active", dist(100), zone(2), { stroke: "free", send_off_s: 120 })]), step("cooldown", dist(200), open, { stroke: "choice" })]), ["técnica"]],
+  swim10x100: ["swim", "Séries 10×100 m", S([step("warmup", dist(400), open, { stroke: "free" }), rep(10, [step("active", dist(100), pace(95, 100), { stroke: "free", send_off_s: 120, equipment: ["paddles"] })]), step("cooldown", dist(200), open, { stroke: "back" })]), ["séries"]],
+};
+
+// ---------------------------------------------------------------- generate
+export function generate(anchor) {
+  const rand = prng(20261103);
+  const r = (a, b) => a + Math.floor(rand() * (b - a + 1));
+  const pick = (arr) => arr[Math.floor(rand() * arr.length)];
+  const W0 = mondayOf(anchor);
+  const T = {};
+  const t = (name) => (T[name] ||= []);
+  const createdLongAgo = at(addDays(W0, -70), "10:00");
+
+  // ---- users
+  const U = {};
+  const person = (key, name, email, extra = {}) => {
+    const row = { id: uuid("user:" + key), email, name, avatar_url: null, phone: null, birth_date: null, sex: null, locale: "pt-BR", created_at: createdLongAgo, updated_at: createdLongAgo, deleted_at: null, ...extra };
+    t("users").push(row);
+    t("auth_identities").push({ id: uuid("ident:" + key), user_id: row.id, provider: "google", subject: "google-" + key, email, created_at: createdLongAgo });
+    t("notification_prefs").push({ user_id: row.id, push_workouts: true, push_comments: true, push_classes: true, email_weekly: true, updated_at: createdLongAgo });
+    t("consents").push(
+      { id: uuid("consent:terms:" + key), user_id: row.id, club_id: null, kind: "terms", text_version: "2026-10", granted_at: createdLongAgo, revoked_at: null },
+      { id: uuid("consent:privacy:" + key), user_id: row.id, club_id: null, kind: "privacy", text_version: "2026-10", granted_at: createdLongAgo, revoked_at: null },
+    );
+    U[key] = row;
+    return row;
+  };
+  person("marcos", "Marcos Oliveira", "marcos@paceforte.com.br", { phone: "+5511987650001", birth_date: "1984-03-12", sex: "male" });
+  person("julia", "Júlia Santos", "julia@paceforte.com.br", { phone: "+5511987650002", birth_date: "1991-07-30", sex: "female" });
+  person("renata", "Renata Prado", "renata@equipemare.com.br", { phone: "+5513991230001", birth_date: "1979-11-02", sex: "female" });
+  const PF_STUDENTS = [
+    ["ana", "Ana Souza", "female", "1993-05-21", "42k", "advanced", 270, 186, "marathon"],
+    ["bruno", "Bruno Lima", "male", "1988-09-14", "21k", "intermediate", 300, 182, "marathon"],
+    ["carla", "Carla Mendes", "female", "1990-01-08", "10k", "intermediate", 330, 190, "strength"],
+    ["diego", "Diego Rocha", "male", "1985-12-03", "42k", "advanced", 275, 178, "marathon"],
+    ["elisa", "Elisa Martins", "female", "1998-04-17", "5k", "beginner", 400, 194, "beginner"],
+    ["felipe", "Felipe Costa", "male", "1995-08-25", "health", "beginner", 380, 189, "beginner"],
+    ["gabriela", "Gabriela Alves", "female", "1987-02-11", "10k", "beginner", 370, 183, "beginner"],
+    ["henrique", "Henrique Dias", "male", "1982-06-29", "21k", "intermediate", 305, 176, "marathon"],
+    ["isabela", "Isabela Freitas", "female", "1996-10-05", "health", "intermediate", 345, 191, "strength"],
+  ];
+  for (const [k, name, sex, bd] of PF_STUDENTS) person(k, name, `${k}.${name.split(" ")[1].toLowerCase()}@email.com`, { sex, birth_date: bd, phone: "+55119" + String(r(10000000, 99999999)) });
+  const MARE_STUDENTS = [["lucas", "Lucas Ferreira", "male"], ["marina", "Marina Ribeiro", "female"], ["rafael", "Rafael Gomes", "male"], ["sofia", "Sofia Carvalho", "female"], ["tiago", "Tiago Nunes", "male"]];
+  for (const [k, name, sex] of MARE_STUDENTS) person(k, name, `${k}.${name.split(" ")[1].toLowerCase()}@email.com`, { sex });
+
+  // ---- clubs, branding, subscriptions
+  const club = (key, row, colors, sub) => {
+    const c = { id: uuid("club:" + key), timezone: "America/Sao_Paulo", created_at: createdLongAgo, updated_at: createdLongAgo, deleted_at: null, ...row };
+    t("clubs").push(c);
+    const th = themeFor(colors[0], colors[1]);
+    t("club_branding").push({ club_id: c.id, primary_color: colors[0], secondary_color: colors[1], logo_asset_id: null, theme_rev: 3, engine_version: 1, ...th, updated_at: createdLongAgo });
+    t("club_subscriptions").push({ club_id: c.id, stripe_customer_id: null, stripe_subscription_id: null, current_period_end: null, cancel_at_period_end: false, updated_at: createdLongAgo, ...sub });
+    return c;
+  };
+  const PF = club("paceforte", { slug: "paceforte", name: "Pace Forte Assessoria", city: "São Paulo", state: "SP", modalities: ["run", "strength", "mobility"], trainer_label: "treinador", subdomain: null }, ["#D62828", "#FFB703"], { plan: "free", status: "active", student_limit: 10 });
+  const MARE = club("mare", { slug: "equipemare", name: "Equipe Maré Natação", city: "Santos", state: "SP", modalities: ["swim"], trainer_label: "professor", subdomain: "equipemare" }, ["#0096C7", null], { plan: "pro", status: "active", student_limit: 100, stripe_customer_id: "cus_mock_mare", stripe_subscription_id: "sub_mock_mare", current_period_end: at(addDays(anchor, 18), "00:00") });
+  for (let i = 3; i >= 1; i--) {
+    const start = addDays(anchor, 18 - 30 * (i + 1)), end = addDays(anchor, 18 - 30 * i);
+    t("invoices").push({ id: uuid("inv:mare:" + i), club_id: MARE.id, stripe_invoice_id: "in_mock_mare_" + i, amount_cents: 2000, currency: "BRL", status: "paid", period_start: at(start, "00:00"), period_end: at(end, "00:00"), hosted_url: null, created_at: at(start, "09:00") });
+  }
+
+  // ---- memberships, consents, groups
+  const M = {};
+  const member = (clubRow, ukey, role, extra = {}) => {
+    const row = { id: uuid(`m:${clubRow.slug}:${ukey}`), club_id: clubRow.id, user_id: U[ukey].id, role, status: "active", is_billing_owner: false, joined_at: at(addDays(W0, -60 + r(0, 30)), "12:00"), left_at: null, ...extra };
+    t("memberships").push(row);
+    M[`${clubRow.slug}:${ukey}`] = row;
+    if (role === "student") t("consents").push({ id: uuid(`consent:share:${clubRow.slug}:${ukey}`), user_id: U[ukey].id, club_id: clubRow.id, kind: "share_training_data", text_version: "2026-10", granted_at: row.joined_at, revoked_at: null });
+    return row;
+  };
+  member(PF, "marcos", "owner", { is_billing_owner: true, joined_at: createdLongAgo });
+  member(PF, "julia", "trainer");
+  for (const s of PF_STUDENTS) member(PF, s[0], "student");
+  member(MARE, "renata", "owner", { is_billing_owner: true, joined_at: createdLongAgo });
+  member(MARE, "ana", "student");
+  for (const s of MARE_STUDENTS) member(MARE, s[0], "student");
+  M["paceforte:isabela"].joined_at = at(addDays(anchor, -2), "19:12");
+
+  const group = (key, name, description, keys) => {
+    const g = { id: uuid("group:" + key), club_id: PF.id, name, description, created_at: createdLongAgo };
+    t("groups").push(g);
+    for (const k of keys) t("group_members").push({ group_id: g.id, membership_id: M["paceforte:" + k].id, added_at: createdLongAgo });
+  };
+  group("maratona", "Maratona SP 2027", "Preparação para a Maratona de São Paulo.", ["ana", "bruno", "diego", "henrique"]);
+  group("iniciantes", "Iniciantes", "Primeiros 5 e 10 km.", ["elisa", "felipe", "gabriela"]);
+  group("forca", "Força e corrida", "Corrida + musculação.", ["bruno", "carla", "isabela"]);
+
+  // ---- invitations
+  const inv = (key, clubRow, role, by, extra = {}) => t("invitations").push({ id: uuid("inv:" + key), club_id: clubRow.id, role, token: key, email: null, created_by: by, max_uses: null, uses: 0, expires_at: null, revoked_at: null, created_at: createdLongAgo, ...extra });
+  inv("pf-alunos", PF, "student", M["paceforte:marcos"].id, { uses: 9 });
+  inv("pf-treinadores", PF, "trainer", M["paceforte:marcos"].id, { uses: 1, max_uses: 3 });
+  inv("mare-alunos", MARE, "student", M["equipemare:renata"].id, { uses: 6 });
+
+  // ---- athlete profiles + zones
+  for (const [k, , , , goal, level, thr, maxhr] of PF_STUDENTS) {
+    const m = M["paceforte:" + k];
+    t("athlete_profiles").push({ membership_id: m.id, goal, goal_date: goal === "42k" ? "2027-06-06" : null, level, weekly_sessions: level === "beginner" ? 3 : 5, max_hr: maxhr, resting_hr: r(48, 62), threshold_pace_s_per_km: thr, css_s_per_100m: null, ftp_w: null, recent_race: level === "beginner" ? null : { distance_m: 10000, time_s: Math.round(thr * 10 * 1.04), date: addDays(W0, -40) }, trainer_notes: k === "carla" ? "Plantões no hospital: evitar treinos fortes às segundas." : null, updated_at: createdLongAgo });
+    const f = [1.3, 1.17, 1.08, 1.0, 0.94];
+    t("zones").push({ id: uuid("zones:pace:" + k), membership_id: m.id, kind: "pace", source: level === "beginner" ? "estimated" : "race", bounds: f.map((x, i) => ({ zone: i + 1, min: Math.round(thr * (f[i + 1] || 0.85)), max: Math.round(thr * x) })), valid_from: addDays(W0, -40), created_by: M["paceforte:marcos"].id, created_at: createdLongAgo });
+    const hrf = [0.6, 0.7, 0.8, 0.9, 1.0];
+    t("zones").push({ id: uuid("zones:hr:" + k), membership_id: m.id, kind: "hr", source: "estimated", bounds: hrf.map((x, i) => ({ zone: i + 1, min: Math.round(maxhr * (hrf[i - 1] || 0.5)), max: Math.round(maxhr * x) })), valid_from: addDays(W0, -40), created_by: M["paceforte:marcos"].id, created_at: createdLongAgo });
+  }
+  t("athlete_profiles").push({ membership_id: M["equipemare:ana"].id, goal: "swim", goal_date: null, level: "intermediate", weekly_sessions: 2, max_hr: 186, resting_hr: 52, threshold_pace_s_per_km: null, css_s_per_100m: 98, ftp_w: null, recent_race: null, trainer_notes: null, updated_at: createdLongAgo });
+
+  // ---- library
+  const TPL = {};
+  const tpl = (key, clubRow, author) => {
+    const [sport, name, structure, tags] = LIB[key];
+    const row = { id: uuid(`tpl:${clubRow.slug}:${key}`), club_id: clubRow.id, author_membership_id: author, sport, name, description: null, structure, ...estimate(sport, structure), tags, created_at: createdLongAgo, updated_at: createdLongAgo, archived_at: null };
+    t("workout_templates").push(row);
+    TPL[key] = row;
+  };
+  for (const k of ["easy6", "regen5", "int6x1k", "int8x400", "fartlek", "tempo", "long", "prog10", "test5k", "forcaA", "forcaB", "mob"]) tpl(k, PF, M["paceforte:marcos"].id);
+  for (const k of ["swimTech", "swim10x100"]) tpl(k, MARE, M["equipemare:renata"].id);
+
+  // ---- planilha
+  const plan = { id: uuid("plan:base10k"), club_id: PF.id, author_membership_id: M["paceforte:marcos"].id, name: "Base 10 km: 8 semanas", description: "Do zero aos 10 km com segurança.", weeks: 8, created_at: createdLongAgo, updated_at: createdLongAgo, archived_at: null };
+  t("training_plans").push(plan);
+  for (let w = 1; w <= 8; w++) for (const [wd, key] of [[2, "regen5"], [4, w % 2 ? "fartlek" : "tempo"], [6, "easy6"]]) {
+    const [sport, title, structure] = LIB[key];
+    t("training_plan_items").push({ id: uuid(`pi:${w}:${wd}`), plan_id: plan.id, week: w, weekday: wd, template_id: TPL[key].id, sport, title, structure, ...estimate(sport, structure), notes: null });
+  }
+
+  // ---- connections
+  const strava = new Set(["ana", "bruno", "diego"]);
+  for (const k of strava) {
+    t("provider_connections").push({ id: uuid("conn:strava:" + k), user_id: U[k].id, provider: "strava", external_user_id: String(r(1000000, 9999999)), athlete_name: U[k].name, access_token_enc: null, refresh_token_enc: null, scopes: ["read", "activity:read_all"], token_expires_at: null, status: "active", connected_at: createdLongAgo, last_sync_at: at(anchor, "07:41") });
+    t("consents").push({ id: uuid("consent:strava:" + k), user_id: U[k].id, club_id: PF.id, kind: "share_strava", text_version: "2026-10", granted_at: createdLongAgo, revoked_at: null });
+  }
+
+  // ---- planned workouts, completions, activities
+  const WEEK_PATTERNS = {
+    marathon: (w) => ({ 2: w % 2 ? "int6x1k" : "int8x400", 3: "easy6", 4: "tempo", 6: "long", 7: "regen5" }),
+    beginner: (w) => ({ 2: "regen5", 4: "fartlek", 6: w % 2 ? "easy6" : "regen5" }),
+    strength: () => ({ 1: "forcaA", 3: "easy6", 5: "forcaB", 6: "prog10" }),
+  };
+  const RELIABILITY = { ana: 0.95, bruno: 0.85, carla: 0.55, diego: 0.9, elisa: 0.8, felipe: 0.7, gabriela: 0.85, henrique: 0.8, isabela: 0.75 };
+  const FEEL = ["great", "good", "good", "ok", "bad"];
+  const COMMENTS = ["Tiros encaixaram bem!", "Calor demais hoje, segurei o ritmo.", "Senti a panturrilha no final.", "Ótimo treino, terminei forte.", "Dormi mal, foi difícil.", "Consegui manter o pace o tempo todo."];
+  const PW = {};
+  const addPlanned = (clubRow, mkey, ukey, date, key, created_by, overrides = {}) => {
+    const [sport, baseTitle, structure] = LIB[key];
+    let title = baseTitle, st = structure;
+    if (key === "long") {
+      const km = 14 + ((Math.round((parseDate(date) - parseDate(W0)) / DAY / 7) + 6) % 4) * 2;
+      title = `Longão ${km} km`;
+      st = S([step("active", dist(km * 1000), zone(2), { note: "Hidratação a cada 5 km." })]);
+    }
+    const row = { id: uuid(`pw:${mkey}:${date}:${key}`), club_id: clubRow.id, athlete_membership_id: M[mkey].id, date, position: 0, sport, title, structure: st, notes: null, ...estimate(sport, st), template_id: TPL[key] ? TPL[key].id : null, plan_assignment_id: null, created_by, created_at: at(addDays(date, -7), "20:00"), updated_at: at(addDays(date, -7), "20:00"), ...overrides };
+    t("planned_workouts").push(row);
+    PW[`${ukey}:${date}`] = row;
+    return { row, ukey };
+  };
+  const complete = (pw, ukey, status, opts = {}) => {
+    const p = pw;
+    const f = status === "partial" ? 0.6 + rand() * 0.2 : 0.95 + rand() * 0.1;
+    let activity = null;
+    if (status !== "missed" && status !== "skipped") {
+      const dur = Math.round((p.est_duration_s || 2400) * f);
+      const dm = p.est_distance_m ? Math.round(p.est_distance_m * f) : null;
+      const intense = /Intervalado|Tempo|Teste|Fartlek|Progressivo/.test(p.title);
+      const hhmm = opts.hhmm || (rand() < 0.6 ? "06:" + String(r(10, 45)).padStart(2, "0") : "18:" + String(r(15, 50)).padStart(2, "0"));
+      const avgPace = dm ? Math.round(dur / (dm / 1000)) : null;
+      const recent = parseDate(p.date) >= parseDate(addDays(W0, -14));
+      activity = {
+        id: uuid("act:" + p.id), user_id: U[ukey].id, source: strava.has(ukey) ? "strava" : "manual", external_id: strava.has(ukey) ? String(r(10000000000, 19999999999)) : null,
+        sport: p.sport, name: p.title, started_at: at(p.date, hhmm), duration_s: dur, moving_time_s: Math.round(dur * 0.97), distance_m: dm,
+        elevation_gain_m: dm ? r(10, 90) : null, avg_hr: p.sport === "strength" || p.sport === "mobility" ? null : r(intense ? 158 : 138, intense ? 172 : 152), max_hr: p.sport === "run" ? r(170, 188) : null,
+        avg_pace_s_per_km: p.sport === "run" ? avgPace : null, avg_power_w: null, calories: Math.round(dur / 60 * (intense ? 12 : 9)),
+        laps: recent && p.sport === "run" && dm ? Array.from({ length: Math.floor(dm / 1000) }, () => ({ distance_m: 1000, duration_s: avgPace + r(-12, 12), avg_hr: r(135, 175) })) : null,
+        polyline: null, created_at: at(p.date, "10:00"),
+      };
+      t("activities").push(activity);
+    }
+    t("workout_completions").push({
+      planned_workout_id: p.id, activity_id: activity ? activity.id : null, status,
+      compliance_pct: status === "completed" ? r(90, 104) : status === "partial" ? r(55, 80) : 0,
+      rpe: activity ? (/Intervalado|Tempo|Teste/.test(p.title) ? r(7, 9) : r(3, 6)) : null,
+      feeling: activity ? pick(FEEL) : null, comment: opts.comment !== undefined ? opts.comment : rand() < 0.25 && activity ? pick(COMMENTS) : null,
+      completed_at: activity ? activity.started_at : at(p.date, "23:00"), updated_at: activity ? activity.started_at : at(p.date, "23:00"),
+    });
+  };
+  for (const [k, , , , , , , , pattern] of PF_STUDENTS) {
+    for (let w = -4; w <= 1; w++) {
+      const days = WEEK_PATTERNS[pattern](w + 10);
+      for (const [wd, key] of Object.entries(days)) {
+        const date = addDays(W0, w * 7 + Number(wd) - 1);
+        const by = k === "carla" || k === "isabela" ? M["paceforte:julia"].id : M["paceforte:marcos"].id;
+        const { row } = addPlanned(PF, "paceforte:" + k, k, date, key, by);
+        if (date < anchor) {
+          const x = rand();
+          const rel = RELIABILITY[k];
+          complete(row, k, x < rel ? "completed" : x < rel + (1 - rel) / 2 ? "partial" : "missed");
+        }
+      }
+    }
+  }
+  // Today's story: Ana's intervals are pending; Bruno already trained this morning.
+  const today = anchor;
+  if (!PW["ana:" + today]) addPlanned(PF, "paceforte:ana", "ana", today, "int6x1k", M["paceforte:marcos"].id);
+  PW["ana:" + today].notes = "Foco nos últimos três tiros: braço solto e passada curta.";
+  if (PW["bruno:" + today]) complete(PW["bruno:" + today], "bruno", "completed", { hhmm: "06:20", comment: "Tiros saíram mais fáceis que semana passada!" });
+  // Ana's swim prescriptions at Maré
+  for (let w = -2; w <= 1; w++) for (const [wd, key] of [[1, "swimTech"], [3, "swim10x100"]]) {
+    const date = addDays(W0, w * 7 + wd - 1);
+    const { row } = addPlanned(MARE, "equipemare:ana", "ana", date, key, M["equipemare:renata"].id);
+    if (date < anchor) complete(row, "ana", "completed", { hhmm: "07:05" });
+  }
+
+  // ---- threads
+  const comment = (pw, mkey, body, when) => t("comments").push({ id: uuid(`c:${pw.id}:${when}`), planned_workout_id: pw.id, author_membership_id: M[mkey].id, body, created_at: when, edited_at: null, deleted_at: null });
+  const lastTue = PW["ana:" + addDays(W0, -6)];
+  if (lastTue) {
+    comment(lastTue, "paceforte:ana", "Os três últimos tiros ficaram mais lentos, senti a panturrilha.", at(lastTue.date, "08:02"));
+    comment(lastTue, "paceforte:marcos", "Normal nessa fase. Amanhã faz o regenerativo bem leve e alonga a panturrilha.", at(lastTue.date, "12:30"));
+    t("thread_reads").push({ membership_id: M["paceforte:marcos"].id, planned_workout_id: lastTue.id, last_read_at: at(lastTue.date, "12:31") }, { membership_id: M["paceforte:ana"].id, planned_workout_id: lastTue.id, last_read_at: at(lastTue.date, "12:40") });
+  }
+  const carlaMissed = t("planned_workouts").filter((p) => p.athlete_membership_id === M["paceforte:carla"].id && p.date < anchor).slice(-1)[0];
+  if (carlaMissed) {
+    const c = t("workout_completions").find((x) => x.planned_workout_id === carlaMissed.id);
+    if (c) Object.assign(c, { status: "missed", activity_id: null, compliance_pct: 0, rpe: null, feeling: null });
+    comment(carlaMissed, "paceforte:carla", "Não consegui treinar, plantão no hospital. Posso compensar amanhã?", at(addDays(anchor, -1), "21:14"));
+  }
+  if (PW["bruno:" + today]) comment(PW["bruno:" + today], "paceforte:bruno", "Tiros saíram mais fáceis que semana passada!", at(today, "07:02"));
+
+  // ---- scheduling
+  const loc = (key, clubRow, name, kind, address, lanes = null) => { const row = { id: uuid("loc:" + key), club_id: clubRow.id, name, kind, address, lanes, created_at: createdLongAgo, archived_at: null }; t("locations").push(row); return row; };
+  const ibira = loc("ibira", PF, "Pista do Ibirapuera", "track", "Av. Pedro Álvares Cabral, São Paulo");
+  loc("villalobos", PF, "Parque Villa-Lobos", "park", "Av. Prof. Fonseca Rodrigues, 2001, São Paulo");
+  const estudio = loc("estudio", PF, "Estúdio Pace Forte", "studio", "R. Harmonia, 520, São Paulo");
+  const piscina = loc("piscina", MARE, "Piscina Sesc Santos", "pool", "Av. Conselheiro Ribas, 136, Santos", 6);
+  const ctype = (key, clubRow, name, sport, cap, dur, description) => { const row = { id: uuid("ct:" + key), club_id: clubRow.id, name, sport, description, default_capacity: cap, duration_min: dur, created_at: createdLongAgo, archived_at: null }; t("class_types").push(row); return row; };
+  const pista = ctype("pista", PF, "Treino coletivo de pista", "run", 25, 75, "Educativos + série principal em grupo.");
+  const funcional = ctype("funcional", PF, "Funcional para corredores", "strength", 12, 50, "Força, estabilidade e mobilidade.");
+  const natIni = ctype("natini", MARE, "Natação adulto: iniciante", "swim", 8, 45, "Adaptação e técnica básica.");
+  const natAv = ctype("natav", MARE, "Natação adulto: avançado", "swim", 10, 60, "Séries de volume e intensidade.");
+  const schedule = (key, clubRow, ct, location, instructor, weekday, start) => { const row = { id: uuid("cs:" + key), club_id: clubRow.id, class_type_id: ct.id, location_id: location.id, instructor_membership_id: instructor, weekday, start_time: start, duration_min: ct.duration_min, capacity: ct.default_capacity, valid_from: addDays(W0, -56), valid_until: null, created_at: createdLongAgo }; t("class_schedules").push(row); return row; };
+  const scheds = [
+    schedule("pf-pista-ter", PF, pista, ibira, M["paceforte:marcos"].id, 2, "06:30"),
+    schedule("pf-pista-qui", PF, pista, ibira, M["paceforte:julia"].id, 4, "06:30"),
+    schedule("pf-func-seg", PF, funcional, estudio, M["paceforte:julia"].id, 1, "19:00"),
+    schedule("pf-func-qua", PF, funcional, estudio, M["paceforte:julia"].id, 3, "19:00"),
+    schedule("mare-ini-seg", MARE, natIni, piscina, M["equipemare:renata"].id, 1, "07:00"),
+    schedule("mare-ini-qua", MARE, natIni, piscina, M["equipemare:renata"].id, 3, "07:00"),
+    schedule("mare-av-ter", MARE, natAv, piscina, M["equipemare:renata"].id, 2, "19:30"),
+    schedule("mare-av-qui", MARE, natAv, piscina, M["equipemare:renata"].id, 4, "19:30"),
+  ];
+  const pfStudents = PF_STUDENTS.map((s) => "paceforte:" + s[0]);
+  const mareStudents = ["ana", ...MARE_STUDENTS.map((s) => s[0])].map((k) => "equipemare:" + k);
+  for (let w = -1; w <= 2; w++) for (const sc of scheds) {
+    const date = addDays(W0, w * 7 + sc.weekday - 1);
+    const end = new Date(new Date(at(date, sc.start_time)).getTime() + sc.duration_min * 60000).toISOString();
+    const s = { id: uuid(`sess:${sc.id}:${date}`), club_id: sc.club_id, class_type_id: sc.class_type_id, schedule_id: sc.id, location_id: sc.location_id, instructor_membership_id: sc.instructor_membership_id, starts_at: at(date, sc.start_time), ends_at: end, capacity: sc.capacity, status: "scheduled", notes: null, checkin_code: uuid("code:" + sc.id + date).slice(0, 6).toUpperCase(), created_at: createdLongAgo };
+    t("class_sessions").push(s);
+    const pool = sc.club_id === PF.id ? pfStudents : mareStudents;
+    const full = sc.id === uuid("cs:mare-ini-qua") && date > anchor && w === 0;
+    const n = full ? pool.length : Math.min(pool.length, r(2, Math.max(3, pool.length - 2)));
+    const chosen = full ? pool : pool.slice().sort(() => rand() - 0.5).slice(0, n);
+    chosen.forEach((mk, i) => {
+      const past = date < anchor;
+      const waitlisted = !past && i >= s.capacity;
+      t("bookings").push({ id: uuid(`bk:${s.id}:${mk}`), session_id: s.id, membership_id: M[mk].id, status: past ? (rand() < 0.85 ? "attended" : "no_show") : waitlisted ? "waitlisted" : "booked", waitlist_position: waitlisted ? i - s.capacity + 1 : null, checked_in_at: past ? s.starts_at : null, created_at: at(addDays(date, -2), "12:00"), updated_at: at(addDays(date, -2), "12:00") });
+    });
+    if (full) s.capacity = 4; // Wednesday's beginner swim: full with a waitlist
+  }
+  // Fix waitlist for the capacity change above
+  for (const s of t("class_sessions")) {
+    const bs = t("bookings").filter((b) => b.session_id === s.id && (b.status === "booked" || b.status === "waitlisted"));
+    bs.forEach((b, i) => { b.status = i < s.capacity ? "booked" : "waitlisted"; b.waitlist_position = i < s.capacity ? null : i - s.capacity + 1; });
+  }
+
+  // ---- notifications
+  const note = (ukey, clubRow, kind, title, body, link, when, read = false) => t("notifications").push({ id: uuid(`n:${ukey}:${kind}:${when}`), user_id: U[ukey].id, club_id: clubRow ? clubRow.id : null, kind, title, body, link, read_at: read ? when : null, created_at: when });
+  note("ana", PF, "workout_assigned", "Novo treino para hoje", "Intervalado 6×1 km", `/treinos/${PW["ana:" + today].id}`, at(addDays(today, -1), "20:00"));
+  if (lastTue) note("ana", PF, "comment", "Marcos comentou no seu treino", "Normal nessa fase. Amanhã faz o regenerativo bem leve…", `/treinos/${lastTue.id}`, at(lastTue.date, "12:30"), true);
+  note("ana", MARE, "class_reminder", "Natação amanhã às 07:00", "Natação adulto: iniciante · Piscina Sesc Santos", "/aulas", at(today, "18:00"));
+  if (carlaMissed) note("marcos", PF, "feedback", "Carla Mendes deixou um comentário", "Não consegui treinar, plantão no hospital…", `/feedbacks`, at(addDays(anchor, -1), "21:14"));
+  note("marcos", PF, "member_joined", "Isabela Freitas entrou no clube", null, "/alunos", at(addDays(anchor, -2), "19:12"), true);
+  note("marcos", PF, "billing", "9 de 10 alunos no plano Free", "Faça upgrade para o Pro e tenha até 100 alunos.", "/clube/plano", at(addDays(anchor, -2), "19:13"));
+
+  // empty tables (present so the mock and the check know them)
+  for (const k of ["email_codes", "sessions", "assets", "plan_assignments", "webhook_events", "push_tokens", "audit_log", "jobs"]) t(k);
+  return { meta: { anchor_date: anchor, generated_at: new Date().toISOString(), version: 1 }, ...T };
+}
+
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  const anchor = process.argv[2] || "2026-11-03";
+  const db = generate(anchor);
+  const out = join(dirname(fileURLToPath(import.meta.url)), "db.json");
+  writeFileSync(out, JSON.stringify(db, null, 1) + "\n");
+  const counts = Object.entries(db).filter(([k]) => k !== "meta").map(([k, v]) => `${k}=${v.length}`).join(" ");
+  console.log(`✓ wrote ${out} (anchor ${anchor})\n  ${counts}`);
+}

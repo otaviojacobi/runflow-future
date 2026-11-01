@@ -1,0 +1,9 @@
+node_modules/
+dist/
+!design/dist/
+*.local
+.env
+.env.*
+api/mock/.data/
+.DS_Store
+*.tsbuildinfo
