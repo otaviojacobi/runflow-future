@@ -1,3 +1,4 @@
+import Color from "@runflow/design/color";
 import { tokens } from "@runflow/design/tokens";
 import type { Branding, Club } from "@/api/types";
 import { initials } from "@/lib/format";
@@ -22,12 +23,15 @@ export function RunflowWordmark({ className }: { className?: string }) {
   );
 }
 /** Club logo: uploaded image, or initials on the club's primary color. */
-export function ClubLogo({ club, branding, size = 36, className }: { club: Pick<Club, "name">; branding?: Pick<Branding, "logo_url"> | null; size?: number; className?: string }) {
+export function ClubLogo({ club, branding, size = 36, className }: { club: Pick<Club, "name">; branding?: Pick<Branding, "logo_url"> | Branding | null; size?: number; className?: string }) {
   const style = { width: size, height: size };
   if (branding?.logo_url) return <img src={`/api${branding.logo_url}`} alt="" style={style} className={cn("shrink-0 rounded-[10px] bg-surface object-contain p-0.5 ring-1 ring-line", className)} />;
+  // Each club in its own primary color (the switcher lists several clubs at once); falls back to the active theme.
+  const primary = branding && "theme" in branding ? (branding as Branding).theme?.primary : undefined;
+  const own = primary ? { background: primary, color: Color.contrast(primary, tokens.palette.neutral["0"]) >= 4.5 ? tokens.palette.neutral["0"] : tokens.palette.neutral["950"] } : undefined;
   return (
-    <span aria-hidden style={{ ...style, fontSize: Math.round(size * 0.36) }}
-      className={cn("inline-grid shrink-0 place-items-center rounded-[10px] bg-brand font-display font-extrabold tracking-[-0.02em] text-on-brand ring-1 ring-inset ring-brand-edge [font-stretch:112%]", className)}>
+    <span aria-hidden style={{ ...style, ...own, fontSize: Math.round(size * 0.36) }}
+      className={cn("inline-grid shrink-0 place-items-center rounded-[10px] bg-brand font-display font-extrabold tracking-[-0.02em] text-on-brand ring-1 ring-inset ring-line [font-stretch:112%]", className)}>
       {initials(club.name)}
     </span>
   );
