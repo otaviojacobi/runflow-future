@@ -15,6 +15,8 @@ import { CreateClubScreen } from "./screens/onboarding/CreateClub";
 import { InviteScreen } from "./screens/onboarding/Invite";
 import { WelcomeScreen } from "./screens/onboarding/Welcome";
 import { Placeholder } from "./screens/Placeholder";
+import { StudentsScreen } from "./screens/staff/Students";
+import { MembersScreen } from "./screens/owner/Members";
 import { Toaster } from "./ui";
 
 /**
@@ -74,7 +76,7 @@ const S = () => staff, O = () => owner, St = () => student, Sh = () => shell;
 
 const staffRoutes = [
   r(S, "/painel", todo("Painel", "F13")),
-  r(S, "/alunos", todo("Alunos", "F6")),
+  r(S, "/alunos", StudentsScreen),
   r(S, "/alunos/$id", todo("Aluno", "F11")),
   r(S, "/planejamento", todo("Planejamento", "F9")),
   r(S, "/biblioteca", todo("Biblioteca", "F8")),
@@ -87,7 +89,7 @@ const staffRoutes = [
 ];
 const ownerRoutes = [
   r(O, "/clube/estudio", todo("Club Studio", "F16")),
-  r(O, "/clube/membros", todo("Membros e convites", "F6")),
+  r(O, "/clube/membros", MembersScreen),
   r(O, "/clube/configuracoes", todo("Configurações do clube", "F16")),
   r(O, "/clube/plano", todo("Plano e cobrança", "F17")),
 ];

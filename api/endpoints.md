@@ -80,7 +80,7 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | POST | `/invites/{token}/accept` | Join the club → membership | A3 |
 | GET / POST | `/clubs/{club_id}/invites` | List / create invite links (role, max_uses, expires_at); each has `url` | A5, O2 |
 | DELETE | `/clubs/{club_id}/invites/{id}` | Revoke | O2 |
-| GET | `/clubs/{club_id}/members?role&q&status` | Members with role and status | O2 |
+| GET | `/clubs/{club_id}/members?role&q&status` | `{membership, user, group_ids}` (role may be a list: `trainer,owner`) | O2 |
 | PATCH / DELETE | `/clubs/{club_id}/members/{membership_id}` | Change role or status / remove | O2 |
 | GET / POST | `/clubs/{club_id}/groups` · PATCH / DELETE `/groups/{id}` · PUT `/groups/{id}/members` `{membership_ids}` | Groups | W2 |
 | POST | `/clubs/{club_id}/leave` | Leave a club | C1 |
@@ -89,7 +89,7 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
 | GET | `/clubs/{club_id}/dashboard?date` | Today's counts, who trained or missed, unread feedback, upcoming classes | W1 |
-| GET | `/clubs/{club_id}/athletes?q&group_id` | Students + compliance (28 d), last activity, groups, Strava/Garmin status | W2, W4 |
+| GET | `/clubs/{club_id}/athletes?q&group_id` | `{membership, user, group_ids, goal, level, compliance_pct (28 d, partial = ½), week: {planned, done}, last_activity_at (only with consent), strava: none\|private\|shared, shares_data}` | W2, W4 |
 | GET | `/clubs/{club_id}/athletes/{membership_id}` | Profile, zones, stats, recent workouts | W3 |
 | PUT | `/clubs/{club_id}/athletes/{membership_id}/profile` | Goal, level, physiology, trainer notes | W3 |
 | GET / PUT | `/clubs/{club_id}/my/profile` | Student's own profile: goal, goal_date, level, weekly_sessions, recent_race, HR (a race result estimates the threshold pace) | A4, M7 |

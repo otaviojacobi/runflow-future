@@ -63,3 +63,11 @@ export interface Connection { id: ID; provider: "strava" | "garmin"; athlete_nam
 export interface ProviderStatus { provider: "strava" | "garmin"; available: boolean; connection: Connection | null }
 export type ConsentKind = "terms" | "privacy" | "share_training_data" | "share_strava" | "share_garmin";
 export interface Consent { id: ID; user_id: ID; club_id: ID | null; kind: ConsentKind; text_version: string; granted_at: ISOTime; revoked_at: ISOTime | null }
+
+export interface Member { membership: Membership; user: User; group_ids: ID[] }
+export interface Group { id: ID; club_id: ID; name: string; description: string | null; created_at: ISOTime; member_ids: ID[] }
+export interface AthleteSummary {
+  membership: Membership; user: User; group_ids: ID[]; goal: Goal | null; level: Level | null;
+  compliance_pct: number | null; week: { planned: number; done: number }; last_activity_at: ISOTime | null;
+  strava: "none" | "private" | "shared"; shares_data: boolean;
+}
