@@ -1,4 +1,4 @@
-import { createRootRouteWithContext, createRoute, createRouter, Outlet, redirect } from "@tanstack/react-router";
+import { createRootRouteWithContext, createRoute, createRouter, lazyRouteComponent, Outlet, redirect } from "@tanstack/react-router";
 import type { QueryClient } from "@tanstack/react-query";
 import { fetchMe, meKey } from "./api/me";
 import type { Role } from "./api/types";
@@ -27,7 +27,7 @@ import { Toaster } from "./ui";
 const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: () => (<><Outlet /><Toaster /></>) });
 const ensureMe = (qc: QueryClient) => qc.ensureQueryData({ queryKey: meKey, queryFn: fetchMe });
 const todo = (title: string, step: string) => () => <Placeholder title={t(title)} step={step} />;
-const r = <P extends string>(parent: Parameters<typeof createRoute>[0]["getParentRoute"], path: P, component: () => React.ReactNode) =>
+const r = <P extends string>(parent: Parameters<typeof createRoute>[0]["getParentRoute"], path: P, component: unknown) =>
   createRoute({ getParentRoute: parent, path, component } as never);
 
 // ---------------------------------------------------------------- public
@@ -82,8 +82,8 @@ const staffRoutes = [
   r(S, "/alunos/$id", todo("Aluno", "F11")),
   r(S, "/planejamento", todo("Planejamento", "F9")),
   r(S, "/biblioteca", todo("Biblioteca", "F8")),
-  r(S, "/biblioteca/novo", todo("Novo treino", "F7")),
-  r(S, "/biblioteca/$id", todo("Editar treino", "F7")),
+  r(S, "/biblioteca/novo", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
+  r(S, "/biblioteca/$id", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
   r(S, "/planilhas", todo("Planilhas", "F14")),
   r(S, "/planilhas/$id", todo("Planilha", "F14")),
   r(S, "/feedbacks", todo("Feedbacks", "F12")),
