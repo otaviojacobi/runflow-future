@@ -1,0 +1,24 @@
+import { useMe } from "@/api/me";
+import type { Me, MembershipContext, Role } from "@/api/types";
+import { session } from "./session";
+import { applyClubTheme } from "./theme";
+
+/** The active club: the stored one if the user still belongs to it, else staff clubs first, else the first. */
+export function activeMembership(me: Me | undefined): MembershipContext | null {
+  if (!me?.memberships.length) return null;
+  const stored = session.clubId();
+  return me.memberships.find((m) => m.club.id === stored) ?? me.memberships.find((m) => m.membership.role !== "student") ?? me.memberships[0]!;
+}
+export function selectClub(m: MembershipContext | null) {
+  session.setClubId(m?.club.id ?? null);
+  applyClubTheme(m?.branding?.theme_css ?? null);
+}
+export function homeFor(role: Role | null | undefined): "/painel" | "/hoje" | "/clubes" {
+  return role === "owner" || role === "trainer" ? "/painel" : role === "student" ? "/hoje" : "/clubes";
+}
+/** Hook for screens inside the app shell: always has a club (the shell guarantees it). */
+export function useClub() {
+  const me = useMe();
+  const ctx = activeMembership(me.data);
+  return { me: me.data, ctx, club: ctx?.club, role: ctx?.membership.role, isStaff: ctx ? ctx.membership.role !== "student" : false, isOwner: ctx?.membership.role === "owner" };
+}

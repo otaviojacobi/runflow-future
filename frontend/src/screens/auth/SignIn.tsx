@@ -1,0 +1,157 @@
+/** A2 · Entrar: Google (mock chooser in dev) or a 6-digit code by e-mail. Route: /entrar */
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { ArrowLeft, CalendarCheck, Mail, Users, Zap } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { IS_MOCK, useEmailStart, useEmailVerify, useGoogleSignIn, useMockAccounts } from "@/api/auth";
+import type { Me } from "@/api/types";
+import { RunflowWordmark } from "@/components/brand";
+import { IntensityProfile } from "@/components/workout";
+import type { Structure } from "@/domain/workout";
+import { t } from "@/i18n";
+import { ApiError } from "@/lib/api";
+import { activeMembership, homeFor, selectClub } from "@/lib/club";
+import { Avatar, Button, Dialog, Field, Input, toast } from "@/ui";
+import { GoogleIcon } from "./GoogleIcon";
+
+const HERO: Structure = { v: 1, blocks: [
+  { kind: "step", intent: "warmup", duration: { type: "time", s: 600 }, target: { type: "zone", metric: "pace", zone: 2 } },
+  { kind: "repeat", count: 6, steps: [
+    { kind: "step", intent: "active", duration: { type: "distance", m: 1000 }, target: { type: "pace", min_s: 265, max_s: 275 } },
+    { kind: "step", intent: "recovery", duration: { type: "time", s: 120 }, target: { type: "open" } } ] },
+  { kind: "step", intent: "cooldown", duration: { type: "time", s: 600 }, target: { type: "zone", metric: "pace", zone: 1 } },
+] };
+const ROLE: Record<string, string> = { owner: "gestor(a)", trainer: "treinador(a)", student: "aluno(a)" };
+
+export function SignInScreen() {
+  const { redirect } = useSearch({ from: "/entrar" });
+  const navigate = useNavigate();
+  const [step, setStep] = useState<"start" | "code">("start");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
+  const [chooser, setChooser] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const start = useEmailStart();
+  const verify = useEmailVerify();
+  const google = useGoogleSignIn();
+  const accounts = useMockAccounts(chooser);
+  const codeRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!cooldown) return;
+    const id = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(id);
+  }, [cooldown]);
+
+  const done = (r: { me: Me; is_new: boolean }) => {
+    const m = activeMembership(r.me);
+    selectClub(m);
+    if (r.is_new) toast.success(t("Conta criada. Bem-vindo(a) ao Runflow!"));
+    navigate({ to: redirect && redirect.startsWith("/") ? redirect : homeFor(m?.membership.role), replace: true });
+  };
+  const sendCode = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    start.mutate(email, {
+      onSuccess: () => { setStep("code"); setCode(""); setCooldown(30); setTimeout(() => codeRef.current?.focus(), 50); },
+    });
+  };
+  const submitCode = (value: string) => verify.mutate({ email, code: value }, { onSuccess: done, onError: () => setCode("") });
+  const emailError = start.error instanceof ApiError ? start.error.fieldError("email") ?? start.error.detail : null;
+
+  return (
+    <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+      <aside data-theme="dark" className="relative hidden flex-col justify-between overflow-hidden bg-canvas p-12 text-fg lg:flex">
+        <RunflowWordmark />
+        <div className="grid max-w-md gap-8">
+          <h1 className="rf-text-display-lg">{t("Treinos que fluem.")}</h1>
+          <p className="rf-text-body-lg text-fg-muted">{t("Planilhas, aulas e o relógio do aluno no mesmo lugar, com a cara do seu clube.")}</p>
+          <div className="grid gap-3 rounded-xl border border-line bg-surface p-5">
+            <div className="flex items-center justify-between text-sm"><span className="font-semibold">Intervalado 6×1 km</span><span className="text-fg-muted">≈ 59 min</span></div>
+            <IntensityProfile structure={HERO} sport="run" height={56} />
+          </div>
+          <ul className="grid gap-3 text-fg-muted">
+            <li className="flex items-center gap-3"><Zap className="size-5 text-accent-text" />{t("Monte um treino em segundos, do jeito que você escreve.")}</li>
+            <li className="flex items-center gap-3"><CalendarCheck className="size-5 text-accent-text" />{t("O aluno treina e o Strava sincroniza sozinho.")}</li>
+            <li className="flex items-center gap-3"><Users className="size-5 text-accent-text" />{t("Grátis para até 10 alunos.")}</li>
+          </ul>
+        </div>
+        <p className="text-sm text-fg-subtle">runflow.club</p>
+      </aside>
+
+      <main className="flex flex-col px-5 py-8 sm:px-10">
+        <div className="lg:hidden"><RunflowWordmark /></div>
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 py-10">
+          {step === "start" ? (
+            <>
+              <div className="grid gap-2">
+                <h2 className="rf-text-display-sm">{t("Entrar no Runflow")}</h2>
+                <p className="text-fg-muted">{t("Use sua conta Google ou receba um código por e-mail. Sem senha para lembrar.")}</p>
+              </div>
+              <div className="grid gap-4">
+                <Button variant="secondary" size="lg" block icon={<GoogleIcon />} loading={google.isPending} onClick={() => setChooser(true)}>
+                  {t("Continuar com Google")}
+                </Button>
+                <div className="flex items-center gap-3 text-sm text-fg-subtle"><span className="h-px flex-1 bg-line" />{t("ou")}<span className="h-px flex-1 bg-line" /></div>
+                <form onSubmit={sendCode} className="grid gap-3" noValidate>
+                  <Field label={t("E-mail")} error={emailError}>
+                    {(id, d) => <Input id={id} aria-describedby={d} type="email" inputMode="email" autoComplete="email" placeholder="nome@email.com" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!emailError} required />}
+                  </Field>
+                  <Button type="submit" size="lg" block icon={<Mail />} loading={start.isPending}>{t("Receber código por e-mail")}</Button>
+                </form>
+              </div>
+              <p className="text-sm text-fg-muted">
+                {t("Ao continuar, você aceita os")} <a href="#" className="font-semibold text-brand-text underline-offset-2 hover:underline">{t("Termos de uso")}</a> {t("e a")} <a href="#" className="font-semibold text-brand-text underline-offset-2 hover:underline">{t("Política de privacidade")}</a>.
+              </p>
+            </>
+          ) : (
+            <>
+              <button onClick={() => setStep("start")} className="-ml-2 flex w-fit items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold text-fg-muted hover:bg-soft hover:text-fg"><ArrowLeft className="size-4" />{t("Usar outro e-mail")}</button>
+              <div className="grid gap-2">
+                <h2 className="rf-text-display-sm">{t("Digite o código")}</h2>
+                <p className="text-fg-muted">{t("Enviamos um código de 6 dígitos para {email}. Ele vale por 10 minutos.", { email })}</p>
+              </div>
+              <form onSubmit={(e) => { e.preventDefault(); submitCode(code); }} className="grid gap-3">
+                <Field label={t("Código")} error={verify.error instanceof ApiError ? verify.error.detail : null}>
+                  {(id, d) => (
+                    <Input id={id} ref={codeRef} aria-describedby={d} inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} invalid={verify.isError}
+                      className="h-14 text-center font-display text-[28px] font-bold tracking-[0.4em] [font-stretch:110%]"
+                      onChange={(e) => { const v = e.target.value.replace(/\D/g, "").slice(0, 6); setCode(v); if (v.length === 6) submitCode(v); }} />
+                  )}
+                </Field>
+                <Button type="submit" size="lg" block loading={verify.isPending} disabled={code.length !== 6}>{t("Entrar")}</Button>
+              </form>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-fg-muted">{t("Não recebeu?")}</span>
+                <Button variant="ghost" size="sm" disabled={cooldown > 0} loading={start.isPending} onClick={() => sendCode()}>
+                  {cooldown > 0 ? t("Reenviar em {s} s", { s: cooldown }) : t("Reenviar código")}
+                </Button>
+              </div>
+              {IS_MOCK && <p className="rounded-md bg-info-soft px-3 py-2 text-sm text-on-info-soft">{t("Modo de demonstração: o código é 000000.")}</p>}
+            </>
+          )}
+        </div>
+      </main>
+
+      <Dialog open={chooser} onOpenChange={setChooser} title={t("Escolha uma conta")} description={IS_MOCK ? t("Modo de demonstração: escolha um perfil para entrar. No app real, esta é a janela do Google.") : undefined} size="sm">
+        <ul className="-mx-2 grid gap-1">
+          {(accounts.data ?? []).map((a) => (
+            <li key={a.email}>
+              <button disabled={google.isPending} onClick={() => google.mutate(a.email, { onSuccess: (r) => { setChooser(false); done(r); } })}
+                className="flex w-full items-center gap-3 rounded-md px-2 py-2.5 text-left hover:bg-soft disabled:opacity-50">
+                <Avatar name={a.name} size={36} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{a.name}</span>
+                  <span className="block truncate text-sm text-fg-muted">{a.roles[0] ? `${t(ROLE[a.roles[0].role] ?? a.roles[0].role)} · ${a.roles[0].club}${a.roles.length > 1 ? " " + t("e mais {n}", { n: a.roles.length - 1 }) : ""}` : a.email}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+          {accounts.isPending && <li className="px-2 py-4 text-fg-muted">{t("Carregando contas…")}</li>}
+        </ul>
+        <form className="mt-4 flex gap-2 border-t border-line-subtle pt-4" onSubmit={(e) => { e.preventDefault(); const v = new FormData(e.currentTarget).get("email"); google.mutate(String(v), { onSuccess: (r) => { setChooser(false); done(r); } }); }}>
+          <Input name="email" type="email" placeholder={t("Outra conta: nome@gmail.com")} aria-label={t("Outra conta")} />
+          <Button type="submit" variant="secondary" loading={google.isPending}>{t("Entrar")}</Button>
+        </form>
+      </Dialog>
+    </div>
+  );
+}
