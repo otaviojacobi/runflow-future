@@ -110,14 +110,22 @@ Trainers see **all** students in their club (D-017). The owner is also a trainer
 
 | Tier | What the club gets |
 |---|---|
-| **Free** | Club name, logo and brand color (plus an optional accent). Shown inside Runflow on web and mobile to the club's members, on invite pages and in emails. |
+| **Free** | Club name, logo, and up to two colors (primary and an optional secondary). Shown inside Runflow on web and mobile to the club's members, on invite pages and in emails. |
 | **Pro** | Everything in Free, plus a **`<club>.runflow.club`** subdomain that opens straight into the club's themed Runflow. |
 
-How theming works (details in `design/`):
-- The club picks **one color**. The engine derives a full tonal scale and semantic roles (button fill, text on fill, text color, subtle backgrounds, borders, focus ring) for **light and dark mode**. It works in OKLCH and **guarantees WCAG contrast**.
-- The club's exact color is kept for fills whenever possible. Text on the fill switches to white or dark automatically. If white text would fail contrast, the Studio suggests a slightly darker variant.
-- Uploading a logo suggests a brand color from it. The Studio previews the result on a phone mockup and a desktop mockup before saving.
-- The same algorithm runs in the frontend (live preview), the mobile app (runtime theme), and the backend (injecting the theme into the HTML for a club's subdomain, so the page never flashes Runflow's colors). Golden test fixtures published by `design/` keep all three identical.
+How theming works (D-014; details in `design/`):
+
+| Club sets | Primary (*cor primária*): actions (buttons, active tab, links, focus) | Secondary (*cor secundária*): highlights (records, streaks, achievements) |
+|---|---|---|
+| nothing | Azul Flow (Runflow default) | Volt (Runflow default) |
+| one color | the club's color | derived: same hue, opposite lightness (e.g. red → light coral). A neutral primary (black, white, gray) gets Volt. |
+| two colors | the club's primary | the club's secondary |
+
+- For each of the two colors, the engine derives a tonal scale and semantic roles (fill, text on fill, text color, subtle backgrounds, borders, focus ring) for **light and dark mode**. It works in OKLCH and **guarantees WCAG contrast**.
+- The club's exact colors are kept for fills whenever possible. Text on a fill switches to white or dark automatically. If white text would fail on the primary, Club Studio suggests a slightly darker variant. If the secondary works better for buttons than the primary, it suggests swapping them.
+- Uploading a logo suggests the primary and secondary from it. The Studio previews the result on a phone and a desktop mockup before saving.
+- In code the two colors are the `brand` and `accent` tokens. "Secondary" is avoided as a token name because it already names the neutral secondary button.
+- The same engine runs in the frontend (live preview), the mobile app (runtime theme) and the backend (stored on save, injected into HTML). Golden fixtures from `design/` keep all three identical. How a saved theme reaches the screen without a flash of Runflow's colors: §7.8.
 
 ### 4.5 Onboarding flows
 
@@ -156,7 +164,7 @@ Auth is **Sign in with Google** or an **email one-time code**. There are no pass
 
 ### 4.7 Language, locale, glossary
 
-- **UI is pt-BR only at launch**, but i18n-ready from day one: no hardcoded UI strings. **Code, comments, commits and docs are in English.**
+- **Everything user-facing is pt-BR by default (D-013):** the apps, the design system pages, mocks, emails, push notifications and **every error message, including the ones the backend returns**. It is i18n-ready from day one: no hardcoded UI strings. **Internals are English:** code, comments, commits, logs, `root.md` and docs.
 - **Formats:** decimal comma (`10,2 km`), 24-hour time, `seg, 3 nov`, pace as `4:30 /km`, swim pace as `1:45 /100 m`, metric units. Each club has a timezone (default `America/Sao_Paulo`). Money is stored as integer centavos.
 - **Tone:** close, motivating and direct. Use "você" and sentence case. Buttons are verbs ("Salvar treino", "Enviar para o relógio"). Portuguese runs about 20–30% longer than English, so layouts must allow for it.
 
@@ -211,8 +219,8 @@ The design system lives in **`design/`**, a deliberately small package (§7.1). 
 7. **Light and dark mode from day one.** Athletes open the app at 5 a.m.
 
 **Initial identity** (a proposal, to be finalized in `design/` with a showcase page)
-- **Azul Flow `#4B4FE8`**: Runflow's default brand and the default "club theme". White text on it is 5.9:1.
-- **Volt `#CFF846`**: accent for highlights only (records, streaks, achievements, the logo mark). Never used for text.
+- **Azul Flow `#4B4FE8`**: Runflow's default primary color, used by clubs that set no colors. White text on it is 5.9:1.
+- **Volt `#CFF846`**: Runflow's default secondary color, for highlights only (records, streaks, achievements, the logo mark). Never used for text.
 - **Ink**: cool neutrals (hue ~265) from near-white to near-black. Status colors are success, warning, danger and info.
 - **Training zones Z1–Z5** follow the watch convention: gray `#9CACC1` → blue `#3496EF` → green `#3FC168` → orange `#F8962D` → red `#ED4042`. Data-viz only.
 - **Sports:** run `#955BE3`, swim `#00A2C5`, bike `#E3AE28`, strength `#DB428C`, mobility `#26B094`. Always shown with an icon and label, never color alone.
@@ -331,7 +339,7 @@ flowchart LR
 - **Modular monolith.** A Cargo workspace splits code into `domain` (pure types and rules, no I/O), `db`, `api`, `integrations` and `jobs`. One binary has subcommands `serve | worker | migrate | all`; the Pi runs `all`.
 - **Background jobs** run on a Postgres queue (`FOR UPDATE SKIP LOCKED`). There is **no Redis**.
 - **Object storage** goes through the `object_store` crate: local disk on the Pi, S3 in the cloud. Uploads are served from a separate host, images are resized server-side, and SVGs are sanitized or rasterized.
-- **API conventions.** REST + JSON under `/v1`. OpenAPI is generated from code (utoipa). Errors follow RFC 9457 (problem+json). Pagination uses cursors. IDs are UUIDv7. Timestamps are `timestamptz` in UTC. Workouts are scheduled on a **local date** plus the club's timezone.
+- **API conventions.** REST + JSON under `/v1`. OpenAPI is generated from code (utoipa). Errors follow RFC 9457 (problem+json): `title` and `detail` are **pt-BR**, written for the person who reads them, plus a stable English `code` (e.g. `workout.not_found`) for the apps to branch on. Server logs stay in English. Pagination uses cursors. IDs are UUIDv7. Timestamps are `timestamptz` in UTC. Workouts are scheduled on a **local date** plus the club's timezone.
 - **Multi-tenancy.** One database with `club_id` on every club-scoped row. Club routes take the form `/v1/clubs/{club_id}/…`. An extractor checks membership and role on every request. Postgres RLS as defense-in-depth will be decided at bootstrap.
 - **Workout structure** is stored as versioned JSONB, strongly typed in Rust: steps, repeats, durations and targets per sport, FIT-compatible.
 - **Web shell.** For each host, the binary serves the SPA `index.html` with the club's theme CSS and name injected, so a club's subdomain never flashes Runflow's default colors. Hashed assets are cached at the CDN.
@@ -393,6 +401,27 @@ flowchart LR
 | Security | Provider tokens encrypted at rest, secrets only in the environment, rate limiting, audit log for owner and admin actions, no user-uploaded active content (SVG sanitized). |
 | LGPD | Health data is **sensitive personal data** (art. 11), so we need explicit consent, export and deletion, and a published DPO (*encarregado*). The club is the controller of its students' training data and Runflow is the operator, which the terms and DPA must reflect. Data stays in Brazil. |
 
+### 7.8 Club theme delivery (no flash of Runflow colors)
+
+**What's stored.** The DB keeps only what the owner chose: `primary` and `secondary` (each optional), the logo asset and the club name. Alongside them it keeps `theme_rev` (bumped on every save) and `engine_version`. On save, the backend runs its Rust port of the color engine, checked against `design/dist/color-fixtures.json`. It stores the result next to the inputs: the resolved colors, every role for light and dark as JSON, and the ready-made CSS block. Clients never recompute a saved theme; they only run the engine for Club Studio's live preview. Fonts, spacing, components and data colors are not in the DB. They ship with the apps (§4.4, D-018).
+
+**API.** `GET /v1/clubs/{id}/theme` returns `{ rev, primary, secondary, source, logo, css, roles: { light, dark } }` with `ETag: "<rev>"`, so most refreshes are a `304`. The same payload is embedded per membership in `GET /v1/me`, so the apps have every club's theme right after login without extra calls. Logo URLs are content-hashed and cached forever.
+
+**Web: the first paint is already themed.**
+1. **Club subdomain** (`<club>.runflow.club`, Pro). The binary already serves `index.html` per host (§7.2), so it inlines the club's stored CSS and name in `<head>`. No cache is involved.
+2. **Shared host** (`app.runflow.club`). A small, non-secret `rf_club` cookie remembers the last active club, and the server inlines that club's theme the same way. Without the cookie, a tiny inline script applies the theme saved in `localStorage` before the first paint. This is the same trick that avoids a dark-mode flash.
+3. **Invite links** know their club from the token, so the invite page is served already themed.
+4. **Revalidation.** After load the app checks the theme's ETag. If `rev` changed, it swaps the CSS variables in place, with no reload.
+
+**Mobile: the first frame is already themed.**
+1. The active club's theme (roles JSON and `rev`) is persisted in MMKV, which reads synchronously at startup. The logo stays in the image disk cache.
+2. The native splash screen (Runflow's, since Runflow is the app) stays up until the session and the cached theme are loaded, which takes milliseconds. The first rendered frame has the club's colors.
+3. On launch and on returning to the foreground, the app revalidates with the ETag and applies a changed theme live, without a restart.
+4. A fresh login with no cache gets every theme inside `GET /v1/me` before the home screen renders.
+
+**Club switch:** themes for all of a user's clubs are cached, so switching is instant and works offline.
+**Engine changes:** a new `engine_version` triggers a background job that recomputes every stored theme and bumps `theme_rev`. Clients pick it up on their next revalidation.
+
 ---
 
 ## 8. Engineering conventions (all repos)
@@ -400,7 +429,7 @@ flowchart LR
 - Every area has a `CLAUDE.md`, a single `check` command (format, lint, typecheck, test), and CI that must pass before merge.
 - **No AI attribution in git history.** Commits and PRs never carry `Co-Authored-By:` trailers for AI tools, "Generated with …" footers, or any other mention of an assistant as author or contributor. The founder is the only author.
 - **Never hardcode colors, spacing, radii, fonts or durations.** Always use `@runflow/design` tokens.
-- **Never hardcode UI text.** Use i18n keys with pt-BR as the source language.
+- **Never hardcode UI text.** Use i18n keys with pt-BR as the source language. Error messages are UI text too, including backend errors (§4.7, §7.2).
 - Small commits and PRs (conventional commits). Each session leaves the repo in a working state.
 - Tests: the backend tests against a real Postgres (no DB mocks). Web uses component tests plus Playwright e2e. Mobile uses component tests plus Maestro e2e.
 - Performance budgets from §7.7 become automated checks as soon as the code exists.
@@ -424,11 +453,12 @@ flowchart LR
 | D-010 | Object storage via `object_store`: disk (Pi) → S3 (cloud) | Zero extra services now, config-only migration | Proposed |
 | D-011 | Students connect their own provider accounts (**Strava at launch; Garmin deferred**). Activities sync into Runflow's training model, and trainers see them with the student's explicit, per-club, revocable consent. Provenance is kept per activity. | Founder's sync model. Strava's agreement forbids sharing with other users *without explicit consent* | Accepted (founder); confirm with Strava in writing |
 | D-012 | Hosting: Pi + Cloudflare Tunnel → AWS sa-east-1 | Near-zero cost now; Brazilian data residency | Accepted (founder) |
-| D-013 | pt-BR UI only at launch; i18n-ready; English in code and docs | Market focus without future rewrites | Accepted (founder) |
-| D-014 | One color in → accessible light/dark theme out, same algorithm in all areas (golden fixtures) | Club theming without breaking contrast or coherence | Proposed |
+| D-013 | Everything user-facing is pt-BR by default: apps, design system pages, mocks, emails, notifications and all error messages, backend included. i18n-ready. Code, comments, commits, logs and docs in English | Market focus without future rewrites | Accepted (founder) |
+| D-014 | Club theming takes 0, 1 or 2 colors (none: Runflow defaults; one: derived secondary; two: primary + secondary) and produces an accessible light/dark theme. Same engine in all areas (golden fixtures) | Most clubs have two colors; contrast and coherence are never left to chance | Accepted (founder) |
 | D-015 | Design first ("waterfall"): the whole UI is mocked as HTML/CSS on the real tokens and signed off by the founder before any implementation | Validate look and flows cheaply before writing code | Accepted (founder) |
 | D-016 | Payments via Stripe; no charging during the beta; NFS-e handled by the founder outside the product | Founder decision | Accepted (founder) |
 | D-017 | Trainers see all students in their club | Simple default; per-trainer assignment can come later if clubs ask | Accepted (founder) |
+| D-019 | Club themes: the DB stores the owner's choices plus the theme derived at save time. Web inlines it in the HTML; mobile caches it on the device; both revalidate by `rev`/ETag (§7.8) | The first paint is already in the club's colors; one engine run per save, not per request | Proposed |
 | D-018 | Runflow is the app; clubs theme it. No white-label apps, no club-branded store apps or PWAs, no "feito com Runflow" marks | Runflow is the product, just flexible in how it displays | Accepted (founder) |
 
 "Proposed" means the default we build on unless the founder objects. A Proposed entry flips to Accepted when the founder confirms it or when the first implementation ships.
@@ -452,7 +482,7 @@ flowchart LR
 
 | # | Work item | Screens | Done when |
 |---|---|---|---|
-| D1 | Bootstrap `design/`: `tokens.json`, club-theme engine with contrast guarantees and golden fixtures, zero-dependency build to CSS/TS/JSON, `design/CLAUDE.md`, foundations page | DS1 | Founder approves palette, type and club theming |
+| D1 | Bootstrap `design/`: `tokens.json`, club-theme engine with contrast guarantees and golden fixtures, zero-dependency build to CSS/TS/JSON, `design/CLAUDE.md`, foundations page. **Delivered; in founder review.** | DS1 | Founder approves palette, type and club theming |
 | D2 | Component pages, each component in its web and mobile rendering | DS2, DS3 | Founder approves components |
 | D3 | Mock shell (theme and club switcher, phone frame, index page) and the student app | A2–A4, A6, M1–M7 | Founder approves the student flow |
 | D4 | Trainer web, part 1 | W1–W5 | Founder approves planning and the workout builder |
@@ -478,6 +508,7 @@ Every bootstrap session (D1, S1, S4, S5) creates its area folder with its own `C
 - 2026-11-01. S0: `root.md` created. Researched sisrun pricing and features, the Strava API Agreement (2026-06-01), and the Garmin developer program. A prototype of the club-theme color engine exists and will seed S1.
 - 2026-11-01. Founder set the provider sync model (D-011): students connect their own accounts and activities sync into Runflow's training model for trainers. A re-read of Strava's agreement confirmed that sharing needs explicit consent. Ran `git init` on the root.
 - 2026-11-01. Founder created a single repo, `github.com/otaviojacobi/runflow-future`, for all code, with areas splittable into repos later (D-001 replaces the submodule plan). Added the rule against AI attribution in commits (§8). First commit pushed.
+- 2026-11-01. **D1 delivered, in founder review.** `design/` has the tokens, the color engine, `build.mjs --check`, self-hosted fonts, CI, and the foundations page in pt-BR (`node design/serve.mjs`, then http://localhost:8080). Founder decisions made during the review: everything user-facing is pt-BR, including the design system and all error messages (D-013); clubs can set 0, 1 or 2 colors (D-014); club themes are stored in the DB and delivered without a flash of Runflow colors (D-019, §7.8).
 - 2026-11-01. Founder decisions: design-first Phase 0 with the full UI mocked before implementation (D-015); Stripe, no charging during the beta, NFS-e outside the product (D-016); trainers see all students (D-017); Runflow is the app and clubs only theme it (D-018); Apple and Garmin developer programs deferred (D-007, D-011); no guardian accounts. Added the screen inventory (§6.1) and `CLAUDE.md`. Roadmap renumbered: Phase 0 is now design and validation, and **D1 is next**.
 
 ---

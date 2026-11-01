@@ -17,7 +17,7 @@ Runflow is a training platform for Brazilian clubs (running, gyms, swimming, hyb
 - **No AI attribution in git.** Never add `Co-Authored-By:` trailers, "Generated with Claude Code" footers, or any mention of an AI assistant in commits, PRs or code. The founder is the only author.
 - **Phase 0 is design only (D-015).** Until the founder signs off on the mocks (D7), write no backend, frontend or mobile code. Remove this rule after sign-off.
 - **Decisions are sticky.** Never contradict §9 silently. Ask the founder, then update §9 and every affected section.
-- **Language.** Code, comments, commits and docs are in English. UI text is pt-BR, through i18n keys in apps. Mocks may inline pt-BR text.
+- **Language (D-013).** Everything a person sees is pt-BR by default: app UI, the design system pages, mocks, emails, notifications and **error messages, including backend API errors** (pt-BR `title`/`detail` plus a stable English `code`). Internals are English: code, comments, commits, logs, `root.md`, docs. Apps use i18n keys; mocks and design pages may inline pt-BR text.
 - **Tokens only.** Never hardcode colors, spacing, radii, fonts or durations. Use the `design/` tokens.
 - **Areas stay splittable (§7.1).** An area never imports another area's source. Use package names and generated artifacts (OpenAPI) only.
 - **Runflow is the app; clubs only theme it (D-018).** No white-label app features.
@@ -28,7 +28,7 @@ Runflow is a training platform for Brazilian clubs (running, gyms, swimming, hyb
 ```
 root.md     intent, decisions, roadmap: start here
 CLAUDE.md   this file
-design/     tokens, club-theme engine, showcase, mocks   (from D1)
+design/     tokens, club-theme engine, showcase, mocks   (D1: node design/serve.mjs → :8080)
 backend/    Rust · axum · sqlx · PostgreSQL               (from S1)
 frontend/   React · TypeScript · Vite SPA                 (from S4)
 mobile/     Expo · React Native · TypeScript              (from S5)

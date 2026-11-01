@@ -1,0 +1,21 @@
+name: design
+
+on:
+  push:
+    paths: ["design/**", ".github/workflows/design.yml"]
+  pull_request:
+    paths: ["design/**", ".github/workflows/design.yml"]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: design
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tokens up to date and contrast guarantees hold
+        run: node build.mjs --check

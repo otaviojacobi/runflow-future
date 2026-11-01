@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Runflow · Fundamentos</title>
+  <meta name="description" content="Design system Runflow v0.1: cores, tipografia, espaçamento e o motor de temas dos clubes.">
+  <link rel="stylesheet" href="../assets/fonts/fonts.css">
+  <link rel="stylesheet" href="../dist/tokens.css">
+  <link rel="stylesheet" href="showcase.css">
+  <style id="club-theme"></style>
+  <script src="../dist/tokens.js"></script>
+  <script src="../src/color.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="logo" href="#top" aria-label="Design system Runflow">
+      <span id="runflow-mark"></span>
+      <span class="wordmark">runflow</span>
+      <span class="tag">Design system · v0.1</span>
+    </a>
+    <span class="spacer"></span>
+    <label class="club-pick">
+      <span class="sr-only">Tema do clube</span>
+      <span class="club-dot" id="club-dot"></span>
+      <select id="club-select"></select>
+    </label>
+    <div class="segmented" id="mode" role="group" aria-label="Modo de cor">
+      <button type="button" data-mode="light">Claro</button>
+      <button type="button" data-mode="dark">Escuro</button>
+      <button type="button" data-mode="system">Sistema</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="toc" aria-label="Seções">
+      <a href="#context">Em contexto</a>
+      <a href="#brand">Cor primária</a>
+      <a href="#accent">Cor secundária</a>
+      <a href="#neutral">Neutros · Ink</a>
+      <a href="#surfaces">Superfícies e texto</a>
+      <a href="#status">Status</a>
+      <a href="#zones">Zonas de treino</a>
+      <a href="#sports">Modalidades</a>
+      <a href="#type">Tipografia</a>
+      <a href="#space">Espaçamento e forma</a>
+      <a href="#motion">Movimento</a>
+      <a href="#club">Laboratório de temas</a>
+    </nav>
+
+    <main>
+      <section class="hero" id="top">
+        <div class="rf-text-overline eyebrow">Design system · D1 · Fundamentos</div>
+        <h1 class="rf-text-display-lg">O Runflow é o app.<br><span class="hl">Seu clube</span> é o tema.</h1>
+        <p class="lead">Fundamentos para validação: cores, tipografia, espaçamento e o motor de temas dos clubes. Tudo nesta página é gerado a partir de <code>design/tokens.json</code>. Troque o clube e o modo na barra superior: todas as cores são recalculadas na hora.</p>
+        <div class="review card">
+          <div class="rf-text-title-sm">O que validar</div>
+          <ol>
+            <li><b>Identidade.</b> Azul Flow + Volt como as cores padrão do Runflow (<a href="#brand">Primária</a>, <a href="#accent">Secundária</a>).</li>
+            <li><b>Neutros e superfícies.</b> Os cinzas "Ink" nos modos claro e escuro (<a href="#surfaces">Superfícies</a>).</li>
+            <li><b>Tipografia.</b> Archivo para títulos e números, Inter para a interface (<a href="#type">Tipografia</a>).</li>
+            <li><b>Cores de dados.</b> Zonas de treino e modalidades (<a href="#zones">Zonas</a>, <a href="#sports">Modalidades</a>).</li>
+            <li><b>Tema do clube.</b> Teste clubes com nenhuma, uma ou duas cores, ou envie um logo (<a href="#club">Laboratório de temas</a>).</li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="section" id="context">
+        <div class="section-head">
+          <div class="rf-text-overline eyebrow">01 · Em contexto</div>
+          <h2 class="rf-text-display-sm">Aluno no celular, treinador no computador</h2>
+          <p class="lead">A paleta trabalhando de verdade. Ainda não são as telas finais: elas serão desenhadas nas etapas D3 a D6.</p>
+        </div>
+        <div class="context">
+          <div id="ctx-desk"></div>
+          <div class="context-row">
+            <div id="ctx-phone"></div>
+            <div class="card pad themed-card">
+              <div class="rf-text-title-md">O que o clube pode mudar</div>
+              <p class="muted">O Runflow é o app; os clubes só aplicam o tema (D-018). A identidade do clube aparece onde importa, e as cores de dados significam a mesma coisa em todos os clubes.</p>
+              <ul class="themed-list">
+                <li class="yes"><b>Logo e nome do clube</b><span>Cabeçalho do app, menu lateral no computador, páginas de convite, e-mails.</span></li>
+                <li class="yes"><b>Cor primária</b><span>Ações: botões principais, aba e menu ativos, destaque do dia, links, anéis de foco, chips e linhas selecionadas.</span></li>
+                <li class="yes accent"><b>Cor secundária (opcional)</b><span>Destaques: recordes, sequências, conquistas. Sem ela, o motor deriva uma a partir da primária. Sem nenhuma cor, vale o padrão do Runflow. Claro e escuro são gerados automaticamente.</span></li>
+                <li class="no"><b>Sempre do Runflow</b><span>Neutros e superfícies, tipografia, espaçamento, formas, ícones, cores de status, zonas de treino e cores das modalidades.</span></li>
+              </ul>
+              <p class="meta">Teste: troque o clube na barra superior ou abra o <a href="#club">laboratório de temas</a>.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="brand">
+        <div class="section-head">
+          <div class="rf-text-overline eyebrow">02 · Cor primária</div>
+          <h2 class="rf-text-display-sm">A cor das ações</h2>
+          <p class="lead">Primária atual: <b id="brand-name"></b> <code id="brand-seed"></code>. Botões principais, aba ativa, links e foco. O motor gera uma escala de 11 tons (a cor exata do clube é o tom marcado como semente) e os papéis abaixo, com contraste garantido nos dois modos.</p>
+        </div>
+        <div class="swatches" id="brand-scale"></div>
+        <div class="modes" id="brand-modes"></div>
+      </section>
+
+      <section class="section" id="accent">
+        <div class="section-head">
+          <div class="rf-text-overline eyebrow">03 · Cor secundária</div>
+          <h2 class="rf-text-display-sm">Para os momentos que importam</h2>
+          <p class="lead">Secundária atual: <b id="accent-name"></b> <code id="accent-seed"></code>. Recordes pessoais, sequências e conquistas; nunca ações nem texto corrido. <span id="accent-source"></span></p>
+        </div>
+        <div class="swatches" id="accent-scale"></div>
+        <div class="modes" id="accent-modes"></div>
+        <div class="accent-demo" id="accent-demo"></div>
+      </section>
+
+      <section class="section" id="neutral">
+        <div class="section-head">
+          <div class="rf-text-overline eyebrow">04 · Neutros</div>
+          <h2 class="rf-text-display-sm">Ink</h2>
+          <p class="lead">Cinzas frios com um toque de azul (matiz 265), do branco ao quase preto. Eles carregam a maior parte da interface: fundos, textos e bordas.</p>
+        </div>
+        <div class="swatches" id="neutral-scale"></div>
+      </section>
+
+      <section class="section" id="surfaces">
+        <div class="section-head">
+          <div class="rf-text-overline eyebrow">05 · Superfícies e texto</div>
+          <h2 class="rf-text-display-sm">Camadas, textos e bordas</h2>
+          <p class="lead">Os papéis semânticos apontam para o Ink conforme o modo. Os apps usam só esses nomes, nunca cinzas diretos, e assim o modo escuro vem de graça.</p>
+        </div>
+        <div class="modes" id="surfaces-modes"></div>
+        <template id="surfaces-tpl">
+          <div class="sd-canvas">
+            <span class="sd-label"><code>bg.canvas</code> fundo do app</span>
+            <div class="sd-surface">
+              <span class="sd-label"><code>bg.surface</code> cards, folhas, campos</span>
+              <p class="sd-fg">
+                <span style="color:var(--rf-fg-default)"><code>fg.default</code> Treino de hoje</span>
+                <span style="color:var(--rf-fg-muted)"><code>fg.muted</code> Sincronizado há 5 min</span>
+                <span style="color:var(--rf-fg-subtle)"><code>fg.subtle</code> Opcional</span>
+                <span style="color:var(--rf-fg-disabled)"><code>fg.disabled</code> Indisponível</span>
+              </p>
+              <div class="sd-sunken"><span class="sd-label"><code>bg.sunken</code> áreas rebaixadas, trilhas</span><div class="progress"><i style="width:64%"></i></div></div>
+              <div class="sd-raised"><code>bg.surfaceRaised</code> + <code>shadow.md</code> menus, diálogos</div>
+            </div>
+            <div class="sd-borders">
+              <span style="border-color:var(--rf-border-subtle)">border.subtle</span>
+              <span style="border-color:var(--rf-border-default)">border.default</span>
+              <span style="border-color:var(--rf-border-strong)">border.strong</span>
+            </div>
+            <div class="sd-inverse"><code>bg.inverse</code> Treino salvo</div>
+          </div>
+        </template>
+      </section>
+
+      <section class="section" id="status">
+        <div class="section-head">
+          <div class="rf-text-overline eyebrow">06 · Status</div>
+          <h2 class="rf-text-display-sm">Cores de feedback</h2>
+          <p class="lead">Geradas pelo mesmo motor das cores dos clubes, com as mesmas garantias. Sempre acompanhadas de um ícone ou de uma palavra, nunca só a cor.</p>
+        </div>
+        <div class="status-grid" id="status-grid"></div>
+        <details class="more"><summary>Ver as escalas completas de status</summary><div id="status-scales"></div></details>
+      </section>
+
+      <section class="section" id="zones">
+        <div class="section-head">
+          <div class="rf-text-overline eyebrow">07 · Zonas de treino</div>
+          <h2 class="rf-text-display-sm">Cinza → azul → verde → laranja → vermelho</h2>
+          <p class="lead">A convenção que os atletas já conhecem dos relógios. Só para visualização de dados: perfis de intensidade, barras de zona e gráficos. Essas cores nunca estilizam textos ou botões.</p>
+        </div>
+        <div class="zone-grid" id="zone-grid"></div>
+        <div class="profiles" id="profiles"></div>
+      </section>
+
+      <section class="section" id="sports">
+        <div class="section-head">
+          <div class="rf-text-overline eyebrow">08 · Modalidades</div>
+          <h2 class="rf-text-display-sm">Modalidades</h2>
+          <p class="lead">Chips do calendário, filtros e ícones. Sempre com ícone e nome. Os ícones aqui são provisórios; o conjunto final vem na etapa D2.</p>
+        </div>
+        <div class="sport-grid" id="sport-grid"></div>
+      </section>
+
+      <section class="section" id="type">
+        <div class="section-head">
+          <div class="rf-text-overline eyebrow">09 · Tipografia</div>
+          <h2 class="rf-text-display-sm">Archivo + Inter</h2>
+          <p class="lead">O eixo de largura variável da Archivo dá títulos e números expandidos, com cara de esporte. A Inter carrega a interface. Números são sempre tabulares, para os paces ficarem alinhados. As duas fontes são hospedadas por nós (<code>design/assets/fonts</code>).</p>
+        </div>
+        <div class="specimens">
+          <div class="specimen-card card">
+            <div class="meta">Títulos · Archivo 800 · largura 112%</div>
+            <div class="spec-big display">Corra no seu ritmo.</div>
+            <div class="spec-chars display">AaBbCc 0123456789 ÁÉÍÓÚ ãõç</div>
+          </div>
+          <div class="specimen-card card">
+            <div class="meta">Interface · Inter 400–700</div>
+            <div class="spec-big body">Planilha da semana</div>
+            <div class="spec-chars body">AaBbCc 0123456789 ÁÉÍÓÚ ãõç</div>
+          </div>
+        </div>
+        <div class="type-table" id="type-table"></div>
+        <div class="formats card">
+          <div class="rf-text-title-sm">Formatos pt-BR</div>
+          <div class="format-grid">
+            <div><span class="metric">4:30</span><span class="unit">/km</span><span class="fmt-d">Pace de corrida</span></div>
+            <div><span class="metric">1:45</span><span class="unit">/100 m</span><span class="fmt-d">Pace de natação</span></div>
+            <div><span class="metric">10,2</span><span class="unit">km</span><span class="fmt-d">Vírgula decimal</span></div>
+            <div><span class="metric">1:42:08</span><span class="fmt-d">Duração</span></div>
+            <div><span class="metric">06:30</span><span class="fmt-d">Horário 24 h</span></div>
+            <div><span class="metric small">ter, 3 nov</span><span class="fmt-d">Data curta</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="space">
+        <div class="section-head">
+          <div class="rf-text-overline eyebrow">10 · Espaçamento e forma</div>
+          <h2 class="rf-text-display-sm">Grade de 4 px, cantos suaves</h2>
+          <p class="lead">Os espaçamentos são múltiplos de 4. Cantos: 10 para controles, 14 para cards e 20 para folhas. Controles têm 40 px de altura na web e 48 px nas ações principais do celular.</p>
+        </div>
+        <div class="shape-grid">
+          <div class="card pad"><div class="rf-text-title-sm">Espaçamento</div><div id="space-list"></div></div>
+          <div class="stack">
+            <div class="card pad"><div class="rf-text-title-sm">Raio</div><div class="radius-list" id="radius-list"></div></div>
+            <div class="card pad"><div class="rf-text-title-sm">Elevação</div><div class="shadow-list" id="shadow-list"></div></div>
+            <div class="card pad"><div class="rf-text-title-sm">Altura dos controles</div><div class="size-list" id="size-list"></div></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="motion">
+        <div class="section-head">
+          <div class="rf-text-overline eyebrow">11 · Movimento</div>
+          <h2 class="rf-text-display-sm">Rápido e calmo</h2>
+          <p class="lead">Durações curtas fazem o app parecer rápido. Toda animação é desligada quando o sistema pede movimento reduzido. Clique numa trilha para ver.</p>
+        </div>
+        <div class="motion-grid" id="motion-grid"></div>
+      </section>
+
+      <section class="section" id="club">
+        <div class="section-head">
+          <div class="rf-text-overline eyebrow">12 · Laboratório de temas</div>
+          <h2 class="rf-text-display-sm">Teste qualquer clube</h2>
+          <p class="lead">Este é o motor que o Club Studio (O1) vai usar. Um clube pode ter nenhuma, uma ou duas cores. Escolha um clube de exemplo, defina as cores ou envie um logo para receber sugestões. O relatório explica cada ajuste automático, e a página inteira acompanha.</p>
+        </div>
+        <div class="lab">
+          <div class="lab-controls card pad">
+            <div class="rf-text-title-sm">Clubes de exemplo</div>
+            <div class="presets" id="presets"></div>
+            <div class="rf-text-title-sm">Cores do clube</div>
+            <div class="color-field">
+              <span class="cf-label">Primária</span>
+              <input type="color" id="primary-picker" aria-label="Cor primária">
+              <input type="text" id="primary-hex" class="text-input" maxlength="7" spellcheck="false" placeholder="Padrão" aria-label="Cor primária em hexadecimal">
+              <button type="button" class="btn btn-ghost btn-sm" id="primary-clear">Remover</button>
+            </div>
+            <div class="color-field">
+              <span class="cf-label">Secundária</span>
+              <input type="color" id="secondary-picker" aria-label="Cor secundária">
+              <input type="text" id="secondary-hex" class="text-input" maxlength="7" spellcheck="false" placeholder="Automática" aria-label="Cor secundária em hexadecimal">
+              <button type="button" class="btn btn-ghost btn-sm" id="secondary-clear">Remover</button>
+            </div>
+            <div class="row gap wrap">
+              <button type="button" class="btn btn-secondary btn-sm" id="swap"><span id="swap-ic"></span>Trocar primária e secundária</button>
+            </div>
+            <p class="meta" id="colors-mode"></p>
+            <div class="rf-text-title-sm">Ou um logo</div>
+            <label class="upload">
+              <input type="file" id="logo-file" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+              <span id="upload-ic"></span><span>Enviar um logo (PNG, JPG, SVG)</span>
+            </label>
+            <div class="suggestions" id="suggestions"></div>
+            <div class="rf-text-title-sm">O que o motor fez</div>
+            <div id="report"></div>
+          </div>
+          <div class="lab-previews" id="lab-previews"></div>
+        </div>
+      </section>
+
+      <footer class="foot">Gerado a partir de <code>design/tokens.json</code> por <code>design/build.mjs</code> · <code>@runflow/design</code> 0.1.0</footer>
+    </main>
+  </div>
+
+  <script src="showcase.js"></script>
+</body>
+</html>
