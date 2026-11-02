@@ -76,6 +76,8 @@ export default function register(h) {
         h.db.planned_workouts.push({ id: h.uuid("pw"), club_id: p.club_id, athlete_membership_id: athlete, date, position: h.db.planned_workouts.filter((x) => x.athlete_membership_id === athlete && x.date === date).length, sport: it.sport, title: it.title, structure: it.structure, notes: it.notes, est_duration_s: it.est_duration_s, est_distance_m: it.est_distance_m, template_id: it.template_id, plan_assignment_id: a.id, created_by: me.id, created_at: now, updated_at: now });
         created++;
       }
+      // Announced now only if the first week is already visible; otherwise its release does it (D-031).
+      if (!h.isReleased(p.club_id, athlete, start)) continue;
       const u = h.db.memberships.find((x) => x.id === athlete);
       h.db.notifications.push({ id: h.uuid("n"), user_id: u.user_id, club_id: p.club_id, kind: "workout_assigned", title: `Nova planilha: ${p.name}`, body: `${p.weeks} semanas a partir de ${start.split("-").reverse().slice(0, 2).join("/")}`, link: "/schedule", read_at: null, created_at: now });
     }

@@ -1,13 +1,13 @@
-/** M3 · Agenda (student): week list and month calendar. Route: /schedule */
+/** M3 · Agenda (student): week list and month calendar; weeks still in preparation say so (D-031). Route: /schedule */
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight, Printer } from "lucide-react";
+import { CalendarClock, ChevronLeft, ChevronRight, Printer } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useMyWorkouts } from "@/api/my";
+import { useMyUnreleasedWeeks, useMyWorkouts } from "@/api/my";
 import { sportBar } from "@/components/sport";
 import { StatusBadge } from "@/components/workout";
 import { t } from "@/i18n";
 import { useClub } from "@/lib/club";
-import { addDays, dayMonth, duration, mondayOf, today as todayFn, weekdayShort } from "@/lib/format";
+import { addDays, dateTimeShort, dayMonth, duration, mondayOf, today as todayFn, weekdayShort } from "@/lib/format";
 import { Card, EmptyState, IconButton, PageHeader, Segmented, cn } from "@/ui";
 
 const MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
@@ -20,17 +20,28 @@ export function ScheduleScreen() {
   const first = view === "week" ? mondayOf(anchor) : mondayOf(anchor.slice(0, 8) + "01");
   const last = view === "week" ? addDays(first, 6) : addDays(mondayOf(addDays(anchor.slice(0, 8) + "28", 7)), 6);
   const q = useMyWorkouts(club?.id, first, last);
+  const pending = useMyUnreleasedWeeks(club?.id, first, last).data ?? [];
   const byDay = useMemo(() => { const m = new Map<string, NonNullable<typeof q.data>>(); for (const w of q.data ?? []) m.set(w.date, [...(m.get(w.date) ?? []), w]); return m; }, [q.data]);
   if (!club) return null;
   const move = (dir: 1 | -1) => setAnchor(view === "week" ? addDays(anchor, 7 * dir) : (() => { const [y, mo] = anchor.split("-").map(Number); const d = new Date(Date.UTC(y!, mo! - 1 + dir, 1)); return d.toISOString().slice(0, 10); })());
   const title = view === "week" ? `${dayMonth(first)} – ${dayMonth(last)}` : `${MONTHS[Number(anchor.slice(5, 7)) - 1]} ${anchor.slice(0, 4)}`;
+  const coach = club.trainer_label === "professor" ? t("Seu professor") : t("Seu treinador");
+  const preparing = view === "week" && pending.some((p) => p.week_start === first) ? pending[0]! : null;
   const days = Array.from({ length: view === "week" ? 7 : Math.round((Date.parse(last) - Date.parse(first)) / 86400000) + 1 }, (_, i) => addDays(first, i));
 
   return (
     <div className="mx-auto grid max-w-3xl gap-5">
       <PageHeader title={t("Agenda")} actions={<div data-print="hide" className="flex items-center gap-2"><IconButton variant="secondary" label={t("Imprimir")} onClick={() => window.print()}><Printer /></IconButton><Segmented label={t("Visão")} value={view} onChange={setView} options={[{ value: "week", label: t("Semana") }, { value: "month", label: t("Mês") }]} /></div>} />
       <div className="flex items-center gap-2"><IconButton variant="secondary" label={t("Anterior")} onClick={() => move(-1)}><ChevronLeft /></IconButton><span className="min-w-40 text-center font-semibold first-letter:uppercase">{title}</span><IconButton variant="secondary" label={t("Próximo")} onClick={() => move(1)}><ChevronRight /></IconButton><button className="ml-2 text-sm font-semibold text-brand-text" onClick={() => setAnchor(today)}>{t("Hoje")}</button></div>
-      {view === "week" ? (
+      {preparing ? (
+        <Card>
+          <EmptyState icon={<CalendarClock />} title={t("Semana em preparação")}>
+            {preparing.auto_release_at
+              ? t("{coach} ainda está montando esta semana. Ela aparece aqui em {when}.", { coach, when: dateTimeShort(preparing.auto_release_at, club.timezone) })
+              : t("{coach} ainda está montando esta semana. Você recebe um aviso quando ela for liberada.", { coach })}
+          </EmptyState>
+        </Card>
+      ) : view === "week" ? (
         <div className="grid gap-2">
           {days.map((d) => {
             const ws = byDay.get(d) ?? [];
@@ -52,6 +63,12 @@ export function ScheduleScreen() {
           {!q.isPending && !(q.data ?? []).length && <Card><EmptyState title={t("Semana livre")}>{t("Quando seu treinador montar a semana, os treinos aparecem aqui.")}</EmptyState></Card>}
         </div>
       ) : (
+        <>
+        {pending.length > 0 && (
+          <p className="flex items-center gap-2 text-sm text-fg-muted"><CalendarClock className="size-4 shrink-0" aria-hidden />
+            {t("Em preparação: {weeks}.", { weeks: pending.map((p) => `${dayMonth(p.week_start)} – ${dayMonth(addDays(p.week_start, 6))}`).join(", ") })}
+          </p>
+        )}
         <Card className="overflow-hidden">
           <div className="grid grid-cols-7 bg-sunken text-center text-[11px] font-bold uppercase text-fg-muted">{["seg", "ter", "qua", "qui", "sex", "sáb", "dom"].map((d) => <span key={d} className="py-2">{t(d)}</span>)}</div>
           <div className="grid grid-cols-7">
@@ -67,6 +84,7 @@ export function ScheduleScreen() {
             })}
           </div>
         </Card>
+        </>
       )}
     </div>
   );

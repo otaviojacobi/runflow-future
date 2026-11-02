@@ -1,6 +1,6 @@
 /** W11 · Notificações: list, unread filter, mark all read, deep links (switching club when needed). Route: /notifications */
 import { useNavigate } from "@tanstack/react-router";
-import { Bell, CalendarClock, CalendarX, CheckCheck, ClipboardList, CreditCard, Megaphone, MessageCircle, MessageSquare, PartyPopper, Pencil, UserPlus, type LucideIcon } from "lucide-react";
+import { Bell, CalendarCheck, CalendarClock, CalendarX, CheckCheck, ClipboardList, CreditCard, Megaphone, MessageCircle, MessageSquare, PartyPopper, Pencil, UserPlus, type LucideIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMarkNotificationsRead, useNotifications } from "@/api/account";
 import type { AppNotification, NotificationKind } from "@/api/types";
@@ -12,6 +12,7 @@ import { Button, Card, EmptyState, PageHeader, Segmented, Skeleton, cn } from "@
 const KIND: Record<NotificationKind, { icon: LucideIcon; tone: string }> = {
   workout_assigned: { icon: ClipboardList, tone: "bg-brand-soft text-on-brand-soft" },
   workout_changed: { icon: Pencil, tone: "bg-info-soft text-on-info-soft" },
+  week_released: { icon: CalendarCheck, tone: "bg-success-soft text-on-success-soft" },
   comment: { icon: MessageSquare, tone: "bg-info-soft text-on-info-soft" },
   feedback: { icon: MessageSquare, tone: "bg-accent-soft text-on-accent-soft" },
   class_reminder: { icon: CalendarClock, tone: "bg-brand-soft text-on-brand-soft" },

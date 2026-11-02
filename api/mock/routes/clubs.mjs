@@ -65,6 +65,16 @@ export default function register(h) {
     if ("state" in b && b.state && !UF.has(String(b.state).toUpperCase())) errors.push({ field: "state", message: "Escolha um estado." });
     if ("modalities" in b && (!Array.isArray(b.modalities) || !b.modalities.filter((m) => SPORTS.includes(m)).length)) errors.push({ field: "modalities", message: "Escolha pelo menos uma modalidade." });
     if ("trainer_label" in b && !["treinador", "professor"].includes(b.trainer_label)) errors.push({ field: "trainer_label", message: "Opção inválida." });
+    // Week release (D-031)
+    if ("release_mode" in b && !["immediate", "weekly"].includes(b.release_mode)) errors.push({ field: "release_mode", message: "Escolha quando os alunos veem os treinos." });
+    let auto;
+    if ("auto_release_weekday" in b || "auto_release_time" in b) {
+      const day = Number.isInteger(b.auto_release_weekday) && b.auto_release_weekday >= 1 && b.auto_release_weekday <= 7 ? b.auto_release_weekday : null;
+      const time = /^([01]\d|2[0-3]):[0-5]\d$/.test(b.auto_release_time || "") ? b.auto_release_time : null;
+      if (day && time) auto = { auto_release_weekday: day, auto_release_time: time };
+      else if (b.auto_release_weekday == null && b.auto_release_time == null) auto = { auto_release_weekday: null, auto_release_time: null };
+      else errors.push({ field: "auto_release_time", message: "Informe o dia e o horário da liberação automática." });
+    }
     if ("timezone" in b && !TIMEZONES.includes(b.timezone)) errors.push({ field: "timezone", message: "Escolha um fuso horário." });
     if ("subdomain" in b && b.subdomain) {
       const sub = String(b.subdomain).toLowerCase();
@@ -78,6 +88,10 @@ export default function register(h) {
     if ("state" in b) c.state = b.state ? String(b.state).toUpperCase() : null;
     if ("modalities" in b) c.modalities = b.modalities.filter((m) => SPORTS.includes(m));
     if ("subdomain" in b) c.subdomain = b.subdomain ? String(b.subdomain).toLowerCase() : null;
+    const wasImmediate = h.releaseOf(c).release_mode === "immediate";
+    if ("release_mode" in b) c.release_mode = b.release_mode;
+    if (auto) Object.assign(c, auto);
+    if (wasImmediate && c.release_mode === "weekly") h.releasePlannedFuture(c.id);
     c.updated_at = h.nowIso();
     return c;
   });

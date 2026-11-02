@@ -58,6 +58,8 @@ export const weekdayShort = (d: string) => clean(fmt({ weekday: "short" }).forma
 /** ISO timestamp → "06:30" in the club timezone. */
 export const timeOf = (iso: string, tz = "America/Sao_Paulo") => new Intl.DateTimeFormat("pt-BR", { timeZone: tz, hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 /** ISO timestamp → club-local "YYYY-MM-DD". */
+/** `2026-11-08T21:00:00Z` → `dom, 8 nov, 18:00` in the club's time zone. */
+export const dateTimeShort = (iso: string, tz = "America/Sao_Paulo") => `${shortDate(localDate(iso, tz))}, ${timeOf(iso, tz)}`;
 export const localDate = (iso: string, tz = "America/Sao_Paulo") => new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(new Date(iso));
 /** Today, club-local. */
 export const today = (tz = "America/Sao_Paulo") => localDate(new Date().toISOString(), tz);

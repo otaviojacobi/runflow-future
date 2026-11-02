@@ -31,7 +31,7 @@ export default function register(h) {
     const from = h.addDays(h.today(), -30), to = h.addDays(h.today(), 120), now = stamp(h.nowIso());
     const ev = [];
     for (const m of mids) {
-      for (const p of h.db.planned_workouts.filter((x) => x.athlete_membership_id === m.id && x.date >= from && x.date <= to)) {
+      for (const p of h.db.planned_workouts.filter((x) => x.athlete_membership_id === m.id && x.date >= from && x.date <= to && h.visible(x))) {
         const d = p.date.replace(/-/g, "");
         ev.push(["BEGIN:VEVENT", `UID:workout-${p.id}@runflow.club`, `DTSTAMP:${now}`, `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${h.addDays(p.date, 1).replace(/-/g, "")}`, `SUMMARY:${esc(p.title)}`, `DESCRIPTION:${esc(`${clubName(m.club_id)} · ${APP}/workouts/${p.id}`)}`, `URL:${APP}/workouts/${p.id}`, "TRANSP:TRANSPARENT", "END:VEVENT"]);
       }

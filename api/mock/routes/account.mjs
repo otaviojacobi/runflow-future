@@ -116,7 +116,7 @@ export default function register(h) {
     const mids = h.db.memberships.filter((m) => m.user_id === u.id).map((m) => m.id);
     return {
       exported_at: h.nowIso(), user: h.publicUser(u), memberships: mine("memberships"), consents: mine("consents"), activities: mine("activities"),
-      planned_workouts: h.db.planned_workouts.filter((p) => mids.includes(p.athlete_membership_id)),
+      planned_workouts: h.db.planned_workouts.filter((p) => mids.includes(p.athlete_membership_id) && h.visible(p)),
       completions: h.db.workout_completions.filter((c) => h.db.planned_workouts.some((p) => p.id === c.planned_workout_id && mids.includes(p.athlete_membership_id))),
       bookings: h.db.bookings.filter((b) => mids.includes(b.membership_id)), notifications: mine("notifications"),
     };

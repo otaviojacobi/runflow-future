@@ -1,6 +1,6 @@
-/** O3 · Configurações do clube: data, modalities, terminology, timezone, subdomain (Pro), venues, danger zone. Route: /club/settings */
+/** O3 · Configurações do clube: data, modalities, terminology, week release (D-031), timezone, subdomain (Pro), venues, danger zone. Route: /club/settings */
 import { useNavigate } from "@tanstack/react-router";
-import { AlertTriangle, ExternalLink, Globe, Lock } from "lucide-react";
+import { AlertTriangle, CalendarCheck, ExternalLink, Globe, Lock } from "lucide-react";
 import { useState } from "react";
 import { useCloseClub, useUpdateClub } from "@/api/clubs";
 import { fetchMe, meKey } from "@/api/me";
@@ -10,7 +10,7 @@ import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { selectClub, useClub } from "@/lib/club";
 import { queryClient } from "@/queryClient";
-import { Badge, Button, ButtonLink, Card, Dialog, Field, Input, PageHeader, Segmented, Select, cn, toast } from "@/ui";
+import { Badge, Button, ButtonLink, Card, Dialog, Field, Input, PageHeader, Segmented, Select, Switch, cn, toast } from "@/ui";
 import { VenuesCard } from "../staff/classes/SetupDialogs";
 
 const UF = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" ");
@@ -43,6 +43,7 @@ export function SettingsScreen() {
       <PageHeader title={t("Configurações do clube")} subtitle={t("Dados, modalidades, endereço e locais do {club}", { club: club.name })} />
       <ClubData club={club} key={`d${club.id}`} />
       <Modalities club={club} key={`m${club.id}`} />
+      <WeekReleaseSettings club={club} key={`r${club.id}`} />
       <Subdomain key={`s${club.id}`} club={club} plan={ctx.subscription?.plan ?? "free"} />
       <VenuesCard club={club} />
       <DangerZone club={club} />
@@ -100,6 +101,52 @@ function Modalities({ club }: { club: Club }) {
           <p className="text-sm text-fg-muted">{label === "treinador" ? t("Ex.: “Seu treinador comentou no treino”, “Fale com a treinadora”.") : t("Ex.: “Seu professor comentou no treino”, “Fale com a professora”.")}</p>
         </div>
         <SaveRow dirty={dirty} loading={update.isPending} onReset={() => { setMods(club.modalities); setLabel(club.trainer_label); }} />
+      </form>
+    </Card>
+  );
+}
+
+const WEEKDAYS: [number, string][] = [[7, "Domingo"], [1, "Segunda-feira"], [2, "Terça-feira"], [3, "Quarta-feira"], [4, "Quinta-feira"], [5, "Sexta-feira"], [6, "Sábado"]];
+
+/** D-031: when students see what the trainers plan. */
+function WeekReleaseSettings({ club }: { club: Club }) {
+  const update = useUpdateClub(club.id);
+  const init = { release_mode: club.release_mode, auto: club.auto_release_weekday != null, day: club.auto_release_weekday ?? 7, time: club.auto_release_time ?? "18:00" };
+  const [v, setV] = useState(init);
+  const set = (p: Partial<typeof v>) => setV((o) => ({ ...o, ...p }));
+  const dirty = JSON.stringify(v) !== JSON.stringify(init);
+  const err = apiErr(update.error);
+  const weekly = v.release_mode === "weekly";
+  const save = () => update.mutate(
+    { release_mode: v.release_mode, ...(weekly ? { auto_release_weekday: v.auto ? v.day : null, auto_release_time: v.auto ? v.time : null } : {}) },
+    { onSuccess: () => toast.success(t("Liberação dos treinos salva")) },
+  );
+  return (
+    <Card className="p-5 sm:p-6">
+      <form className="grid gap-5" onSubmit={(e) => { e.preventDefault(); save(); }}>
+        <div><h2 className="flex items-center gap-2 rf-text-title-md"><CalendarCheck className="size-5" />{t("Liberação dos treinos")}</h2><p className="text-sm text-fg-muted">{t("Quando os alunos passam a ver o que a equipe planejou.")}</p></div>
+        <div className="grid gap-2 sm:grid-cols-2" role="radiogroup" aria-label={t("Liberação dos treinos")}>
+          {([["weekly", t("Semana a semana"), t("Planeje com antecedência. Os alunos veem cada semana quando ela é liberada, de uma vez, com um só aviso.")], ["immediate", t("Na hora"), t("Cada treino aparece para o aluno assim que é salvo, com um aviso.")]] as const).map(([value, label, hint]) => (
+            <button key={value} type="button" role="radio" aria-checked={v.release_mode === value} onClick={() => set({ release_mode: value })}
+              className={cn("grid gap-1 rounded-lg border p-4 text-left", v.release_mode === value ? "border-brand-ring bg-brand-soft text-on-brand-soft ring-1 ring-brand-ring" : "border-line bg-surface hover:bg-soft")}>
+              <span className="font-semibold">{label}</span><span className={cn("text-sm", v.release_mode === value ? "" : "text-fg-muted")}>{hint}</span>
+            </button>
+          ))}
+        </div>
+        {weekly && (
+          <div className="grid gap-3 rounded-lg bg-sunken p-4">
+            <Switch checked={v.auto} onCheckedChange={(auto) => set({ auto })} label={t("Liberar automaticamente")} description={t("A semana seguinte é liberada para todos neste dia e horário. Você ainda pode liberar antes.")} />
+            {v.auto && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Field label={t("Dia")}>{(id) => <Select id={id} value={v.day} onChange={(e) => set({ day: Number(e.target.value) })}>{WEEKDAYS.map(([d, l]) => <option key={d} value={d}>{t(l)}</option>)}</Select>}</Field>
+                <Field label={t("Horário")} error={err?.fieldError("auto_release_time")}>{(id) => <Input id={id} type="time" value={v.time} onChange={(e) => set({ time: e.target.value })} required />}</Field>
+              </div>
+            )}
+            <p className="text-sm text-fg-muted">{t("A semana em andamento fica sempre visível para os alunos.")}</p>
+          </div>
+        )}
+        {err?.fieldError("release_mode") && <p className="rf-text-caption text-danger-text">{err.fieldError("release_mode")}</p>}
+        <SaveRow dirty={dirty} loading={update.isPending} onReset={() => setV(init)} />
       </form>
     </Card>
   );

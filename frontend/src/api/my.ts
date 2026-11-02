@@ -1,13 +1,21 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, qs } from "@/lib/api";
 import { queryClient } from "@/queryClient";
-import type { Comment, CompletionStatus, Feeling, MySummary, MyWorkoutDetail, PlannedWorkout } from "./types";
+import type { Comment, CompletionStatus, Feeling, MySummary, MyWorkoutDetail, PlannedWorkout, UnreleasedWeek } from "./types";
 
 export const myKey = (clubId: string) => ["clubs", clubId, "my"] as const;
 export const threadKey = (clubId: string, id: string) => ["clubs", clubId, "thread", id] as const;
 
+type MyCalendar = { items: PlannedWorkout[]; unreleased_weeks: UnreleasedWeek[] };
+const myCalendar = (clubId: string | undefined, from: string, to: string) => ({
+  queryKey: [...myKey(clubId ?? ""), "workouts", from, to], enabled: !!clubId, placeholderData: (p: MyCalendar | undefined) => p,
+  queryFn: () => api.get<MyCalendar>(`/clubs/${clubId}/my/workouts${qs({ from, to })}`),
+});
 export const useMyWorkouts = (clubId: string | undefined, from: string, to: string) =>
-  useQuery({ queryKey: [...myKey(clubId ?? ""), "workouts", from, to], enabled: !!clubId, placeholderData: (p) => p, queryFn: () => api.get<{ items: PlannedWorkout[] }>(`/clubs/${clubId}/my/workouts${qs({ from, to })}`).then((r) => r.items) });
+  useQuery({ ...myCalendar(clubId, from, to), select: (r: MyCalendar) => r.items });
+/** Weeks in the range the trainer is still preparing (D-031), from the same request. */
+export const useMyUnreleasedWeeks = (clubId: string | undefined, from: string, to: string) =>
+  useQuery({ ...myCalendar(clubId, from, to), select: (r: MyCalendar) => r.unreleased_weeks ?? [] });
 export const useMyWorkout = (clubId: string | undefined, id: string) =>
   useQuery({ queryKey: [...myKey(clubId ?? ""), "workout", id], enabled: !!clubId, queryFn: () => api.get<MyWorkoutDetail>(`/clubs/${clubId}/my/workouts/${id}`) });
 export const useMySummary = (clubId: string | undefined) =>

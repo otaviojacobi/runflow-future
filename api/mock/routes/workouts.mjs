@@ -10,7 +10,7 @@ export default function register(h) {
     return { comments_count: cs.length, unread_count: cs.filter((c) => c.author_membership_id !== membershipId && (!read || c.created_at > read.last_read_at)).length };
   };
   /** A planned workout as the API returns it (row + completion + thread counters). */
-  h.workoutOut = (pw, viewerMembershipId) => ({ ...pw, completion: comp(pw.id), ...threadInfo(pw, viewerMembershipId) });
+  h.workoutOut = (pw, viewerMembershipId) => ({ ...pw, completion: comp(pw.id), ...threadInfo(pw, viewerMembershipId), visible: h.visible(pw) });
   const get = (clubId, id) => h.db.planned_workouts.find((p) => p.id === id && p.club_id === clubId) || h.fail(404, "workout.not_found", "Treino não encontrado", "Ele pode ter sido removido pelo treinador.");
   const students = (clubId) => new Set(h.db.memberships.filter((m) => m.club_id === clubId && m.role === "student" && m.status === "active").map((m) => m.id));
   const notify = (pw, kind, title) => {
@@ -27,6 +27,7 @@ export default function register(h) {
 
   h.get("/v1/clubs/:club_id/planned-workouts", (ctx) => {
     const me = ctx.staff(ctx.params.club_id);
+    h.autoRelease();
     const { from, to, athlete_id, group_id } = ctx.query;
     if (!DATE.test(from || "") || !DATE.test(to || "")) h.invalid([{ field: "from", message: "Informe o período (from e to)." }]);
     const inGroup = group_id ? new Set(h.db.group_members.filter((g) => g.group_id === group_id).map((g) => g.membership_id)) : null;
@@ -66,7 +67,11 @@ export default function register(h) {
       h.db.planned_workouts.push(row);
       created.push(row);
     }
-    for (const athlete of ids) { const first = created.find((c) => c.athlete_membership_id === athlete); notify(first, "workout_assigned", dates.length > 1 ? `${dates.length} novos treinos na sua agenda` : "Novo treino na sua agenda"); }
+    // Only what the student can already see (D-031): drafts are announced by the week's release.
+    for (const athlete of ids) {
+      const seen = created.filter((c) => c.athlete_membership_id === athlete && h.visible(c));
+      if (seen.length) notify(seen[0], "workout_assigned", seen.length > 1 ? `${seen.length} novos treinos na sua agenda` : "Novo treino na sua agenda");
+    }
     return { __status: 201, data: { items: created.map((p) => h.workoutOut(p, me.id)), next_cursor: null } };
   });
 
@@ -88,7 +93,7 @@ export default function register(h) {
     const moved = "date" in b && b.date !== pw.date;
     for (const k of ["date", "sport", "title", "structure", "notes", "est_duration_s", "est_distance_m", "position"]) if (k in b) pw[k] = k === "title" ? b.title.trim() : b[k];
     pw.updated_at = h.nowIso();
-    if (moved || "structure" in b) notify(pw, "workout_changed", moved ? "Um treino mudou de dia" : "Seu treinador ajustou um treino");
+    if ((moved || "structure" in b) && h.visible(pw)) notify(pw, "workout_changed", moved ? "Um treino mudou de dia" : "Seu treinador ajustou um treino");
     return h.workoutOut(pw, me.id);
   });
   h.delete("/v1/clubs/:club_id/planned-workouts/:id", (ctx) => {

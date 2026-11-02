@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, qs } from "@/lib/api";
 import { queryClient } from "@/queryClient";
 import { memberKeys } from "./members";
-import type { PlannedWorkout, PlannedWorkoutDetail, Sport } from "./types";
+import type { PlannedWorkout, PlannedWorkoutDetail, Sport, WeekState } from "./types";
 import type { Structure } from "@/domain/workout";
 
 export const plannedKey = (clubId: string) => ["clubs", clubId, "planned"] as const;
@@ -22,5 +22,12 @@ export const useAssign = (clubId: string) =>
 export const useUpdatePlanned = (clubId: string) =>
   useMutation({ mutationFn: ({ id, ...v }: { id: string } & Partial<Pick<PlannedWorkout, "date" | "title" | "sport" | "structure" | "notes" | "est_duration_s" | "est_distance_m">>) => api.patch<PlannedWorkout>(`/clubs/${clubId}/planned-workouts/${id}`, v), onSuccess: () => refresh(clubId) });
 export const useDeletePlanned = (clubId: string) => useMutation({ mutationFn: (id: string) => api.del(`/clubs/${clubId}/planned-workouts/${id}`), onSuccess: () => refresh(clubId) });
+/** Week release (D-031): state of the week starting `monday`, release it (everyone or some students), undo. */
+export const useWeek = (clubId: string | undefined, monday: string, enabled = true) =>
+  useQuery({ queryKey: [...plannedKey(clubId ?? ""), "week", monday], enabled: !!clubId && enabled, queryFn: () => api.get<WeekState>(`/clubs/${clubId}/weeks/${monday}`) });
+export const useReleaseWeek = (clubId: string) =>
+  useMutation({ mutationFn: ({ monday, ...v }: { monday: string; athlete_ids?: string[]; group_id?: string; notify?: boolean }) => api.post<WeekState>(`/clubs/${clubId}/weeks/${monday}/release`, v), onSuccess: () => refresh(clubId) });
+export const useUndoRelease = (clubId: string) =>
+  useMutation({ mutationFn: (monday: string) => api.del<WeekState>(`/clubs/${clubId}/weeks/${monday}/release`), onSuccess: () => refresh(clubId) });
 export const useCopyWeek = (clubId: string) =>
   useMutation({ mutationFn: (v: { from_monday: string; to_monday: string; athlete_ids?: string[] }) => api.post<{ copied: number }>(`/clubs/${clubId}/planned-workouts/copy-week`, v), onSuccess: () => refresh(clubId) });

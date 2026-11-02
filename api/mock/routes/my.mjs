@@ -19,15 +19,16 @@ export default function register(h) {
     return { ...structure, blocks: structure.blocks.map((b) => (b.kind === "repeat" ? { ...b, steps: b.steps.map(fix) } : b.kind === "step" ? fix(b) : b)) };
   };
   const mine = (ctx) => ctx.member(ctx.params.club_id, ["student"]);
-  const getMine = (m, id) => h.db.planned_workouts.find((p) => p.id === id && p.athlete_membership_id === m.id) || h.fail(404, "workout.not_found", "Treino não encontrado", "Ele pode ter sido removido pelo treinador.");
+  const getMine = (m, id) => h.db.planned_workouts.find((p) => p.id === id && p.athlete_membership_id === m.id && h.visible(p)) || h.fail(404, "workout.not_found", "Treino não encontrado", "Ele pode ter sido removido pelo treinador.");
   const shareOk = (m) => h.db.consents.some((c) => c.user_id === m.user_id && c.club_id === m.club_id && c.kind === "share_training_data" && !c.revoked_at);
 
   h.get("/v1/clubs/:club_id/my/workouts", (ctx) => {
     const m = mine(ctx);
     const { from, to } = ctx.query;
     if (!DATE.test(from || "") || !DATE.test(to || "")) h.invalid([{ field: "from", message: "Informe o período (from e to)." }]);
-    const items = h.db.planned_workouts.filter((p) => p.athlete_membership_id === m.id && p.date >= from && p.date <= to).sort((a, b) => a.date.localeCompare(b.date) || a.position - b.position).map((p) => h.workoutOut(p, m.id));
-    return { items, next_cursor: null };
+    h.autoRelease();
+    const items = h.db.planned_workouts.filter((p) => p.athlete_membership_id === m.id && p.date >= from && p.date <= to && h.visible(p)).sort((a, b) => a.date.localeCompare(b.date) || a.position - b.position).map((p) => h.workoutOut(p, m.id));
+    return { items, unreleased_weeks: h.unreleasedWeeks(m.club_id, m.id, from, to), next_cursor: null };
   });
   h.get("/v1/clubs/:club_id/my/workouts/:id", (ctx) => {
     const m = mine(ctx);
@@ -72,7 +73,7 @@ export default function register(h) {
     const today = h.today();
     const monday = h.mondayOf(today);
     const status = (p) => h.db.workout_completions.find((c) => c.planned_workout_id === p.id)?.status;
-    const all = h.db.planned_workouts.filter((p) => p.athlete_membership_id === m.id);
+    const all = h.db.planned_workouts.filter((p) => p.athlete_membership_id === m.id && h.visible(p));
     const week = all.filter((p) => p.date >= monday && p.date <= h.addDays(monday, 6));
     let streak = 0;
     for (let w = 1; w < 52; w++) {

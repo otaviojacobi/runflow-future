@@ -3,7 +3,7 @@ export default function register(h) {
   const access = (ctx) => {
     const m = ctx.member(ctx.params.club_id);
     const p = h.db.planned_workouts.find((x) => x.id === ctx.params.id && x.club_id === ctx.params.club_id);
-    if (!p || (m.role === "student" && p.athlete_membership_id !== m.id)) h.fail(404, "workout.not_found", "Treino não encontrado", "Ele pode ter sido removido.");
+    if (!p || (m.role === "student" && (p.athlete_membership_id !== m.id || !h.visible(p)))) h.fail(404, "workout.not_found", "Treino não encontrado", "Ele pode ter sido removido.");
     return { m, p };
   };
   const out = (c) => {

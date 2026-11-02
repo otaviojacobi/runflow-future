@@ -18,6 +18,8 @@ export interface User {
 export interface Club {
   id: ID; slug: string; name: string; city: string | null; state: string | null; timezone: string;
   modalities: Sport[]; trainer_label: "treinador" | "professor"; subdomain: string | null; created_at: ISOTime;
+  /** Week release (D-031): ISO weekday 1–7 + "HH:MM" of the automatic release, both null when off. */
+  release_mode: "immediate" | "weekly"; auto_release_weekday: number | null; auto_release_time: string | null;
 }
 export interface Membership {
   id: ID; club_id: ID; user_id: ID; role: Role; status: "active" | "suspended" | "left";
@@ -36,7 +38,7 @@ export interface Invoice { id: ID; club_id: ID; stripe_invoice_id: string | null
 export interface MembershipContext { membership: Membership; club: Club; branding: Branding | null; subscription: Subscription | null }
 export interface NotificationPrefs { user_id: ID; push_workouts: boolean; push_comments: boolean; push_classes: boolean; email_weekly: boolean }
 export interface Me { user: User; memberships: MembershipContext[]; prefs: NotificationPrefs | null; unread_notifications: number }
-export type NotificationKind = "workout_assigned" | "workout_changed" | "comment" | "feedback" | "class_reminder" | "class_cancelled" | "waitlist_promoted" | "member_joined" | "billing" | "message" | "announcement";
+export type NotificationKind = "workout_assigned" | "workout_changed" | "week_released" | "comment" | "feedback" | "class_reminder" | "class_cancelled" | "waitlist_promoted" | "member_joined" | "billing" | "message" | "announcement";
 export interface AppNotification { id: ID; user_id: ID; club_id: ID | null; kind: NotificationKind; title: string; body: string | null; link: string | null; read_at: ISOTime | null; created_at: ISOTime }
 export interface UserSession { id: ID; kind: "web" | "mobile"; user_agent: string | null; created_at: ISOTime; last_seen_at: ISOTime; current: boolean }
 export interface AuthResult { token: string; user: User; is_new: boolean }
@@ -94,6 +96,8 @@ export interface PlannedWorkout {
   structure: import("@/domain/workout").Structure; notes: string | null; est_duration_s: number | null; est_distance_m: number | null;
   template_id: ID | null; plan_assignment_id: ID | null; created_by: ID; created_at: ISOTime; updated_at: ISOTime;
   completion: Completion | null; comments_count: number; unread_count: number;
+  /** The student can see it now; false = a draft (D-031). */
+  visible: boolean;
 }
 export interface Activity {
   id: ID; user_id: ID; source: "strava" | "garmin" | "manual" | "file"; external_id: string | null; sport: Sport; name: string;
@@ -112,6 +116,14 @@ export interface MySummary {
 }
 
 export interface AthleteRef { membership_id: ID; user: User }
+
+/** A week's release state for the planning screen (D-031). */
+export interface WeekState {
+  week_start: ISODate; release_mode: Club["release_mode"]; started: boolean; released_at: ISOTime | null;
+  released_athlete_ids: ID[]; auto_release_at: ISOTime | null; drafts: number;
+}
+/** A future week the trainer hasn't released to the student yet. */
+export interface UnreleasedWeek { week_start: ISODate; auto_release_at: ISOTime | null }
 export interface Dashboard {
   date: ISODate; students: number;
   today: { planned: number; done: number; items: { workout: PlannedWorkout; athlete: AthleteRef }[] };
