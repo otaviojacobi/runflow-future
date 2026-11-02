@@ -1,8 +1,8 @@
 //! PostgreSQL access: pool, migrations, health.
 //!
-//! Migrations live in `backend/migrations`. `0001_contract.sql` is `api/schema.sql` as of S1 (D-020);
-//! every later contract change lands as a new migration **and** in `api/schema.sql`, and
-//! `tests/contract.rs` proves both produce the same database.
+//! Migrations live in `backend/migrations`. Until the beta there is one, `0001_bootstrap.sql`, a synced copy of
+//! `api/schema.sql` (D-030); from the beta on, every contract change lands as a new migration **and** in
+//! `api/schema.sql`, and `tests/contract.rs` proves both produce the same database.
 
 pub mod athletes;
 pub mod auth;

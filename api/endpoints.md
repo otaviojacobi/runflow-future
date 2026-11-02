@@ -50,7 +50,7 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 Trainers plan ahead in private and release a week (Monday–Sunday) when it's ready.
 - `release_mode`: `immediate` (students see a workout as soon as it's saved) or `weekly` (default for new clubs).
 - In `weekly` mode a workout is **visible** to its student when its week has started (club time), when the week was released to everyone, or when it was released to that student. Otherwise it's a **draft**.
-- Drafts never reach the student. They are left out of `/my/*` (including summary and badges), the `.ics` feed and notifications, and auto-matching skips them. The student's own detail, completion and comment routes answer `404 workout.not_found`.
+- Drafts never reach the student. They are left out of `/my/*` (including the summary), the `.ics` feed and notifications, and auto-matching skips them. The student's own detail, completion and comment routes answer `404 workout.not_found`.
 - **Automatic release.** `auto_release_weekday` (1 = Monday … 7 = Sunday) + `auto_release_time` (`"HH:MM"`, club time) releases the *following* week to everyone. The default is Sunday 18:00; both `null` turns it off. Setting one without the other → `422`.
 - **Notifications.** A release sends one `week_released` notification to each newly released student who has workouts that week. Workouts added to a visible week notify as usual (`workout_assigned`).
 - **Switching modes.** Going from `immediate` to `weekly` releases every future week that already has workouts, so nothing students saw disappears.
@@ -77,12 +77,12 @@ Trainers plan ahead in private and release a week (Monday–Sunday) when it's re
 | GET | `/me/export` | All my data as JSON (LGPD portability) | C1 |
 | GET / PATCH | `/me/prefs` | Notification preferences | C1 |
 | GET | `/me/consents` · POST `/me/consents` `{club_id?, kind, text_version}` · DELETE `/me/consents/{id}` | Consents (grant / revoke) | A4, C1 |
-| GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first. Kinds: `workout_assigned` `workout_changed` `week_released` `comment` `feedback` `class_reminder` (booked class in the next 12 h) `class_cancelled` `waitlist_promoted` `member_joined` `billing` `message` `announcement`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
+| GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first. Kinds: `workout_assigned` `workout_changed` `week_released` `comment` `feedback` `member_joined` `billing` `message` `announcement`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
 | GET | `/me/sessions` · DELETE `/me/sessions/{id}` · POST `/me/sessions/revoke-others` | Signed-in devices `{id, kind, user_agent, created_at, last_seen_at, current}` | C1 |
 | POST / DELETE | `/me/avatar` `{data_url, width, height}` | Upload (PNG/JPG/WebP ≤ 5 MB, no SVG) or remove the profile photo → `/me` payload; `avatar_url` is an `/assets/{id}` path | C1 |
 
 | GET / POST / DELETE | `/me/calendar-feed` | Personal calendar: POST (re)generates a secret URL → `{url, webcal_url}` (the old one stops working); GET → `{active, created_at}`; DELETE revokes | C1 |
-| GET | `/ics/{token}.ics` | Public, secret-token `text/calendar` feed (RFC 5545): released planned workouts (all-day), booked classes (timed, with location), race entries; −30 to +120 days | — |
+| GET | `/ics/{token}.ics` | Public, secret-token `text/calendar` feed (RFC 5545): released planned workouts (all-day) and race entries; −30 to +120 days | — |
 
 ### Providers and activities (user-owned)
 | Method | Path | Purpose | Screens |
@@ -117,12 +117,12 @@ Trainers plan ahead in private and release a week (Monday–Sunday) when it's re
 | GET | `/clubs/{club_id}/members?role&q&status` | Staff. `{membership, user, group_ids}`; owners, then trainers, then students, each by name (accents ignored); `q` matches name or e-mail; default excludes `left`; up to 500 per page (role may be a list: `trainer,owner`) | O2 |
 | PATCH / DELETE | `/clubs/{club_id}/members/{membership_id}` | Owner: change `role` / `status` (`active` \| `suspended`) or remove (→ `left`, out of groups). Not yourself (`409 member.self`); reactivating a student over the plan limit → `409 plan.limit_reached` | O2 |
 | GET / POST | `/clubs/{club_id}/groups` · PATCH / DELETE `/groups/{id}` · PUT `/groups/{id}/members` `{membership_ids}` | Groups | W2 |
-| POST | `/clubs/{club_id}/leave` | Leave a club: membership → `left`, out of its groups, that club's sharing consents revoked, open bookings cancelled. `409 member.last_owner` for the only owner | C1 |
+| POST | `/clubs/{club_id}/leave` | Leave a club: membership → `left`, out of its groups, that club's sharing consents revoked. `409 member.last_owner` for the only owner | C1 |
 
 ### Athletes (trainer view) and dashboard
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
-| GET | `/clubs/{club_id}/dashboard?date` | `{date, students, today: {planned, done, items}, week: {planned, done, compliance_pct, duration_s, distance_m}, compliance_trend[8], feedback[], alerts[] (missed_streak, high_rpe, no_sync, birthday, new_member, plan_limit; pt-BR text + link), upcoming_classes[], onboarding{logo, colors, students, workouts, groups, strava}, subscription}` | W1 |
+| GET | `/clubs/{club_id}/dashboard?date` | `{date, students, today: {planned, done, items}, week: {planned, done, compliance_pct, duration_s, distance_m}, compliance_trend[8], feedback[], alerts[] (missed_streak, high_rpe, no_sync, birthday, new_member, plan_limit; pt-BR text + link), onboarding{logo, colors, students, workouts, groups, strava}, subscription}` | W1 |
 | GET | `/clubs/{club_id}/athletes?q&group_id` | `{membership, user, group_ids, goal, level, compliance_pct (28 d, partial = ½), week: {planned, done}, last_activity_at (only with consent), strava: none\|private\|shared, shares_data}` | W2, W4 |
 | GET | `/clubs/{club_id}/athletes/{membership_id}` | Summary + `profile` (with trainer notes), latest `zones` (pace, hr), `consents {training_data, strava}`, `weekly[12] {week_start, planned_s, done_s, distance_m, sessions}`, `recent_activities` (consent-aware), `groups` | W3 |
 | PUT | `/clubs/{club_id}/athletes/{membership_id}/profile` | Goal, level, physiology, trainer notes | W3 |
@@ -148,26 +148,11 @@ Trainers plan ahead in private and release a week (Monday–Sunday) when it's re
 | DELETE | `/clubs/{club_id}/plans/{id}/assignments/{aid}` | Unassign: removes future, not-done workouts → `{removed_workouts}` | W7 |
 | GET | `/clubs/{club_id}/my/workouts?from&to` | Student calendar (own, released workouts only) + `unreleased_weeks: [{week_start, auto_release_at}]`: the weeks in the range the trainer hasn't released yet (said whether or not anything is planned) | M1, M3 |
 | GET | `/clubs/{club_id}/my/workouts/{id}` | Detail (a draft is `404 workout.not_found`, like the completion and comment routes): zone targets get `resolved` ranges from the student's zones (`{min_s,max_s}` or `{min,max}` bpm); `activity`, `candidate_activities` (±1 day), `coach` | M2 |
-| GET | `/clubs/{club_id}/my/summary` | Today: `{shares_data, streak_weeks, week: {planned, done, duration_s, distance_m}, last_activity, next_class}` | M1 |
+| GET | `/clubs/{club_id}/my/summary` | Today: `{shares_data, streak_weeks, week: {planned, done, duration_s, distance_m}, last_activity}` | M1 |
 | PUT | `/clubs/{club_id}/my/workouts/{id}/completion` `{status, rpe, feeling, comment, activity_id?}` | Feedback. Without `activity_id`, a same-day activity of the same sport is matched; compliance = actual ÷ planned distance (or time); the trainer is notified | M5 |
 | GET / POST | `/clubs/{club_id}/planned-workouts/{id}/comments` | Thread (student ⇄ trainers); items carry `author {membership_id, role, user}`; GET marks as read; POST notifies the other side | M2, W8 |
 | GET | `/clubs/{club_id}/feedback?filter=needs_reply\|unread\|flagged\|all` | Trainer inbox, last 30 days: `{items: [{workout, athlete, last_comment, needs_reply, flagged}], counts: {needs_reply, unread, flagged, all}}`. Flagged = PSE ≥ 9 or felt bad/awful | W8 |
 | POST | `/clubs/{club_id}/feedback/read` `{workout_ids?}` | Mark threads as read (all if empty) | W8 |
-
-### Scheduling (aulas)
-| Method | Path | Purpose | Screens |
-|---|---|---|---|
-| GET / POST | `/clubs/{club_id}/locations` · PATCH / DELETE `/locations/{id}` | Venues (kind: track, pool, gym, park, studio, other) | O3, W9 |
-| GET / POST | `/clubs/{club_id}/class-types` · PATCH / DELETE `/class-types/{id}` | Class types (sport, default capacity, duration) | W9 |
-| GET / POST | `/clubs/{club_id}/class-schedules` `{class_type_id, weekdays[], start_time, duration_min?, capacity?, location_id?, instructor_membership_id?, valid_from?}` | Recurring rules; POST creates one per weekday and materializes 8 weeks → `{items, sessions}` | W9 |
-| DELETE | `/clubs/{club_id}/class-schedules/{id}` | End a rule: future sessions cancelled, booked students notified | W9 |
-| GET | `/clubs/{club_id}/class-sessions?from&to` | Sessions with `class_type`, `location`, `instructor`, `booked`, `waitlist`, `my_booking` | W9, M6 |
-| POST | `/clubs/{club_id}/class-sessions` `{class_type_id, date, time, …}` | One-off session | W9 |
-| GET / PATCH | `/clubs/{club_id}/class-sessions/{id}` | Staff GET adds `roster` + `checkin_code`; PATCH `{status: cancelled, reason?}` notifies; `{capacity}` promotes the waitlist | W9 |
-| POST | `/clubs/{club_id}/class-sessions/{id}/bookings` `{membership_id?}` | Book (self, or staff adds); full → waitlisted with position | M6, W9 |
-| DELETE | `/clubs/{club_id}/bookings/{id}` | Cancel; the first in the waitlist is promoted and notified | M6, W9 |
-| PATCH | `/clubs/{club_id}/bookings/{id}` `{status: attended \| no_show \| booked}` | Attendance (staff) | W9 |
-| POST | `/clubs/{club_id}/class-sessions/{id}/check-in` `{checkin_code}` | Student check-in (45 min before → end); creates a booking if there is room | M6 |
 
 ### Exercise library
 | Method | Path | Purpose | Screens |
@@ -189,7 +174,6 @@ Staff only. Responses carry `source` (`rules` in the mock; the backend's model n
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
 | GET | `/clubs/{club_id}/reports/training?from&to&group_id` | Period ≤ 1 year (default: last 28 days). `totals`, `weekly[]` (same shape as the dashboard trend) and `athletes[] {planned, done, partial, missed, compliance_pct, planned_s, shares_data, activities, done_s, distance_m}`. Activity volume only for students who share training data (else null) | W16 |
-| GET | `/clubs/{club_id}/reports/attendance?from&to&group_id` | Classes already held in the period: `totals {sessions, cancelled, booked, attended, no_show, occupancy_pct, attendance_pct}`, `by_type[]`, `athletes[]` | W16 |
 
 Exports are built by the app from these payloads: CSV (`;`-separated, decimal comma, UTF-8 BOM for Excel) and PDF via the print stylesheet.
 
@@ -217,17 +201,6 @@ Kinds, `data` → `result`: `body {weight_kg, height_cm, body_fat_pct?, waist_cm
 | PATCH / DELETE | `/clubs/{club_id}/announcements/{id}` | Edit (sets `edited_at`), pin, retarget / delete | W13 |
 | POST | `/clubs/{club_id}/announcements/read` `{ids}` | Mark announcements read | M10 |
 | GET | `/clubs/{club_id}/announcements/{id}/reads` | Staff: audience with `read_at` (who read, who didn't) | W13 |
-
-### Challenges, rankings and badges
-| Method | Path | Purpose | Screens |
-|---|---|---|---|
-| GET | `/clubs/{club_id}/challenges` | Active, then upcoming, then finished. Students only see club-wide ones and those for their groups. Each has `status` (`upcoming` `active` `finished`), `participants_count`, `joined`, `my_progress {rank, value, pct}` | W15, M11 |
-| POST | `/clubs/{club_id}/challenges` `{name, metric, starts_on, ends_on, description?, sport?, goal?, group_ids?}` | Create (staff). `metric`: `distance` (km) `duration` (h) `sessions` `elevation` (m); `sport` null = any; `goal` null = ranking only | W15 |
-| GET / PATCH / DELETE | `/clubs/{club_id}/challenges/{id}` | GET adds `leaderboard[] {rank, membership_id, user, value, pct}` (participants only). DELETE archives | W15, M11 |
-| POST / DELETE | `/clubs/{club_id}/challenges/{id}/join` | Join / leave (student). Joining = showing your progress on that leaderboard | M11 |
-| GET | `/clubs/{club_id}/rankings?month=YYYY-MM&sport` | Monthly distance ranking of opted-in students (`items[] {rank, user, value km}`, `me {opted_in, rank}`) | M11, W15 |
-| PUT | `/clubs/{club_id}/my/ranking` `{opted_in}` | Opt in / out of the monthly ranking | M11 |
-| GET | `/clubs/{club_id}/my/badges` | `{items[] {key, kind, title, earned_at}, streak_weeks}`. Badges are awarded on read in the mock (nightly job in the backend): streaks of 4/8/12/26 weeks, 100 km running in a month, a challenge goal reached, a race finished | M11, M1 |
 
 ### Races and events
 | Method | Path | Purpose | Screens |

@@ -1,19 +1,17 @@
 /** M1 · Hoje (student home). Route: /today */
 import { Link } from "@tanstack/react-router";
-import { CalendarClock, ChevronRight, CircleCheck, Coffee, Flame, MapPin, MessageSquare, QrCode, ShieldAlert } from "lucide-react";
+import { ChevronRight, CircleCheck, Coffee, Flame, MessageSquare, ShieldAlert } from "lucide-react";
 import { useState } from "react";
-import { useSessions } from "@/api/classes";
 import { useMySummary, useMyWorkouts } from "@/api/my";
-import type { ClassSession, PlannedWorkout } from "@/api/types";
-import { BookingBadge, checkinOpen, timeRange } from "@/components/classes";
+import type { PlannedWorkout } from "@/api/types";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
-import { SportChip, sportBar } from "@/components/sport";
+import { SportChip } from "@/components/sport";
 import { IntensityProfile, Stat, StatusBadge } from "@/components/workout";
 import { WeekStrip, type DayState } from "@/components/week";
 import { t, tn } from "@/i18n";
 import { useClub } from "@/lib/club";
-import { addDays, distance, duration, km, longDate, mondayOf, pace, shortDate, timeOf, today as todayFn } from "@/lib/format";
-import { Button, ButtonLink, Card, Skeleton, cn } from "@/ui";
+import { addDays, distance, duration, km, longDate, mondayOf, pace, shortDate, today as todayFn } from "@/lib/format";
+import { Button, ButtonLink, Card, Skeleton } from "@/ui";
 import { FEELING } from "../staff/planning/WorkoutDialogs";
 
 const greet = () => { const h = new Date().getHours(); return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"; };
@@ -49,20 +47,6 @@ export function WorkoutCard({ w, clubId, onFeedback }: { w: PlannedWorkout; club
   );
 }
 
-/** A booked class on the selected day (M6 data on M1). */
-function ClassCard({ s, tz }: { s: ClassSession; tz: string }) {
-  const b = s.my_booking!;
-  const open = b.status === "booked" && checkinOpen(s);
-  return (
-    <Link to="/classes" className="relative flex items-center gap-3 overflow-hidden rounded-lg border border-line bg-surface p-4 pl-5 shadow-sm hover:bg-soft">
-      <span aria-hidden className={cn("absolute inset-y-0 left-0 w-1", sportBar[s.class_type.sport])} />
-      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-soft"><CalendarClock className="size-5 text-fg-muted" /></span>
-      <span className="min-w-0 flex-1"><span className="block text-xs font-semibold text-fg-muted">{t("Aula")} · {timeRange(s, tz)}</span><span className="block truncate font-semibold">{s.class_type.name}</span>{s.location && <span className="block truncate text-sm text-fg-muted">{s.location.name}</span>}</span>
-      {open ? <span className="inline-flex h-8 items-center gap-1 rounded-md bg-brand px-3 text-sm font-semibold text-on-brand"><QrCode className="size-4" />{t("Check-in")}</span> : <BookingBadge status={b.status} position={b.waitlist_position} />}
-    </Link>
-  );
-}
-
 export function TodayScreen() {
   const { me, club } = useClub();
   const today = todayFn(club?.timezone);
@@ -71,9 +55,7 @@ export function TodayScreen() {
   const [feedback, setFeedback] = useState<PlannedWorkout | null>(null);
   const week = useMyWorkouts(club?.id, monday, addDays(monday, 6));
   const summary = useMySummary(club?.id);
-  const classes = useSessions(club?.id, selected, selected);
   if (!club || !me) return null;
-  const myClasses = (classes.data ?? []).filter((c) => c.my_booking && c.my_booking.status !== "cancelled");
   const byDay = (d: string) => (week.data ?? []).filter((w) => w.date === d);
   const states = Object.fromEntries(Array.from({ length: 7 }, (_, i) => { const d = addDays(monday, i); return [d, dayState(byDay(d), d, today)]; }));
   const list = byDay(selected);
@@ -93,7 +75,6 @@ export function TodayScreen() {
         {week.isPending ? <Skeleton className="h-56" /> : list.length ? list.map((w) => <WorkoutCard key={w.id} w={w} clubId={club.id} onFeedback={() => setFeedback(w)} />) : (
           <Card className="flex items-center gap-4 p-5"><span className="grid size-12 place-items-center rounded-full bg-soft"><Coffee className="size-6 text-fg-muted" /></span><div><div className="font-semibold">{t("Dia de descanso")}</div><p className="text-sm text-fg-muted">{selected >= today ? t("Recuperar também é treino. Aproveite!") : t("Nenhum treino neste dia.")}</p></div></Card>
         )}
-        {myClasses.map((c) => <ClassCard key={c.id} s={c} tz={club.timezone} />)}
       </section>
       {s && s.week.planned > 0 && (
         <Card className="grid gap-3 p-4">
@@ -104,13 +85,6 @@ export function TodayScreen() {
             <Stat value={s.week.distance_m ? km(s.week.distance_m) : "–"} unit={s.week.distance_m ? "km" : undefined} label={t("Distância")} />
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-soft"><div className="h-full rounded-full bg-brand" style={{ width: `${(s.week.done / s.week.planned) * 100}%` }} /></div>
-        </Card>
-      )}
-      {s?.next_class && (
-        <Card className="flex items-center gap-4 p-4">
-          <span className="grid size-11 place-items-center rounded-xl bg-brand-soft text-on-brand-soft"><CalendarClock className="size-5" /></span>
-          <div className="min-w-0 flex-1"><div className="text-xs font-semibold text-fg-muted">{t("Próxima aula")}</div><div className="truncate font-semibold">{s.next_class.class_type.name}</div><div className="flex items-center gap-1 text-sm text-fg-muted">{shortDate(s.next_class.session.starts_at.slice(0, 10))} · {timeOf(s.next_class.session.starts_at)}{s.next_class.location && <><MapPin className="ml-1 size-3.5" />{s.next_class.location.name}</>}</div></div>
-          {s.next_class.booking.status === "waitlisted" && <span className="rounded-full bg-warning-soft px-2 py-1 text-xs font-bold text-on-warning-soft">{t("Fila: {n}º", { n: s.next_class.booking.waitlist_position ?? 0 })}</span>}
         </Card>
       )}
       {last && (

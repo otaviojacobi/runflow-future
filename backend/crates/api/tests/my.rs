@@ -5,7 +5,7 @@ mod common;
 use axum::http::{Method, header};
 use chrono::{Datelike, Duration, Utc};
 use common::TestApp;
-use serde_json::{Value, json};
+use serde_json::json;
 use sqlx::PgPool;
 
 struct Club {
@@ -289,9 +289,9 @@ async fn todays_summary_counts_the_week_and_the_streak(db: PgPool) {
         (
             s["shares_data"].as_bool(),
             s["last_activity"]["distance_m"].as_i64(),
-            &s["next_class"]
+            s.get("next_class").is_none()
         ),
-        (Some(false), Some(5000), &Value::Null)
+        (Some(false), Some(5000), true)
     );
 }
 

@@ -327,6 +327,5 @@ async fn summary(
             "distance_m": week.iter().map(|w| w.est_distance_m.unwrap_or(0) as i64).sum::<i64>(),
         },
         "last_activity": db::last_activity(&state.db, auth.user_id).await?,
-        "next_class": db::next_class(&state.db, m.membership_id).await?,
     })))
 }

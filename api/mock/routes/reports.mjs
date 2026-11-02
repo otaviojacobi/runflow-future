@@ -43,26 +43,4 @@ export default function register(h) {
     const sum = (k) => athletes.reduce((s, a) => s + (a[k] || 0), 0);
     return { from, to, group_id: ctx.query.group_id || null, totals: { athletes: athletes.length, planned: sum("planned"), done: sum("done"), partial: sum("partial"), missed: sum("missed"), compliance_pct: score(planned), planned_s: sum("planned_s"), done_s: sum("done_s"), distance_m: sum("distance_m"), sharing: athletes.filter((a) => a.shares_data).length }, weekly, athletes };
   });
-
-  h.get("/v1/clubs/:club_id/reports/attendance", (ctx) => {
-    const me = ctx.staff(ctx.params.club_id);
-    const { from, to } = period(ctx.query);
-    const nowIso = h.nowIso();
-    const sessions = h.db.class_sessions.filter((s) => s.club_id === me.club_id && localDate(s.starts_at) >= from && localDate(s.starts_at) <= to && s.starts_at <= nowIso);
-    const held = sessions.filter((s) => s.status === "scheduled");
-    const books = h.db.bookings.filter((b) => held.some((s) => s.id === b.session_id) && b.status !== "cancelled" && b.status !== "waitlisted");
-    const by_type = h.db.class_types.filter((t) => t.club_id === me.club_id).map((t) => {
-      const ss = held.filter((s) => s.class_type_id === t.id);
-      const bs = books.filter((b) => ss.some((s) => s.id === b.session_id));
-      const attended = bs.filter((b) => b.status === "attended").length, no_show = bs.filter((b) => b.status === "no_show").length;
-      return { class_type: { id: t.id, name: t.name, sport: t.sport }, sessions: ss.length, cancelled: sessions.filter((s) => s.class_type_id === t.id && s.status === "cancelled").length, capacity: ss.reduce((n, s) => n + s.capacity, 0), booked: bs.length, attended, no_show, occupancy_pct: pct(bs.length, ss.reduce((n, s) => n + s.capacity, 0)), attendance_pct: pct(attended, attended + no_show) };
-    }).filter((x) => x.sessions || x.cancelled);
-    const athletes = studentsOf(me.club_id, ctx.query.group_id).map((m) => {
-      const bs = books.filter((b) => b.membership_id === m.id);
-      const attended = bs.filter((b) => b.status === "attended").length, no_show = bs.filter((b) => b.status === "no_show").length;
-      return { membership_id: m.id, user: userOfM(m.id), booked: bs.length, attended, no_show, attendance_pct: pct(attended, attended + no_show) };
-    }).filter((a) => a.booked).sort((a, b) => b.attended - a.attended || a.user.name.localeCompare(b.user.name));
-    const attended = books.filter((b) => b.status === "attended").length, no_show = books.filter((b) => b.status === "no_show").length;
-    return { from, to, totals: { sessions: held.length, cancelled: sessions.length - held.length, booked: books.length, attended, no_show, occupancy_pct: pct(books.length, held.reduce((n, s) => n + s.capacity, 0)), attendance_pct: pct(attended, attended + no_show) }, by_type, athletes };
-  });
 }

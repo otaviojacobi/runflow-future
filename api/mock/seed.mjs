@@ -379,52 +379,6 @@ export function generate(anchor) {
   }
   if (PW["bruno:" + today]) comment(PW["bruno:" + today], "paceforte:bruno", "Tiros saíram mais fáceis que semana passada!", at(today, "07:02"));
 
-  // ---- scheduling
-  const loc = (key, clubRow, name, kind, address, lanes = null) => { const row = { id: uuid("loc:" + key), club_id: clubRow.id, name, kind, address, lanes, created_at: createdLongAgo, archived_at: null }; t("locations").push(row); return row; };
-  const ibira = loc("ibira", PF, "Pista do Ibirapuera", "track", "Av. Pedro Álvares Cabral, São Paulo");
-  loc("villalobos", PF, "Parque Villa-Lobos", "park", "Av. Prof. Fonseca Rodrigues, 2001, São Paulo");
-  const estudio = loc("estudio", PF, "Estúdio Pace Forte", "studio", "R. Harmonia, 520, São Paulo");
-  const piscina = loc("piscina", MARE, "Piscina Sesc Santos", "pool", "Av. Conselheiro Ribas, 136, Santos", 6);
-  const ctype = (key, clubRow, name, sport, cap, dur, description) => { const row = { id: uuid("ct:" + key), club_id: clubRow.id, name, sport, description, default_capacity: cap, duration_min: dur, created_at: createdLongAgo, archived_at: null }; t("class_types").push(row); return row; };
-  const pista = ctype("pista", PF, "Treino coletivo de pista", "run", 25, 75, "Educativos + série principal em grupo.");
-  const funcional = ctype("funcional", PF, "Funcional para corredores", "strength", 12, 50, "Força, estabilidade e mobilidade.");
-  const natIni = ctype("natini", MARE, "Natação adulto: iniciante", "swim", 8, 45, "Adaptação e técnica básica.");
-  const natAv = ctype("natav", MARE, "Natação adulto: avançado", "swim", 10, 60, "Séries de volume e intensidade.");
-  const schedule = (key, clubRow, ct, location, instructor, weekday, start) => { const row = { id: uuid("cs:" + key), club_id: clubRow.id, class_type_id: ct.id, location_id: location.id, instructor_membership_id: instructor, weekday, start_time: start, duration_min: ct.duration_min, capacity: ct.default_capacity, valid_from: addDays(W0, -56), valid_until: null, created_at: createdLongAgo }; t("class_schedules").push(row); return row; };
-  const scheds = [
-    schedule("pf-pista-ter", PF, pista, ibira, M["paceforte:marcos"].id, 2, "06:30"),
-    schedule("pf-pista-qui", PF, pista, ibira, M["paceforte:julia"].id, 4, "06:30"),
-    schedule("pf-func-seg", PF, funcional, estudio, M["paceforte:julia"].id, 1, "19:00"),
-    schedule("pf-func-qua", PF, funcional, estudio, M["paceforte:julia"].id, 3, "19:00"),
-    schedule("mare-ini-seg", MARE, natIni, piscina, M["equipemare:renata"].id, 1, "07:00"),
-    schedule("mare-ini-qua", MARE, natIni, piscina, M["equipemare:renata"].id, 3, "07:00"),
-    schedule("mare-av-ter", MARE, natAv, piscina, M["equipemare:renata"].id, 2, "19:30"),
-    schedule("mare-av-qui", MARE, natAv, piscina, M["equipemare:renata"].id, 4, "19:30"),
-  ];
-  const pfStudents = PF_STUDENTS.map((s) => "paceforte:" + s[0]);
-  const mareStudents = ["ana", ...MARE_STUDENTS.map((s) => s[0])].map((k) => "equipemare:" + k);
-  for (let w = -1; w <= 2; w++) for (const sc of scheds) {
-    const date = addDays(W0, w * 7 + sc.weekday - 1);
-    const end = new Date(new Date(at(date, sc.start_time)).getTime() + sc.duration_min * 60000).toISOString();
-    const s = { id: uuid(`sess:${sc.id}:${date}`), club_id: sc.club_id, class_type_id: sc.class_type_id, schedule_id: sc.id, location_id: sc.location_id, instructor_membership_id: sc.instructor_membership_id, starts_at: at(date, sc.start_time), ends_at: end, capacity: sc.capacity, status: "scheduled", notes: null, checkin_code: uuid("code:" + sc.id + date).slice(0, 6).toUpperCase(), created_at: createdLongAgo };
-    t("class_sessions").push(s);
-    const pool = sc.club_id === PF.id ? pfStudents : mareStudents;
-    const full = sc.id === uuid("cs:mare-ini-qua") && date > anchor && w === 0;
-    const n = full ? pool.length : Math.min(pool.length, r(2, Math.max(3, pool.length - 2)));
-    const chosen = full ? pool : shuffle(pool).slice(0, n);
-    chosen.forEach((mk, i) => {
-      const past = date < anchor;
-      const waitlisted = !past && i >= s.capacity;
-      t("bookings").push({ id: uuid(`bk:${s.id}:${mk}`), session_id: s.id, membership_id: M[mk].id, status: past ? (rand() < 0.85 ? "attended" : "no_show") : waitlisted ? "waitlisted" : "booked", waitlist_position: waitlisted ? i - s.capacity + 1 : null, checked_in_at: past ? s.starts_at : null, created_at: at(addDays(date, -2), "12:00"), updated_at: at(addDays(date, -2), "12:00") });
-    });
-    if (full) s.capacity = 4; // Wednesday's beginner swim: full with a waitlist
-  }
-  // Fix waitlist for the capacity change above
-  for (const s of t("class_sessions")) {
-    const bs = t("bookings").filter((b) => b.session_id === s.id && (b.status === "booked" || b.status === "waitlisted"));
-    bs.forEach((b, i) => { b.status = i < s.capacity ? "booked" : "waitlisted"; b.waitlist_position = i < s.capacity ? null : i - s.capacity + 1; });
-  }
-
   // ---- assessments (F23)
   const assess = (key, mk, kind, day, data, notes = null) => {
     const { result } = computeAssessment(kind, data);
@@ -477,22 +431,6 @@ export function generate(anchor) {
   for (const k of ["ana", "bruno", "diego", "henrique"]) t("announcement_reads").push({ announcement_id: a3.id, membership_id: M["paceforte:" + k].id, read_at: at(addDays(anchor, -4), "07:00") });
   ann("mare-touca", MARE, "equipemare:renata", -4, "Touca obrigatória na piscina", "O Sesc passou a exigir touca em todas as raias. Sem touca, não entra. Temos toucas da equipe à venda por R$ 25.");
 
-  // ---- challenges and rankings (F24)
-  const monthStart = anchor.slice(0, 7) + "-01";
-  const monthEnd = addDays(new Date(Date.UTC(+anchor.slice(0, 4), +anchor.slice(5, 7), 1)).toISOString().slice(0, 10), -1);
-  const prevStart = new Date(Date.UTC(+anchor.slice(0, 4), +anchor.slice(5, 7) - 2, 1)).toISOString().slice(0, 10);
-  const challenge = (key, clubRow, row, members) => {
-    const c = { id: uuid("ch:" + key), club_id: clubRow.id, description: null, sport: null, goal: null, group_ids: [], created_by: null, created_at: at(row.starts_on, "08:00"), archived_at: null, ...row };
-    t("challenges").push(c);
-    for (const mk of members) t("challenge_participants").push({ challenge_id: c.id, membership_id: M[mk].id, joined_at: at(row.starts_on, "09:00") });
-    return c;
-  };
-  challenge("pf-100k", PF, { name: "100 km no mês", description: "Some 100 km de corrida até o fim do mês. Vale treino e prova!", metric: "distance", sport: "run", goal: 100, starts_on: monthStart, ends_on: monthEnd, created_by: M["paceforte:marcos"].id }, ["paceforte:ana", "paceforte:bruno", "paceforte:diego", "paceforte:henrique", "paceforte:carla"]);
-  challenge("pf-constancia", PF, { name: "Constância: 12 treinos", description: "Doze treinos no mês, de qualquer modalidade.", metric: "sessions", goal: 12, starts_on: monthStart, ends_on: monthEnd, created_by: M["paceforte:julia"].id, group_ids: [uuid("group:iniciantes")] }, ["paceforte:elisa", "paceforte:gabriela"]);
-  challenge("pf-outubro", PF, { name: "Outubro de altimetria", description: "Quem sobe mais no mês?", metric: "elevation", sport: "run", starts_on: prevStart, ends_on: addDays(monthStart, -1), created_by: M["paceforte:marcos"].id }, ["paceforte:ana", "paceforte:bruno", "paceforte:diego"]);
-  challenge("mare-30k", MARE, { name: "30 km nadados", description: "Some 30 km de natação no mês.", metric: "distance", sport: "swim", goal: 30, starts_on: monthStart, ends_on: monthEnd, created_by: M["equipemare:renata"].id }, ["equipemare:ana", "equipemare:lucas", "equipemare:marina"]);
-  for (const k of ["ana", "bruno", "diego", "henrique", "gabriela"]) t("ranking_opt_ins").push({ membership_id: M["paceforte:" + k].id, opted_in_at: createdLongAgo });
-
   // ---- races (F21)
   const race = (key, clubRow, row) => { const x = { id: uuid("race:" + key), club_id: clubRow.id, sport: "run", start_time: "07:00", city: null, state: null, url: null, notes: null, created_by: null, created_at: createdLongAgo, archived_at: null, ...row }; t("races").push(x); return x; };
   const RIEGEL = (thr, m) => Math.round(thr * 10 * Math.pow(m / 10000, 1.06));
@@ -517,13 +455,12 @@ export function generate(anchor) {
   const note = (ukey, clubRow, kind, title, body, link, when, read = false) => t("notifications").push({ id: uuid(`n:${ukey}:${kind}:${when}`), user_id: U[ukey].id, club_id: clubRow ? clubRow.id : null, kind, title, body, link, read_at: read ? when : null, created_at: when });
   note("ana", PF, "workout_assigned", "Novo treino para hoje", "Intervalado 6×1 km", `/workouts/${PW["ana:" + today].id}`, at(addDays(today, -1), "20:00"));
   if (lastTue) note("ana", PF, "comment", "Marcos comentou no seu treino", "Normal nessa fase. Amanhã faz o regenerativo bem leve…", `/workouts/${lastTue.id}`, at(lastTue.date, "12:30"), true);
-  note("ana", MARE, "class_reminder", "Natação amanhã às 07:00", "Natação adulto: iniciante · Piscina Sesc Santos", "/classes", at(today, "18:00"));
   if (carlaMissed) note("marcos", PF, "feedback", "Carla Mendes deixou um comentário", "Não consegui treinar, plantão no hospital…", `/feedback`, at(addDays(anchor, -1), "21:14"));
   note("marcos", PF, "member_joined", "Isabela Freitas entrou no clube", null, "/students", at(addDays(anchor, -2), "19:12"), true);
   note("marcos", PF, "billing", "9 de 10 alunos no plano Free", "Faça upgrade para o Pro e tenha até 100 alunos.", "/club/billing", at(addDays(anchor, -2), "19:13"));
 
   // empty tables (present so the mock and the check know them)
-  for (const k of ["email_codes", "sessions", "assets", "plan_assignments", "webhook_events", "push_tokens", "audit_log", "jobs", "badges", "calendar_feeds"]) t(k);
+  for (const k of ["email_codes", "sessions", "assets", "plan_assignments", "webhook_events", "push_tokens", "audit_log", "jobs", "calendar_feeds"]) t(k);
   return { meta: { anchor_date: anchor, generated_at: new Date().toISOString(), version: 1 }, ...T };
 }
 

@@ -745,7 +745,6 @@ async fn dashboard(
         "compliance_trend": trend,
         "feedback": feedback,
         "alerts": alerts,
-        "upcoming_classes": db::upcoming_classes(&state.db, m.club_id).await?,
         "onboarding": {
             "logo": ob.logo, "colors": ob.colors, "students": !students.is_empty(),
             "workouts": all.iter().any(|w| w.date >= monday), "groups": ob.groups, "strava": ob.strava,

@@ -47,7 +47,6 @@ export function CommandPalette({ open, onOpenChange, role, clubId, modalities }:
       { id: "a:exercise", group: t("Ações"), label: t("Novo exercício"), icon: Dumbbell, run: go("/exercises") },
     ] : [
       { id: "a:log", group: t("Ações"), label: t("Registrar atividade"), icon: Plus, run: go("/activities") },
-      { id: "a:class", group: t("Ações"), label: t("Reservar aula"), icon: CalendarPlus, run: go("/classes") },
     ];
     actions.push({ id: "a:theme", group: t("Ações"), label: dark ? t("Usar tema claro") : t("Usar tema escuro"), icon: dark ? Sun : Moon, run: () => setColorMode(dark ? "light" : "dark") });
     const people: Item[] = (athletes.data ?? []).map((a) => ({ id: "s:" + a.membership.id, group: t("Alunos"), label: a.user.name, avatar: { name: a.user.name, src: a.user.avatar_url }, run: go(`/students/${a.membership.id}`) }));

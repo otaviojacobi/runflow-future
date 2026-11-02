@@ -63,7 +63,7 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 | B1 | Logo redo (founder, 2026-11-02), part 1: four concepts on `/dev/logo` (Pista, Ritmo, Passada, Avante), each as app icon, favicon at 16 px, header, browser tab and one-color, in light and dark, next to the current mark | [x] |
 | F34 | Week release (D-031), contract first: release mode + auto-release time in club settings, a `week_releases` table, release endpoint (week; everyone, groups or students; notify), release state in planning and the dashboard, `week_released` notification, drafts filtered from `/my/*`, `.ics` and auto-matching. Mock, W4 (draft styling, "Liberar semana" dialog), O3 setting, M1/M3 ("semana ainda não liberada" empty state), backend + auto-release job, tests || [x] |
 | F36 | Founder feedback round (2026-11-02, D-035), web + mock (+ backend where the contract changes): the invite pre-fills and locks the e-mail when signing up; "Nome completo" wherever a person names themselves; the onboarding goal step removed ("Outro" with free text added to the goal in the profile); "Atribuir treino" with a single way to pick days and the swim "Montar agora" layout fixed; students' bottom bar is 4 items (Hoje, Agenda, Mensagens, Perfil) with Atividades inside Perfil; the Exercícios screen only for clubs with musculação || [x] |
-| F37 | Remove class scheduling (Aulas) and Desafios (D-035), like F33: screens, menus, routes, mock, contract (endpoints + tables), seed, tests; backend migration drops the tables; `.ics` and summaries lose classes; the plan and feature map updated | [ ] |
+| F37 | Remove class scheduling (Aulas) and Desafios (D-035), like F33: screens, menus, routes, mock, contract (endpoints + tables), seed, tests; the backend's migrations squashed into one `0001_bootstrap.sql` synced from `api/schema.sql` (D-030; QA resets itself when it changes); `.ics` and summaries lose classes; the plan and feature map updated || [x] |
 | S14 | Club e-mails in the club's colors (D-036): the e-mail layout takes the club theme (header, button, accents from the stored theme roles, logo and name), Runflow credited in the footer; invites and club notices use it, sign-in codes keep Runflow's; preview with `email-test --club` | [ ] |
 | S15 | S3-compatible storage with Garage (D-037): `STORAGE_BACKEND=s3` (endpoint, region, bucket, keys, path-style) via `object_store`'s S3 client; Garage in the root `docker-compose.yaml` and in `ops/qa` with a first-run script that creates the layout, bucket and key; `doctor` checks it; disk stays for tests | [ ] |
 | F35 | Notification control (D-032), contract first: per kind × channel (in-app, push, e-mail), instant or daily digest (hour), quiet hours for push, trainer group filter for feedback/comments; replaces the `notification_prefs` booleans. Mock, C1 settings (role-aware defaults, "silenciar tudo"), backend: preferences applied when notifications are created, daily e-mail digest job (Resend); push applies them when it lands (S7, X10) | [ ] |
@@ -112,12 +112,10 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 - **W6 Library**: search (name or `#tag`), sport and tag filters, cards with profile and tags, duplicate, archive. *More:* folders, usage count.
 - **W7 Planilhas**: weeks × days editor reusing the builder, phases (base/build/peak/taper), weekly volume chart, apply to students/groups with a start date, active assignments, unassign future workouts.
 - **W8 Feedback**: inbox of completions + comments, unread/flagged filters, quick replies, mark as read, jump to workout.
-- **W9 Classes management**: venues, class types, recurring schedules (generate 8 weeks), week view, session roster (booked, waitlist, attended, no-show), add student, cancel session (notify), QR check-in code, capacity changes.
-- **M1 Today**: greeting, today's workout(s) with personal targets, mark done + feedback, week strip, next class, last activity, streak/achievements (accent), offline.
+- **M1 Today**: greeting, today's workout(s) with personal targets, mark done + feedback, week strip, last activity, streak (accent), offline.
 - **M2 Workout**: steps with personal paces/zones, notes, send to watch (Garmin, later), mark done, feedback (M5), thread with trainer, linked activity.
-- **M3 Schedule**: week and month, workouts + classes, past status.
+- **M3 Schedule**: week and month, workouts, past status, weeks still in preparation (D-031).
 - **M4 Activities**: list by week with totals, detail (laps, pace, HR, match to plan), manual log, sync status.
-- **M6 Classes**: weekly schedule, book, cancel, waitlist position, QR check-in, history.
 - **O1 Club Studio**: logo, 0–2 colors, contrast report, suggestions from the logo, live previews (phone + desktop, light + dark).
 - **O2 Members**: students/team/invites tabs, suspend, remove, promote, invite links with limits.
 - **O3 Settings**: club data, modalities, trainer label, timezone, subdomain (Pro), venues, danger zone (close club).
@@ -143,11 +141,11 @@ IDs are used in commits. Routes are English; everything visible is pt-BR.
 | M3 | Agenda | `/schedule` | student |
 | M4 | Atividades / atividade | `/activities`, `/activities/:id` | student |
 | M5 | Feedback do treino (folha) | in M2 | student |
-| M6 | Aulas (reservar, lista de espera, check-in) | `/classes` | student |
+| M6 | Aulas (later, D-035) | — | student |
 | M7 | Perfil (zonas, objetivo) | `/account/profile` | student |
 | M9 | Provas | `/races` | student |
 | M10 | Mensagens | `/messages` | all |
-| M11 | Desafios | `/challenges` | student |
+| M11 | Desafios (later, D-035) | — | student |
 | M12 | Mensalidades (later, D-027) | — | student |
 | W1 | Painel | `/dashboard` | trainer |
 | W2 | Alunos + grupos | `/students` | trainer |
@@ -157,15 +155,15 @@ IDs are used in commits. Routes are English; everything visible is pt-BR.
 | W6 | Biblioteca | `/library` | trainer |
 | W7 | Planilhas | `/plans`, `/plans/:id` | trainer |
 | W8 | Feedbacks | `/feedback` | trainer |
-| W9 | Gestão de aulas | `/classes/manage` | trainer |
+| W9 | Gestão de aulas (later, D-035) | — | trainer |
 | W11 | Notificações | `/notifications` | all |
 | W12 | Provas e eventos | `/races/manage` | trainer |
 | W13 | Mensagens e mural | `/messages` | trainer |
 | W14 | Avaliações e testes | `/assessments` | trainer |
-| W15 | Desafios | `/challenges/manage` | trainer |
+| W15 | Desafios (later, D-035) | — | trainer |
 | W16 | Relatórios | `/reports` | trainer |
 | W17 | Assistente | in W4/W5/W7 | trainer |
-| W18 | Exercícios (vídeos) | `/exercises` | trainer |
+| W18 | Exercícios (vídeos; clubs with musculação) | `/exercises` | trainer |
 | O1 | Club Studio | `/club/studio` | owner |
 | O2 | Membros e convites | `/club/members` | owner |
 | O3 | Configurações do clube | `/club/settings` | owner |

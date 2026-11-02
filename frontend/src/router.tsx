@@ -90,10 +90,8 @@ const staffRoutes = [
   r(S, "/plans", lazyRouteComponent(() => import("./screens/staff/plans/Plans"), "PlansScreen")),
   r(S, "/plans/$id", lazyRouteComponent(() => import("./screens/staff/plans/PlanEditor"), "PlanEditorScreen")),
   r(S, "/feedback", lazyRouteComponent(() => import("./screens/staff/Feedback"), "FeedbackScreen")),
-  r(S, "/classes/manage", lazyRouteComponent(() => import("./screens/staff/classes/ClassesManage"), "ClassesManageScreen")),
   r(S, "/reports", lazyRouteComponent(() => import("./screens/staff/Reports"), "ReportsScreen")),
   r(S, "/assessments", lazyRouteComponent(() => import("./screens/staff/Assessments"), "AssessmentsScreen")),
-  r(S, "/challenges/manage", lazyRouteComponent(() => import("./screens/staff/Challenges"), "ChallengesManageScreen")),
   r(S, "/races/manage", lazyRouteComponent(() => import("./screens/staff/Races"), "RacesManageScreen")),
 ];
 const ownerRoutes = [
@@ -108,8 +106,6 @@ const studentRoutes = [
   r(St, "/workouts/$id", lazyRouteComponent(() => import("./screens/student/Workout"), "WorkoutScreen")),
   r(St, "/activities", lazyRouteComponent(() => import("./screens/student/Activities"), "ActivitiesScreen")),
   r(St, "/activities/$id", lazyRouteComponent(() => import("./screens/student/ActivityDetail"), "ActivityDetailScreen")),
-  r(St, "/classes", lazyRouteComponent(() => import("./screens/student/Classes"), "ClassesScreen")),
-  r(St, "/challenges", lazyRouteComponent(() => import("./screens/student/Challenges"), "ChallengesScreen")),
   r(St, "/races", lazyRouteComponent(() => import("./screens/student/Races"), "RacesScreen")),
   r(St, "/account/profile", lazyRouteComponent(() => import("./screens/student/Profile"), "ProfileScreen")),
 ];

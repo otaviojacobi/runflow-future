@@ -55,7 +55,7 @@ The repo is public, so: arm64 images build on GitHub's free native arm64 runners
   3. `deploy.sh`: `git pull` (compose/ops changes), record the running tag, `RUNFLOW_TAG=<sha> docker compose pull && up -d`
      (the API migrates at start), wait for `/v1/health`; on failure, start the previous tag again and exit non-zero.
 - **Rules this implies:** migrations stay compatible with the previous release (expand, then contract) so a rollback
-  never meets a schema it can't read (from the beta on: until then data is disposable, D-030, and `ops/qa/reset-db.sh` starts over); a deploy restarts the API (a few seconds of 502 through the tunnel; fine for the beta).
+  never meets a schema it can't read (from the beta on; until then data is disposable and the schema is one bootstrap migration that QA resets on, D-030); a deploy restarts the API (a few seconds of 502 through the tunnel; fine for the beta).
 - **Fallback without Tailscale:** a systemd timer on the Pi runs `deploy.sh` every minute when `:main` on GHCR has a new
   digest (pull-based, zero inbound access, but no deploy logs in GitHub).
 

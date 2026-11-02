@@ -1,15 +1,25 @@
 import { expect, test } from "@playwright/test";
 import { OWNER, STUDENT, signIn } from "./helpers";
 
-test("student books a class", async ({ page }) => {
-  await signIn(page, STUDENT);
-  await page.goto("/classes");
-  await expect(page.getByRole("heading", { name: "Agenda" })).toBeVisible();
-  // Find a day in the agenda with a class this student hasn't booked yet.
-  const book = page.getByRole("button", { name: /^Reservar|^Entrar na fila/ });
-  for (const tab of await page.getByRole("tab").all()) { if (await book.count()) break; await tab.click(); }
-  await book.first().click();
-  await expect(page.getByText(/Vaga garantida!|Você entrou na fila/)).toBeVisible();
+test("week release: a future week stays in preparation until the trainer releases it", async ({ page, browser }) => {
+  // Two weeks ahead: never released automatically yet, whatever day the suite runs (D-031).
+  const student = await (await browser.newContext({ locale: "pt-BR", timezoneId: "America/Sao_Paulo" })).newPage();
+  await signIn(student, STUDENT);
+  await student.goto("/schedule");
+  for (let i = 0; i < 2; i++) await student.getByRole("button", { name: "Próximo" }).click();
+  await expect(student.getByText("Semana em preparação")).toBeVisible();
+
+  await signIn(page, OWNER);
+  await page.goto("/planning");
+  for (let i = 0; i < 2; i++) await page.getByRole("button", { name: "Próxima semana" }).click();
+  await expect(page.getByText("Rascunho", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Liberar semana" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Liberar", exact: true }).click();
+  await expect(page.getByText("Semana liberada", { exact: true }).first()).toBeVisible();
+
+  await student.reload();
+  for (let i = 0; i < 2; i++) await student.getByRole("button", { name: "Próximo" }).click();
+  await expect(student.getByText("Semana em preparação")).toHaveCount(0);
 });
 
 test("trainer and student exchange messages", async ({ page, browser }) => {

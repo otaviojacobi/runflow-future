@@ -1,4 +1,4 @@
-//! Personal calendar feed (C1): a secret `.ics` URL with planned workouts (all-day), booked classes (timed)
+//! Personal calendar feed (C1): a secret `.ics` URL with released planned workouts (all-day)
 //! and race entries, −30 to +120 days. RFC 5545, same content as the mock.
 
 use aws_lc_rs::{digest, rand};
@@ -107,7 +107,7 @@ async fn ics(State(state): State<AppState>, Path(file): Path<String>) -> Result<
     let today = club_today("America/Sao_Paulo");
     let (from, to) = (today - Duration::days(30), today + Duration::days(120));
     let mut conn = state.db.acquire().await?;
-    let (workouts, classes, races) = db::feed_events(&mut conn, user, from, to).await?;
+    let (workouts, races) = db::feed_events(&mut conn, user, from, to).await?;
     let now = stamp(Utc::now());
     let day = |d: chrono::NaiveDate| d.format("%Y%m%d").to_string();
     let mut lines = vec![
@@ -136,20 +136,6 @@ async fn ics(State(state): State<AppState>, Path(file): Path<String>) -> Result<
             "TRANSP:TRANSPARENT".into(),
             "END:VEVENT".into(),
         ]);
-    }
-    for c in classes {
-        lines.extend([
-            "BEGIN:VEVENT".to_string(),
-            format!("UID:class-{}@runflow.club", c.id),
-            format!("DTSTAMP:{now}"),
-            format!("DTSTART:{}", stamp(c.starts_at)),
-            format!("DTEND:{}", stamp(c.ends_at)),
-            format!("SUMMARY:{}", esc(&format!("Aula: {}", c.name))),
-        ]);
-        if let Some(l) = c.location {
-            lines.push(format!("LOCATION:{}", esc(&l)));
-        }
-        lines.extend([format!("DESCRIPTION:{}", esc(&c.club)), "END:VEVENT".into()]);
     }
     for r in races {
         lines.extend([

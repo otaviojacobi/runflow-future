@@ -20,9 +20,9 @@ test("public pages", async ({ page }) => {
 });
 test("staff pages", async ({ page }) => {
   await signIn(page, OWNER);
-  for (const path of ["/dashboard", "/students", "/planning", "/library", "/classes/manage", "/messages", "/reports"]) await test.step(path, () => audit(page, path));
+  for (const path of ["/dashboard", "/students", "/planning", "/library", "/messages", "/reports", "/club/settings"]) await test.step(path, () => audit(page, path));
 });
 test("student pages", async ({ page }) => {
   await signIn(page, STUDENT);
-  for (const path of ["/today", "/schedule", "/activities", "/classes", "/races", "/challenges", "/account"]) await test.step(path, () => audit(page, path));
+  for (const path of ["/today", "/schedule", "/activities", "/races", "/messages", "/account"]) await test.step(path, () => audit(page, path));
 });

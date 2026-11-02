@@ -1,7 +1,7 @@
 /** W1 · Painel (trainer home). Route: /dashboard */
 import { Link } from "@tanstack/react-router";
 import {
-  Activity, AlertTriangle, ArrowRight, Cake, CalendarClock, Check, CircleCheck, Circle, Info, MessageSquare, Plus, Sparkles, UserPlus, Users, X,
+  Activity, AlertTriangle, ArrowRight, Cake, Check, CircleCheck, Circle, Info, MessageSquare, Plus, Sparkles, UserPlus, Users, X,
 } from "lucide-react";
 import { useState } from "react";
 import { useDashboard } from "@/api/dashboard";
@@ -10,9 +10,9 @@ import { ComplianceTrend } from "@/components/ComplianceTrend";
 import { InviteDialog } from "@/components/club/InviteDialog";
 import { sportBar } from "@/components/sport";
 import { StatusBadge } from "@/components/workout";
-import { t, tn } from "@/i18n";
+import { t } from "@/i18n";
 import { useClub } from "@/lib/club";
-import { duration, km, longDate, shortDate, timeOf } from "@/lib/format";
+import { duration, km, longDate, shortDate } from "@/lib/format";
 import { Avatar, Button, ButtonLink, Card, ProgressBar, Skeleton, cn } from "@/ui";
 import { FEELING } from "./planning/WorkoutDialogs";
 
@@ -116,15 +116,6 @@ export function DashboardScreen() {
                   </ul>
                 )}
               </Card>
-              {x.upcoming_classes.length > 0 && (
-                <Card className="grid gap-3 p-5">
-                  <div className="flex items-center justify-between"><h2 className="rf-text-title-md">{t("Próximas aulas")}</h2><Link to="/classes/manage" className="text-sm font-semibold text-brand-text">{t("Ver aulas")}</Link></div>
-                  <ul className="grid gap-2">{x.upcoming_classes.map((c) => (
-                    <li key={c.session.id} className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-lg bg-brand-soft text-on-brand-soft"><CalendarClock className="size-4" /></span>
-                      <div className="min-w-0 flex-1"><div className="truncate text-sm font-semibold">{c.class_type.name}</div><div className="text-xs text-fg-muted">{shortDate(c.session.starts_at.slice(0, 10))} · {timeOf(c.session.starts_at)} · {tn(c.booked, "{n} reserva", "{n} reservas")}{c.waitlist ? ` · ${tn(c.waitlist, "{n} na fila", "{n} na fila")}` : ""}</div></div></li>
-                  ))}</ul>
-                </Card>
-              )}
             </div>
           </div>
         </>

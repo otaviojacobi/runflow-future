@@ -35,12 +35,6 @@ export default function register(h) {
         const d = p.date.replace(/-/g, "");
         ev.push(["BEGIN:VEVENT", `UID:workout-${p.id}@runflow.club`, `DTSTAMP:${now}`, `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${h.addDays(p.date, 1).replace(/-/g, "")}`, `SUMMARY:${esc(p.title)}`, `DESCRIPTION:${esc(`${clubName(m.club_id)} · ${APP}/workouts/${p.id}`)}`, `URL:${APP}/workouts/${p.id}`, "TRANSP:TRANSPARENT", "END:VEVENT"]);
       }
-      for (const b of h.db.bookings.filter((x) => x.membership_id === m.id && (x.status === "booked" || x.status === "attended"))) {
-        const s = h.db.class_sessions.find((x) => x.id === b.session_id && x.status === "scheduled");
-        if (!s || s.starts_at.slice(0, 10) < from || s.starts_at.slice(0, 10) > to) continue;
-        const ct = h.db.class_types.find((x) => x.id === s.class_type_id), loc = h.db.locations.find((x) => x.id === s.location_id);
-        ev.push(["BEGIN:VEVENT", `UID:class-${s.id}@runflow.club`, `DTSTAMP:${now}`, `DTSTART:${stamp(s.starts_at)}`, `DTEND:${stamp(s.ends_at)}`, `SUMMARY:${esc(`Aula: ${ct?.name ?? ""}`)}`, ...(loc ? [`LOCATION:${esc([loc.name, loc.address].filter(Boolean).join(", "))}`] : []), `DESCRIPTION:${esc(clubName(m.club_id))}`, "END:VEVENT"]);
-      }
       for (const e of h.db.race_entries.filter((x) => x.membership_id === m.id)) {
         const r = h.db.races.find((x) => x.id === e.race_id && !x.archived_at);
         if (!r || r.date < from) continue;

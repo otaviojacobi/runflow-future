@@ -29,7 +29,7 @@ crates/
   jobs/          the worker: Postgres queue (FOR UPDATE SKIP LOCKED), retries with backoff; job kinds (invite e-mails)
   integrations/  email (Resend + log with a dev outbox, token-based layout), google (ID-token verification);
                  later Strava, Stripe
-migrations/      0001_contract.sql = api/schema.sql at S1; one new file per contract change
+migrations/      0001_bootstrap.sql = api/schema.sql (synced; the only migration until the beta, D-030)
 assets/          synced copies: design/dist/tokens.json + color-fixtures.json, api/starter-library.json (scripts/sync-assets.sh)
 ```
 `domain` holds pure rules with no I/O: `color.rs` is the Rust port of `design/src/color.js`, proven by
@@ -39,7 +39,7 @@ estimates join it when needed.
 ## Rules
 
 - **Contract first (D-020).** A route exists in `api/endpoints.md` before it exists here, with the same JSON (snake_case), status codes, error `code`s and pt-BR `title`/`detail` as the mock. If the mock is wrong, fix the mock and the contract in the same step.
-- **Schema changes** go to `api/schema.sql` **and** a new `migrations/NNNN_name.sql` in the same commit; `db/tests/contract.rs` fails otherwise. Never edit an applied migration.
+- **Schema changes (until the beta, D-030)** go to `api/schema.sql` only; `scripts/sync-assets.sh` copies it to the single migration `migrations/0001_bootstrap.sql` (`check.sh` fails when they differ) and `scripts/prepare.sh` recreates the dev database when the bootstrap changed. QA resets itself when the bootstrap changes (`ops/qa/update.sh`). From the beta on: a new `migrations/NNNN_name.sql` per change, never editing an applied one; `db/tests/contract.rs` keeps proving migrations == schema.
 - **Errors** are `Problem` (pt-BR for people, stable English `code`). Logs are English and never contain secrets or personal data beyond ids.
 - **Tests** use `#[sqlx::test]` (a fresh, migrated database per test). No database mocks (§8). External APIs are tested against local fakes (see `integrations/tests/resend.rs`).
 - **Config** only from the environment (`config.rs`). A new variable goes into `../.env.example` in the same commit. Secrets use `Secret`/redacted `Debug`.

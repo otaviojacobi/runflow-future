@@ -1,4 +1,4 @@
-/** O3 · Configurações do clube: data, modalities, terminology, week release (D-031), timezone, subdomain (Pro), venues, danger zone. Route: /club/settings */
+/** O3 · Configurações do clube: data, modalities, terminology, week release (D-031), timezone, subdomain (Pro), danger zone. Route: /club/settings */
 import { useNavigate } from "@tanstack/react-router";
 import { AlertTriangle, CalendarCheck, ExternalLink, Globe, Lock } from "lucide-react";
 import { useState } from "react";
@@ -11,7 +11,6 @@ import { ApiError } from "@/lib/api";
 import { selectClub, useClub } from "@/lib/club";
 import { queryClient } from "@/queryClient";
 import { Badge, Button, ButtonLink, Card, Dialog, Field, Input, PageHeader, Segmented, Select, Switch, cn, toast } from "@/ui";
-import { VenuesCard } from "../staff/classes/SetupDialogs";
 
 const UF = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" ");
 const TIMEZONES: [string, string][] = [
@@ -40,12 +39,11 @@ export function SettingsScreen() {
   if (!club || !ctx) return null;
   return (
     <div className="mx-auto grid max-w-3xl gap-6">
-      <PageHeader title={t("Configurações do clube")} subtitle={t("Dados, modalidades, endereço e locais do {club}", { club: club.name })} />
+      <PageHeader title={t("Configurações do clube")} subtitle={t("Dados, modalidades, liberação dos treinos e endereço do {club}", { club: club.name })} />
       <ClubData club={club} key={`d${club.id}`} />
       <Modalities club={club} key={`m${club.id}`} />
       <WeekReleaseSettings club={club} key={`r${club.id}`} />
       <Subdomain key={`s${club.id}`} club={club} plan={ctx.subscription?.plan ?? "free"} />
-      <VenuesCard club={club} />
       <DangerZone club={club} />
     </div>
   );

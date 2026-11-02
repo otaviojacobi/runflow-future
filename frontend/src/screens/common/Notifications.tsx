@@ -1,6 +1,6 @@
 /** W11 · Notificações: list, unread filter, mark all read, deep links (switching club when needed). Route: /notifications */
 import { useNavigate } from "@tanstack/react-router";
-import { Bell, CalendarCheck, CalendarClock, CalendarX, CheckCheck, ClipboardList, CreditCard, Megaphone, MessageCircle, MessageSquare, PartyPopper, Pencil, UserPlus, type LucideIcon } from "lucide-react";
+import { Bell, CalendarCheck, CheckCheck, ClipboardList, CreditCard, Megaphone, MessageCircle, MessageSquare, Pencil, UserPlus, type LucideIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMarkNotificationsRead, useNotifications } from "@/api/account";
 import type { AppNotification, NotificationKind } from "@/api/types";
@@ -15,9 +15,6 @@ const KIND: Record<NotificationKind, { icon: LucideIcon; tone: string }> = {
   week_released: { icon: CalendarCheck, tone: "bg-success-soft text-on-success-soft" },
   comment: { icon: MessageSquare, tone: "bg-info-soft text-on-info-soft" },
   feedback: { icon: MessageSquare, tone: "bg-accent-soft text-on-accent-soft" },
-  class_reminder: { icon: CalendarClock, tone: "bg-brand-soft text-on-brand-soft" },
-  class_cancelled: { icon: CalendarX, tone: "bg-danger-soft text-on-danger-soft" },
-  waitlist_promoted: { icon: PartyPopper, tone: "bg-success-soft text-on-success-soft" },
   member_joined: { icon: UserPlus, tone: "bg-success-soft text-on-success-soft" },
   billing: { icon: CreditCard, tone: "bg-warning-soft text-on-warning-soft" },
   message: { icon: MessageCircle, tone: "bg-brand-soft text-on-brand-soft" },

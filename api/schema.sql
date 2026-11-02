@@ -406,76 +406,6 @@ CREATE TABLE webhook_events (
   UNIQUE (provider, external_id)
 );
 
--- =========================================================================== scheduling (aulas)
-CREATE TABLE locations (
-  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  club_id     uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
-  name        text NOT NULL,
-  kind        text NOT NULL CHECK (kind IN ('track', 'pool', 'gym', 'park', 'studio', 'other')),
-  address     text,
-  lanes       int,
-  created_at  timestamptz NOT NULL DEFAULT now(),
-  archived_at timestamptz
-);
-
-CREATE TABLE class_types (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  club_id           uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
-  name              text NOT NULL,
-  sport             text NOT NULL CHECK (sport IN ('run', 'swim', 'bike', 'strength', 'mobility', 'other')),
-  description       text,
-  default_capacity  int NOT NULL CHECK (default_capacity > 0),
-  duration_min      int NOT NULL CHECK (duration_min > 0),
-  created_at        timestamptz NOT NULL DEFAULT now(),
-  archived_at       timestamptz
-);
-
--- Recurring rule ("toda terça e quinta 06:30") that materializes class_sessions.
-CREATE TABLE class_schedules (
-  id                         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  club_id                    uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
-  class_type_id              uuid NOT NULL REFERENCES class_types (id),
-  location_id                uuid REFERENCES locations (id),
-  instructor_membership_id   uuid REFERENCES memberships (id),
-  weekday                    int NOT NULL CHECK (weekday BETWEEN 1 AND 7),
-  start_time                 time NOT NULL,           -- club-local
-  duration_min               int NOT NULL,
-  capacity                   int NOT NULL,
-  valid_from                 date NOT NULL,
-  valid_until                date,
-  created_at                 timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE class_sessions (
-  id                        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  club_id                   uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
-  class_type_id             uuid NOT NULL REFERENCES class_types (id),
-  schedule_id               uuid REFERENCES class_schedules (id) ON DELETE SET NULL,
-  location_id               uuid REFERENCES locations (id),
-  instructor_membership_id  uuid REFERENCES memberships (id),
-  starts_at                 timestamptz NOT NULL,
-  ends_at                   timestamptz NOT NULL,
-  capacity                  int NOT NULL,
-  status                    text NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'cancelled')),
-  notes                     text,
-  checkin_code              text NOT NULL,           -- shown as QR at the venue
-  created_at                timestamptz NOT NULL DEFAULT now(),
-  CHECK (ends_at > starts_at)
-);
-CREATE INDEX class_sessions_club_time_idx ON class_sessions (club_id, starts_at);
-
-CREATE TABLE bookings (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id        uuid NOT NULL REFERENCES class_sessions (id) ON DELETE CASCADE,
-  membership_id     uuid NOT NULL REFERENCES memberships (id) ON DELETE CASCADE,
-  status            text NOT NULL CHECK (status IN ('booked', 'waitlisted', 'cancelled', 'attended', 'no_show')),
-  waitlist_position int,
-  checked_in_at     timestamptz,
-  created_at        timestamptz NOT NULL DEFAULT now(),
-  updated_at        timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (session_id, membership_id)
-);
-
 -- =========================================================================== assessments and tests (F23)
 -- Physical assessments and field tests. `data` holds the raw inputs per kind and `result` the derived values
 -- (see endpoints.md). A test can create new zones (zones_id) and update the athlete profile.
@@ -538,45 +468,6 @@ CREATE TABLE announcement_reads (
   membership_id    uuid NOT NULL REFERENCES memberships (id) ON DELETE CASCADE,
   read_at          timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (announcement_id, membership_id)
-);
-
--- =========================================================================== challenges, rankings, badges (F24)
--- Progress comes from the participant's own activities. Joining a challenge, or opting in to the monthly
--- ranking, is consent to show that progress to the club.
-CREATE TABLE challenges (
-  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  club_id      uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
-  name         text NOT NULL,
-  description  text,
-  metric       text NOT NULL CHECK (metric IN ('distance', 'duration', 'sessions', 'elevation')),
-  sport        text CHECK (sport IN ('run', 'swim', 'bike', 'strength', 'mobility', 'other')),   -- null = any
-  goal         numeric CHECK (goal > 0),     -- per participant: km | h | sessions | m; null = ranking only
-  starts_on    date NOT NULL,
-  ends_on      date NOT NULL,
-  group_ids    uuid[] NOT NULL DEFAULT '{}', -- empty = the whole club
-  created_by   uuid REFERENCES memberships (id) ON DELETE SET NULL,
-  created_at   timestamptz NOT NULL DEFAULT now(),
-  archived_at  timestamptz,
-  CHECK (ends_on >= starts_on)
-);
-CREATE TABLE challenge_participants (
-  challenge_id   uuid NOT NULL REFERENCES challenges (id) ON DELETE CASCADE,
-  membership_id  uuid NOT NULL REFERENCES memberships (id) ON DELETE CASCADE,
-  joined_at      timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (challenge_id, membership_id)
-);
-CREATE TABLE ranking_opt_ins (
-  membership_id  uuid PRIMARY KEY REFERENCES memberships (id) ON DELETE CASCADE,
-  opted_in_at    timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE badges (
-  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  membership_id  uuid NOT NULL REFERENCES memberships (id) ON DELETE CASCADE,
-  key            text NOT NULL,                -- e.g. streak-8, month-100-2026-10, challenge-<id>, race-<entry id>
-  kind           text NOT NULL CHECK (kind IN ('streak', 'distance_month', 'challenge', 'race')),
-  title          text NOT NULL,                -- pt-BR, rendered when earned
-  earned_at      timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (membership_id, key)
 );
 
 -- =========================================================================== races and events (F21)
@@ -646,7 +537,7 @@ CREATE TABLE notifications (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   club_id     uuid REFERENCES clubs (id) ON DELETE CASCADE,
-  kind        text NOT NULL CHECK (kind IN ('workout_assigned', 'workout_changed', 'comment', 'feedback', 'class_reminder', 'class_cancelled', 'waitlist_promoted', 'member_joined', 'billing', 'message', 'announcement', 'week_released')),
+  kind        text NOT NULL CHECK (kind IN ('workout_assigned', 'workout_changed', 'comment', 'feedback', 'member_joined', 'billing', 'message', 'announcement', 'week_released')),
   title       text NOT NULL,             -- pt-BR, rendered at creation time
   body        text,
   link        text,                      -- in-app path, e.g. /treinos/<id>

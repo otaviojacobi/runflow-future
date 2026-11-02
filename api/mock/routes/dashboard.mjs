@@ -48,10 +48,6 @@ export default function register(h) {
     const sub = h.subscription(clubId);
     if (sub.active_students >= sub.student_limit * 0.9) alerts.push({ kind: "plan_limit", severity: "warning", athlete: null, text: `${sub.active_students} de ${sub.student_limit} alunos no plano ${sub.plan === "free" ? "Free" : "Pro"}`, link: "/club/billing" });
 
-    const upcoming = h.db.class_sessions
-      .filter((s) => s.club_id === clubId && s.status === "scheduled" && s.starts_at > h.nowIso())
-      .sort((a, b) => a.starts_at.localeCompare(b.starts_at)).slice(0, 3)
-      .map((s) => ({ session: s, class_type: h.db.class_types.find((t) => t.id === s.class_type_id), booked: h.db.bookings.filter((b) => b.session_id === s.id && b.status === "booked").length, waitlist: h.db.bookings.filter((b) => b.session_id === s.id && b.status === "waitlisted").length }));
 
     const b = h.db.club_branding.find((x) => x.club_id === clubId);
     const onboarding = {
@@ -63,7 +59,7 @@ export default function register(h) {
       date: today, students: students.length,
       today: { planned: todays.length, done: todays.filter((x) => ["completed", "partial"].includes(x.workout.completion?.status)).length, items: todays },
       week: { planned: week.length, done: week.filter(done).length, compliance_pct: score(week), duration_s: week.reduce((s, p) => s + (p.est_duration_s || 0), 0), distance_m: week.reduce((s, p) => s + (p.est_distance_m || 0), 0) },
-      compliance_trend: trend, feedback, alerts, upcoming_classes: upcoming, onboarding, subscription: sub,
+      compliance_trend: trend, feedback, alerts, onboarding, subscription: sub,
     };
   });
 }

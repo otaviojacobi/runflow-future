@@ -1,16 +1,16 @@
-/** W16 · Relatórios: training compliance and volume per student/group, class attendance; CSV and print/PDF. Route: /reports */
+/** W16 · Relatórios: training compliance and volume per student/group; CSV and print/PDF. Route: /reports */
 import { Download, Printer, ShieldOff } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useGroups } from "@/api/members";
-import { useAttendanceReport, useTrainingReport } from "@/api/reports";
-import type { AttendanceReport, Club, TrainingReport } from "@/api/types";
+import { useTrainingReport } from "@/api/reports";
+import type { Club, TrainingReport } from "@/api/types";
 import { ComplianceTrend } from "@/components/ComplianceTrend";
 import { ComplianceBar } from "@/components/workout";
 import { t } from "@/i18n";
 import { downloadCsv } from "@/lib/csv";
 import { useClub } from "@/lib/club";
 import { addDays, duration, fullDate, km, mondayOf, today as todayFn } from "@/lib/format";
-import { Avatar, Button, Card, Field, Input, PageHeader, Segmented, Skeleton, Tabs, cn } from "@/ui";
+import { Avatar, Button, Card, Field, Input, PageHeader, Segmented, Skeleton, cn } from "@/ui";
 
 type Preset = "4w" | "month" | "last_month" | "3m" | "custom";
 function range(p: Preset, today: string): { from: string; to: string } {
@@ -34,14 +34,12 @@ export function ReportsScreen() {
   const [preset, setPreset] = useState<Preset>("4w");
   const [custom, setCustom] = useState(() => range("4w", today));
   const [group, setGroup] = useState("");
-  const [tab, setTab] = useState("training");
   const groups = useGroups(club?.id);
   const f = { ...(preset === "custom" ? custom : range(preset, today)), group_id: group || undefined };
   const training = useTrainingReport(club?.id, f);
-  const attendance = useAttendanceReport(club?.id, f);
   if (!club) return null;
   const groupName = group ? groups.data?.find((g) => g.id === group)?.name : t("Todos os alunos");
-  const exportCsv = () => (tab === "training" ? training.data && csvTraining(club, training.data) : attendance.data && csvAttendance(club, attendance.data));
+  const exportCsv = () => training.data && csvTraining(club, training.data);
   return (
     <div className="mx-auto grid max-w-6xl gap-5">
       <PageHeader title={t("Relatórios")} subtitle={<span>{fullDate(f.from)} – {fullDate(f.to)} · {groupName}</span>}
@@ -53,11 +51,7 @@ export function ReportsScreen() {
           {[{ id: "", name: t("Todos") }, ...(groups.data ?? [])].map((g) => <button key={g.id} onClick={() => setGroup(g.id)} aria-pressed={group === g.id} className={cn("h-8 rounded-full border px-3 text-[13px] font-semibold", group === g.id ? "border-brand-ring bg-brand-soft text-on-brand-soft" : "border-line bg-surface text-fg-muted hover:bg-soft")}>{g.name}</button>)}
         </div>
       </div>
-      <Tabs.Root value={tab} onValueChange={setTab}>
-        <Tabs.List data-print="hide"><Tabs.Trigger value="training">{t("Treinos")}</Tabs.Trigger><Tabs.Trigger value="classes">{t("Aulas")}</Tabs.Trigger></Tabs.List>
-        <Tabs.Content value="training">{training.data ? <Training r={training.data} /> : <Skeleton className="h-96" />}</Tabs.Content>
-        <Tabs.Content value="classes">{attendance.data ? <Attendance r={attendance.data} /> : <Skeleton className="h-96" />}</Tabs.Content>
-      </Tabs.Root>
+      {training.data ? <Training r={training.data} /> : <Skeleton className="h-96" />}
     </div>
   );
 }
@@ -101,46 +95,9 @@ function Training({ r }: { r: TrainingReport }) {
   );
 }
 
-function Attendance({ r }: { r: AttendanceReport }) {
-  const T = r.totals;
-  if (!T.sessions && !T.cancelled) return <Card className="p-8 text-center text-fg-muted">{t("Nenhuma aula no período.")}</Card>;
-  return (
-    <div className="grid gap-5">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Kpi label={t("Aulas dadas")} value={String(T.sessions)} sub={T.cancelled ? t("{n} canceladas", { n: T.cancelled }) : undefined} />
-        <Kpi label={t("Ocupação")} value={pct(T.occupancy_pct)} sub={t("reservas sobre vagas")} />
-        <Kpi label={t("Presença")} value={pct(T.attendance_pct)} sub={t("{a} presenças · {n} faltas", { a: T.attended, n: T.no_show })} />
-        <Kpi label={t("Reservas")} value={String(T.booked)} />
-      </div>
-      <Card className="relative min-w-0 overflow-x-auto">
-        <table className="w-full min-w-[640px] text-sm">
-          <thead className="border-b border-line bg-sunken text-left text-xs text-fg-muted"><tr><Th>{t("Aula")}</Th><Th right>{t("Aulas")}</Th><Th right>{t("Canceladas")}</Th><Th right>{t("Ocupação")}</Th><Th right>{t("Presentes")}</Th><Th right>{t("Faltas")}</Th><Th right>{t("Presença")}</Th></tr></thead>
-          <tbody className="divide-y divide-line-subtle">{r.by_type.map((x) => (
-            <tr key={x.class_type.id}><td className="px-4 py-2.5 font-semibold">{x.class_type.name}</td><td className="px-4 py-2.5 text-right tabular-nums">{x.sessions}</td><td className="px-4 py-2.5 text-right tabular-nums">{x.cancelled}</td><td className="px-4 py-2.5 text-right tabular-nums">{pct(x.occupancy_pct)}</td><td className="px-4 py-2.5 text-right tabular-nums">{x.attended}</td><td className="px-4 py-2.5 text-right tabular-nums">{x.no_show}</td><td className="px-4 py-2.5 text-right font-semibold tabular-nums">{pct(x.attendance_pct)}</td></tr>
-          ))}</tbody>
-        </table>
-      </Card>
-      <Card className="relative min-w-0 overflow-x-auto">
-        <table className="w-full min-w-[520px] text-sm">
-          <thead className="border-b border-line bg-sunken text-left text-xs text-fg-muted"><tr><Th>{t("Aluno")}</Th><Th right>{t("Reservas")}</Th><Th right>{t("Presentes")}</Th><Th right>{t("Faltas")}</Th><Th right>{t("Presença")}</Th></tr></thead>
-          <tbody className="divide-y divide-line-subtle">{r.athletes.map((a) => (
-            <tr key={a.membership_id}><td className="px-4 py-2.5"><span className="flex items-center gap-2"><Avatar name={a.user.name} src={a.user.avatar_url} size={26} /><span className="font-semibold">{a.user.name}</span></span></td><td className="px-4 py-2.5 text-right tabular-nums">{a.booked}</td><td className="px-4 py-2.5 text-right tabular-nums">{a.attended}</td><td className={cn("px-4 py-2.5 text-right tabular-nums", a.no_show > 1 && "font-semibold text-danger-text")}>{a.no_show}</td><td className="px-4 py-2.5 text-right font-semibold tabular-nums">{pct(a.attendance_pct)}</td></tr>
-          ))}</tbody>
-        </table>
-      </Card>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------- CSV
 const hours = (s: number | null) => (s == null ? null : Math.round((s / 3600) * 10) / 10);
 function csvTraining(club: Club, r: TrainingReport) {
   downloadCsv(`${club.slug}-treinos-${r.from}-a-${r.to}.csv`,
     [t("Aluno"), t("E-mail"), t("Aderência (%)"), t("Planejados"), t("Feitos"), t("Parciais"), t("Não realizados"), t("Horas planejadas"), t("Horas treinadas"), t("Distância (km)"), t("Atividades")],
     r.athletes.map((a) => [a.user.name, a.user.email, a.compliance_pct, a.planned, a.done, a.partial, a.missed, hours(a.planned_s), hours(a.done_s), a.distance_m == null ? null : Math.round(a.distance_m / 100) / 10, a.activities]));
-}
-function csvAttendance(club: Club, r: AttendanceReport) {
-  downloadCsv(`${club.slug}-aulas-${r.from}-a-${r.to}.csv`,
-    [t("Aluno"), t("E-mail"), t("Reservas"), t("Presentes"), t("Faltas"), t("Presença (%)")],
-    r.athletes.map((a) => [a.user.name, a.user.email, a.booked, a.attended, a.no_show, a.attendance_pct]));
 }

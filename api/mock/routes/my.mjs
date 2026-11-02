@@ -83,16 +83,10 @@ export default function register(h) {
       else break;
     }
     const last = h.db.activities.filter((a) => a.user_id === m.user_id).sort((a, b) => b.started_at.localeCompare(a.started_at))[0] || null;
-    const booking = h.db.bookings
-      .filter((b) => b.membership_id === m.id && (b.status === "booked" || b.status === "waitlisted"))
-      .map((b) => ({ b, s: h.db.class_sessions.find((s) => s.id === b.session_id) }))
-      .filter((x) => x.s && x.s.starts_at > h.nowIso() && x.s.status === "scheduled")
-      .sort((a, b) => a.s.starts_at.localeCompare(b.s.starts_at))[0];
-    const next_class = booking ? { booking: booking.b, session: booking.s, class_type: h.db.class_types.find((t) => t.id === booking.s.class_type_id), location: h.db.locations.find((l) => l.id === booking.s.location_id) || null } : null;
     return {
       shares_data: shareOk(m), streak_weeks: streak,
       week: { planned: week.length, done: week.filter((p) => ["completed", "partial"].includes(status(p))).length, duration_s: week.reduce((s, p) => s + (p.est_duration_s || 0), 0), distance_m: week.reduce((s, p) => s + (p.est_distance_m || 0), 0) },
-      last_activity: last, next_class,
+      last_activity: last,
     };
   });
 }

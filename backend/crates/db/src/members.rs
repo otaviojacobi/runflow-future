@@ -87,12 +87,12 @@ pub async fn update(
     Ok(())
 }
 
-/// Out of the club: status `left`, out of its groups. With `consents_and_bookings`, also revoke this club's
-/// sharing consents and cancel open bookings (when the person leaves by themselves, C1).
+/// Out of the club: status `left`, out of its groups. With `revoke_consents`, also revoke this club's
+/// sharing consents (when the person leaves by themselves, C1).
 pub async fn leave(
     tx: &mut PgConnection,
     membership_id: Uuid,
-    consents_and_bookings: bool,
+    revoke_consents: bool,
 ) -> sqlx::Result<()> {
     sqlx::query!(
         "UPDATE memberships SET status = 'left', left_at = now() WHERE id = $1",
@@ -106,7 +106,7 @@ pub async fn leave(
     )
     .execute(&mut *tx)
     .await?;
-    if consents_and_bookings {
+    if revoke_consents {
         sqlx::query!(
             "UPDATE consents c SET revoked_at = now() FROM memberships m
               WHERE m.id = $1 AND c.user_id = m.user_id AND c.club_id = m.club_id AND c.revoked_at IS NULL",
@@ -114,9 +114,6 @@ pub async fn leave(
         )
         .execute(&mut *tx)
         .await?;
-        sqlx::query!("UPDATE bookings SET status = 'cancelled' WHERE membership_id = $1 AND status IN ('booked', 'waitlisted')", membership_id)
-            .execute(&mut *tx)
-            .await?;
     }
     Ok(())
 }

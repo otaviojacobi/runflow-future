@@ -38,7 +38,7 @@ export interface Invoice { id: ID; club_id: ID; stripe_invoice_id: string | null
 export interface MembershipContext { membership: Membership; club: Club; branding: Branding | null; subscription: Subscription | null }
 export interface NotificationPrefs { user_id: ID; push_workouts: boolean; push_comments: boolean; push_classes: boolean; email_weekly: boolean }
 export interface Me { user: User; memberships: MembershipContext[]; prefs: NotificationPrefs | null; unread_notifications: number }
-export type NotificationKind = "workout_assigned" | "workout_changed" | "week_released" | "comment" | "feedback" | "class_reminder" | "class_cancelled" | "waitlist_promoted" | "member_joined" | "billing" | "message" | "announcement";
+export type NotificationKind = "workout_assigned" | "workout_changed" | "week_released" | "comment" | "feedback" | "member_joined" | "billing" | "message" | "announcement";
 export interface AppNotification { id: ID; user_id: ID; club_id: ID | null; kind: NotificationKind; title: string; body: string | null; link: string | null; read_at: ISOTime | null; created_at: ISOTime }
 export interface UserSession { id: ID; kind: "web" | "mobile"; user_agent: string | null; created_at: ISOTime; last_seen_at: ISOTime; current: boolean }
 export interface AuthResult { token: string; user: User; is_new: boolean }
@@ -112,7 +112,6 @@ export interface MyWorkoutDetail extends PlannedWorkout { activity: Activity | n
 export interface MySummary {
   shares_data: boolean; streak_weeks: number; week: { planned: number; done: number; duration_s: number; distance_m: number };
   last_activity: Activity | null;
-  next_class: { booking: { id: ID; status: string; waitlist_position: number | null }; session: { id: ID; starts_at: ISOTime; ends_at: ISOTime }; class_type: { name: string; sport: Sport }; location: { name: string } | null } | null;
 }
 
 export interface AthleteRef { membership_id: ID; user: User }
@@ -131,7 +130,6 @@ export interface Dashboard {
   compliance_trend: { week_start: ISODate; pct: number | null; planned: number; done: number; current: boolean }[];
   feedback: { workout: PlannedWorkout; athlete: AthleteRef; last_comment: Omit<Comment, "author"> | null }[];
   alerts: { kind: "missed_streak" | "high_rpe" | "no_sync" | "birthday" | "new_member" | "plan_limit"; severity: "danger" | "warning" | "info" | "accent" | "brand"; athlete: AthleteRef | null; text: string; link: string }[];
-  upcoming_classes: { session: { id: ID; starts_at: ISOTime }; class_type: { name: string; sport: Sport }; booked: number; waitlist: number }[];
   onboarding: { logo: boolean; colors: boolean; students: boolean; workouts: boolean; groups: boolean; strava: boolean };
   subscription: Subscription;
 }
@@ -152,25 +150,6 @@ export interface TrainingPlan { id: ID; club_id: ID; author_membership_id: ID; n
 export interface PlanItem { id: ID; plan_id?: ID; week: number; weekday: number; template_id: ID | null; sport: Sport; title: string; structure: import("@/domain/workout").Structure; est_duration_s: number | null; est_distance_m: number | null; notes: string | null }
 export interface PlanAssignment { id: ID; plan_id: ID; athlete_membership_id: ID; start_date: ISODate; created_at: ISOTime; athlete: AthleteRef; workouts: number; done: number }
 export interface TrainingPlanDetail extends TrainingPlan { items: PlanItem[]; assignments: PlanAssignment[] }
-
-// ---- scheduling (aulas)
-export type VenueKind = "track" | "pool" | "gym" | "park" | "studio" | "other";
-export interface Venue { id: ID; club_id: ID; name: string; kind: VenueKind; address: string | null; lanes: number | null; created_at: ISOTime; archived_at: ISOTime | null }
-export interface ClassType { id: ID; club_id: ID; name: string; sport: Sport; description: string | null; default_capacity: number; duration_min: number; created_at: ISOTime; archived_at: ISOTime | null }
-export interface ClassSchedule {
-  id: ID; club_id: ID; class_type_id: ID; location_id: ID | null; instructor_membership_id: ID | null;
-  weekday: number; start_time: string; duration_min: number; capacity: number; valid_from: ISODate; valid_until: ISODate | null; created_at: ISOTime;
-  class_type: ClassType; location: Venue | null; instructor: User | null;
-}
-export type BookingStatus = "booked" | "waitlisted" | "cancelled" | "attended" | "no_show";
-export interface Booking { id: ID; session_id: ID; membership_id: ID; status: BookingStatus; waitlist_position: number | null; checked_in_at: ISOTime | null; created_at: ISOTime; updated_at: ISOTime }
-export interface ClassSession {
-  id: ID; club_id: ID; class_type_id: ID; schedule_id: ID | null; location_id: ID | null; instructor_membership_id: ID | null;
-  starts_at: ISOTime; ends_at: ISOTime; capacity: number; status: "scheduled" | "cancelled"; notes: string | null; checkin_code?: string; created_at: ISOTime;
-  class_type: ClassType; location: Venue | null; instructor: User | null; booked: number; waitlist: number; my_booking: Booking | null;
-}
-export interface RosterEntry extends Booking { athlete: { membership_id: ID; user: User } }
-export interface ClassSessionDetail extends ClassSession { roster?: RosterEntry[] }
 
 // ---- races and events (F21)
 export type RaceSport = "run" | "trail" | "swim" | "bike" | "triathlon" | "other";
@@ -204,29 +183,12 @@ export interface Assessment {
   zones_id: ID | null; created_by: ID | null; created_at: ISOTime; athlete: { membership_id: ID; user: User }; zones: Zone | null;
 }
 
-// ---- challenges, rankings, badges (F24)
-export type ChallengeMetric = "distance" | "duration" | "sessions" | "elevation";
-export interface ChallengeStanding { rank: number; membership_id: ID; user: User; value: number; pct: number | null; joined_at?: ISOTime }
-export interface Challenge {
-  id: ID; club_id: ID; name: string; description: string | null; metric: ChallengeMetric; sport: Sport | null; goal: number | null;
-  starts_on: ISODate; ends_on: ISODate; group_ids: ID[]; created_by: ID | null; created_at: ISOTime; archived_at: ISOTime | null;
-  status: "upcoming" | "active" | "finished"; participants_count: number; joined: boolean; my_progress: ChallengeStanding | null; leaderboard?: ChallengeStanding[];
-}
-export interface Ranking { month: string; sport: Sport; items: ChallengeStanding[]; me: { opted_in: boolean; rank: number | null } }
-export interface Badge { id: ID; membership_id: ID; key: string; kind: "streak" | "distance_month" | "challenge" | "race"; title: string; earned_at: ISOTime }
-
 // ---- reports (F25)
 export interface TrainingReport {
   from: ISODate; to: ISODate; group_id: ID | null;
   totals: { athletes: number; planned: number; done: number; partial: number; missed: number; compliance_pct: number | null; planned_s: number; done_s: number; distance_m: number; sharing: number };
   weekly: { week_start: ISODate; pct: number | null; planned: number; done: number; current: boolean }[];
   athletes: { membership_id: ID; user: User; group_ids: ID[]; planned: number; done: number; partial: number; missed: number; compliance_pct: number | null; planned_s: number; shares_data: boolean; activities: number | null; done_s: number | null; distance_m: number | null }[];
-}
-export interface AttendanceReport {
-  from: ISODate; to: ISODate;
-  totals: { sessions: number; cancelled: number; booked: number; attended: number; no_show: number; occupancy_pct: number | null; attendance_pct: number | null };
-  by_type: { class_type: { id: ID; name: string; sport: Sport }; sessions: number; cancelled: number; capacity: number; booked: number; attended: number; no_show: number; occupancy_pct: number | null; attendance_pct: number | null }[];
-  athletes: { membership_id: ID; user: User; booked: number; attended: number; no_show: number; attendance_pct: number | null }[];
 }
 
 // ---- exercise library (F28)

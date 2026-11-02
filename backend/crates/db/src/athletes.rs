@@ -310,22 +310,6 @@ pub async fn with_future_workouts(
         .await
 }
 
-/// Next 3 scheduled classes: `{session, class_type, booked, waitlist}`.
-pub async fn upcoming_classes(db: impl PgExecutor<'_>, club_id: Uuid) -> sqlx::Result<Value> {
-    sqlx::query_scalar!(
-        r#"SELECT coalesce(jsonb_agg(x ORDER BY (x->'session'->>'starts_at')), '[]') AS "x!" FROM (
-             SELECT jsonb_build_object('session', to_jsonb(s), 'class_type', to_jsonb(t),
-                      'booked', (SELECT count(*) FROM bookings b WHERE b.session_id = s.id AND b.status = 'booked'),
-                      'waitlist', (SELECT count(*) FROM bookings b WHERE b.session_id = s.id AND b.status = 'waitlisted')) AS x
-               FROM class_sessions s JOIN class_types t ON t.id = s.class_type_id
-              WHERE s.club_id = $1 AND s.status = 'scheduled' AND s.starts_at > now()
-              ORDER BY s.starts_at LIMIT 3) q"#,
-        club_id
-    )
-    .fetch_one(db)
-    .await
-}
-
 pub struct Onboarding {
     pub logo: bool,
     pub colors: bool,

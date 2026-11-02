@@ -146,23 +146,6 @@ pub async fn weeks_done(
         .collect())
 }
 
-/// The next booked/waitlisted class of a membership: `{booking, session, class_type, location}`.
-pub async fn next_class(
-    db: impl PgExecutor<'_>,
-    membership_id: Uuid,
-) -> sqlx::Result<Option<Value>> {
-    sqlx::query_scalar!(
-        r#"SELECT jsonb_build_object('booking', to_jsonb(b), 'session', to_jsonb(s), 'class_type', to_jsonb(t), 'location', to_jsonb(l)) AS "x!"
-             FROM bookings b JOIN class_sessions s ON s.id = b.session_id JOIN class_types t ON t.id = s.class_type_id
-             LEFT JOIN locations l ON l.id = s.location_id
-            WHERE b.membership_id = $1 AND b.status IN ('booked', 'waitlisted') AND s.status = 'scheduled' AND s.starts_at > now()
-            ORDER BY s.starts_at LIMIT 1"#,
-        membership_id
-    )
-    .fetch_optional(db)
-    .await
-}
-
 // ------------------------------------------------------------------------------------ threads
 
 /// One comment with its author (`{membership_id, role, user}`).
@@ -297,15 +280,6 @@ pub struct FeedWorkout {
     pub club: String,
 }
 
-pub struct FeedClass {
-    pub id: Uuid,
-    pub starts_at: DateTime<Utc>,
-    pub ends_at: DateTime<Utc>,
-    pub name: String,
-    pub club: String,
-    pub location: Option<String>,
-}
-
 pub struct FeedRace {
     pub id: Uuid,
     pub date: NaiveDate,
@@ -319,7 +293,7 @@ pub async fn feed_events(
     user_id: Uuid,
     from: NaiveDate,
     to: NaiveDate,
-) -> sqlx::Result<(Vec<FeedWorkout>, Vec<FeedClass>, Vec<FeedRace>)> {
+) -> sqlx::Result<(Vec<FeedWorkout>, Vec<FeedRace>)> {
     let workouts = sqlx::query_as!(
         FeedWorkout,
         "SELECT p.id, p.date, p.title, c.name AS club FROM planned_workouts p
@@ -327,21 +301,6 @@ pub async fn feed_events(
           WHERE m.user_id = $1 AND m.status = 'active' AND m.role = 'student' AND c.deleted_at IS NULL AND p.date BETWEEN $2 AND $3
             AND coalesce(workout_released(p.club_id, p.athlete_membership_id, p.date), false)
           ORDER BY p.date, p.position",
-        user_id,
-        from,
-        to
-    )
-    .fetch_all(&mut *db)
-    .await?;
-    let classes = sqlx::query_as!(
-        FeedClass,
-        r#"SELECT s.id, s.starts_at, s.ends_at, t.name, c.name AS club,
-                  CASE WHEN l.id IS NULL THEN NULL ELSE concat_ws(', ', l.name, l.address) END AS location
-             FROM bookings b JOIN class_sessions s ON s.id = b.session_id JOIN class_types t ON t.id = s.class_type_id
-             JOIN memberships m ON m.id = b.membership_id JOIN clubs c ON c.id = m.club_id LEFT JOIN locations l ON l.id = s.location_id
-            WHERE m.user_id = $1 AND m.status = 'active' AND b.status IN ('booked', 'attended') AND s.status = 'scheduled'
-              AND s.starts_at::date BETWEEN $2 AND $3
-            ORDER BY s.starts_at"#,
         user_id,
         from,
         to
@@ -359,5 +318,5 @@ pub async fn feed_events(
     )
     .fetch_all(&mut *db)
     .await?;
-    Ok((workouts, classes, races))
+    Ok((workouts, races))
 }
