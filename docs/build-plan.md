@@ -25,7 +25,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F13 | Trainer dashboard: today's board, alerts, feedback to answer, compliance trend, onboarding checklist, plan usage | W1 | [x] |
 | F11 | Activities (list, detail with laps and match to plan, manual log) + student detail for trainers (calendar, metrics, zones, profile, notes) | M4, W3 | [x] |
 | F12 | Feedback inbox + comment threads (unread, flags, quick replies) | W8 | [x] |
-| F14 | Planilhas: multi-week editor + apply to students/groups with a start date | W7 | [ ] |
+| F14 | Planilhas: multi-week editor + apply to students/groups with a start date | W7 | [x] |
 | F15 | Classes: management (venues, types, recurring schedules, sessions, roster, attendance, QR) + student booking, waitlist, check-in | W9, M6 | [ ] |
 | F16 | Club Studio (full) + club settings (data, modalities, terminology, timezone, subdomain, venues) | O1, O3 | [ ] |
 | F17 | Plan and billing: plans, usage, Stripe checkout (mock), billing portal (mock), invoices, student limit enforcement | O4, O5 | [ ] |

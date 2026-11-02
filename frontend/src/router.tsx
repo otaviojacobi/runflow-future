@@ -87,8 +87,8 @@ const staffRoutes = [
   r(S, "/library", LibraryScreen),
   r(S, "/library/new", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
   r(S, "/library/$id", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
-  r(S, "/plans", todo("Planilhas", "F14")),
-  r(S, "/plans/$id", todo("Planilha", "F14")),
+  r(S, "/plans", lazyRouteComponent(() => import("./screens/staff/plans/Plans"), "PlansScreen")),
+  r(S, "/plans/$id", lazyRouteComponent(() => import("./screens/staff/plans/PlanEditor"), "PlanEditorScreen")),
   r(S, "/feedback", lazyRouteComponent(() => import("./screens/staff/Feedback"), "FeedbackScreen")),
   r(S, "/classes/manage", todo("Gestão de aulas", "F15")),
 ];
