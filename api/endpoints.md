@@ -136,6 +136,16 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | PATCH | `/clubs/{club_id}/bookings/{id}` `{status: attended \| no_show \| booked}` | Attendance (staff) | W9 |
 | POST | `/clubs/{club_id}/class-sessions/{id}/check-in` `{checkin_code}` | Student check-in (45 min before → end); creates a booking if there is room | M6 |
 
+### Assessments and tests
+| Method | Path | Purpose | Screens |
+|---|---|---|---|
+| GET | `/clubs/{club_id}/assessments?membership_id&kind` | Staff: assessments, newest first, with `athlete` and the `zones` they created | W14, W3 |
+| GET | `/clubs/{club_id}/my/assessments` | Student: own assessments (read-only) | M7 |
+| POST | `/clubs/{club_id}/assessments` `{membership_id, kind, date, data, notes?, apply_zones?}` | Record (staff). The server computes `result`. With `apply_zones`, zone-capable tests create zones (source `test`, valid from the test date) and update the profile (threshold pace, CSS, FTP, max HR) | W14 |
+| DELETE | `/clubs/{club_id}/assessments/{id}` | Delete (zones it created are kept) | W14 |
+
+Kinds, `data` → `result`: `body {weight_kg, height_cm, body_fat_pct?, waist_cm?, resting_hr?}` → `{bmi}`; `cooper {distance_m}` (12 min) → `{vo2max, threshold_pace_s_per_km}` → pace zones; `run_3k {time_s}` → `{vo2max, threshold_pace_s_per_km}` → pace zones; `css {t400_s, t200_s}` → `{css_s_per_100m}` → swim_pace zones; `ftp {avg_power_w}` (20 min) → `{ftp_w}` (95 %) → power zones; `one_rm {exercise, weight_kg, reps}` → `{one_rm_kg}` (Epley); `hr_max {max_hr}` → HR zones. Formulas: `api/mock/lib/assessments.mjs` (mirrored in the web app for the live preview).
+
 ### Messages and announcements
 | Method | Path | Purpose | Screens |
 |---|---|---|---|

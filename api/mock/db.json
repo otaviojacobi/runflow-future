@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-02T06:02:32.078Z",
+  "generated_at": "2026-11-02T06:08:27.744Z",
   "version": 1
  },
  "users": [
@@ -25026,6 +25026,212 @@
    "checked_in_at": null,
    "created_at": "2026-11-17T15:00:00.000Z",
    "updated_at": "2026-11-17T15:00:00.000Z"
+  }
+ ],
+ "assessments": [
+  {
+   "id": "eb294eef-25af-4faa-a7dd-c8ed78160b23",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "kind": "body",
+   "date": "2026-09-02",
+   "data": {
+    "weight_kg": 61.5,
+    "height_cm": 166,
+    "body_fat_pct": 22.4,
+    "waist_cm": 70
+   },
+   "result": {
+    "bmi": 22.3
+   },
+   "notes": null,
+   "zones_id": null,
+   "created_by": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "created_at": "2026-09-02T11:00:00.000Z"
+  },
+  {
+   "id": "889b4424-f652-479a-ad21-5b18d3958c46",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "kind": "body",
+   "date": "2026-10-28",
+   "data": {
+    "weight_kg": 59.8,
+    "height_cm": 166,
+    "body_fat_pct": 20.9,
+    "waist_cm": 68
+   },
+   "result": {
+    "bmi": 21.7
+   },
+   "notes": null,
+   "zones_id": null,
+   "created_by": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "created_at": "2026-10-28T11:00:00.000Z"
+  },
+  {
+   "id": "37842fed-789a-4905-a335-4343e72f3264",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "kind": "cooper",
+   "date": "2026-09-23",
+   "data": {
+    "distance_m": 3050
+   },
+   "result": {
+    "vo2max": 56.9,
+    "threshold_pace_s_per_km": 253
+   },
+   "notes": "Pista do Ibirapuera, tempo bom.",
+   "zones_id": null,
+   "created_by": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "created_at": "2026-09-23T11:00:00.000Z"
+  },
+  {
+   "id": "25bd620e-2ce8-43c7-aae5-e1c04a1ad88d",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
+   "kind": "run_3k",
+   "date": "2026-10-14",
+   "data": {
+    "time_s": 730
+   },
+   "result": {
+    "vo2max": 47.1,
+    "threshold_pace_s_per_km": 262
+   },
+   "notes": null,
+   "zones_id": null,
+   "created_by": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "created_at": "2026-10-14T11:00:00.000Z"
+  },
+  {
+   "id": "bbdcec1d-d2d7-47b9-ad60-4b0710be960d",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
+   "kind": "hr_max",
+   "date": "2026-10-04",
+   "data": {
+    "max_hr": 182
+   },
+   "result": {
+    "max_hr": 182
+   },
+   "notes": "Teste de rampa na esteira.",
+   "zones_id": null,
+   "created_by": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "created_at": "2026-10-04T11:00:00.000Z"
+  },
+  {
+   "id": "b8ecae17-447c-4294-a8f8-56f85e592285",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
+   "kind": "cooper",
+   "date": "2026-10-23",
+   "data": {
+    "distance_m": 2120
+   },
+   "result": {
+    "vo2max": 36.1,
+    "threshold_pace_s_per_km": 373
+   },
+   "notes": null,
+   "zones_id": null,
+   "created_by": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "created_at": "2026-10-23T11:00:00.000Z"
+  },
+  {
+   "id": "7c47a38e-a08d-4bad-a669-dcb02f0a2be8",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
+   "kind": "body",
+   "date": "2026-10-09",
+   "data": {
+    "weight_kg": 68,
+    "height_cm": 171,
+    "body_fat_pct": 26
+   },
+   "result": {
+    "bmi": 23.3
+   },
+   "notes": null,
+   "zones_id": null,
+   "created_by": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "created_at": "2026-10-09T11:00:00.000Z"
+  },
+  {
+   "id": "42f85b1d-d394-4907-a280-1df0643842c5",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
+   "kind": "one_rm",
+   "date": "2026-10-16",
+   "data": {
+    "exercise": "Agachamento livre",
+    "weight_kg": 60,
+    "reps": 5
+   },
+   "result": {
+    "one_rm_kg": 70
+   },
+   "notes": null,
+   "zones_id": null,
+   "created_by": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "created_at": "2026-10-16T11:00:00.000Z"
+  },
+  {
+   "id": "0989d8ef-2d19-4edb-a1ca-ffecd1e77c65",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
+   "kind": "one_rm",
+   "date": "2026-10-25",
+   "data": {
+    "exercise": "Supino reto",
+    "weight_kg": 30,
+    "reps": 8
+   },
+   "result": {
+    "one_rm_kg": 38
+   },
+   "notes": null,
+   "zones_id": null,
+   "created_by": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "created_at": "2026-10-25T11:00:00.000Z"
+  },
+  {
+   "id": "9a5dab37-09db-4b8a-ae43-2704b34c79a7",
+   "club_id": "c3da5abf-0ea4-43dd-ac57-f9bfa5861b1b",
+   "membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
+   "kind": "css",
+   "date": "2026-10-19",
+   "data": {
+    "t400_s": 380,
+    "t200_s": 178
+   },
+   "result": {
+    "css_s_per_100m": 101
+   },
+   "notes": null,
+   "zones_id": null,
+   "created_by": "de29c338-7e71-44c8-aaff-25c3fba47aa3",
+   "created_at": "2026-10-19T11:00:00.000Z"
+  },
+  {
+   "id": "f0cb2bde-1338-475a-a869-2eaed9b8cac1",
+   "club_id": "c3da5abf-0ea4-43dd-ac57-f9bfa5861b1b",
+   "membership_id": "29cb433b-c2a8-438b-a931-6847f9b63f24",
+   "kind": "css",
+   "date": "2026-10-19",
+   "data": {
+    "t400_s": 352,
+    "t200_s": 166
+   },
+   "result": {
+    "css_s_per_100m": 93
+   },
+   "notes": null,
+   "zones_id": null,
+   "created_by": "de29c338-7e71-44c8-aaff-25c3fba47aa3",
+   "created_at": "2026-10-19T11:00:00.000Z"
   }
  ],
  "conversations": [

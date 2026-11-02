@@ -13,6 +13,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
+import { compute as computeAssessment } from "./lib/assessments.mjs";
 
 const require = createRequire(import.meta.url);
 const Color = require("@runflow/design/color");
@@ -372,6 +373,23 @@ export function generate(anchor) {
     const bs = t("bookings").filter((b) => b.session_id === s.id && (b.status === "booked" || b.status === "waitlisted"));
     bs.forEach((b, i) => { b.status = i < s.capacity ? "booked" : "waitlisted"; b.waitlist_position = i < s.capacity ? null : i - s.capacity + 1; });
   }
+
+  // ---- assessments (F23)
+  const assess = (key, mk, kind, day, data, notes = null) => {
+    const { result } = computeAssessment(kind, data);
+    t("assessments").push({ id: uuid("as:" + key), club_id: M[mk].club_id, membership_id: M[mk].id, kind, date: addDays(anchor, day), data, result, notes, zones_id: null, created_by: M[mk.startsWith("paceforte") ? "paceforte:julia" : "equipemare:renata"].id, created_at: at(addDays(anchor, day), "08:00") });
+  };
+  assess("ana-body-1", "paceforte:ana", "body", -62, { weight_kg: 61.5, height_cm: 166, body_fat_pct: 22.4, waist_cm: 70 });
+  assess("ana-body-2", "paceforte:ana", "body", -6, { weight_kg: 59.8, height_cm: 166, body_fat_pct: 20.9, waist_cm: 68 });
+  assess("ana-cooper", "paceforte:ana", "cooper", -41, { distance_m: 3050 }, "Pista do Ibirapuera, tempo bom.");
+  assess("bruno-3k", "paceforte:bruno", "run_3k", -20, { time_s: 730 });
+  assess("diego-hr", "paceforte:diego", "hr_max", -30, { max_hr: 182 }, "Teste de rampa na esteira.");
+  assess("elisa-cooper", "paceforte:elisa", "cooper", -11, { distance_m: 2120 });
+  assess("carla-body", "paceforte:carla", "body", -25, { weight_kg: 68, height_cm: 171, body_fat_pct: 26 });
+  assess("carla-agacho", "paceforte:carla", "one_rm", -18, { exercise: "Agachamento livre", weight_kg: 60, reps: 5 });
+  assess("isabela-supino", "paceforte:isabela", "one_rm", -9, { exercise: "Supino reto", weight_kg: 30, reps: 8 });
+  assess("ana-css", "equipemare:ana", "css", -15, { t400_s: 380, t200_s: 178 });
+  assess("lucas-css", "equipemare:lucas", "css", -15, { t400_s: 352, t200_s: 166 });
 
   // ---- messages and announcements (F22)
   const convo = (ckey, mk, msgs) => {

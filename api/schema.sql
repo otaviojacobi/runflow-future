@@ -419,6 +419,24 @@ CREATE TABLE bookings (
   UNIQUE (session_id, membership_id)
 );
 
+-- =========================================================================== assessments and tests (F23)
+-- Physical assessments and field tests. `data` holds the raw inputs per kind and `result` the derived values
+-- (see endpoints.md). A test can create new zones (zones_id) and update the athlete profile.
+CREATE TABLE assessments (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id        uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+  membership_id  uuid NOT NULL REFERENCES memberships (id) ON DELETE CASCADE,
+  kind           text NOT NULL CHECK (kind IN ('body', 'cooper', 'run_3k', 'css', 'ftp', 'one_rm', 'hr_max')),
+  date           date NOT NULL,
+  data           jsonb NOT NULL,
+  result         jsonb NOT NULL DEFAULT '{}',
+  notes          text,
+  zones_id       uuid REFERENCES zones (id) ON DELETE SET NULL,
+  created_by     uuid REFERENCES memberships (id) ON DELETE SET NULL,
+  created_at     timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX assessments_athlete_idx ON assessments (membership_id, kind, date DESC);
+
 -- =========================================================================== messages and announcements (F22)
 -- One direct conversation per student and club, shared by all of the club's staff (D-017: trainers see all
 -- students). Announcements (the "mural") go to the whole club or to some groups. Both have read receipts.

@@ -179,3 +179,10 @@ export interface Announcement {
   id: ID; club_id: ID; author_membership_id: ID; title: string; body: string; group_ids: ID[]; pinned: boolean; created_at: ISOTime; edited_at: ISOTime | null; deleted_at: ISOTime | null;
   author: { membership_id: ID; user: User }; read_at: ISOTime | null; audience_count?: number; reads_count?: number;
 }
+
+// ---- assessments and tests (F23)
+export interface Assessment {
+  id: ID; club_id: ID; membership_id: ID; kind: import("@/domain/assessments").AssessmentKind; date: ISODate;
+  data: import("@/domain/assessments").AssessmentData; result: import("@/domain/assessments").AssessmentResult; notes: string | null;
+  zones_id: ID | null; created_by: ID | null; created_at: ISOTime; athlete: { membership_id: ID; user: User }; zones: Zone | null;
+}

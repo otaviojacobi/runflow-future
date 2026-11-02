@@ -87,6 +87,7 @@ const staffRoutes = [
   r(S, "/plans/$id", lazyRouteComponent(() => import("./screens/staff/plans/PlanEditor"), "PlanEditorScreen")),
   r(S, "/feedback", lazyRouteComponent(() => import("./screens/staff/Feedback"), "FeedbackScreen")),
   r(S, "/classes/manage", lazyRouteComponent(() => import("./screens/staff/classes/ClassesManage"), "ClassesManageScreen")),
+  r(S, "/assessments", lazyRouteComponent(() => import("./screens/staff/Assessments"), "AssessmentsScreen")),
   r(S, "/races/manage", lazyRouteComponent(() => import("./screens/staff/Races"), "RacesManageScreen")),
 ];
 const ownerRoutes = [

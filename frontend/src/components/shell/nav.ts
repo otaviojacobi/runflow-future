@@ -1,5 +1,5 @@
 import {
-  Activity, Calendar, CalendarClock, CalendarRange, ClipboardList, CreditCard, Flag, LayoutDashboard, Library, MessageCircle, MessageSquare,
+  Activity, Calendar, CalendarClock, CalendarRange, ClipboardList, CreditCard, Flag, Gauge, LayoutDashboard, Library, MessageCircle, MessageSquare,
   Palette, Settings, Sun, User, UserCog, Users, Waves, type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/api/types";
@@ -17,6 +17,7 @@ const STAFF: NavItem[] = [
   { to: "/plans", label: "Planilhas", icon: ClipboardList },
   { to: "/classes/manage", label: "Aulas", icon: CalendarClock },
   { to: "/races/manage", label: "Provas", icon: Flag },
+  { to: "/assessments", label: "Avaliações", icon: Gauge },
 ];
 const OWNER: NavItem[] = [
   { to: "/club/studio", label: "Club Studio", icon: Palette },

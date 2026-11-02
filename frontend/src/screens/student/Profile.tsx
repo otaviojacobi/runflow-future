@@ -3,6 +3,8 @@ import { Link } from "@tanstack/react-router";
 import { ArrowLeft, Gauge, HeartPulse, Info } from "lucide-react";
 import { useState } from "react";
 import { useMyProfile, useSaveMyProfile } from "@/api/account";
+import { useMyAssessments } from "@/api/assessments";
+import { ASSESSMENT_NAME, headline } from "@/components/assessments";
 import type { AthleteProfile, Goal, Level } from "@/api/types";
 import { ZoneTable } from "@/components/workout";
 import { t } from "@/i18n";
@@ -22,7 +24,7 @@ export function ProfileScreen() {
     <div className="mx-auto grid max-w-2xl gap-6">
       <Link to="/account" className="inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-fg-muted hover:text-fg"><ArrowLeft className="size-4" />{t("Minha conta")}</Link>
       <PageHeader title={t("Perfil de atleta")} subtitle={t("Ajuda {who} a montar treinos do seu jeito em {club}.", { who: club.trainer_label === "professor" ? t("seu professor") : t("seu treinador"), club: club.name })} />
-      {!p.data ? <Skeleton className="h-96" /> : <><Form clubId={club.id} p={p.data} key={p.data.updated_at} /><Zones p={p.data} label={club.trainer_label} /></>}
+      {!p.data ? <Skeleton className="h-96" /> : <><Form clubId={club.id} p={p.data} key={p.data.updated_at} /><Zones p={p.data} label={club.trainer_label} /><MyAssessments clubId={club.id} /></>}
     </div>
   );
 }
@@ -80,6 +82,24 @@ function Zones({ p, label }: { p: AthleteProfile; label: "treinador" | "professo
           {hrZ ? <><p className="text-xs text-fg-muted">{t("Desde {d}", { d: fullDate(hrZ.valid_from) })}</p><ZoneTable z={hrZ} unit="hr" /></> : <p className="text-sm text-fg-muted">{t("Ainda sem zonas de FC. Informe sua FC máxima.")}</p>}
         </Card>
       </div>
+    </section>
+  );
+}
+
+function MyAssessments({ clubId }: { clubId: string }) {
+  const list = useMyAssessments(clubId);
+  if (!list.data?.length) return null;
+  return (
+    <section className="grid gap-3" aria-labelledby="as-h">
+      <h2 id="as-h" className="rf-text-title-md">{t("Suas avaliações")}</h2>
+      <Card className="divide-y divide-line-subtle">
+        {list.data.map((a) => (
+          <div key={a.id} className="grid gap-0.5 px-4 py-3">
+            <div className="flex items-baseline justify-between gap-2"><span className="font-semibold">{t(ASSESSMENT_NAME[a.kind])}</span><span className="text-xs text-fg-muted">{fullDate(a.date)}</span></div>
+            <span className="text-sm tabular-nums">{headline(a.kind, a.result, a.data).text}</span>
+          </div>
+        ))}
+      </Card>
     </section>
   );
 }

@@ -69,11 +69,12 @@ export function ComplianceBar({ pct, className }: { pct: number | null; classNam
 }
 
 /** Zone bounds, Z5 on top. `unit` picks pace (/km) or heart rate (bpm). */
-export function ZoneTable({ z, unit }: { z: Pick<Zone, "bounds">; unit: "pace" | "hr" }) {
+export function ZoneTable({ z, unit }: { z: Pick<Zone, "bounds">; unit: "pace" | "hr" | "swim_pace" | "power" }) {
+  const fmt = (b: Zone["bounds"][number]) => unit === "pace" ? `${pace(b.min)} – ${pace(b.max)} /km` : unit === "swim_pace" ? `${pace(b.min)} – ${pace(b.max)} /100 m` : unit === "power" ? `${b.min} – ${b.max} W` : `${b.min} – ${b.max} bpm`;
   return (
     <table className="w-full text-sm"><tbody>{[...z.bounds].reverse().map((b) => (
       <tr key={b.zone} className="border-t border-line-subtle"><td className="py-2"><span className={cn("inline-grid size-7 place-items-center rounded-md text-xs font-bold", ZONE_BG[b.zone as ZoneN])} style={{ color: `var(--rf-zone-${b.zone}-on-solid)` }}>Z{b.zone}</span></td>
-        <td className="py-2 font-semibold tabular-nums">{unit === "pace" ? `${pace(b.min)} – ${pace(b.max)} /km` : `${b.min} – ${b.max} bpm`}</td></tr>
+        <td className="py-2 font-semibold tabular-nums">{fmt(b)}</td></tr>
     ))}</tbody></table>
   );
 }
