@@ -15,6 +15,8 @@ export default defineConfig({
     host: true,
     proxy: { "/api": { target: "http://localhost:8787", rewrite: (p) => p.replace(/^\/api/, "") } },
   },
+  // `vite preview` serves the production build (service worker, PWA) with the same API proxy.
+  preview: { port: 4173, strictPort: true, proxy: { "/api": { target: "http://localhost:8787", rewrite: (p) => p.replace(/^\/api/, "") } } },
   build: { chunkSizeWarningLimit: 400 },
   test: { environment: "node", include: ["src/**/*.test.ts"] },
 });

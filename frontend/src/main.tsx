@@ -7,11 +7,13 @@ import "@runflow/design/tokens.css";
 import "./styles.css";
 import { queryClient } from "./queryClient";
 import { router } from "./router";
+import { setupPwa } from "./lib/pwa";
 import { installPrintTheme, promoteClubTheme } from "./lib/theme";
 
 // Dev injects CSS at runtime; make sure the cached club theme still comes last (§7.8).
 promoteClubTheme();
 installPrintTheme();
+setupPwa();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

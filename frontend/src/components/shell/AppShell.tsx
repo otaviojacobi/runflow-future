@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { AlertTriangle, Bell, Check, ChevronsUpDown, LogOut, Menu as MenuIcon, Monitor, Moon, Plus, Sun, User } from "lucide-react";
+import { AlertTriangle, Bell, Check, ChevronsUpDown, LogOut, Menu as MenuIcon, Monitor, Moon, Plus, Search, Sun, User, WifiOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { DropdownMenu } from "radix-ui";
 import { signOut } from "@/api/auth";
@@ -7,9 +7,11 @@ import type { MembershipContext, Subscription } from "@/api/types";
 import { ClubLogo } from "@/components/brand";
 import { t } from "@/i18n";
 import { homeFor, selectClub, useClub } from "@/lib/club";
+import { useOnline } from "@/lib/pwa";
 import { applyClubTheme, getColorMode, setColorMode, type ColorMode } from "@/lib/theme";
 import { Avatar, Dialog, cn } from "@/ui";
 import { ROLE_LABEL } from "@/screens/clubs/Clubs";
+import { CommandPalette, useCommandPalette } from "./CommandPalette";
 import { moreFor, navFor, tabsFor, type NavItem } from "./nav";
 
 function useIsActive() {
@@ -107,6 +109,32 @@ function Bell_({ unread, className }: { unread: number; className?: string }) {
   );
 }
 
+/** "?" opens the keyboard shortcuts sheet (anywhere outside text fields). */
+function ShortcutsDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const rows: [string, [string, string][]][] = [
+    [t("Geral"), [["⌘ K / Ctrl K", t("Buscar telas, ações, alunos e treinos")], ["?", t("Mostrar estes atalhos")]]],
+    [t("Planejamento"), [["← →", t("Semana anterior / próxima")], ["T", t("Voltar para esta semana")], ["A", t("Atribuir treino")], ["C", t("Copiar semana")], ["/", t("Buscar aluno")], ["P", t("Imprimir a semana")]]],
+  ];
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange} title={t("Atalhos do teclado")}>
+      <div className="grid gap-4">
+        {rows.map(([title, list]) => (
+          <section key={title}><h3 className="mb-1.5 rf-text-overline text-fg-muted">{title}</h3>
+            <ul className="divide-y divide-line-subtle">{list.map(([k, d]) => <li key={k} className="flex items-center justify-between gap-3 py-1.5 text-sm"><span>{d}</span><kbd className="rounded border border-line bg-sunken px-1.5 py-0.5 font-mono text-xs">{k}</kbd></li>)}</ul>
+          </section>
+        ))}
+      </div>
+    </Dialog>
+  );
+}
+export const isTyping = (e: KeyboardEvent) => { const el = e.target as HTMLElement | null; return !!el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName) || !!el.closest("[role=dialog]")); };
+
+function OfflineBanner() {
+  const online = useOnline();
+  if (online) return null;
+  return <div role="status" data-print="hide" className="mx-auto mb-4 flex max-w-6xl items-center gap-2 rounded-lg bg-warning-soft px-4 py-2.5 text-sm text-on-warning-soft"><WifiOff className="size-4 shrink-0" />{t("Sem internet. Mostrando o que ficou salvo no aparelho; mudanças precisam de conexão.")}</div>;
+}
+
 /** Owner-only: the club hit its student limit or a payment failed. Never shown to students. */
 function BillingBanner({ sub }: { sub: Subscription | null }) {
   const isActive = useIsActive();
@@ -126,6 +154,13 @@ function BillingBanner({ sub }: { sub: Subscription | null }) {
 export function AppShell() {
   const { me, ctx, role } = useClub();
   const [more, setMore] = useState(false);
+  const [palette, setPalette] = useCommandPalette();
+  const [keys, setKeys] = useState(false);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "?" && !isTyping(e)) { e.preventDefault(); setKeys(true); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const isActive = useIsActive();
   useEffect(() => { if (ctx) applyClubTheme(ctx.branding?.theme_css ?? null); }, [ctx?.club.id, ctx?.branding?.theme_rev]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!ctx || !role || !me) return null;
@@ -139,6 +174,9 @@ export function AppShell() {
       {/* desktop sidebar */}
       <aside data-print="hide" className="sticky top-0 hidden h-dvh flex-col gap-4 border-r border-line bg-surface p-3 lg:flex">
         <ClubSwitcher />
+        <button type="button" onClick={() => setPalette(true)} className="flex h-9 items-center gap-2 rounded-md border border-line bg-sunken px-3 text-sm text-fg-muted hover:text-fg">
+          <Search className="size-4" aria-hidden /><span className="flex-1 text-left">{t("Buscar…")}</span><kbd className="rounded border border-line px-1 text-[11px]">⌘K</kbd>
+        </button>
         <nav aria-label={t("Navegação principal")} className="flex flex-1 flex-col gap-3 overflow-y-auto">
           {groups.map((g, i) => (
             <div key={i} className="flex flex-col gap-0.5">
@@ -156,13 +194,17 @@ export function AppShell() {
       {/* mobile top bar */}
       <header data-print="hide" className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-canvas/90 px-3 py-2 backdrop-blur-md lg:hidden">
         <div className="min-w-0 flex-1"><ClubSwitcher compact /></div>
+        <button type="button" onClick={() => setPalette(true)} aria-label={t("Buscar")} className="grid size-10 place-items-center rounded-full text-fg hover:bg-soft"><Search className="size-5" /></button>
         <Bell_ unread={me.unread_notifications} />
       </header>
 
       <main id="conteudo" className="min-w-0 overflow-x-clip px-4 pb-28 pt-5 sm:px-6 lg:px-10 lg:pb-12 lg:pt-8">
+        <OfflineBanner />
         {role === "owner" && <BillingBanner sub={ctx.subscription} />}
         <Outlet />
       </main>
+      <CommandPalette open={palette} onOpenChange={setPalette} role={role} clubId={ctx.club.id} />
+      <ShortcutsDialog open={keys} onOpenChange={setKeys} />
 
       {/* mobile bottom tabs */}
       <nav data-print="hide" aria-label={t("Navegação principal")} className="fixed inset-x-0 bottom-0 z-30 grid border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden" style={{ gridTemplateColumns: `repeat(${tabs.length + (extra.length ? 1 : 0)}, minmax(0, 1fr))` }}>

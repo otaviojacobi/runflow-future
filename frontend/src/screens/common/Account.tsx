@@ -15,6 +15,7 @@ import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { selectClub, useClub } from "@/lib/club";
 import { ago, fullDate, localDate, today as todayFn } from "@/lib/format";
+import { promptInstall, useInstall } from "@/lib/pwa";
 import { getColorMode, setColorMode, type ColorMode } from "@/lib/theme";
 import { queryClient } from "@/queryClient";
 import { ROLE_LABEL } from "@/screens/clubs/Clubs";
@@ -42,6 +43,7 @@ export function AccountScreen() {
       )}
       <Profile user={me.user} key={me.user.id} />
       <Appearance />
+      <InstallApp />
       <Section id="connections" title={t("Relógios e apps")} description={t("Seus treinos chegam sozinhos. Desconectar apaga os dados importados.")}><ProviderConnections /></Section>
       <Notifications />
       {role === "student" && <CalendarFeed />}
@@ -96,6 +98,17 @@ function Appearance() {
     <Section id="appearance" title={t("Aparência")} description={t("As cores do clube se adaptam aos dois modos.")}>
       <Segmented label={t("Tema")} value={mode} onChange={(m) => { setMode(m); setColorMode(m); }} className="w-fit"
         options={[{ value: "light", label: t("Claro"), icon: <Sun /> }, { value: "dark", label: t("Escuro"), icon: <Moon /> }, { value: "system", label: t("Sistema"), icon: <Monitor /> }]} />
+    </Section>
+  );
+}
+
+function InstallApp() {
+  const mode = useInstall();
+  if (!mode) return null;
+  return (
+    <Section id="install" title={t("Runflow na tela inicial")} description={t("Abra como um app, mais rápido, e veja o treino do dia mesmo sem internet.")}>
+      {mode === "prompt" ? <Button className="justify-self-start" icon={<Smartphone />} onClick={() => promptInstall().then((ok) => ok && toast.success(t("App instalado")))}>{t("Instalar o Runflow")}</Button>
+        : <p className="text-sm">{t("No iPhone: toque em Compartilhar e depois em “Adicionar à Tela de Início”.")}</p>}
     </Section>
   );
 }

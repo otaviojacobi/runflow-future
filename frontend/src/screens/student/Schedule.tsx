@@ -1,6 +1,6 @@
 /** M3 · Agenda (student): week list and month calendar. Route: /schedule */
 import { Link } from "@tanstack/react-router";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Printer } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMyWorkouts } from "@/api/my";
 import { sportBar } from "@/components/sport";
@@ -28,7 +28,7 @@ export function ScheduleScreen() {
 
   return (
     <div className="mx-auto grid max-w-3xl gap-5">
-      <PageHeader title={t("Agenda")} actions={<Segmented label={t("Visão")} value={view} onChange={setView} options={[{ value: "week", label: t("Semana") }, { value: "month", label: t("Mês") }]} />} />
+      <PageHeader title={t("Agenda")} actions={<div data-print="hide" className="flex items-center gap-2"><IconButton variant="secondary" label={t("Imprimir")} onClick={() => window.print()}><Printer /></IconButton><Segmented label={t("Visão")} value={view} onChange={setView} options={[{ value: "week", label: t("Semana") }, { value: "month", label: t("Mês") }]} /></div>} />
       <div className="flex items-center gap-2"><IconButton variant="secondary" label={t("Anterior")} onClick={() => move(-1)}><ChevronLeft /></IconButton><span className="min-w-40 text-center font-semibold first-letter:uppercase">{title}</span><IconButton variant="secondary" label={t("Próximo")} onClick={() => move(1)}><ChevronRight /></IconButton><button className="ml-2 text-sm font-semibold text-brand-text" onClick={() => setAnchor(today)}>{t("Hoje")}</button></div>
       {view === "week" ? (
         <div className="grid gap-2">

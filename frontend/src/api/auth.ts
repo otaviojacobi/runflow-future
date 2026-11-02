@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
+import { clearOfflineData } from "@/lib/pwa";
 import { applyClubTheme } from "@/lib/theme";
 import { queryClient } from "@/queryClient";
 import { fetchMe, meKey } from "./me";
@@ -23,6 +24,7 @@ export const useMockAccounts = (enabled: boolean) =>
 export async function signOut() {
   await api.post("/auth/logout").catch(() => undefined);
   session.clear();
+  clearOfflineData();
   session.setClubId(null);
   applyClubTheme(null);
   queryClient.clear();

@@ -1,6 +1,6 @@
 /** W4 · Planejamento: students × week grid. Route: /planning */
-import { Check, ChevronLeft, ChevronRight, Copy, Flag, MessageSquare, Minus, Plus, Search, Sparkles, Star, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Check, ChevronLeft, ChevronRight, Copy, Flag, MessageSquare, Minus, Plus, Printer, Search, Sparkles, Star, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAthletes, useGroups } from "@/api/members";
 import { useRaces } from "@/api/races";
 import type { AthleteSummary, PlannedWorkout } from "@/api/types";
@@ -11,6 +11,7 @@ import { t, tn } from "@/i18n";
 import { useClub } from "@/lib/club";
 import { addDays, dayMonth, duration, mondayOf, today as todayFn, weekdayShort } from "@/lib/format";
 import { Avatar, Button, Card, EmptyState, IconButton, Input, PageHeader, Skeleton, cn, toast } from "@/ui";
+import { isTyping } from "@/components/shell/AppShell";
 import { AssignDialog, type AssignPrefill } from "./AssignDialog";
 import { SuggestWeekDialog } from "./SuggestWeekDialog";
 import { CopyWeekDialog, DetailDialog, EditDialog } from "./WorkoutDialogs";
@@ -44,6 +45,25 @@ export function PlanningScreen() {
   const [copyOpen, setCopyOpen] = useState(false);
   const [over, setOver] = useState<string | null>(null);
   const [suggest, setSuggest] = useState<AthleteSummary | null>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
+  // Keyboard: ← → weeks, T this week, A assign, C copy week, / search, P print (see "?" in the shell).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e)) return;
+      const k = e.key.toLowerCase();
+      if (k === "arrowleft") setMonday((m) => addDays(m, -7));
+      else if (k === "arrowright") setMonday((m) => addDays(m, 7));
+      else if (k === "t") setMonday(mondayOf(today));
+      else if (k === "a") setAssign({});
+      else if (k === "c") setCopyOpen(true);
+      else if (k === "p") window.print();
+      else if (k === "/") searchRef.current?.focus();
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [today]);
   const sunday = addDays(monday, 6);
   const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
   const groups = useGroups(club?.id);
@@ -81,14 +101,14 @@ export function PlanningScreen() {
     <div className="mx-auto grid max-w-[1400px] gap-5">
       <PageHeader eyebrow={t("Semana de {a} a {b}", { a: dayMonth(monday), b: dayMonth(sunday) })} title={t("Planejamento")}
         subtitle={total ? t("{done} de {total} treinos feitos nesta semana", { done, total }) : t("Nenhum treino nesta semana ainda")}
-        actions={<><Button variant="secondary" icon={<Copy />} onClick={() => setCopyOpen(true)} disabled={!total}>{t("Copiar semana")}</Button><Button icon={<Plus />} onClick={() => setAssign({})}>{t("Atribuir treino")}</Button></>} />
-      <div className="flex flex-wrap items-center gap-3">
+        actions={<div data-print="hide" className="flex flex-wrap gap-2"><IconButton variant="secondary" label={t("Imprimir a semana")} onClick={() => window.print()}><Printer /></IconButton><Button variant="secondary" icon={<Copy />} onClick={() => setCopyOpen(true)} disabled={!total}>{t("Copiar semana")}</Button><Button icon={<Plus />} onClick={() => setAssign({})}>{t("Atribuir treino")}</Button></div>} />
+      <div data-print="hide" className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1">
           <IconButton variant="secondary" label={t("Semana anterior")} onClick={() => setMonday(addDays(monday, -7))}><ChevronLeft /></IconButton>
           <Button variant="secondary" onClick={() => setMonday(mondayOf(today))} disabled={monday === mondayOf(today)}>{t("Esta semana")}</Button>
           <IconButton variant="secondary" label={t("Próxima semana")} onClick={() => setMonday(addDays(monday, 7))}><ChevronRight /></IconButton>
         </div>
-        <div className="relative w-56"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-subtle" /><Input aria-label={t("Buscar aluno")} placeholder={t("Buscar aluno")} value={q} onChange={(e) => setQ(e.target.value)} className="h-9 pl-9" /></div>
+        <div className="relative w-56"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-subtle" /><Input ref={searchRef} aria-label={t("Buscar aluno")} placeholder={t("Buscar aluno")} value={q} onChange={(e) => setQ(e.target.value)} className="h-9 pl-9" /></div>
         <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("Filtrar por grupo")}>
           {[{ id: "all", name: t("Todos") }, ...(groups.data ?? [])].map((g) => (
             <button key={g.id} onClick={() => setGroup(g.id)} aria-pressed={group === g.id} className={cn("h-8 rounded-full border px-3 text-[13px] font-semibold", group === g.id ? "border-brand-ring bg-brand-soft text-on-brand-soft" : "border-line bg-surface text-fg-muted hover:bg-soft")}>{g.name}</button>
@@ -99,8 +119,8 @@ export function PlanningScreen() {
       {athletes.isPending ? <Skeleton className="h-96" /> : rows.length === 0 ? (
         <Card><EmptyState title={t("Nenhum aluno aqui")}>{t("Convide alunos ou escolha outro grupo.")}</EmptyState></Card>
       ) : (
-        <Card className="overflow-x-auto">
-          <div className="grid min-w-[980px]" style={{ gridTemplateColumns: "200px repeat(7, minmax(110px, 1fr))" }}>
+        <Card className="overflow-x-auto print:overflow-visible print:shadow-none">
+          <div className="grid min-w-[980px] print:min-w-0 print:text-[10px]" style={{ gridTemplateColumns: "200px repeat(7, minmax(110px, 1fr))" }}>
             <div className="sticky left-0 z-10 border-b border-line bg-sunken px-3 py-2.5 text-[11px] font-bold uppercase tracking-[0.06em] text-fg-muted">{t("Aluno")}</div>
             {days.map((d) => (
               <div key={d} className={cn("border-b border-l border-line-subtle bg-sunken px-2 py-2 text-center", d === today && "bg-brand-soft")}>
@@ -141,7 +161,7 @@ export function PlanningScreen() {
           </div>
         </Card>
       )}
-      <p className="text-xs text-fg-muted">{t("Dica: arraste um treino para outro dia. Clique em um espaço vazio para adicionar.")}</p>
+      <p data-print="hide" className="text-xs text-fg-muted">{t("Dica: arraste um treino para outro dia. Clique em um espaço vazio para adicionar. Tecle ? para ver os atalhos.")}</p>
 
       <AssignDialog club={club} monday={monday} open={!!assign} onOpenChange={(v) => !v && setAssign(null)} prefill={assign ?? undefined} />
       <DetailDialog club={club} id={detail} onClose={() => setDetail(null)} onEdit={(id) => { setDetail(null); setEdit(id); }} />
