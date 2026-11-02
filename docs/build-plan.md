@@ -20,7 +20,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F7 | Workout builder: structured editor + quick text (`10' aquec + 6x1km @4:30 c/ 2' trote`) + intensity preview; run, swim and strength blocks | W5 | [x] |
 | F8 | Library (templates by sport, search, duplicate, archive) | W6 | [x] |
 | F19 | Public landing: hero with live quick-text demo, modalities, features, Club Studio demo, pricing, comparison, FAQ, demo logins; English routes | A1 | [x] |
-| F9 | Planning: students × week grid, assign (library or build now; students, groups, many days), drag to move, workout detail, edit, remove, copy week | W4 | [ ] |
+| F9 | Planning: students × week grid, assign (library or build now; students, groups, many days), drag to move, workout detail, edit, remove, copy week | W4 | [x] |
 | F10 | Student: Today, workout detail with personal targets, feedback sheet, schedule (week/month) | M1, M2, M5, M3 | [ ] |
 | F13 | Trainer dashboard: today's board, alerts, feedback to answer, compliance trend, onboarding checklist, plan usage | W1 | [ ] |
 | F11 | Activities (list, detail with laps and match to plan, manual log) + student detail for trainers (calendar, metrics, zones, profile, notes) | M4, W3 | [ ] |

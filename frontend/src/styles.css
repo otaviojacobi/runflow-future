@@ -6,6 +6,7 @@
  * Sports: bg-run text-on-run · bg-run-soft text-on-run-soft · text-run-text (run swim bike strength mobility other)
  * Zones: bg-z1…z5 text-on-z1…z5. Text styles: the .rf-text-* classes from tokens.css. */
 @import "tailwindcss";
+@source "./";
 
 @theme {
   --color-*: initial;
