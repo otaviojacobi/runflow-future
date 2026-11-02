@@ -12,13 +12,24 @@
 		reverse_proxy api:3000
 	}
 
+	# Hashed bundles never change: browsers and Cloudflare keep them for a year. A missing one (an old
+	# tab after a deploy) is a plain 404 that nobody caches, never the app shell posing as JS.
+	handle /assets/* {
+		root * /srv
+		@found file
+		@missing not file
+		header @found Cache-Control "public, max-age=31536000, immutable"
+		header @missing Cache-Control "no-store"
+		file_server
+	}
+
+	# Everything else is the app shell (index.html for every route), sw.js, the manifest and icons.
+	# Browsers revalidate on every load; Cloudflare answers from its edge for an hour (cache rule in
+	# setup-todo.md §6) and update.sh purges it after each deploy, so the Pi only sees API calls.
 	handle {
 		root * /srv
-		# Hashed bundles never change; everything else revalidates.
-		@hashed path /assets/*
-		header @hashed Cache-Control "public, max-age=31536000, immutable"
-		header /sw.js Cache-Control "no-cache"
-		header /index.html Cache-Control "no-cache"
+		header Cache-Control "no-cache"
+		header Cloudflare-CDN-Cache-Control "max-age=3600"
 		try_files {path} /index.html
 		file_server
 	}

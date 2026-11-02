@@ -37,6 +37,9 @@ Then: `COOKIE_DOMAIN=.runflow.club`, `PUBLIC_APP_URL=https://app.runflow.club`, 
 Reserved subdomains (never a club's): `app api www mail email smtp imap pop autodiscover send status docs admin` (enforced in S3).
 A club's own domain (`treinos.clube.com.br`) = Cloudflare for SaaS custom hostnames: later.
 Note for LGPD: Cloudflare terminates TLS, so list it as a processor in the terms.
+**Edge cache (S8b):** the web app is served by Cloudflare, the origin only answers `/api`. The web image sets the TTLs
+(bundles: `immutable`, one year; app shell: `Cloudflare-CDN-Cache-Control: max-age=3600`, browsers `no-cache`); two cache
+rules make the shell eligible and bypass `/api`; the deploy purges the host (`ops/qa/purge-edge.sh`). Same setup in production.
 
 ## 3. Recommended: Raspberry Pi OS + Docker + deploy on push
 

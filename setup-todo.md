@@ -22,9 +22,12 @@ Raspberry Pi 5:  cloudflared ─▶ web (Caddy: the app + /api proxy) ─▶ api
 to GHCR → a timer on the Pi pulls them every 5 minutes and restarts what changed (the API migrates the database
 at start). Roll back by pinning a commit: `RUNFLOW_TAG=sha-<7 chars>` in `ops/qa/.env`.
 
-**Speed.** JS/CSS have hashed names and `Cache-Control: immutable`, so Cloudflare serves them from its edge (São Paulo)
-after the first request; the Pi only serves `index.html` (2 KB) and the API. The installed app (PWA service worker)
-keeps the shell on the device after the first visit.
+**Speed.** The whole web app comes from Cloudflare's edge (São Paulo), so the Pi only answers `/api`. JS/CSS have hashed
+names and `Cache-Control: immutable`; the app shell (`index.html` for every route, icons, manifest, `sw.js`) is kept at
+the edge for an hour by a cache rule (§6), and `update.sh` purges it after each deploy so new versions show up at once.
+Browsers revalidate the shell on every load (cheap: answered by the edge). The installed app (PWA service worker) keeps
+the shell on the device after the first visit. Measured 2026-11-02: API ~1 ms inside the Pi, ~30 ms extra through the
+tunnel; database queries 0.1–0.8 ms; SD card commits ~1 ms.
 
 ---
 
@@ -104,6 +107,17 @@ Your DMARC is `quarantine`: mail from Resend lands in spam until DKIM verifies, 
   Copy the **token** (the long string after `--token`) for `TUNNEL_TOKEN`. Skip the install step (it runs in Docker).
 - [ ] In the tunnel → **Public Hostname** → Add: subdomain `qa`, domain `runflow.club`, service **HTTP** `web:80`.
   (Cloudflare creates the `qa` DNS record for you.)
+- [ ] Cloudflare → runflow.club → Caching → **Cache Rules** → Create rule (serve the web app from the edge):
+  - name `QA web app at the edge`; "Custom filter expression" → Edit expression:
+    `(http.host eq "qa.runflow.club" and not starts_with(http.request.uri.path, "/api/"))`
+  - Cache eligibility **Eligible for cache** · Edge TTL **Use cache-control header if present** (the web image sends
+    one hour for the shell, one year for bundles) · Browser TTL **Respect origin TTL** → Deploy.
+- [ ] Second rule, so the API is never cached: name `QA API`, expression
+  `(http.host eq "qa.runflow.club" and starts_with(http.request.uri.path, "/api/"))` → **Bypass cache** → Deploy.
+- [ ] Purge after deploys: Cloudflare → My Profile → API Tokens → Create Token → **Custom token**, permission
+  Zone · **Cache Purge** · Purge, zone resources: runflow.club only. Put it in the Pi's `ops/qa/.env` as
+  `CF_CACHE_PURGE_TOKEN`, and the zone ID (runflow.club → Overview, right column) as `CF_ZONE_ID`. Test with
+  `./purge-edge.sh` → `edge cache purged for qa.runflow.club`. (Skip it and deploys still land, within the hour.)
 - [ ] GitHub → repo → **Actions** → check the `images` workflow ran green on `main` (first run: ~15 min for the Rust build).
 - [ ] github.com/otaviojacobi?tab=packages → `runflow-api` → Package settings → **Change visibility → Public**. Same for `runflow-web`.
   (The images have no secrets; public means the Pi pulls without logging in.)
@@ -211,6 +225,8 @@ When it lands you'll add, in the tunnel, a public hostname `*.runflow.club` → 
 | Status | `docker compose ps` |
 | Logs | `docker compose logs -f api` (or `web`, `cloudflared`) |
 | Deploy now (don't wait 5 min) | `./update.sh` |
+| Drop the edge copy of the app | `./purge-edge.sh` (`update.sh` does it after each deploy) |
+| Is the edge serving the app? | `curl -sI https://qa.runflow.club/ \| grep cf-cache-status` → `HIT` (`MISS` once after a purge) |
 | Roll back / pin a version | set `RUNFLOW_TAG=sha-<commit>` in `.env`, then `./update.sh` |
 | Configuration check | `docker compose run --rm api doctor` |
 | Database shell | `docker compose exec postgres psql -U runflow -d runflow` |

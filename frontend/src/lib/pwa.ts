@@ -13,6 +13,21 @@ export function setupPwa() {
   window.addEventListener("offline", emit);
   // Production only: in dev the SW would cache Vite's modules and hide changes.
   if (import.meta.env.PROD && "serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js").catch(() => undefined);
+  window.addEventListener("vite:preloadError", reloadIntoNewVersion);
+}
+
+/** After a deploy, a tab opened earlier asks for route bundles that no longer exist: reload once into the new app. */
+const RELOADED_AT = "rf-reloaded-at";
+function reloadIntoNewVersion(event: Event) {
+  try {
+    // The fresh page failed too: let the route's error screen show instead of reloading in a loop.
+    if (Date.now() - Number(sessionStorage.getItem(RELOADED_AT) ?? 0) < 10_000) return;
+    sessionStorage.setItem(RELOADED_AT, String(Date.now()));
+  } catch {
+    return; // no storage, no loop guard: don't reload
+  }
+  event.preventDefault();
+  window.location.reload();
 }
 const subscribe = (l: () => void) => (listeners.add(l), () => void listeners.delete(l));
 
