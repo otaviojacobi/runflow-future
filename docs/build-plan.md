@@ -42,8 +42,24 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F30 | Power features: command palette (⌘K), keyboard shortcuts in planning, PWA install, offline today, print-friendly week | — | [x] |
 | F20 | Hardening: 404 and error pages, empty states audit, accessibility pass, responsive pass, performance budget (§7.7: initial JS is ~195 KB gzip after F30, lazy-load the remaining eager screens), Playwright e2e suite in CI | — | [x] |
 | F31 | Founder revisions (2026-11-02): personal e-mail invites (D-023: 7 days, single use, only the invited e-mail; resend/cancel; dev outbox at `/dev/outbox`) and Runflow-branded public pages (D-024); the invite form sends one person at a time (e-mail + name), bulk stays in the spreadsheet import | A3, A5, O2 | [x] |
+| F32 | Founder revisions (2026-11-02): workout hashtags are first-class: `#tag` in quick text and import lines, a tag editor in the builder (it used to drop tags on save), library tag filter and `#` search, `?tag=` + normalization rules in the contract (api/endpoints.md § Tags) | W5, W6 | [x] |
 
-## Phase 2: mobile app on the mock API (`mobile/`)
+## Phase 2: real backend (`backend/`, Rust) replacing the mock
+
+Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built on the real API. The backend implements **everything the web app does on the mock**: every row of `api/endpoints.md`, same pt-BR errors and codes, same rules (e.g. § Tags).
+
+| Step | Scope | Status |
+|---|---|---|
+| S1 | Bootstrap: Cargo workspace, axum `/v1/health`, config from env (`.env.example` lists every variable), sqlx migrations from `api/schema.sql`, problem+json errors (pt-BR), e-mail via Resend (D-026, log fallback), Dockerfile (amd64/arm64), root `docker-compose.yaml` (Postgres + API), backend CI | [ ] |
+| S2 | Auth (Google, email code), sessions, `/me` | [ ] |
+| S3 | Clubs, branding (Rust port of the color engine, golden fixtures), invites, members, groups | [ ] |
+| S4 | Workouts, templates, planilhas, completions, comments, feedback | [ ] |
+| S5 | Activities + Strava (OAuth, webhooks, sync, consent-based visibility) | [ ] |
+| S6 | Scheduling | [ ] |
+| S7 | Billing (Stripe Checkout, portal, webhooks), notifications, push | [ ] |
+| S8 | `ops/`: Pi deployment, Cloudflare Tunnel, backups, restore drill | [ ] |
+
+## Phase 3: mobile app (`mobile/`) on the real API
 
 | Step | Scope | Status |
 |---|---|---|
@@ -59,18 +75,9 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | X9 | Owner/student onboarding on mobile (invite deep link → consent → profile → Strava) | [ ] |
 | X10 | Push notifications, widgets (today's workout), Apple Health / Health Connect read | [ ] |
 
-## Phase 3: real backend (`backend/`, Rust) replacing the mock
+## Later (TODO, not scheduled)
 
-| Step | Scope | Status |
-|---|---|---|
-| S1 | Bootstrap: workspace, axum `/health`, config, sqlx migrations from `api/schema.sql`, Docker multi-arch, CI | [ ] |
-| S2 | Auth (Google, email code), sessions, `/me` | [ ] |
-| S3 | Clubs, branding (Rust port of the color engine, golden fixtures), invites, members, groups | [ ] |
-| S4 | Workouts, templates, planilhas, completions, comments, feedback | [ ] |
-| S5 | Activities + Strava (OAuth, webhooks, sync, consent-based visibility) | [ ] |
-| S6 | Scheduling | [ ] |
-| S7 | Billing (Stripe Checkout, portal, webhooks), notifications, push | [ ] |
-| S8 | `ops/`: Pi deployment, Cloudflare Tunnel, backups, restore drill | [ ] |
+- **Spreadsheet files: `.xlsx` / `.xls` import** for students (Members) and workouts (Library). Today: `.csv` upload or paste from Excel / Google Sheets (F29). Parse in the browser (lazy-loaded, outside the initial-JS budget) or server-side; keep the same preview and per-row errors.
 
 ## Feature map (what "done" means per screen)
 
@@ -80,8 +87,8 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 - **W2 Students**: search, group filters, sort, compliance, week progress, last activity, Strava status, groups dialog, invite dialog. *More:* bulk actions (assign, add to group, message), tags, CSV export.
 - **W3 Student detail**: header (goal, level, race date, WhatsApp), month calendar with completion, activity list, metrics (weekly volume, compliance, pace trend), zones editor (from race/test), profile and private trainer notes, consent status, thread history.
 - **W4 Planning**: week grid (students × days), group filter, search, today highlight, chips with status/comments, drag to move, detail (structure, notes, completion, activity, thread), edit, duplicate, remove, assign dialog (library or build now, students/groups, many days, notes), copy week, week totals per student. *More:* multi-select chips, move between students, month view, undo.
-- **W5 Builder**: quick text ⇄ structured editor, run/swim/bike/strength/mobility, series, targets, swim extras, live summary, examples. *More:* preview with a student's personal zones, AI templates, exercise videos.
-- **W6 Library**: search, sport filters, cards with profile, duplicate, archive. *More:* tags, folders, usage count.
+- **W5 Builder**: quick text ⇄ structured editor, hashtags (`#tag` in the text or the tag editor), run/swim/bike/strength/mobility, series, targets, swim extras, live summary, examples. *More:* preview with a student's personal zones, AI templates, exercise videos.
+- **W6 Library**: search (name or `#tag`), sport and tag filters, cards with profile and tags, duplicate, archive. *More:* folders, usage count.
 - **W7 Planilhas**: weeks × days editor reusing the builder, phases (base/build/peak/taper), weekly volume chart, apply to students/groups with a start date, active assignments, unassign future workouts.
 - **W8 Feedback**: inbox of completions + comments, unread/flagged filters, quick replies, mark as read, jump to workout.
 - **W9 Classes management**: venues, class types, recurring schedules (generate 8 weeks), week view, session roster (booked, waitlist, attended, no-show), add student, cancel session (notify), QR check-in code, capacity changes.

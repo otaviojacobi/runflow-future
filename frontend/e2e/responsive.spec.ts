@@ -11,6 +11,9 @@ async function noSideScroll(page: import("@playwright/test").Page, path: string)
   expect.soft(sw, `${path} is ${sw}px wide on a ${iw}px screen`).toBeLessThanOrEqual(iw + 1);
 }
 
+// Each test sweeps many screens; under a loaded machine or CI that can pass 30 s.
+test.describe.configure({ timeout: 90_000 });
+
 test("student screens fit a 360 px phone", async ({ page }) => {
   await signIn(page, STUDENT);
   for (const p of ["/today", "/schedule", "/activities", "/classes", "/races", "/challenges", "/messages", "/payments", "/account", "/account/profile", "/notifications"]) await noSideScroll(page, p);

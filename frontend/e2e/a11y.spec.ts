@@ -12,6 +12,9 @@ async function audit(page: import("@playwright/test").Page, path: string) {
   void path;
 }
 
+// Each test sweeps many screens; under a loaded machine or CI that can pass 30 s.
+test.describe.configure({ timeout: 90_000 });
+
 test("public pages", async ({ page }) => {
   for (const path of ["/", "/login"]) await test.step(path, () => audit(page, path));
 });

@@ -5,6 +5,7 @@ import type { Sport } from "@/api/types";
 import { SPORTS, SPORT_ICON, SPORT_LABEL } from "@/components/sport";
 import { IntensityProfile, zoneBg } from "@/components/workout";
 import { parseQuickText, toQuickText } from "@/domain/quicktext";
+import { extractTags } from "@/domain/tags";
 import { estimate, segments, type Structure, type ZoneN } from "@/domain/workout";
 import { t } from "@/i18n";
 import { distance, duration } from "@/lib/format";
@@ -63,7 +64,8 @@ export function SportPicker({ value, onChange, allowed }: { value: Sport; onChan
   );
 }
 
-export function WorkoutBuilder({ sport, structure, onChange, compact }: { sport: Sport; structure: Structure; onChange: (s: Structure) => void; compact?: boolean }) {
+/** `onTags`: "#hashtags" typed in the quick text (only where the workout has tags, i.e. the library). */
+export function WorkoutBuilder({ sport, structure, onChange, onTags, compact }: { sport: Sport; structure: Structure; onChange: (s: Structure) => void; onTags?: (tags: string[]) => void; compact?: boolean }) {
   const [text, setText] = useState(() => toQuickText(structure, sport));
   const [warnings, setWarnings] = useState<string[]>([]);
   const fromText = useRef(false);
@@ -79,6 +81,8 @@ export function WorkoutBuilder({ sport, structure, onChange, compact }: { sport:
     setWarnings(r.warnings);
     fromText.current = true;
     onChange(r.structure);
+    // Only finished hashtags (followed by a space); the one still being typed is taken on blur.
+    if (onTags) { const done = extractTags(v.replace(/#[^\s#]*$/, "")).tags; if (done.length) onTags(done); }
   };
 
   return (
@@ -89,7 +93,7 @@ export function WorkoutBuilder({ sport, structure, onChange, compact }: { sport:
             <label htmlFor="quicktext" className="flex items-center gap-2 font-semibold"><Wand2 className="size-[18px] text-accent-text" />{t("Escrita rápida")}</label>
             <span className="text-xs text-fg-muted">{t("Escreva como no WhatsApp. O editor abaixo acompanha.")}</span>
           </div>
-          <textarea id="quicktext" value={text} onChange={(e) => onText(e.target.value)} rows={sport === "strength" ? 5 : 3} spellCheck={false}
+          <textarea id="quicktext" value={text} onChange={(e) => onText(e.target.value)} onBlur={() => { const x = extractTags(text).tags; if (onTags && x.length) onTags(x); }} rows={sport === "strength" ? 5 : 3} spellCheck={false}
             placeholder={EXAMPLES[sport][0]}
             className="min-h-20 w-full resize-y rounded-md border border-line-strong bg-sunken px-3 py-2.5 font-mono text-[15px] leading-relaxed text-fg placeholder:text-fg-subtle focus:border-brand-ring focus:bg-surface focus:outline-none focus:ring-3 focus:ring-brand-ring/25" />
           {warnings.length > 0 ? (

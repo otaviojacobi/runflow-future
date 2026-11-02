@@ -348,7 +348,7 @@ flowchart LR
 | Phase | Setup |
 |---|---|
 | **A: now** | **Raspberry Pi 5** (8–16 GB) on an **NVMe SSD** (never an SD card), with a UPS. Docker Compose runs the `runflow` binary, PostgreSQL and on-disk object storage. Traffic comes in through a **Cloudflare Tunnel**: no open ports, it works behind ISP CGNAT (common in Brazil), and the free certificate covers `*.runflow.club`. Backups: continuous WAL archiving plus a nightly base backup to off-site object storage, with a **monthly restore drill**. CI builds multi-arch images and pushes them to GHCR. |
-| **B: cloud** | **AWS sa-east-1 (São Paulo)**. RDS or Aurora PostgreSQL, S3 + CloudFront, and the API on ECS Fargate Graviton (arm64, the same architecture as the Pi) or Lambda. SES for email. |
+| **B: cloud** | **AWS sa-east-1 (São Paulo)**. RDS or Aurora PostgreSQL, S3 + CloudFront, and the API on ECS Fargate Graviton (arm64, the same architecture as the Pi) or Lambda. E-mail stays on Resend (D-026) or moves to SES. |
 | **Enterprise** | The same image, Postgres, and any S3-compatible store, shipped as a docker-compose bundle with a license key. |
 
 - **When to move to the cloud:** before promising any paid SLA, or at roughly 20 paying clubs, 2,000 weekly active students, or Pi CPU sustained above 60%, whichever comes first.
@@ -420,10 +420,12 @@ flowchart LR
 | D-013 | Everything user-facing is pt-BR by default: apps, design system pages, mocks, emails, notifications and all error messages, backend included. i18n-ready. Code, comments, commits, logs and docs in English | Market focus without future rewrites | Accepted (founder) |
 | D-014 | Club theming takes 0, 1 or 2 colors (none: Runflow defaults; one: derived secondary; two: primary + secondary) and produces an accessible light/dark theme. Same engine in all areas (golden fixtures) | Most clubs have two colors; contrast and coherence are never left to chance | Accepted (founder) |
 | D-015 | Design first ("waterfall"): mock the whole UI as HTML before implementing | Validate look and flows cheaply | **Superseded by D-020** after D1 approval |
-| D-020 | Contract first: `api/schema.sql` + `api/endpoints.md` + a mock server over `api/mock/db.json`. Build the real web app on it screen by screen, then mobile, then the Rust backend implements the same contract | Real, testable UI early; the backend can't drift from what the screens need | Accepted (founder) |
+| D-020 | Contract first: `api/schema.sql` + `api/endpoints.md` + a mock server over `api/mock/db.json`. Build the real web app on it screen by screen, then the Rust backend implements the same contract, then mobile (order per D-025) | Real, testable UI early; the backend can't drift from what the screens need | Accepted (founder) |
 | D-021 | Mobile styling: `StyleSheet` + a typed theme generated from `@runflow/design` tokens (club roles via the shared color engine) | One token source with the web, no styling dependency, works in Expo Go | Accepted (engineering, 2026-11-02) |
 | D-022 | Mobile caches: club theme and preferences in `expo-sqlite/kv-store` (synchronous, in Expo Go); session token in `expo-secure-store`. Web preview uses `localStorage` | MMKV needs a custom dev build; the kv-store keeps the first frame themed without one | Accepted (engineering, 2026-11-02) |
 | D-023 | Joining needs a **personal invite**: one per e-mail, sent by e-mail, valid 7 days, single use, and only the account with that e-mail can accept. No club-wide or reusable links, invite QR codes or WhatsApp sharing | Founder: invites must not be permanent and must be tied to the invited person | Accepted (founder, 2026-11-02) |
+| D-025 | **Backend before mobile.** Phase 2 is the Rust backend implementing the whole contract (everything the web app does on the mock); mobile follows on the real API | Validates the 55-table contract on a real database before more clients depend on it; real sign-in, e-mail, Strava and Stripe need a server; mobile skips mock-only work | Accepted (founder, 2026-11-02) |
+| D-026 | Transactional e-mail (sign-in codes, invites, notices) via **Resend**, behind an `EmailSender` trait; without an API key the backend logs e-mails instead (dev). Config only in `.env` | Founder has an account; simple API; swappable (SES in the cloud phase) | Accepted (founder, 2026-11-02) |
 | D-024 | Public pages are **always Runflow's brand** (landing, sign-in, invite page, club picker, club creation); the club's colors apply only inside the signed-in app (web and mobile) | Founder: the marketing site and sign-in are ours | Accepted (founder, 2026-11-02) |
 | D-016 | Payments via Stripe; no charging during the beta; NFS-e handled by the founder outside the product | Founder decision | Accepted (founder) |
 | D-017 | Trainers see all students in their club | Simple default; per-trainer assignment can come later if clubs ask | Accepted (founder) |
@@ -440,9 +442,9 @@ flowchart LR
 | Phase | Goal | Status |
 |---|---|---|
 | **0: Design system** | Tokens, club-theme engine, foundations page | **Done.** D1 approved by the founder (2026-11-01) |
-| **1: Web app on the mock API** | Every screen, wired to the mock: auth, onboarding, coaching loop, library, planilhas, classes, Club Studio, billing (Stripe mock), account | In progress: `docs/build-plan.md` F0–F20 |
-| **2: Mobile app on the mock API** | Expo app mirroring the web flows | `docs/build-plan.md` X0–X9 |
-| **3: Real backend** | Rust API on PostgreSQL implementing the contract; Pi deployment | `docs/build-plan.md` S1–S8 |
+| **1: Web app on the mock API** | Every screen, wired to the mock: auth, onboarding, coaching loop, library, planilhas, classes, Club Studio, billing (Stripe mock), account | **Done** (F0–F32) |
+| **2: Real backend** | Rust API on PostgreSQL implementing the whole contract; Docker Compose; Pi deployment (D-025) | **Next:** `docs/build-plan.md` S1–S8 |
+| **3: Mobile app** | Expo app mirroring the web flows, on the real API | X0 done; X1–X10 after Phase 2 |
 | **4: Private beta** | Friendly running clubs; Strava app review; LGPD texts | — |
 | **5: Public launch** | Stripe live (Pro), subdomains, cloud migration plan | — |
 | **6: Growth** | Garmin, Sign in with Apple + iOS App Store, club finances, events, challenges, AI assistant, Apple Health / Health Connect, Max, Enterprise | — |
@@ -457,6 +459,7 @@ flowchart LR
 - 2026-11-01. **Founder approved the design system (D1).** New approach (D-020): contract first (`api/schema.sql` validated on PostgreSQL 18, `api/endpoints.md`), then the real web app on a mock API screen by screen, then mobile, then the Rust backend. Plan and status: `docs/build-plan.md`. The founder authorized committing and pushing after each step.
 - 2026-11-02. **Phase 1 (web app on the mock API) complete: F0–F30 and F20 hardening.** Beyond the core screens it covers classes, races, messages and mural, assessments, challenges, reports, club finances, an assistant (provider-agnostic contract, rules engine in the mock; open question §11.4), the exercise library, imports/exports (CSV, .FIT, .ics), command palette and an installable PWA. Contract: 55 tables in `api/schema.sql`. Quality gates: `npm run check` (incl. a 200 KB initial-JS budget) and `npm run e2e` (flows, axe WCAG AA, 360 px layouts) in CI. Design change: `fg.subtle` now meets 4.5:1 (new neutral steps 450/550) because it carries meta text. Next: Phase 2 (mobile, X0).
 - 2026-11-02. Founder decisions: personal e-mail invites, 7 days, single use, bound to the invited e-mail (D-023, replaces the shareable link/QR/WhatsApp invites of §4.5); public pages always in Runflow's brand (D-024). Mobile X0 scaffold delivered (D-021, D-022).
+- 2026-11-02. Founder decisions: backend before mobile (D-025: Phase 2 is now the Rust backend, mobile is Phase 3 on the real API); e-mail via Resend (D-026); workout hashtags first-class (F32); `.xlsx`/`.xls` import recorded as a later TODO (CSV covers it now). The invite form now sends one person at a time.
 - 2026-11-01. Founder decisions: design-first Phase 0 with the full UI mocked before implementation (D-015); Stripe, no charging during the beta, NFS-e outside the product (D-016); trainers see all students (D-017); Runflow is the app and clubs only theme it (D-018); Apple and Garmin developer programs deferred (D-007, D-011); no guardian accounts. Added the screen inventory (§6.1) and `CLAUDE.md`. Roadmap renumbered: Phase 0 is now design and validation, and **D1 is next**.
 
 ---
@@ -467,7 +470,7 @@ flowchart LR
 1. **Max plan.** Student cap, price, and per-student fee.
 2. **Strava written confirmation.** In Strava's app review, describe the coaching use case (students consent to share with their club's trainers) and keep the reply on file. Do this before inviting real clubs.
 3. **Brand.** Approve or redirect the palette and type in §6 (validated in D1).
-4. **AI provider and budget (F27).** The assistant's contract is provider-agnostic and the mock is a rules engine. Before the backend (S-phase) pick the LLM (e.g. Claude via the Anthropic API), the per-club monthly cap per plan, and what student data may be sent (LGPD: only the club's own data, never health notes without consent).
+4. **AI provider and budget (F27).** The assistant's contract is provider-agnostic and the mock is a rules engine. Before the backend's assistant endpoints (S-phase) pick the LLM (e.g. Claude via the Anthropic API), the per-club monthly cap per plan, and what student data may be sent (LGPD: only the club's own data, never health notes without consent).
 5. **Take rate on club fees (F26).** Runflow's cut when clubs collect student fees through the app (§4.6 "future revenue"); the UI shows no fee until decided.
 
 **Deferred by the founder (2026-11-01)**
@@ -475,6 +478,7 @@ flowchart LR
 - Garmin Connect Developer Program: blocks Garmin sync and send-to-watch. It costs nothing, but needs an application and approval.
 - Charging customers: Stripe goes live in Phase 5. NFS-e stays outside the product.
 - Guardian accounts for minors: not planned.
+- `.xlsx` / `.xls` import (students, workouts): CSV upload and paste from Excel / Google Sheets cover it for now (`docs/build-plan.md` § Later).
 
 ---
 

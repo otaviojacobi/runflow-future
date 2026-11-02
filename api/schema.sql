@@ -229,6 +229,7 @@ CREATE TABLE workout_templates (
   archived_at           timestamptz
 );
 CREATE INDEX workout_templates_club_idx ON workout_templates (club_id, sport) WHERE archived_at IS NULL;
+CREATE INDEX workout_templates_tags_idx ON workout_templates USING gin (tags) WHERE archived_at IS NULL; -- ?tag= filter, normalized #hashtags
 
 -- Planilhas: reusable multi-week plans.
 CREATE TABLE training_plans (

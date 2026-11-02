@@ -38,6 +38,11 @@ Screen IDs (A*, M*, W*, O*, C*) refer to `docs/build-plan.md`.
 
 Blocks can carry `note`. The quick-text parser (frontend) produces this structure; Garmin/FIT export maps from it.
 
+## Tags (workout hashtags)
+
+Templates carry `tags: text[]`, shown as `#tag`. Every implementation normalizes on write, so stored tags are always clean:
+strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letters (accents included), digits, `-` and `_`, collapse repeated `-`, trim `-`, cut at 30 chars; drop empties and duplicates (order kept). **At most 8** per template (`422`, field `tags`, "Use até 8 tags."). Quick text and import lines may carry `#tags` anywhere; the apps pull them out before parsing steps.
+
 ## Endpoints
 
 ### Auth and account
@@ -109,7 +114,7 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 ### Workouts, library, planilhas
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
-| GET / POST | `/clubs/{club_id}/templates?sport&q` | Library | W6, W5 |
+| GET / POST | `/clubs/{club_id}/templates?sport&q&tag` | Library. `q` matches name or tag (`#limiar` matches tags only); `tag` filters by one exact tag. Body `tags` is normalized (§ Tags); more than 8 → `422` | W6, W5 |
 | GET / PATCH / DELETE | `/clubs/{club_id}/templates/{id}` | Template CRUD (delete = archive) | W5, W6 |
 | GET | `/clubs/{club_id}/planned-workouts?from&to&athlete_id&group_id` | Calendar data: rows + `completion` + `comments_count` + `unread_count` (for the caller) | W4, W3 |
 | POST | `/clubs/{club_id}/planned-workouts` `{athlete_ids \| group_id, dates[], template_id? \| {sport,title,structure,notes}}` | Assign (bulk) | W4, W5, A5 |

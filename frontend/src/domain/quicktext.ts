@@ -4,12 +4,15 @@
  *   "15' Z2 + 3x(2km Z4 + 3' Z1) + 10' Z1"
  *   swim: "400 livre + 8x50 educativo + 10x100 crawl @1:45 palmar + 200 costas"
  *   strength (one exercise per line): "Agachamento 4x8 70% desc 90\""
+ *   hashtags anywhere tag the workout: "... + 10' desaq #intervalado #pista"
  * Deterministic and forgiving: unknown bits become warnings, never exceptions.
  */
 import type { Sport } from "@/api/types";
+import { cleanTags, extractTags } from "./tags";
 import type { Block, Duration, Equipment, Exercise, Intent, Load, Repeat, Step, Stroke, Structure, Target, ZoneN } from "./workout";
 
-export interface ParseResult { structure: Structure; warnings: string[] }
+/** `tags`: "#hashtags" found anywhere in the text (they never become steps). */
+export interface ParseResult { structure: Structure; warnings: string[]; tags: string[] }
 
 const STROKES: [RegExp, Stroke][] = [
   [/\b(crawl|livre)\b/, "free"], [/\bcostas\b/, "back"], [/\bpeito\b/, "breast"], [/\bborboleta\b/, "fly"],
@@ -145,16 +148,19 @@ function parseExercise(line: string, warnings: string[]): Exercise | null {
   return ex;
 }
 
-export function parseQuickText(input: string, sport: Sport): ParseResult {
+export function parseQuickText(raw: string, sport: Sport): ParseResult {
   const warnings: string[] = [];
-  const text = normalize(input.replace(/\r/g, ""));
-  if (!text) return { structure: { v: 1, blocks: [] }, warnings };
+  const tags: string[] = [];
+  const input = raw.replace(/\r/g, "").split("\n").map((l) => { const x = extractTags(l); tags.push(...x.tags); return x.text; }).join("\n");
+  const text = normalize(input);
+  const uniq = cleanTags(tags);
+  if (!text) return { structure: { v: 1, blocks: [] }, warnings, tags: uniq };
   if (sport === "strength") {
     const blocks = input.split(/\n|;/).map((l) => normalize(l)).filter(Boolean).map((l) => parseExercise(l, warnings)).filter(Boolean) as Block[];
-    return { structure: { v: 1, blocks }, warnings };
+    return { structure: { v: 1, blocks }, warnings, tags: uniq };
   }
-  const blocks = splitTop(input.replace(/\r/g, "").split("\n").map(normalize).join("\n")).map((seg) => parseSegment(seg, sport, warnings)).filter(Boolean) as Block[];
-  return { structure: { v: 1, blocks }, warnings };
+  const blocks = splitTop(input.split("\n").map(normalize).join("\n")).map((seg) => parseSegment(seg, sport, warnings)).filter(Boolean) as Block[];
+  return { structure: { v: 1, blocks }, warnings, tags: uniq };
 }
 
 // ---------------------------------------------------------------- structure → text

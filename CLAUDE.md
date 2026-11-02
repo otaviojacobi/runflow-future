@@ -33,8 +33,8 @@ docs/       build-plan.md: every screen, in order, with status
 design/     tokens, club-theme engine, foundations page   (node design/serve.mjs → :8081)
 api/        contract: schema.sql, endpoints.md, mock/     (mock API → :8787)
 frontend/   React · TypeScript · Vite SPA                 (web app → :8080, always running)
-mobile/     Expo · React Native · TypeScript              (Phase 2)
-backend/    Rust · axum · sqlx · PostgreSQL               (Phase 3)
+mobile/     Expo · React Native · TypeScript              (Phase 3)
+backend/    Rust · axum · sqlx · PostgreSQL               (Phase 2, D-025)
 ops/        Pi deployment, backups                        (S8)
 ```
 

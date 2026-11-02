@@ -30,6 +30,12 @@ describe("quick text: running", () => {
     expect((structure.blocks[1] as Repeat).count).toBe(6);
     expect(warnings).toEqual(["blablabla"]);
   });
+  it("takes #hashtags as tags, not steps", () => {
+    const { structure, warnings, tags } = parseQuickText("15' aquec + 6x1km @4:30 c/ 2' trote #Intervalado + 10' desaq #pista", "run");
+    expect(warnings).toEqual([]);
+    expect(structure.blocks).toHaveLength(3);
+    expect(tags).toEqual(["intervalado", "pista"]);
+  });
   it("round-trips through text", () => {
     const text = "10' aquec Z2 + 6x1km @4:30 c/ 2' trote + 10' desaq Z1";
     const { structure } = parseQuickText(text, "run");

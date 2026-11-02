@@ -7,6 +7,7 @@ import type { Sport, WorkoutTemplate } from "@/api/types";
 import { SPORT_LABEL, SportChip } from "@/components/sport";
 import { IntensityProfile } from "@/components/workout";
 import { ImportWorkoutsDialog } from "@/components/ImportDialogs";
+import { tagNeedle } from "@/domain/tags";
 import { t, tn } from "@/i18n";
 import { useClub } from "@/lib/club";
 import { ago, distance, duration } from "@/lib/format";
@@ -18,15 +19,18 @@ export function LibraryScreen() {
   const [q, setQ] = useState("");
   const [importing, setImporting] = useState(false);
   const [sport, setSport] = useState<Sport | "">("");
+  const [tag, setTag] = useState("");
   const all = useTemplates(club?.id);
   const save = useSaveTemplate(club?.id ?? "");
   const archive = useArchiveTemplate(club?.id ?? "");
   const [toArchive, setToArchive] = useState<WorkoutTemplate | null>(null);
   const sports = useMemo(() => [...new Set((all.data ?? []).map((w) => w.sport))], [all.data]);
+  const topTags = useMemo(() => { const n = new Map<string, number>(); for (const w of all.data ?? []) if (!sport || w.sport === sport) for (const x of w.tags) n.set(x, (n.get(x) ?? 0) + 1); return [...n].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 10).map(([x]) => x); }, [all.data, sport]);
   const items = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return (all.data ?? []).filter((w) => (!sport || w.sport === sport) && (!needle || w.name.toLowerCase().includes(needle) || w.tags.some((x) => x.includes(needle))));
-  }, [all.data, q, sport]);
+    const needle = q.trim().toLowerCase(), tn_ = tagNeedle(q), hash = q.trim().startsWith("#");
+    return (all.data ?? []).filter((w) => (!sport || w.sport === sport) && (!tag || w.tags.includes(tag)) &&
+      (!needle || (!hash && w.name.toLowerCase().includes(needle)) || w.tags.some((x) => x.includes(tn_))));
+  }, [all.data, q, sport, tag]);
   if (!club) return null;
 
   const duplicate = (w: WorkoutTemplate) =>
@@ -51,11 +55,19 @@ export function LibraryScreen() {
           ))}
         </div>
       </div>
+      {topTags.length > 0 && (
+        <div className="-mt-3 flex flex-wrap items-center gap-1.5" role="group" aria-label={t("Filtrar por tag")}>
+          {(tag && !topTags.includes(tag) ? [tag, ...topTags] : topTags).map((x) => (
+            <button key={x} onClick={() => setTag(tag === x ? "" : x)} aria-pressed={tag === x}
+              className={cn("h-7 rounded-full px-2.5 text-[13px] font-semibold transition-colors", tag === x ? "bg-brand-soft text-on-brand-soft" : "text-fg-muted hover:bg-soft hover:text-fg")}>#{x}</button>
+          ))}
+        </div>
+      )}
       {all.isPending ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-40" />)}</div>
       ) : items.length === 0 ? (
-        <Card><EmptyState icon={<LibraryIcon />} title={q || sport ? t("Nada encontrado") : t("Sua biblioteca está vazia")} action={!q && !sport && <ButtonLink to="/library/new" icon={<Plus />}>{t("Criar o primeiro treino")}</ButtonLink>}>
-          {q || sport ? t("Tente outra busca ou modalidade.") : t("Monte treinos uma vez e reaproveite para todos os alunos.")}
+        <Card><EmptyState icon={<LibraryIcon />} title={q || sport || tag ? t("Nada encontrado") : t("Sua biblioteca está vazia")} action={!q && !sport && !tag && <ButtonLink to="/library/new" icon={<Plus />}>{t("Criar o primeiro treino")}</ButtonLink>}>
+          {q || sport || tag ? t("Tente outra busca, modalidade ou tag.") : t("Monte treinos uma vez e reaproveite para todos os alunos.")}
         </EmptyState></Card>
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

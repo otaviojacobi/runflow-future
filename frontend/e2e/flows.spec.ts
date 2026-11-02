@@ -50,3 +50,22 @@ test("assistant turns a description into a workout", async ({ page }) => {
   await page.getByRole("button", { name: "Montar treino" }).click();
   await expect(page.getByLabel("Nome do treino")).toHaveValue("Intervalado 5×1 km");
 });
+
+test("hashtags: typed in quick text, saved, and used to filter the library", async ({ page }) => {
+  await signIn(page, OWNER);
+  await page.goto("/library/new");
+  const name = `Tiros E2E ${Date.now()}`;
+  await page.getByLabel("Nome do treino").fill(name);
+  await page.getByLabel("Escrita rápida").fill("10' aquec + 8x400m @3:50 c/ 1' trote + 10' desaq #Tiros-Curtos ");
+  await expect(page.getByRole("button", { name: "Remover #tiros-curtos" })).toBeVisible();
+  await page.getByLabel("Tags").fill("pista ");
+  await page.getByRole("button", { name: "Salvar na biblioteca" }).click();
+  await expect(page.getByText("Treino salvo na biblioteca")).toBeVisible();
+  await page.goto("/library");
+  await page.getByLabel("Buscar treino").fill("#tiros-curtos");
+  await expect(page.getByText(name)).toBeVisible();
+  await expect(page.getByRole("listitem")).toHaveCount(1);
+  await page.getByLabel("Buscar treino").fill("");
+  await page.getByRole("group", { name: "Filtrar por tag" }).getByRole("button", { name: "#pista" }).click();
+  await expect(page.getByText(name)).toBeVisible();
+});

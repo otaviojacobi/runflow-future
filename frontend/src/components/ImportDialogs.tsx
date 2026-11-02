@@ -6,6 +6,7 @@ import { useGroups } from "@/api/members";
 import type { Club, Sport } from "@/api/types";
 import { estimate } from "@/domain/workout";
 import { parseQuickText } from "@/domain/quicktext";
+import { cleanTags } from "@/domain/tags";
 import { t, tn } from "@/i18n";
 import { api } from "@/lib/api";
 import { parseCsv } from "@/lib/csv";
@@ -84,7 +85,7 @@ function StudentsBody({ club, onClose }: { club: Club; onClose: () => void }) {
 }
 
 export function ImportWorkoutsDialog({ club, open, onOpenChange }: { club: Club; open: boolean; onOpenChange: (v: boolean) => void }) {
-  return <Dialog open={open} onOpenChange={onOpenChange} size="lg" title={t("Importar treinos")} description={t("Um treino por linha: nome, dois-pontos e o treino em escrita rápida. Ótimo para trazer a planilha que você já tem.")}>{open && <WorkoutsBody club={club} onClose={() => onOpenChange(false)} />}</Dialog>;
+  return <Dialog open={open} onOpenChange={onOpenChange} size="lg" title={t("Importar treinos")} description={t("Um treino por linha: nome, dois-pontos e o treino em escrita rápida. Use #tags para organizar. Ótimo para trazer a planilha que você já tem.")}>{open && <WorkoutsBody club={club} onClose={() => onOpenChange(false)} />}</Dialog>;
 }
 function WorkoutsBody({ club, onClose }: { club: Club; onClose: () => void }) {
   const save = useSaveTemplate(club.id);
@@ -96,13 +97,13 @@ function WorkoutsBody({ club, onClose }: { club: Club; onClose: () => void }) {
     const name = i > 0 ? line.slice(0, i).trim() : "";
     const body = i > 0 ? line.slice(i + 1).trim() : line;
     const r = parseQuickText(body, sport);
-    return { line, name: name || body.slice(0, 40), structure: r.structure, ok: r.structure.blocks.length > 0 && !r.warnings.length, warnings: r.warnings };
+    return { line, name: name || body.replace(/#\S+/g, "").trim().slice(0, 40), structure: r.structure, tags: r.tags, ok: r.structure.blocks.length > 0 && !r.warnings.length, warnings: r.warnings };
   }), [text, sport]);
   const good = items.filter((x) => x.ok);
   const go = async () => {
     setBusy(true);
     try {
-      for (const it of good) { const est = estimate(it.structure, sport); await save.mutateAsync({ data: { name: it.name, sport, structure: it.structure, description: null, est_duration_s: est.duration_s || null, est_distance_m: est.distance_m, tags: ["importado"] } }); }
+      for (const it of good) { const est = estimate(it.structure, sport); await save.mutateAsync({ data: { name: it.name, sport, structure: it.structure, description: null, est_duration_s: est.duration_s || null, est_distance_m: est.distance_m, tags: cleanTags(["importado", ...it.tags]) } }); }
       toast.success(tn(good.length, "{n} treino importado", "{n} treinos importados"), t("Estão na biblioteca com a etiqueta “importado”."));
       onClose();
     } catch (e) { toast.error(e); } finally { setBusy(false); }
@@ -111,10 +112,10 @@ function WorkoutsBody({ club, onClose }: { club: Club; onClose: () => void }) {
     <div className="grid gap-4">
       <Select aria-label={t("Modalidade")} value={sport} onChange={(e) => setSport(e.target.value as Sport)} className="w-48">{SPORTS.map((s) => <option key={s} value={s}>{t(SPORT_LABEL[s])}</option>)}</Select>
       <Textarea aria-label={t("Treinos em escrita rápida")} rows={6} value={text} onChange={(e) => setText(e.target.value)} className="font-mono text-sm"
-        placeholder={"Tiros 6x1km: 15' aquec + 6x1km @4:30 c/ 2' trote + 10' desaq\nRegenerativo: 40' Z1\nLongão: 1h40 Z2"} />
+        placeholder={"Tiros 6x1km: 15' aquec + 6x1km @4:30 c/ 2' trote + 10' desaq #intervalado\nRegenerativo: 40' Z1 #leve\nLongão: 1h40 Z2 #longão"} />
       {items.length > 0 && (
         <ul className="grid max-h-56 gap-1 overflow-auto text-sm">
-          {items.map((x, i) => <li key={i} className="flex items-start gap-2">{x.ok ? <CircleCheck className="mt-0.5 size-4 shrink-0 text-success-text" /> : <CircleAlert className="mt-0.5 size-4 shrink-0 text-warning-text" />}<span><b>{x.name}</b>{!x.ok && <span className="text-fg-muted"> · {x.warnings[0] ?? t("não entendi esta linha")}</span>}</span></li>)}
+          {items.map((x, i) => <li key={i} className="flex items-start gap-2">{x.ok ? <CircleCheck className="mt-0.5 size-4 shrink-0 text-success-text" /> : <CircleAlert className="mt-0.5 size-4 shrink-0 text-warning-text" />}<span><b>{x.name}</b>{x.tags.length > 0 && <span className="text-fg-muted"> {x.tags.map((g) => `#${g}`).join(" ")}</span>}{!x.ok && <span className="text-fg-muted"> · {x.warnings[0] ?? t("não entendi esta linha")}</span>}</span></li>)}
         </ul>
       )}
       <div className="flex justify-end gap-2"><Button variant="ghost" onClick={onClose}>{t("Cancelar")}</Button><Button disabled={!good.length} loading={busy} onClick={go}>{good.length ? tn(good.length, "Importar {n} treino", "Importar {n} treinos") : t("Importar")}</Button></div>
