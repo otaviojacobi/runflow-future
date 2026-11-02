@@ -62,9 +62,10 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | POST | `/me/connections/strava/start` | → `{authorize_url}` (mock: in-app fake consent page) | A4, C1 |
 | POST | `/me/connections/strava/callback` `{code}` | Finish OAuth; mock imports sample activities | A4, C1 |
 | DELETE | `/me/connections/{provider}` | Disconnect and delete that provider's data (§5) | C1 |
-| GET | `/me/activities?from&to&cursor` | My activities | M4 |
-| GET | `/me/activities/{id}` | Activity detail with laps | M4 |
-| POST | `/me/activities` | Log a manual activity | M4 |
+| GET | `/me/activities?from&to&cursor` | My activities, newest first; each has `matched_workout` (id, title, date, compliance) or null | M4 |
+| GET | `/me/activities/{id}` | Activity detail with laps + `matched_workout` | M4 |
+| POST | `/me/activities` `{sport, name, started_at, duration_s, distance_m?, avg_hr?}` | Log a manual activity | M4 |
+| DELETE | `/me/activities/{id}` | Remove a manual activity (synced ones are removed at the source) | M4 |
 
 ### Clubs, branding, invites, members
 | Method | Path | Purpose | Screens |
@@ -90,10 +91,10 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 |---|---|---|---|
 | GET | `/clubs/{club_id}/dashboard?date` | `{date, students, today: {planned, done, items}, week: {planned, done, compliance_pct, duration_s, distance_m}, compliance_trend[8], feedback[], alerts[] (missed_streak, high_rpe, no_sync, birthday, new_member, plan_limit; pt-BR text + link), upcoming_classes[], onboarding{logo, colors, students, workouts, groups, strava}, subscription}` | W1 |
 | GET | `/clubs/{club_id}/athletes?q&group_id` | `{membership, user, group_ids, goal, level, compliance_pct (28 d, partial = ½), week: {planned, done}, last_activity_at (only with consent), strava: none\|private\|shared, shares_data}` | W2, W4 |
-| GET | `/clubs/{club_id}/athletes/{membership_id}` | Profile, zones, stats, recent workouts | W3 |
+| GET | `/clubs/{club_id}/athletes/{membership_id}` | Summary + `profile` (with trainer notes), latest `zones` (pace, hr), `consents {training_data, strava}`, `weekly[12] {week_start, planned_s, done_s, distance_m, sessions}`, `recent_activities` (consent-aware), `groups` | W3 |
 | PUT | `/clubs/{club_id}/athletes/{membership_id}/profile` | Goal, level, physiology, trainer notes | W3 |
 | GET / PUT | `/clubs/{club_id}/my/profile` | Student's own profile: goal, goal_date, level, weekly_sessions, recent_race, HR (a race result estimates the threshold pace) | A4, M7 |
-| PUT | `/clubs/{club_id}/athletes/{membership_id}/zones` `{kind, source, bounds}` | Set zones | W3, M7 |
+| PUT | `/clubs/{club_id}/athletes/{membership_id}/zones` `{kind: pace, threshold_pace_s_per_km \| race{distance_m,time_s}}` or `{kind: hr, max_hr}` | Recalculate zones (5 zones; race → threshold via Riegel) | W3, M7 |
 | GET | `/clubs/{club_id}/athletes/{membership_id}/activities` | Activities shared by consent | W3 |
 
 ### Workouts, library, planilhas

@@ -141,7 +141,7 @@ export function AppShell() {
         <Bell_ unread={me.unread_notifications} />
       </header>
 
-      <main id="conteudo" className="min-w-0 px-4 pb-28 pt-5 sm:px-6 lg:px-10 lg:pb-12 lg:pt-8">
+      <main id="conteudo" className="min-w-0 overflow-x-clip px-4 pb-28 pt-5 sm:px-6 lg:px-10 lg:pb-12 lg:pt-8">
         <Outlet />
       </main>
 

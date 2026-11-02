@@ -112,3 +112,12 @@ export interface Dashboard {
   onboarding: { logo: boolean; colors: boolean; students: boolean; workouts: boolean; groups: boolean; strava: boolean };
   subscription: Subscription;
 }
+
+export interface MatchedWorkout { id: ID; title: string; date: ISODate; club_id: ID; compliance_pct: number | null; est_distance_m: number | null; est_duration_s: number | null }
+export interface ActivityItem extends Activity { matched_workout: MatchedWorkout | null }
+export interface Zone { id: ID; membership_id: ID; kind: "hr" | "pace" | "swim_pace" | "power"; source: "test" | "race" | "manual" | "estimated"; bounds: { zone: number; min: number; max: number }[]; valid_from: ISODate; created_at: ISOTime }
+export interface AthleteDetail extends AthleteSummary {
+  profile: AthleteProfile; zones: Zone[]; consents: { training_data: boolean; strava: boolean };
+  weekly: { week_start: ISODate; current: boolean; planned_s: number; done_s: number; distance_m: number; sessions: number }[];
+  recent_activities: ActivityItem[]; groups: { id: ID; name: string }[];
+}
