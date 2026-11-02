@@ -18,7 +18,13 @@ export function applyClubTheme(css: string | null) {
     document.head.appendChild(el);
   }
   if (el.textContent !== (css ?? "")) el.textContent = css ?? "";
+  promoteClubTheme();
   storage.set(THEME, css);
+}
+/** Keep <style id="club-theme"> as the LAST stylesheet so it overrides the token defaults (same specificity). */
+export function promoteClubTheme() {
+  const el = document.getElementById("club-theme");
+  if (el && el !== document.head.lastElementChild) document.head.appendChild(el);
 }
 export function getColorMode(): ColorMode {
   const m = storage.get(MODE);

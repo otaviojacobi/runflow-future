@@ -109,9 +109,10 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | PUT | `/clubs/{club_id}/plans/{id}/items` `{items}` | Replace the plan grid | W7 |
 | POST | `/clubs/{club_id}/plans/{id}/assign` `{athlete_ids, start_date}` | Apply → creates planned_workouts | W7 |
 | GET | `/clubs/{club_id}/my/workouts?from&to` | Student calendar (own) | M1, M3 |
-| GET | `/clubs/{club_id}/my/workouts/{id}` | Detail with personal targets resolved from zones | M2 |
-| PUT | `/clubs/{club_id}/my/workouts/{id}/completion` `{status, rpe, feeling, comment, activity_id?}` | Feedback | M5 |
-| GET / POST | `/clubs/{club_id}/planned-workouts/{id}/comments` | Thread (student ⇄ trainer); GET marks as read | M2, W8 |
+| GET | `/clubs/{club_id}/my/workouts/{id}` | Detail: zone targets get `resolved` ranges from the student's zones (`{min_s,max_s}` or `{min,max}` bpm); `activity`, `candidate_activities` (±1 day), `coach` | M2 |
+| GET | `/clubs/{club_id}/my/summary` | Today: `{shares_data, streak_weeks, week: {planned, done, duration_s, distance_m}, last_activity, next_class}` | M1 |
+| PUT | `/clubs/{club_id}/my/workouts/{id}/completion` `{status, rpe, feeling, comment, activity_id?}` | Feedback. Without `activity_id`, a same-day activity of the same sport is matched; compliance = actual ÷ planned distance (or time); the trainer is notified | M5 |
+| GET / POST | `/clubs/{club_id}/planned-workouts/{id}/comments` | Thread (student ⇄ trainers); items carry `author {membership_id, role, user}`; GET marks as read; POST notifies the other side | M2, W8 |
 | GET | `/clubs/{club_id}/feedback?filter=unread\|all\|flagged` | Trainer inbox (completions + comments) | W8 |
 
 ### Scheduling (aulas)

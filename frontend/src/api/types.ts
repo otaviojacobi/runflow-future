@@ -91,3 +91,11 @@ export interface Activity {
   laps: { distance_m: number; duration_s: number; avg_hr: number | null; avg_pace_s_per_km?: number }[] | null; polyline: string | null; created_at: ISOTime;
 }
 export interface PlannedWorkoutDetail extends PlannedWorkout { athlete: { membership_id: ID; user: User }; activity: Activity | null }
+
+export interface Comment { id: ID; planned_workout_id: ID; author_membership_id: ID; body: string; created_at: ISOTime; edited_at: ISOTime | null; author: { membership_id: ID; role: Role; user: User } }
+export interface MyWorkoutDetail extends PlannedWorkout { activity: Activity | null; candidate_activities: Activity[]; coach: User | null }
+export interface MySummary {
+  shares_data: boolean; streak_weeks: number; week: { planned: number; done: number; duration_s: number; distance_m: number };
+  last_activity: Activity | null;
+  next_class: { booking: { id: ID; status: string; waitlist_position: number | null }; session: { id: ID; starts_at: ISOTime; ends_at: ISOTime }; class_type: { name: string; sport: Sport }; location: { name: string } | null } | null;
+}

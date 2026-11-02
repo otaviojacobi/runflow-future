@@ -7,7 +7,7 @@ export type ZoneN = 1 | 2 | 3 | 4 | 5;
 export type Duration = { type: "time"; s: number } | { type: "distance"; m: number } | { type: "open" };
 export type Target =
   | { type: "open" }
-  | { type: "zone"; metric: "hr" | "pace" | "power"; zone: ZoneN }
+  | { type: "zone"; metric: "hr" | "pace" | "power"; zone: ZoneN; resolved?: { min_s?: number; max_s?: number; min?: number; max?: number } }
   | { type: "pace"; min_s: number; max_s: number }
   | { type: "hr"; min: number; max: number }
   | { type: "power"; min: number; max: number }
@@ -95,7 +95,13 @@ export function durationText(d: Duration, sport: Sport): string {
 export function targetText(tg: Target, sport: Sport): string | null {
   switch (tg.type) {
     case "open": return null;
-    case "zone": return `Z${tg.zone}${tg.metric === "hr" ? " " + t("FC") : tg.metric === "power" ? " " + t("potência") : ""}`;
+    case "zone": {
+      const base = `Z${tg.zone}${tg.metric === "hr" ? " " + t("FC") : tg.metric === "power" ? " " + t("potência") : ""}`;
+      const r = tg.resolved;
+      if (r?.min_s && r.max_s) return `${base} · ${fmtPace(r.min_s)}–${fmtPace(r.max_s)} ${sport === "swim" ? "/100 m" : "/km"}`;
+      if (r?.min && r.max) return `${base} · ${r.min}–${r.max} bpm`;
+      return base;
+    }
     case "pace": return `${fmtPace(tg.min_s)}–${fmtPace(tg.max_s)} ${sport === "swim" ? "/100 m" : "/km"}`;
     case "hr": return `${tg.min}–${tg.max} bpm`;
     case "power": return `${tg.min}–${tg.max} W`;

@@ -99,9 +99,9 @@ const ownerRoutes = [
   r(O, "/club/billing", todo("Plano e cobrança", "F17")),
 ];
 const studentRoutes = [
-  r(St, "/today", todo("Hoje", "F10")),
-  r(St, "/schedule", todo("Agenda", "F10")),
-  r(St, "/workouts/$id", todo("Treino", "F10")),
+  r(St, "/today", lazyRouteComponent(() => import("./screens/student/Today"), "TodayScreen")),
+  r(St, "/schedule", lazyRouteComponent(() => import("./screens/student/Schedule"), "ScheduleScreen")),
+  r(St, "/workouts/$id", lazyRouteComponent(() => import("./screens/student/Workout"), "WorkoutScreen")),
   r(St, "/activities", todo("Atividades", "F11")),
   r(St, "/activities/$id", todo("Atividade", "F11")),
   r(St, "/classes", todo("Aulas", "F15")),

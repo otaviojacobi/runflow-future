@@ -7,7 +7,10 @@
     <meta name="theme-color" content="#0A0C11" media="(prefers-color-scheme: dark)" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Runflow</title>
-    <!-- §7.8: apply the cached club theme and color mode BEFORE first paint (no flash of Runflow colors). -->
+  </head>
+  <body>
+    <!-- §7.8: apply the cached club theme and color mode BEFORE first paint (no flash of Runflow colors).
+         It runs at the start of <body>, after the stylesheets in <head>, and appends the club theme LAST so it wins. -->
     <script>
       try {
         var css = localStorage.getItem("rf.theme");
@@ -16,8 +19,6 @@
         if (mode === "dark" || mode === "light") document.documentElement.setAttribute("data-theme", mode);
       } catch (e) {}
     </script>
-  </head>
-  <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

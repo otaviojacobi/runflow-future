@@ -7,6 +7,10 @@ import "@runflow/design/tokens.css";
 import "./styles.css";
 import { queryClient } from "./queryClient";
 import { router } from "./router";
+import { promoteClubTheme } from "./lib/theme";
+
+// Dev injects CSS at runtime; make sure the cached club theme still comes last (§7.8).
+promoteClubTheme();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
