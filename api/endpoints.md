@@ -75,7 +75,7 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 ### Clubs, branding, invites, members
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
-| POST | `/clubs` `{name, city, state, modalities}` | Create club → `{club, membership, branding, subscription}`. Caller becomes owner (free plan); a student invite link and a starter library for the chosen modalities are created | A5 |
+| POST | `/clubs` `{name, city, state, modalities}` | Create club → `{club, membership, branding, subscription}`. Caller becomes owner (free plan); a starter library for the chosen modalities are created | A5 |
 | GET / PATCH | `/clubs/{club_id}` | Club settings (name, city, timezone, modalities, trainer_label, subdomain) | O3 |
 | DELETE | `/clubs/{club_id}` `{confirm_name}` | Close the club (owner): soft delete, subscription canceled, invites revoked, subdomain released. Members lose access; their own activities stay in their accounts | O3 |
 | GET | `/clubs/{club_id}/branding` | `{primary_color, secondary_color, logo_url, theme_rev, theme}` | O1 |
@@ -83,11 +83,13 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | POST | `/clubs/{club_id}/assets` (multipart or `{data_url, kind, width, height}`) | Upload a logo (≤ 5 MB; PNG, JPG, WebP, SVG) → `{id, url}` | A5, O1 |
 | GET | `/assets/{id}` | The image (immutable, cache forever) | all |
 | GET | `/public/clubs/{slug}` | Public name + theme (subdomain, invite pages) | A3 |
-| GET | `/public/invites/{token}` | `{club, branding, role, valid, reason, invited_by, members, already_member}` (reason: `expired` `revoked` `used_up` `club_full`) | A3 |
-| POST | `/invites/{token}/accept` | Join the club → membership | A3 |
-| GET / POST | `/clubs/{club_id}/invites` | List / create invite links (role, max_uses, expires_at); each has `url` | A5, O2 |
-| POST | `/clubs/{club_id}/invites/bulk` `{rows: [{name?, email, groups?}]}` | CSV import (≤ 500 rows): one personal invite per e-mail (1 use, 30 days; the backend e-mails the link), joining the named groups on accept → `{created, items[] (with url), skipped[] {row, email, reason: invalid_email \| duplicate \| already_member \| already_invited}, over_limit}` | O2 |
-| DELETE | `/clubs/{club_id}/invites/{id}` | Revoke | O2 |
+| GET | `/public/invites/{token}` | Branded invite page data: `{club, branding, role, valid, reason, invited_by, name, email_hint (masked), expires_at, members, already_member, email_matches}` (reason: `expired` `revoked` `accepted` `club_full`; `email_matches` is null when signed out). Unknown or rotated token → 404 | A3 |
+| POST | `/invites/{token}/accept` | Join the club. Only the account whose e-mail is the invited one: otherwise `403 invite.email_mismatch`. Single use (`accepted_at`); joins the invite's groups | A3 |
+| GET / POST | `/clubs/{club_id}/invites` `{email, role, name?, group_ids?}` | **Personal invites only (D-023).** POST creates one invite for one e-mail (trainer invites: owner only), valid **7 days**, and e-mails the link (mock: `/mock/outbox`). `409 invite.exists` (open invite for that e-mail: use resend) or `invite.already_member`. GET lists them with `status: pending \| expired \| accepted` and `url` | A5, O2 |
+| POST | `/clubs/{club_id}/invites/{id}/resend` | Send again: new token (the old link stops working), another 7 days | O2 |
+| POST | `/clubs/{club_id}/invites/bulk` `{rows: [{name?, email, groups?}]}` | CSV import (≤ 500 rows): one personal invite per e-mail (same rules as POST; an open invite is resent), joining the named groups on accept → `{created, items[] (with url, resent), skipped[] {row, email, reason: invalid_email \| duplicate \| already_member}, over_limit}` | O2 |
+| DELETE | `/clubs/{club_id}/invites/{id}` | Cancel (the link stops working) | O2 |
+| GET | `/mock/outbox?to` | **Mock only**: e-mails the backend would send (subject, text, action link), newest first | — |
 | GET | `/clubs/{club_id}/members?role&q&status` | `{membership, user, group_ids}` (role may be a list: `trainer,owner`) | O2 |
 | PATCH / DELETE | `/clubs/{club_id}/members/{membership_id}` | Change role or status / remove | O2 |
 | GET / POST | `/clubs/{club_id}/groups` · PATCH / DELETE `/groups/{id}` · PUT `/groups/{id}/members` `{membership_ids}` | Groups | W2 |

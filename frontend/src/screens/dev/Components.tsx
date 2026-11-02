@@ -117,7 +117,7 @@ export function ComponentsScreen() {
           <Tabs.Content value="act" className="text-fg-muted">{t("Conteúdo da aba Atividades.")}</Tabs.Content>
           <Tabs.Content value="zones" className="text-fg-muted">{t("Conteúdo da aba Zonas.")}</Tabs.Content>
         </Tabs.Root>
-        <Card><EmptyState icon={<Users />} title={t("Nenhum aluno ainda")} action={<Button icon={<Plus />}>{t("Convidar alunos")}</Button>}>{t("Compartilhe o link de convite no WhatsApp e os alunos aparecem aqui.")}</EmptyState></Card>
+        <Card><EmptyState icon={<Users />} title={t("Nenhum aluno ainda")} action={<Button icon={<Plus />}>{t("Convidar alunos")}</Button>}>{t("Convide os alunos por e-mail e eles aparecem aqui.")}</EmptyState></Card>
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" onClick={() => setOpen(true)}>{t("Abrir diálogo")}</Button>
           <Button variant="secondary" onClick={() => toast.success(t("Treino salvo"), t("Os alunos já podem ver."))}>{t("Toast de sucesso")}</Button>

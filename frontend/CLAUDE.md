@@ -29,7 +29,7 @@ src/
 
 - **Text**: every visible string goes through `t("texto em pt-BR")` / `tn(n, one, other)`. The pt-BR text is the key. Never hardcode visible text without `t()`.
 - **Styling**: Tailwind utilities from the token mapping only (see the header of `src/styles.css`): `bg-surface`, `text-fg-muted`, `border-line`, `bg-brand text-on-brand`, `bg-run-soft text-on-run-soft`, `bg-z4`… Text styles: `rf-text-*` classes. No hex, no default Tailwind palette (it is removed).
-- **Club theme**: `brand` = the club's primary color, `accent` = its secondary. Never use them for data meaning (status, zones, sports have their own tokens).
+- **Club theme**: `brand` = the club's primary color, `accent` = its secondary. Never use them for data meaning (status, zones, sports have their own tokens). Public pages (landing, login, invite, club picker/creation, dev) always use Runflow's brand (D-024): add new public paths to `RUNFLOW_BRANDED` in `src/lib/theme.ts` **and** the inline script in `index.html`. Previews of a club's colors use scoped `themeVars`, never `applyClubTheme`.
 - **Data**: screens use hooks from `src/api/*`; only endpoints from `api/endpoints.md`. Errors are `ApiError` with pt-BR `title`/`detail`: show them as they are.
 - **Formats**: always `lib/format.ts` (pace `4:30`, `10,4 km`, `ter, 3 nov`, 24 h).
 - **Accessibility**: real buttons and links, labels on inputs, visible focus, 44 px touch targets on mobile layouts. Accessible names must contain the visible text (prefer `sr-only` spans over `aria-label`), and anything `sr-only` needs a `relative` ancestor inside scroll areas. `npm run e2e` runs axe on the main screens.

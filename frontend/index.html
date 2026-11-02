@@ -13,12 +13,15 @@
     <title>Runflow</title>
   </head>
   <body>
-    <!-- §7.8: apply the cached club theme and color mode BEFORE first paint (no flash of Runflow colors).
+    <!-- §7.8: apply the cached club theme and color mode BEFORE first paint (no flash of Runflow colors in the app;
+         public pages always use Runflow's brand).
          It runs at the start of <body>, after the stylesheets in <head>, and appends the club theme LAST so it wins. -->
     <script>
       try {
         var css = localStorage.getItem("rf.theme");
-        if (css) { var s = document.createElement("style"); s.id = "club-theme"; s.textContent = css; document.head.appendChild(s); }
+        // Public pages stay in Runflow's brand (same pattern as RUNFLOW_BRANDED in src/lib/theme.ts).
+        var publicPage = /^\/(?:$|login\/?$|invite\/|dev\/|clubs(?:\/new)?\/?$|app\/?$)/.test(location.pathname);
+        if (css) { var s = document.createElement("style"); s.id = "club-theme"; s.media = publicPage ? "not all" : "all"; s.textContent = css; document.head.appendChild(s); }
         var mode = localStorage.getItem("rf.mode");
         if (mode === "dark" || mode === "light") document.documentElement.setAttribute("data-theme", mode);
       } catch (e) {}

@@ -1,4 +1,5 @@
-import { createRootRouteWithContext, createRoute, createRouter, lazyRouteComponent, Outlet, redirect } from "@tanstack/react-router";
+import { createRootRouteWithContext, createRoute, createRouter, lazyRouteComponent, Outlet, redirect, useRouterState } from "@tanstack/react-router";
+import { useEffect } from "react";
 import type { QueryClient } from "@tanstack/react-query";
 import { fetchMe, meKey } from "./api/me";
 import type { Role } from "./api/types";
@@ -6,6 +7,7 @@ import { AppShell } from "./components/shell/AppShell";
 import { setUnauthorizedHandler } from "./lib/api";
 import { activeMembership, homeFor } from "./lib/club";
 import { session } from "./lib/session";
+import { syncClubTheme } from "./lib/theme";
 import { queryClient } from "./queryClient";
 import { SignInScreen } from "./screens/auth/SignIn";
 import { ErrorScreen, NotFoundScreen } from "./screens/Fallbacks";
@@ -14,7 +16,13 @@ import { Toaster } from "./ui";
 /**
  * Route tree (code-based). Screen IDs and steps: docs/build-plan.md. Routes are English; all visible text is pt-BR.
  */
-const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: () => (<><Outlet /><Toaster /></>) });
+/** Club colors only inside the signed-in app; public pages keep Runflow's brand (lib/theme RUNFLOW_BRANDED). */
+function Root() {
+  const path = useRouterState({ select: (st) => st.location.pathname });
+  useEffect(() => { syncClubTheme(path); }, [path]);
+  return <><Outlet /><Toaster /></>;
+}
+const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: Root });
 const ensureMe = (qc: QueryClient) => qc.ensureQueryData({ queryKey: meKey, queryFn: fetchMe });
 const r = <P extends string>(parent: Parameters<typeof createRoute>[0]["getParentRoute"], path: P, component: unknown) =>
   createRoute({ getParentRoute: parent, path, component } as never);
@@ -37,6 +45,7 @@ const signIn = createRoute({
 const invite = createRoute({ getParentRoute: () => root, path: "/invite/$token", component: lazyRouteComponent(() => import("./screens/onboarding/Invite"), "InviteScreen") });
 const devComponents = createRoute({ getParentRoute: () => root, path: "/dev/components", component: lazyRouteComponent(() => import("./screens/dev/Components"), "ComponentsScreen") });
 const devStatus = createRoute({ getParentRoute: () => root, path: "/dev/status", component: lazyRouteComponent(() => import("./screens/dev/Status"), "StatusScreen") });
+const devOutbox = createRoute({ getParentRoute: () => root, path: "/dev/outbox", component: lazyRouteComponent(() => import("./screens/dev/Outbox"), "OutboxScreen") });
 const devPay = createRoute({ getParentRoute: () => root, path: "/dev/pay/$id", component: lazyRouteComponent(() => import("./screens/dev/PayMock"), "PayMockScreen") });
 const devStripe = createRoute({ getParentRoute: () => root, path: "/dev/stripe/$kind", component: lazyRouteComponent(() => import("./screens/dev/StripeMock"), "StripeMockScreen") });
 
@@ -113,7 +122,7 @@ const commonRoutes = [
 ];
 
 const routeTree = root.addChildren([
-  index, appHome, signIn, invite, devComponents, devStatus, devStripe, devPay,
+  index, appHome, signIn, invite, devComponents, devStatus, devStripe, devPay, devOutbox,
   authed.addChildren([
     clubs, createClub, welcome,
     shell.addChildren([staff.addChildren(staffRoutes), owner.addChildren(ownerRoutes), student.addChildren(studentRoutes), ...commonRoutes]),

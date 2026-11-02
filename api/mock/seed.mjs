@@ -222,10 +222,18 @@ export function generate(anchor) {
   group("forca", "Força e corrida", "Corrida + musculação.", ["bruno", "carla", "isabela"]);
 
   // ---- invitations
-  const inv = (key, clubRow, role, by, extra = {}) => t("invitations").push({ id: uuid("inv:" + key), club_id: clubRow.id, role, token: key, email: null, group_ids: [], created_by: by, max_uses: null, uses: 0, expires_at: null, revoked_at: null, created_at: createdLongAgo, ...extra });
-  inv("pf-alunos", PF, "student", M["paceforte:marcos"].id, { uses: 9 });
-  inv("pf-treinadores", PF, "trainer", M["paceforte:marcos"].id, { uses: 1, max_uses: 3 });
-  inv("mare-alunos", MARE, "student", M["equipemare:renata"].id, { uses: 6 });
+  // Personal invites (D-023): one per e-mail, 7 days, single use.
+  const inv = (key, clubRow, role, by, email, name, sentDaysAgo, extra = {}) => {
+    const sent = at(addDays(anchor, -sentDaysAgo), "10:00");
+    t("invitations").push({ id: uuid("inv:" + key), club_id: clubRow.id, role, email, name, token: uuid("invtoken:" + key).replace(/-/g, "").slice(0, 24), group_ids: [], created_by: by, expires_at: at(addDays(anchor, 7 - sentDaysAgo), "10:00"), sent_at: sent, send_count: 1, accepted_at: null, accepted_by: null, revoked_at: null, created_at: sent, ...extra });
+  };
+  const marcos = M["paceforte:marcos"].id;
+  inv("pf-joao", PF, "student", marcos, "joao.pereira@email.com", "João", 1, { group_ids: [uuid("group:iniciantes")] });
+  inv("pf-luiza", PF, "student", marcos, "luiza.campos@email.com", "Luiza", 6);
+  inv("pf-pedro", PF, "student", marcos, "pedro.alves@email.com", "Pedro", 12);
+  inv("pf-isabela", PF, "student", marcos, "isabela.freitas@email.com", "Isabela", 4, { accepted_at: at(addDays(anchor, -2), "19:12"), accepted_by: U.isabela.id });
+  inv("pf-rafael", PF, "trainer", marcos, "rafael.souza@email.com", "Rafael", 2);
+  inv("mare-camila", MARE, "student", M["equipemare:renata"].id, "camila.rocha@email.com", "Camila", 3);
 
   // ---- athlete profiles + zones
   for (const [k, , , , goal, level, thr, maxhr] of PF_STUDENTS) {

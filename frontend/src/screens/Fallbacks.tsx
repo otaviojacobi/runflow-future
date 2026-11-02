@@ -1,11 +1,12 @@
 /** 404 and unexpected-error pages (F20). Calm, pt-BR, with a way back. */
 import { Link, useRouter } from "@tanstack/react-router";
 import { Compass, RotateCcw, TriangleAlert } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RunflowWordmark } from "@/components/brand";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { session } from "@/lib/session";
+import { holdRunflowBrand } from "@/lib/theme";
 import { Button, buttonClass } from "@/ui";
 
 function Frame({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
@@ -22,6 +23,7 @@ function Frame({ icon, title, children }: { icon: React.ReactNode; title: string
 }
 
 export function NotFoundScreen() {
+  useEffect(() => holdRunflowBrand(), []);
   const home = session.isSignedIn() ? "/app" : "/";
   return (
     <Frame icon={<Compass className="size-8" />} title={t("Página não encontrada")}>

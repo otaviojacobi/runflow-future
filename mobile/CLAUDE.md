@@ -26,6 +26,7 @@ src/
 ## Rules
 
 - Same product rules as the web app: pt-BR text through `t()`, tokens only (`useTheme().theme`), contract-first API (`api/endpoints.md`), no AI attribution.
+- **Club colors only when signed in (D-024):** sign-in, invite and onboarding-before-joining screens use Runflow's theme; apply the cached club theme only inside the signed-in app.
 - **First frame is themed (§7.8):** the club colors are read synchronously from `storage` before render; the splash stays until the session token is loaded. Never fetch the theme before showing the first screen.
 - Platform splits use `.web.ts` files (the web preview only; the product is Android/iOS).
 - Native modules must exist in Expo Go until we move to development builds (X10: push, widgets, health data).

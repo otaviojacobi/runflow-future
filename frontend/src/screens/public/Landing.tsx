@@ -175,7 +175,7 @@ function Features() {
     { I: MessageSquare, title: "Feedback de cada treino", text: "Como o aluno se sentiu, esforço percebido e conversa direto no treino." },
     { I: CalendarClock, title: "Aulas e reservas", text: "Horários, vagas, lista de espera e check-in por QR code para academias e natação." },
     { I: Smartphone, title: "App do aluno rápido", text: "Abre em menos de 2 segundos e mostra o treino do dia mesmo sem internet." },
-    { I: Users, title: "Grupos e convites", text: "Convide pelo WhatsApp, organize turmas e acompanhe a aderência de cada aluno." },
+    { I: Users, title: "Grupos e convites", text: "Convites pessoais por e-mail, turmas organizadas e a aderência de cada aluno." },
     { I: ClipboardList, title: "Zonas por aluno", text: "Pace e frequência cardíaca calculados a partir de uma prova ou teste." },
     { I: Wallet, title: "Preço justo", text: "Grátis até 10 alunos. R$ 20 por mês até 100. Sem taxa de ativação." },
   ];
@@ -312,7 +312,7 @@ export function LandingScreen() {
         <section data-theme="dark" className="bg-canvas text-fg">
           <div className="mx-auto grid max-w-4xl justify-items-center gap-6 px-5 py-20 text-center">
             <h2 className="rf-text-display-md text-balance">{t("Seu clube no Runflow em 5 minutos.")}</h2>
-            <p className="max-w-xl text-lg text-fg-muted">{t("Crie o clube, coloque o logo, mande o link no grupo do WhatsApp. Pronto.")}</p>
+            <p className="max-w-xl text-lg text-fg-muted">{t("Crie o clube, coloque o logo, convide os alunos por e-mail. Pronto.")}</p>
             <div className="flex flex-wrap justify-center gap-3"><ButtonLink to="/login" size="lg" iconRight={<ArrowRight />}>{t("Criar meu clube grátis")}</ButtonLink><ButtonLink to="/login" size="lg" variant="secondary">{t("Já tenho conta")}</ButtonLink></div>
             <div className="flex flex-wrap justify-center gap-2 pt-2">{(["run", "swim", "strength", "bike", "mobility"] as Sport[]).map((s) => <SportChip key={s} sport={s} size="sm" />)}</div>
           </div>

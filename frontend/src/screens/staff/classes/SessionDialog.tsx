@@ -5,7 +5,7 @@ import { useBook, useCancelBooking, useMarkAttendance, useSession, useUpdateSess
 import { useAthletes } from "@/api/members";
 import type { ClassSessionDetail, Club, RosterEntry } from "@/api/types";
 import { BookingBadge, CHECKIN_LEAD_MS, checkinUrl, isPast, timeRange } from "@/components/classes";
-import { QrCode } from "@/components/club/InviteShare";
+import { QrCode } from "@/components/QrCode";
 import { SportChip } from "@/components/sport";
 import { t, tn } from "@/i18n";
 import { localDate, longDate, timeOf } from "@/lib/format";

@@ -115,20 +115,26 @@ CREATE TABLE memberships (
 CREATE INDEX memberships_user_idx ON memberships (user_id);
 CREATE INDEX memberships_club_role_idx ON memberships (club_id, role) WHERE status = 'active';
 
+-- Personal invites (D-023): one per e-mail, sent by e-mail, valid for 7 days, single use, and only the account
+-- with that e-mail can accept. There are no club-wide or reusable links.
 CREATE TABLE invitations (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   club_id      uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
   role         text NOT NULL CHECK (role IN ('trainer', 'student')),
-  token        text NOT NULL UNIQUE,     -- url-safe random, shared via WhatsApp / QR / link
-  email        text,                     -- optional: personal invite
-  group_ids    uuid[] NOT NULL DEFAULT '{}',  -- groups to join on accept (CSV import)
+  email        text NOT NULL CHECK (email = lower(email)),
+  name         text,                              -- how the inviter called them (greeting in the e-mail)
+  token        text NOT NULL UNIQUE,              -- url-safe random; rotated on resend
+  group_ids    uuid[] NOT NULL DEFAULT '{}',      -- groups to join on accept
   created_by   uuid NOT NULL REFERENCES memberships (id),
-  max_uses     int,                      -- NULL = unlimited (club link)
-  uses         int NOT NULL DEFAULT 0,
-  expires_at   timestamptz,
+  expires_at   timestamptz NOT NULL,
+  sent_at      timestamptz,
+  send_count   int NOT NULL DEFAULT 0,
+  accepted_at  timestamptz,
+  accepted_by  uuid REFERENCES users (id) ON DELETE SET NULL,
   revoked_at   timestamptz,
   created_at   timestamptz NOT NULL DEFAULT now()
 );
+CREATE UNIQUE INDEX invitations_one_open_per_email ON invitations (club_id, email) WHERE accepted_at IS NULL AND revoked_at IS NULL;
 
 CREATE TABLE groups (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),

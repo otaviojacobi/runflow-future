@@ -32,7 +32,7 @@ export function ClubsScreen() {
   const goInvite = (e: React.FormEvent) => {
     e.preventDefault();
     const token = inviteTokenFrom(invite);
-    if (!token) return setInviteError(t("Cole o link de convite que você recebeu, como runflow.club/invite/…"));
+    if (!token) return setInviteError(t("Cole o link do convite que chegou no seu e-mail, como runflow.club/invite/…"));
     navigate({ to: "/invite/$token", params: { token } });
   };
   const list = me.data?.memberships ?? [];
@@ -70,7 +70,7 @@ export function ClubsScreen() {
       ) : (
         <section className="grid gap-2">
           <h1 className="rf-text-display-sm">{t("Você ainda não está em um clube")}</h1>
-          <p className="text-fg-muted">{t("Crie o seu clube grátis ou entre com o link de convite que seu treinador mandou.")}</p>
+          <p className="text-fg-muted">{t("Crie o seu clube grátis ou abra o convite que chegou no seu e-mail.")}</p>
         </section>
       )}
 

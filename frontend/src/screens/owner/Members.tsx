@@ -1,16 +1,16 @@
-/** O2 · Membros e convites: trainers, students (suspend/remove), invite links. Route: /club/members */
+/** O2 · Membros e convites: trainers, students (suspend/remove), personal e-mail invites (D-023). Route: /club/members */
 import { Link } from "@tanstack/react-router";
-import { Ban, Copy, FileSpreadsheet, MessageCircle, MoreHorizontal, Plus, RotateCcw, Ticket, Trash2, UserMinus } from "lucide-react";
+import { Ban, Copy, FileSpreadsheet, Mail, MoreHorizontal, Plus, RotateCcw, Send, Trash2, UserMinus } from "lucide-react";
 import { useState } from "react";
-import { useCreateInvite, useInvites, useRevokeInvite } from "@/api/clubs";
+import { useInvites, useResendInvite, useRevokeInvite } from "@/api/clubs";
 import { useMembers, useRemoveMember, useUpdateMember } from "@/api/members";
-import type { Member } from "@/api/types";
-import { whatsappLink } from "@/components/club/InviteShare";
+import type { Invitation, Member } from "@/api/types";
+import { InviteDialog } from "@/components/club/InviteDialog";
 import { ImportStudentsDialog } from "@/components/ImportDialogs";
-import { t, tn } from "@/i18n";
+import { t } from "@/i18n";
 import { ROLE_LABEL, useClub } from "@/lib/club";
-import { ago } from "@/lib/format";
-import { Avatar, Badge, Button, Card, Dialog, EmptyState, Field, IconButton, Menu, PageHeader, ProgressBar, Select, Skeleton, Tabs, toast } from "@/ui";
+import { ago, fullDate, localDate } from "@/lib/format";
+import { Avatar, Badge, Button, Card, Dialog, EmptyState, IconButton, Menu, PageHeader, ProgressBar, Skeleton, Tabs, toast, type Tone } from "@/ui";
 
 export function MembersScreen() {
   const { club, ctx } = useClub();
@@ -20,12 +20,10 @@ export function MembersScreen() {
   const update = useUpdateMember(club?.id ?? "");
   const remove = useRemoveMember(club?.id ?? "");
   const revoke = useRevokeInvite(club?.id ?? "");
-  const create = useCreateInvite(club?.id ?? "");
+  const resend = useResendInvite(club?.id ?? "");
   const [confirm, setConfirm] = useState<Member | null>(null);
   const [newInvite, setNewInvite] = useState(false);
   const [importing, setImporting] = useState(false);
-  const [role, setRole] = useState<"student" | "trainer">("student");
-  const [maxUses, setMaxUses] = useState("");
   if (!club || !ctx) return null;
   const sub = ctx.subscription;
   const me = ctx.membership.id;
@@ -52,7 +50,7 @@ export function MembersScreen() {
 
   return (
     <div className="mx-auto grid max-w-4xl gap-6">
-      <PageHeader title={t("Membros e convites")} subtitle={t("Quem participa do {club} e os links para entrar.", { club: club.name })} actions={<><Button variant="secondary" icon={<FileSpreadsheet />} onClick={() => setImporting(true)}>{t("Importar planilha")}</Button><Button icon={<Plus />} onClick={() => setNewInvite(true)}>{t("Novo link de convite")}</Button></>} />
+      <PageHeader title={t("Membros e convites")} subtitle={t("Quem participa do {club}. Só entra quem recebe um convite por e-mail.", { club: club.name })} actions={<><Button variant="secondary" icon={<FileSpreadsheet />} onClick={() => setImporting(true)}>{t("Importar planilha")}</Button><Button icon={<Mail />} onClick={() => setNewInvite(true)}>{t("Convidar por e-mail")}</Button></>} />
       <ImportStudentsDialog club={club} open={importing} onOpenChange={setImporting} />
       {sub && (
         <Card className="flex flex-wrap items-center gap-4 p-4">
@@ -64,27 +62,17 @@ export function MembersScreen() {
         <Tabs.List>
           <Tabs.Trigger value="students">{t("Alunos")} {students.data && `· ${students.data.length}`}</Tabs.Trigger>
           <Tabs.Trigger value="staff">{t("Equipe")} {staff.data && `· ${staff.data.length}`}</Tabs.Trigger>
-          <Tabs.Trigger value="invites">{t("Convites")} {invites.data && `· ${invites.data.length}`}</Tabs.Trigger>
+          <Tabs.Trigger value="invites">{t("Convites")} {invites.data && `· ${invites.data.filter((i) => i.status === "pending").length}`}</Tabs.Trigger>
         </Tabs.List>
         <Tabs.Content value="students">
-          <Card>{students.isPending ? <div className="grid gap-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /></div> : students.data?.length ? <ul className="divide-y divide-line-subtle">{students.data.map(row)}</ul> : <EmptyState icon={<Ticket />} title={t("Nenhum aluno ainda")}>{t("Crie um link de convite e mande no WhatsApp.")}</EmptyState>}</Card>
+          <Card>{students.isPending ? <div className="grid gap-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /></div> : students.data?.length ? <ul className="divide-y divide-line-subtle">{students.data.map(row)}</ul> : <EmptyState icon={<Mail />} title={t("Nenhum aluno ainda")}>{t("Convide os alunos por e-mail: cada um recebe o próprio convite.")}</EmptyState>}</Card>
         </Tabs.Content>
         <Tabs.Content value="staff"><Card><ul className="divide-y divide-line-subtle">{(staff.data ?? []).map(row)}</ul></Card></Tabs.Content>
         <Tabs.Content value="invites">
           <Card>
-            <ul className="divide-y divide-line-subtle">
-              {(invites.data ?? []).map((i) => (
-                <li key={i.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                  <span className="grid size-9 place-items-center rounded-full bg-brand-soft text-on-brand-soft"><Ticket className="size-4" /></span>
-                  <span className="min-w-0 flex-1"><span className="block font-semibold">{i.role === "trainer" ? t("Link para treinadores") : t("Link para alunos")}</span><span className="block truncate font-mono text-xs text-fg-muted">{i.url.replace("https://", "")}</span></span>
-                  <span className="text-sm text-fg-muted">{i.max_uses ? t("{n} de {max} usos", { n: i.uses, max: i.max_uses }) : tn(i.uses, "{n} uso", "{n} usos")}</span>
-                  <IconButton label={t("Copiar link")} onClick={async () => { try { await navigator.clipboard.writeText(i.url); } catch { /* ignore */ } toast.success(t("Link copiado")); }}><Copy /></IconButton>
-                  <a className="grid size-10 place-items-center rounded-md text-fg-muted hover:bg-soft hover:text-fg" href={whatsappLink(club.name, i.url, i.role)} target="_blank" rel="noreferrer" aria-label={t("Enviar no WhatsApp")} title={t("Enviar no WhatsApp")}><MessageCircle className="size-5" /></a>
-                  <IconButton label={t("Revogar link")} onClick={() => revoke.mutate(i.id, { onSuccess: () => toast.success(t("Link revogado"), t("Quem não entrou ainda vai precisar de um novo link.")) })}><Trash2 /></IconButton>
-                </li>
-              ))}
-            </ul>
-            {invites.data?.length === 0 && <EmptyState icon={<Ticket />} title={t("Nenhum link ativo")} action={<Button icon={<Plus />} onClick={() => setNewInvite(true)}>{t("Novo link de convite")}</Button>} />}
+            {invites.data?.length ? <ul className="divide-y divide-line-subtle">{invites.data.map((i) => <InviteRow key={i.id} i={i} onResend={() => resend.mutate(i.id, { onSuccess: () => toast.success(t("Convite reenviado"), t("O link anterior parou de funcionar; o novo vale 7 dias.")), onError: toast.error })} onCancel={() => revoke.mutate(i.id, { onSuccess: () => toast.success(t("Convite cancelado"), t("O link não funciona mais.")) })} />)}</ul>
+              : invites.isPending ? <div className="grid gap-2 p-4"><Skeleton className="h-10" /><Skeleton className="h-10" /></div>
+              : <EmptyState icon={<Mail />} title={t("Nenhum convite enviado")} action={<Button icon={<Mail />} onClick={() => setNewInvite(true)}>{t("Convidar por e-mail")}</Button>}>{t("Cada pessoa recebe um convite pessoal, que vale 7 dias.")}</EmptyState>}
           </Card>
         </Tabs.Content>
       </Tabs.Root>
@@ -92,13 +80,31 @@ export function MembersScreen() {
       <Dialog open={!!confirm} onOpenChange={(v) => !v && setConfirm(null)} size="sm" title={t("Remover {name}?", { name: confirm?.user.name ?? "" })}
         description={confirm?.membership.role === "student" ? t("O aluno perde o acesso aos treinos do clube. O histórico fica guardado e ele pode voltar com um novo convite.") : t("A pessoa deixa de ver os alunos e os treinos do clube.")}
         footer={<><Button variant="secondary" onClick={() => setConfirm(null)}>{t("Cancelar")}</Button><Button variant="danger" loading={remove.isPending} onClick={() => confirm && remove.mutate(confirm.membership.id, { onSuccess: () => { toast.success(t("Membro removido")); setConfirm(null); }, onError: toast.error })}>{t("Remover")}</Button></>} />
-      <Dialog open={newInvite} onOpenChange={setNewInvite} size="sm" title={t("Novo link de convite")}
-        footer={<><Button variant="secondary" onClick={() => setNewInvite(false)}>{t("Cancelar")}</Button><Button loading={create.isPending} onClick={() => create.mutate({ role, max_uses: maxUses ? Number(maxUses) : null }, { onSuccess: () => { setNewInvite(false); toast.success(t("Link criado")); }, onError: toast.error })}>{t("Criar link")}</Button></>}>
-        <div className="grid gap-4">
-          <Field label={t("Para quem")}>{(id) => <Select id={id} value={role} onChange={(e) => setRole(e.target.value as "student" | "trainer")}><option value="student">{t("Alunos")}</option><option value="trainer">{t("Treinadores")}</option></Select>}</Field>
-          <Field label={t("Limite de usos")} optional hint={t("Deixe em branco para um link do clube, sem limite.")}>{(id, d) => <Select id={id} aria-describedby={d} value={maxUses} onChange={(e) => setMaxUses(e.target.value)}><option value="">{t("Sem limite")}</option>{[1, 5, 10, 20, 50].map((n) => <option key={n} value={n}>{n}</option>)}</Select>}</Field>
-        </div>
-      </Dialog>
+      <InviteDialog club={club} open={newInvite} onOpenChange={setNewInvite} />
     </div>
+  );
+}
+
+const STATUS: Record<Invitation["status"], { label: string; tone: Tone }> = { pending: { label: "Aguardando", tone: "info" }, expired: { label: "Expirado", tone: "warning" }, accepted: { label: "Aceito", tone: "success" } };
+function InviteRow({ i, onResend, onCancel }: { i: Invitation; onResend: () => void; onCancel: () => void }) {
+  const st = STATUS[i.status];
+  const when = i.status === "accepted" ? t("entrou {a}", { a: ago(i.accepted_at!) }) : i.status === "expired" ? t("expirou em {d}", { d: fullDate(localDate(i.expires_at)) }) : t("enviado {a} · vale até {d}", { a: ago(i.sent_at ?? i.created_at), d: fullDate(localDate(i.expires_at)) });
+  return (
+    <li className="flex flex-wrap items-center gap-3 px-4 py-3">
+      <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-soft text-on-brand-soft"><Mail className="size-4" /></span>
+      <span className="min-w-0 flex-1 basis-48">
+        <span className="block truncate font-semibold">{i.name ? `${i.name} · ` : ""}{i.email}</span>
+        <span className="block text-xs text-fg-muted">{t(ROLE_LABEL[i.role])} · {when}{i.send_count > 1 ? ` · ${t("enviado {n} vezes", { n: i.send_count })}` : ""}</span>
+      </span>
+      <Badge tone={st.tone}>{t(st.label)}</Badge>
+      {i.status !== "accepted" && (
+        <Menu trigger={<IconButton label={t("Ações do convite para {email}", { email: i.email })}><MoreHorizontal /></IconButton>} items={[
+          { label: t("Reenviar convite"), icon: <Send />, onSelect: onResend },
+          ...(i.status === "pending" ? [{ label: t("Copiar link"), icon: <Copy />, onSelect: async () => { try { await navigator.clipboard.writeText(i.url); toast.success(t("Link copiado"), t("Só funciona para {email}.", { email: i.email })); } catch { /* ignore */ } } }] : []),
+          "separator",
+          { label: t("Cancelar convite"), icon: <Trash2 />, danger: true, onSelect: onCancel },
+        ]} />
+      )}
+    </li>
   );
 }

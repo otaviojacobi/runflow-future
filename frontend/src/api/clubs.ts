@@ -30,7 +30,9 @@ export const useUploadAsset = (clubId: string) =>
 export const useInvites = (clubId: string | undefined) =>
   useQuery({ queryKey: clubKeys.invites(clubId ?? ""), enabled: !!clubId, queryFn: () => api.get<{ items: Invitation[] }>(`/clubs/${clubId}/invites`).then((r) => r.items) });
 export const useCreateInvite = (clubId: string) =>
-  useMutation({ mutationFn: (v: { role: "student" | "trainer"; max_uses?: number | null }) => api.post<Invitation>(`/clubs/${clubId}/invites`, v), onSuccess: () => queryClient.invalidateQueries({ queryKey: clubKeys.invites(clubId) }) });
+  useMutation({ mutationFn: (v: { email: string; role: "student" | "trainer"; name?: string; group_ids?: string[] }) => api.post<Invitation>(`/clubs/${clubId}/invites`, v), onSuccess: () => queryClient.invalidateQueries({ queryKey: clubKeys.invites(clubId) }) });
+export const useResendInvite = (clubId: string) =>
+  useMutation({ mutationFn: (id: string) => api.post<Invitation>(`/clubs/${clubId}/invites/${id}/resend`), onSuccess: () => queryClient.invalidateQueries({ queryKey: clubKeys.invites(clubId) }) });
 export const useRevokeInvite = (clubId: string) =>
   useMutation({ mutationFn: (id: string) => api.del(`/clubs/${clubId}/invites/${id}`), onSuccess: () => queryClient.invalidateQueries({ queryKey: clubKeys.invites(clubId) }) });
 

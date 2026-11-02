@@ -41,6 +41,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F29 | Import/export: students via CSV, workouts via pasted text, `.FIT` workout export, `.ics` calendar feed for students | — | [x] |
 | F30 | Power features: command palette (⌘K), keyboard shortcuts in planning, PWA install, offline today, print-friendly week | — | [x] |
 | F20 | Hardening: 404 and error pages, empty states audit, accessibility pass, responsive pass, performance budget (§7.7: initial JS is ~195 KB gzip after F30, lazy-load the remaining eager screens), Playwright e2e suite in CI | — | [x] |
+| F31 | Founder revisions (2026-11-02): personal e-mail invites (D-023: 7 days, single use, only the invited e-mail; resend/cancel; dev outbox at `/dev/outbox`) and Runflow-branded public pages (D-024) | A3, A5, O2 | [x] |
 
 ## Phase 2: mobile app on the mock API (`mobile/`)
 

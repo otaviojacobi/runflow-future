@@ -110,8 +110,8 @@ Trainers see **all** students in their club (D-017). The owner is also a trainer
 
 | Tier | What the club gets |
 |---|---|
-| **Free** | Club name, logo, and up to two colors (primary and an optional secondary). Shown inside Runflow on web and mobile to the club's members, on invite pages and in emails. |
-| **Pro** | Everything in Free, plus a **`<club>.runflow.club`** subdomain that opens straight into the club's themed Runflow. |
+| **Free** | Club name, logo, and up to two colors (primary and an optional secondary). The colors theme the **signed-in** app on web and mobile for the club's members. Public pages (landing, sign-in, invite page) always stay in Runflow's brand and show only the club's logo and name, as do invite e-mails (D-024). |
+| **Pro** | Everything in Free, plus a **`<club>.runflow.club`** subdomain that opens straight into the club's Runflow (themed once signed in). |
 
 How theming works (D-014; details in `design/`):
 
@@ -129,18 +129,18 @@ How theming works (D-014; details in `design/`):
 
 ### 4.5 Onboarding flows
 
-Auth is **Sign in with Google** or an **email one-time code**. There are no passwords. **Sign in with Apple** comes with the Apple Developer account, before the iOS App Store release (D-007). In Brazil invites travel over **WhatsApp**, so every invite has a share-to-WhatsApp button, a QR code and a copyable link.
+Auth is **Sign in with Google** or an **email one-time code**. There are no passwords. **Sign in with Apple** comes with the Apple Developer account, before the iOS App Store release (D-007). **Joining a club needs a personal invite (D-023):** the owner or a trainer invites an e-mail address, Runflow e-mails a link that is valid for 7 days, works once, and only for the account with that e-mail. There are no club-wide or reusable links. Invites can be resent (new link, another 7 days) or cancelled, and a spreadsheet can be imported to invite many students at once.
 
 1. **Owner creates a club** (target: under 5 minutes).
    - Landing page → "Criar meu clube grátis" → Google or email code → club name, modalities (icon multi-select), city.
    - **Studio quick step:** upload a logo, then pick or accept the suggested color, with a live preview.
-   - **Invite step:** a link and QR code to share.
+   - **Invite step:** type the students' e-mails; each one gets a personal invite (can be skipped).
    - **First workout:** pick from ready templates ("Rodagem leve 5 km", "Intervalado 6×1 km"…).
    - Dashboard with an onboarding checklist.
-2. **Trainer invited by the owner:** invite link → sign in → accept → lands on the student list.
+2. **Trainer invited by the owner:** e-mail invite → sign in with that e-mail → accept → lands on the student list.
 3. **Student joins.**
-   - A branded invite page shows the club's logo and colors ("Você foi convidado para o Clube X").
-   - Sign in.
+   - The invite page (Runflow's brand, with the club's logo and name) says who invited them and to which e-mail ("Marcos te convidou").
+   - Sign in with the invited e-mail (another account is told to switch).
    - **LGPD consent**, explicit and highlighted: share training and health data with the club's trainers.
    - Profile basics: name, birth date, goal (5k / 10k / 21k / 42k / triathlon / saúde…), and optionally a recent race time to set zones.
    - **Connect Strava** (Garmin later). Connecting asks for consent to share activities with the club's trainers (§5).
@@ -374,7 +374,7 @@ flowchart LR
 **Web: the first paint is already themed.**
 1. **Club subdomain** (`<club>.runflow.club`, Pro). The binary already serves `index.html` per host (§7.2), so it inlines the club's stored CSS and name in `<head>`. No cache is involved.
 2. **Shared host** (`app.runflow.club`). A small, non-secret `rf_club` cookie remembers the last active club, and the server inlines that club's theme the same way. Without the cookie, a tiny inline script applies the theme saved in `localStorage` before the first paint. This is the same trick that avoids a dark-mode flash.
-3. **Invite links** know their club from the token, so the invite page is served already themed.
+3. **Public pages** (landing, sign-in, invite page, club picker, club creation) always render in Runflow's brand (D-024): the cached club stylesheet is present but disabled on those paths, so entering the app switches to the club's colors instantly.
 4. **Revalidation.** After load the app checks the theme's ETag. If `rev` changed, it swaps the CSS variables in place, with no reload.
 
 **Mobile: the first frame is already themed.**
@@ -423,6 +423,8 @@ flowchart LR
 | D-020 | Contract first: `api/schema.sql` + `api/endpoints.md` + a mock server over `api/mock/db.json`. Build the real web app on it screen by screen, then mobile, then the Rust backend implements the same contract | Real, testable UI early; the backend can't drift from what the screens need | Accepted (founder) |
 | D-021 | Mobile styling: `StyleSheet` + a typed theme generated from `@runflow/design` tokens (club roles via the shared color engine) | One token source with the web, no styling dependency, works in Expo Go | Accepted (engineering, 2026-11-02) |
 | D-022 | Mobile caches: club theme and preferences in `expo-sqlite/kv-store` (synchronous, in Expo Go); session token in `expo-secure-store`. Web preview uses `localStorage` | MMKV needs a custom dev build; the kv-store keeps the first frame themed without one | Accepted (engineering, 2026-11-02) |
+| D-023 | Joining needs a **personal invite**: one per e-mail, sent by e-mail, valid 7 days, single use, and only the account with that e-mail can accept. No club-wide or reusable links, invite QR codes or WhatsApp sharing | Founder: invites must not be permanent and must be tied to the invited person | Accepted (founder, 2026-11-02) |
+| D-024 | Public pages are **always Runflow's brand** (landing, sign-in, invite page, club picker, club creation); the club's colors apply only inside the signed-in app (web and mobile) | Founder: the marketing site and sign-in are ours | Accepted (founder, 2026-11-02) |
 | D-016 | Payments via Stripe; no charging during the beta; NFS-e handled by the founder outside the product | Founder decision | Accepted (founder) |
 | D-017 | Trainers see all students in their club | Simple default; per-trainer assignment can come later if clubs ask | Accepted (founder) |
 | D-019 | Club themes: the DB stores the owner's choices plus the theme derived at save time. Web inlines it in the HTML; mobile caches it on the device; both revalidate by `rev`/ETag (§7.8) | The first paint is already in the club's colors; one engine run per save, not per request | Proposed |
@@ -454,6 +456,7 @@ flowchart LR
 - 2026-11-01. **D1 delivered, in founder review.** `design/` has the tokens, the color engine, `build.mjs --check`, self-hosted fonts, CI, and the foundations page in pt-BR (`node design/serve.mjs`, then http://localhost:8080). Founder decisions made during the review: everything user-facing is pt-BR, including the design system and all error messages (D-013); clubs can set 0, 1 or 2 colors (D-014); club themes are stored in the DB and delivered without a flash of Runflow colors (D-019, §7.8).
 - 2026-11-01. **Founder approved the design system (D1).** New approach (D-020): contract first (`api/schema.sql` validated on PostgreSQL 18, `api/endpoints.md`), then the real web app on a mock API screen by screen, then mobile, then the Rust backend. Plan and status: `docs/build-plan.md`. The founder authorized committing and pushing after each step.
 - 2026-11-02. **Phase 1 (web app on the mock API) complete: F0–F30 and F20 hardening.** Beyond the core screens it covers classes, races, messages and mural, assessments, challenges, reports, club finances, an assistant (provider-agnostic contract, rules engine in the mock; open question §11.4), the exercise library, imports/exports (CSV, .FIT, .ics), command palette and an installable PWA. Contract: 55 tables in `api/schema.sql`. Quality gates: `npm run check` (incl. a 200 KB initial-JS budget) and `npm run e2e` (flows, axe WCAG AA, 360 px layouts) in CI. Design change: `fg.subtle` now meets 4.5:1 (new neutral steps 450/550) because it carries meta text. Next: Phase 2 (mobile, X0).
+- 2026-11-02. Founder decisions: personal e-mail invites, 7 days, single use, bound to the invited e-mail (D-023, replaces the shareable link/QR/WhatsApp invites of §4.5); public pages always in Runflow's brand (D-024). Mobile X0 scaffold delivered (D-021, D-022).
 - 2026-11-01. Founder decisions: design-first Phase 0 with the full UI mocked before implementation (D-015); Stripe, no charging during the beta, NFS-e outside the product (D-016); trainers see all students (D-017); Runflow is the app and clubs only theme it (D-018); Apple and Garmin developer programs deferred (D-007, D-011); no guardian accounts. Added the screen inventory (§6.1) and `CLAUDE.md`. Roadmap renumbered: Phase 0 is now design and validation, and **D1 is next**.
 
 ---

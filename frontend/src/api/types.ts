@@ -41,14 +41,19 @@ export interface AppNotification { id: ID; user_id: ID; club_id: ID | null; kind
 export interface UserSession { id: ID; kind: "web" | "mobile"; user_agent: string | null; created_at: ISOTime; last_seen_at: ISOTime; current: boolean }
 export interface AuthResult { token: string; user: User; is_new: boolean }
 
+export type InviteStatus = "pending" | "expired" | "accepted";
+/** Personal invite (D-023): one e-mail, 7 days, single use. */
 export interface Invitation {
-  id: ID; club_id: ID; role: "trainer" | "student"; token: string; email: string | null; created_by: ID;
-  max_uses: number | null; uses: number; expires_at: ISOTime | null; revoked_at: ISOTime | null; created_at: ISOTime; url: string;
+  id: ID; club_id: ID; role: "trainer" | "student"; email: string; name: string | null; token: string; group_ids: ID[]; created_by: ID;
+  expires_at: ISOTime; sent_at: ISOTime | null; send_count: number; accepted_at: ISOTime | null; accepted_by: ID | null; revoked_at: ISOTime | null; created_at: ISOTime;
+  status: InviteStatus; url: string;
 }
 export interface PublicInvite {
   club: Pick<Club, "id" | "slug" | "name" | "city" | "state" | "modalities" | "trainer_label">; branding: Branding | null;
-  role: "trainer" | "student"; valid: boolean; reason: "expired" | "revoked" | "used_up" | "club_full" | null;
-  invited_by: string | null; members: number; already_member: boolean;
+  role: "trainer" | "student"; valid: boolean; reason: "expired" | "revoked" | "accepted" | "club_full" | null;
+  invited_by: string | null; name: string | null; email_hint: string; expires_at: ISOTime; members: number; already_member: boolean;
+  /** null when signed out */
+  email_matches: boolean | null;
 }
 export interface WorkoutTemplate {
   id: ID; club_id: ID; author_membership_id: ID; sport: Sport; name: string; description: string | null;

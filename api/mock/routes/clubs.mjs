@@ -17,8 +17,11 @@ export default function register(h) {
     return slug;
   };
   const club = (id) => h.db.clubs.find((c) => c.id === id && !c.deleted_at) || h.fail(404, "club.not_found", "Clube não encontrado", "Ele pode ter sido encerrado.");
-  const inviteToken = () => h.uuid("inv").replace(/-/g, "").slice(0, 10);
-  const inviteOut = (i) => ({ ...i, url: `https://runflow.club/invite/${i.token}` });
+  const inviteToken = () => (h.uuid("inv") + h.uuid("inv")).replace(/-/g, "").slice(0, 24);
+  const INVITE_DAYS = 7;
+  const inviteStatus = (i) => (i.revoked_at ? "revoked" : i.accepted_at ? "accepted" : i.expires_at < h.nowIso() ? "expired" : "pending");
+  const inviteOut = (i) => ({ ...i, status: inviteStatus(i), url: `https://runflow.club/invite/${i.token}` });
+  const maskEmail = (e) => { const [u, d] = e.split("@"); return `${u.slice(0, Math.min(2, u.length))}${"•".repeat(Math.max(1, u.length - 2))}@${d}`; };
   const setBranding = (clubId, primary, secondary, logoId) => {
     let b = h.db.club_branding.find((x) => x.club_id === clubId);
     const th = h.themeFor(primary, secondary);
@@ -46,7 +49,6 @@ export default function register(h) {
     h.db.memberships.push(m);
     setBranding(c.id, null, null, null);
     h.db.club_subscriptions.push({ club_id: c.id, plan: "free", status: "active", student_limit: 10, stripe_customer_id: null, stripe_subscription_id: null, current_period_end: null, cancel_at_period_end: false, updated_at: now });
-    h.db.invitations.push({ id: h.uuid("inv"), club_id: c.id, role: "student", token: inviteToken(), email: null, created_by: m.id, max_uses: null, uses: 0, expires_at: null, revoked_at: null, created_at: now });
     for (const key of modalities.flatMap((s) => STARTER[s] || [])) {
       const [sport, tname, structure, tags] = LIB[key];
       h.db.workout_templates.push({ id: h.uuid("tpl"), club_id: c.id, author_membership_id: m.id, sport, name: tname, description: null, structure, ...estimate(sport, structure), tags, created_at: now, updated_at: now, archived_at: null });
@@ -134,39 +136,82 @@ export default function register(h) {
     return { club: { id: c.id, slug: c.slug, name: c.name, city: c.city, state: c.state, modalities: c.modalities, trainer_label: c.trainer_label }, branding: h.branding(c.id) };
   });
 
-  // ---- invites
+  // ---- invites (D-023): personal, e-mailed, 7 days, single use, bound to the invited e-mail
+  const outbox = (msg) => { h.db._outbox ||= []; h.db._outbox.unshift({ id: h.uuid("mail"), created_at: h.nowIso(), ...msg }); };
+  /** What the backend e-mails (pt-BR). The mock keeps it in a dev outbox: GET /v1/mock/outbox, /dev/outbox in the web app. */
+  const sendInvite = (i, inviter) => {
+    const c = club(i.club_id);
+    const until = new Date(Date.parse(i.expires_at) - 3 * 3600000).toISOString().slice(0, 10).split("-").reverse().join("/");
+    const who = i.role === "trainer" ? (c.trainer_label === "professor" ? "professor(a)" : "treinador(a)") : "aluno(a)";
+    i.sent_at = h.nowIso(); i.send_count = (i.send_count || 0) + 1;
+    outbox({
+      kind: "invite", club_id: c.id, to: i.email,
+      subject: `${inviter.name} convidou você para o ${c.name} no Runflow`,
+      text: `Olá${i.name ? `, ${i.name}` : ""}!\n\n${inviter.name} convidou você para entrar no ${c.name} como ${who}.\n\nAceite pelo link abaixo. Ele vale até ${until} e só funciona com este e-mail (${i.email}).`,
+      action: { label: "Aceitar convite", url: `/invite/${i.token}` },
+    });
+  };
+  const inviterOf = (m) => h.publicUser(h.db.users.find((u) => u.id === m.user_id));
+  const openInvite = (clubId, email) => h.db.invitations.find((x) => x.club_id === clubId && x.email === email && !x.accepted_at && !x.revoked_at);
+  const isMember = (clubId, email) => { const u = h.db.users.find((x) => x.email.toLowerCase() === email && !x.deleted_at); return !!u && h.db.memberships.some((x) => x.user_id === u.id && x.club_id === clubId && x.status === "active"); };
+  const renew = (i) => { i.token = inviteToken(); i.expires_at = new Date(Date.now() + INVITE_DAYS * 86400000).toISOString(); };
+
+  /** Mock only: the e-mails the backend would send (invites today). Newest first; ?to= filters by recipient. */
+  h.get("/v1/mock/outbox", (ctx) => ({ items: (h.db._outbox || []).filter((m) => !ctx.query.to || m.to === String(ctx.query.to).toLowerCase()).slice(0, 100) }));
   h.get("/v1/clubs/:club_id/invites", (ctx) => {
     ctx.staff(ctx.params.club_id);
-    return { items: h.db.invitations.filter((i) => i.club_id === ctx.params.club_id && !i.revoked_at).map(inviteOut), next_cursor: null };
+    const order = { pending: 0, expired: 1, accepted: 2 };
+    const items = h.db.invitations.filter((i) => i.club_id === ctx.params.club_id && !i.revoked_at).map(inviteOut)
+      .sort((a, b) => order[a.status] - order[b.status] || b.created_at.localeCompare(a.created_at));
+    return { items, next_cursor: null };
   });
   h.post("/v1/clubs/:club_id/invites", (ctx) => {
     const m = ctx.staff(ctx.params.club_id);
     const role = ctx.body.role === "trainer" ? "trainer" : "student";
     if (role === "trainer" && m.role !== "owner") h.fail(403, "auth.forbidden", "Sem permissão", "Só o gestor convida treinadores.");
-    const max = ctx.body.max_uses ? Number(ctx.body.max_uses) : null;
-    const row = { id: h.uuid("inv"), club_id: ctx.params.club_id, role, token: inviteToken(), email: ctx.body.email || null, group_ids: [], created_by: m.id, max_uses: max, uses: 0, expires_at: ctx.body.expires_at || null, revoked_at: null, created_at: h.nowIso() };
+    const email = String(ctx.body.email || "").trim().toLowerCase();
+    if (!EMAIL.test(email)) h.invalid([{ field: "email", message: "Digite um e-mail válido, como nome@email.com." }]);
+    if (isMember(m.club_id, email)) h.fail(409, "invite.already_member", "Essa pessoa já está no clube", "Ela já pode entrar com esse e-mail.");
+    if (openInvite(m.club_id, email)) h.fail(409, "invite.exists", "Já existe um convite para esse e-mail", "Use “Reenviar” na lista de convites para mandar de novo.");
+    const groupIds = (Array.isArray(ctx.body.group_ids) ? ctx.body.group_ids : []).filter((g) => h.db.groups.some((x) => x.id === g && x.club_id === m.club_id));
+    const row = { id: h.uuid("inv"), club_id: m.club_id, role, email, name: String(ctx.body.name || "").trim() || null, token: "", group_ids: role === "student" ? groupIds : [], created_by: m.id, expires_at: "", sent_at: null, send_count: 0, accepted_at: null, accepted_by: null, revoked_at: null, created_at: h.nowIso() };
+    renew(row);
     h.db.invitations.push(row);
+    sendInvite(row, inviterOf(m));
     return { __status: 201, data: inviteOut(row) };
   });
-  /** CSV import: one personal invite per row (max 1 use, 30 days), optionally joining groups on accept. */
+  /** Send again: new link (the old one stops working) and another 7 days. */
+  h.post("/v1/clubs/:club_id/invites/:id/resend", (ctx) => {
+    const m = ctx.staff(ctx.params.club_id);
+    const i = h.db.invitations.find((x) => x.id === ctx.params.id && x.club_id === m.club_id && !x.revoked_at);
+    if (!i) h.fail(404, "invite.not_found", "Convite não encontrado", "Ele pode ter sido cancelado.");
+    if (i.accepted_at) h.fail(409, "invite.accepted", "Convite já aceito", "Essa pessoa já entrou no clube.");
+    if (i.role === "trainer" && m.role !== "owner") h.fail(403, "auth.forbidden", "Sem permissão", "Só o gestor convida treinadores.");
+    renew(i);
+    sendInvite(i, inviterOf(m));
+    return inviteOut(i);
+  });
+  /** CSV import: one personal invite per row; an open invite for the same e-mail is sent again. */
   h.post("/v1/clubs/:club_id/invites/bulk", (ctx) => {
     const m = ctx.staff(ctx.params.club_id);
     const rows = Array.isArray(ctx.body.rows) ? ctx.body.rows.slice(0, 500) : [];
     if (!rows.length) h.invalid([{ field: "rows", message: "Envie pelo menos um aluno." }]);
     const groups = h.db.groups.filter((g) => g.club_id === m.club_id);
+    const inviter = inviterOf(m);
     const seen = new Set(), items = [], skipped = [];
     for (const [i, r] of rows.entries()) {
       const email = String(r.email || "").trim().toLowerCase();
       if (!EMAIL.test(email)) { skipped.push({ row: i + 1, email, reason: "invalid_email" }); continue; }
       if (seen.has(email)) { skipped.push({ row: i + 1, email, reason: "duplicate" }); continue; }
       seen.add(email);
-      const u = h.db.users.find((x) => x.email.toLowerCase() === email && !x.deleted_at);
-      if (u && h.db.memberships.some((x) => x.user_id === u.id && x.club_id === m.club_id && x.status === "active")) { skipped.push({ row: i + 1, email, reason: "already_member" }); continue; }
-      if (h.db.invitations.some((x) => x.club_id === m.club_id && x.email === email && !x.revoked_at && x.uses < (x.max_uses ?? Infinity) && (!x.expires_at || x.expires_at > h.nowIso()))) { skipped.push({ row: i + 1, email, reason: "already_invited" }); continue; }
+      if (isMember(m.club_id, email)) { skipped.push({ row: i + 1, email, reason: "already_member" }); continue; }
       const gids = String(r.groups || "").split(/[,|]/).map((g) => g.trim().toLowerCase()).filter(Boolean).map((n) => groups.find((g) => g.name.toLowerCase() === n)?.id).filter(Boolean);
-      const row = { id: h.uuid("inv"), club_id: m.club_id, role: "student", token: inviteToken(), email, group_ids: gids, created_by: m.id, max_uses: 1, uses: 0, expires_at: new Date(Date.now() + 30 * 86400000).toISOString(), revoked_at: null, created_at: h.nowIso() };
-      h.db.invitations.push(row);
-      items.push({ ...inviteOut(row), name: r.name || null });
+      let row = openInvite(m.club_id, email);
+      const resent = !!row;
+      if (!row) { row = { id: h.uuid("inv"), club_id: m.club_id, role: "student", email, name: String(r.name || "").trim() || null, token: "", group_ids: gids, created_by: m.id, expires_at: "", sent_at: null, send_count: 0, accepted_at: null, accepted_by: null, revoked_at: null, created_at: h.nowIso() }; h.db.invitations.push(row); }
+      renew(row);
+      sendInvite(row, inviter);
+      items.push({ ...inviteOut(row), resent });
     }
     const s = h.subscription(m.club_id);
     return { __status: 201, data: { created: items.length, items, skipped, over_limit: Math.max(0, s.active_students + items.length - s.student_limit) } };
@@ -174,29 +219,30 @@ export default function register(h) {
   h.delete("/v1/clubs/:club_id/invites/:id", (ctx) => {
     ctx.staff(ctx.params.club_id);
     const i = h.db.invitations.find((x) => x.id === ctx.params.id && x.club_id === ctx.params.club_id);
-    if (!i) h.fail(404, "invite.not_found", "Convite não encontrado", "Ele pode já ter sido revogado.");
+    if (!i) h.fail(404, "invite.not_found", "Convite não encontrado", "Ele pode já ter sido cancelado.");
     i.revoked_at = h.nowIso();
   });
+
   const inviteState = (token) => {
     const i = h.db.invitations.find((x) => x.token === token);
-    if (!i) h.fail(404, "invite.not_found", "Convite não encontrado", "Confira o link com quem te convidou.");
+    if (!i) h.fail(404, "invite.not_found", "Convite não encontrado", "O link pode ter sido trocado por um mais novo. Confira seu e-mail ou peça um novo convite.");
     const c = club(i.club_id);
-    let reason = null;
-    if (i.revoked_at) reason = "revoked";
-    else if (i.expires_at && i.expires_at < h.nowIso()) reason = "expired";
-    else if (i.max_uses && i.uses >= i.max_uses) reason = "used_up";
-    else if (i.role === "student") { const s = h.subscription(c.id); if (s.active_students >= s.student_limit) reason = "club_full"; }
+    let reason = { pending: null, expired: "expired", revoked: "revoked", accepted: "accepted" }[inviteStatus(i)];
+    if (!reason && i.role === "student") { const s = h.subscription(c.id); if (s.active_students >= s.student_limit) reason = "club_full"; }
     return { i, c, reason };
   };
   h.get("/v1/public/invites/:token", (ctx) => {
     const { i, c, reason } = inviteState(ctx.params.token);
-    const owner = h.db.memberships.find((m) => m.club_id === c.id && m.role === "owner");
-    const ownerUser = owner && h.db.users.find((u) => u.id === owner.user_id);
-    const already = ctx.auth ? h.db.memberships.find((m) => m.club_id === c.id && m.user_id === ctx.auth.user.id && m.status === "active") : null;
+    const by = h.db.memberships.find((m) => m.id === i.created_by);
+    const byUser = by && h.db.users.find((u) => u.id === by.user_id);
+    const signed = ctx.auth?.user;
+    const already = signed ? h.db.memberships.find((m) => m.club_id === c.id && m.user_id === signed.id && m.status === "active") : null;
     return {
       club: { id: c.id, slug: c.slug, name: c.name, city: c.city, state: c.state, modalities: c.modalities, trainer_label: c.trainer_label },
-      branding: h.branding(c.id), role: i.role, valid: !reason, reason, invited_by: ownerUser ? ownerUser.name : null,
-      members: h.activeStudents(c.id), already_member: !!already,
+      branding: h.branding(c.id), role: i.role, valid: !reason, reason, invited_by: byUser ? byUser.name : null, name: i.name,
+      email_hint: maskEmail(i.email), expires_at: i.expires_at, members: h.activeStudents(c.id), already_member: !!already,
+      // Signed in: does this account's e-mail match? (null when signed out)
+      email_matches: signed ? signed.email.toLowerCase() === i.email : null,
     };
   });
   h.post("/v1/invites/:token/accept", (ctx) => {
@@ -204,21 +250,22 @@ export default function register(h) {
     const { i, c, reason } = inviteState(ctx.params.token);
     const existing = h.db.memberships.find((m) => m.club_id === c.id && m.user_id === u.id);
     if (existing && existing.status === "active") return { membership: existing, club: c, already_member: true };
+    if (u.email.toLowerCase() !== i.email) h.fail(403, "invite.email_mismatch", "Este convite é para outro e-mail", `Ele foi enviado para ${maskEmail(i.email)}. Saia e entre com esse e-mail para aceitar.`);
     const messages = {
-      revoked: ["Convite cancelado", "Peça um novo link para quem te convidou."],
-      expired: ["Convite expirado", "Peça um novo link para quem te convidou."],
-      used_up: ["Convite já utilizado", "Este link atingiu o limite de usos. Peça um novo."],
-      club_full: ["O clube está lotado", "O clube atingiu o limite de alunos do plano. Avise o seu treinador."],
+      revoked: ["Convite cancelado", "Peça um novo convite para quem te convidou."],
+      expired: ["Convite expirado", "Os convites valem 7 dias. Peça para quem te convidou reenviar."],
+      accepted: ["Convite já usado", "Este convite já foi aceito. Entre com sua conta para ver o clube."],
+      club_full: ["O clube está lotado", "O clube atingiu o limite de alunos do plano. Avise quem te convidou."],
     };
     if (reason) h.fail(409, `invite.${reason}`, ...messages[reason]);
     const now = h.nowIso();
     let m = existing;
     if (m) Object.assign(m, { status: "active", role: i.role, left_at: null, joined_at: now });
     else { m = { id: h.uuid("m"), club_id: c.id, user_id: u.id, role: i.role, status: "active", is_billing_owner: false, joined_at: now, left_at: null }; h.db.memberships.push(m); }
-    i.uses++;
+    Object.assign(i, { accepted_at: now, accepted_by: u.id });
     for (const g of i.group_ids || []) if (h.db.groups.some((x) => x.id === g) && !h.db.group_members.some((x) => x.group_id === g && x.membership_id === m.id)) h.db.group_members.push({ group_id: g, membership_id: m.id, added_at: now });
     for (const staff of h.db.memberships.filter((x) => x.club_id === c.id && x.role !== "student" && x.status === "active"))
-      h.db.notifications.push({ id: h.uuid("n"), user_id: staff.user_id, club_id: c.id, kind: "member_joined", title: `${u.name} entrou no clube`, body: i.role === "trainer" ? "Novo treinador na equipe." : null, link: i.role === "trainer" ? "/club/members" : "/students", read_at: null, created_at: now });
+      h.db.notifications.push({ id: h.uuid("n"), user_id: staff.user_id, club_id: c.id, kind: "member_joined", title: `${u.name} entrou no clube`, body: i.role === "trainer" ? "Novo treinador na equipe." : null, link: i.role === "trainer" ? "/club/members" : `/students/${m.id}`, created_at: now, read_at: null });
     return { __status: 201, data: { membership: m, club: c, already_member: false } };
   });
 }

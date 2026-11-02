@@ -2,15 +2,15 @@
 import Color from "@runflow/design/color";
 import { tokens } from "@runflow/design/tokens";
 import { useNavigate } from "@tanstack/react-router";
-import { Check, CircleCheck, ImageUp, Library, Palette, Sparkles, Ticket, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { readLogo, useCreateClub, useCreateInvite, useInvites, useSaveBranding, useUploadAsset } from "@/api/clubs";
+import { Check, CircleCheck, ImageUp, Library, Mail, Palette, Sparkles, X } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { readLogo, useCreateClub, useSaveBranding, useUploadAsset } from "@/api/clubs";
 import { useTemplates } from "@/api/library";
 import { fetchMe, meKey } from "@/api/me";
 import type { Club, Sport } from "@/api/types";
 import { RunflowWordmark } from "@/components/brand";
 import { ColorPicker, PRIMARY_PRESETS, SECONDARY_PRESETS } from "@/components/club/ColorPicker";
-import { InviteShare } from "@/components/club/InviteShare";
+import { InviteForm } from "@/components/club/InviteDialog";
 import { ThemePreview } from "@/components/club/ThemePreview";
 import { SPORTS, SPORT_ICON, SPORT_LABEL, SportChip } from "@/components/sport";
 import { IntensityProfile } from "@/components/workout";
@@ -18,7 +18,7 @@ import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { selectClub } from "@/lib/club";
 import { duration } from "@/lib/format";
-import { applyClubTheme } from "@/lib/theme";
+import { themeVars } from "@/lib/theme";
 import { queryClient } from "@/queryClient";
 import { Button, ButtonLink, Card, Field, Input, Select, cn, toast } from "@/ui";
 
@@ -49,10 +49,6 @@ export function CreateClubScreen() {
   const navigate = useNavigate();
   const [step, setStep] = useState<Step>(1);
   const [club, setClub] = useState<Club | null>(null);
-  const previousTheme = useRef(document.getElementById("club-theme")?.textContent ?? null);
-  const finished = useRef(false);
-  // Leaving the wizard midway restores whatever theme was active before.
-  useEffect(() => () => { if (!finished.current && !club) applyClubTheme(previousTheme.current); }, [club]);
 
   return (
     <div className="min-h-dvh">
@@ -67,7 +63,7 @@ export function CreateClubScreen() {
         {step === 1 && <StepClub onDone={(c) => { setClub(c); setStep(2); }} />}
         {step === 2 && club && <StepColors club={club} onDone={() => setStep(3)} />}
         {step === 3 && club && <StepInvite club={club} onDone={() => setStep(4)} />}
-        {step === 4 && club && <StepLibrary club={club} onDone={() => { finished.current = true; setStep(5); }} />}
+        {step === 4 && club && <StepLibrary club={club} onDone={() => setStep(5)} />}
         {step === 5 && club && <StepDone club={club} />}
       </main>
     </div>
@@ -134,7 +130,8 @@ function StepColors({ club, onDone }: { club: Club; onDone: () => void }) {
   const save = useSaveBranding(club.id);
   const fileRef = useRef<HTMLInputElement>(null);
   const res = useMemo(() => Color.resolveClubColors({ primary, secondary }, DEFAULTS), [primary, secondary]);
-  useEffect(() => { applyClubTheme(Color.clubThemeCss({ primary, secondary }, tokens.env, DEFAULTS)); }, [primary, secondary]);
+  // Previews are scoped: the wizard itself stays in Runflow's brand (public/setup pages, founder 2026-11-02).
+  const vars = useMemo(() => ({ light: themeVars({ primary, secondary }, "light"), dark: themeVars({ primary, secondary }, "dark") }), [primary, secondary]);
   const whiteVariant = primary ? Color.whiteTextVariant(primary) : null;
 
   const onFile = async (f: File | undefined) => {
@@ -190,8 +187,8 @@ function StepColors({ club, onDone }: { club: Club; onDone: () => void }) {
           </div>
         </Card>
         <div className="flex items-start justify-center gap-4">
-          <ThemePreview name={club.name} logoUrl={logo?.dataUrl} mode="light" />
-          <ThemePreview name={club.name} logoUrl={logo?.dataUrl} mode="dark" className="hidden xl:block" />
+          <ThemePreview name={club.name} logoUrl={logo?.dataUrl} mode="light" vars={vars.light} />
+          <ThemePreview name={club.name} logoUrl={logo?.dataUrl} mode="dark" vars={vars.dark} className="hidden xl:block" />
         </div>
       </div>
       <div className="flex justify-between gap-2">
@@ -203,23 +200,19 @@ function StepColors({ club, onDone }: { club: Club; onDone: () => void }) {
 }
 
 function StepInvite({ club, onDone }: { club: Club; onDone: () => void }) {
-  const invites = useInvites(club.id);
-  const create = useCreateInvite(club.id);
-  const student = invites.data?.find((i) => i.role === "student");
-  const trainer = invites.data?.find((i) => i.role === "trainer");
+  const [sent, setSent] = useState(0);
   return (
     <div className="grid gap-6">
-      <div><h1 className="rf-text-display-sm">{t("Convide seus alunos")}</h1><p className="mt-1 text-fg-muted">{t("Mande o link no grupo do WhatsApp. Cada aluno entra com a conta Google ou o e-mail, em segundos.")}</p></div>
+      <div><h1 className="rf-text-display-sm">{t("Convide seus alunos")}</h1><p className="mt-1 text-fg-muted">{t("Cada aluno recebe um convite pessoal por e-mail e entra com a conta Google ou um código, em segundos. Só entra no clube quem você convidar.")}</p></div>
       <Card className="grid gap-4 p-5 sm:p-6">
-        <div className="flex items-center gap-2"><Ticket className="size-5 text-brand-text" /><h2 className="rf-text-title-md">{t("Link para alunos")}</h2></div>
-        {student ? <InviteShare url={student.url} clubName={club.name} /> : <div className="h-24 animate-pulse rounded-md bg-soft" />}
-        <p className="rf-text-caption text-fg-muted">{t("No plano Free, até 10 alunos. Treinadores não contam.")}</p>
+        <div className="flex items-center gap-2"><Mail className="size-5 text-brand-text" /><h2 className="rf-text-title-md">{t("Convites por e-mail")}</h2></div>
+        <InviteForm club={club} onDone={(n) => setSent((x) => x + n)} />
+        <p className="rf-text-caption text-fg-muted">{t("No plano Free, até 10 alunos. Treinadores não contam. Tem uma planilha? Importe depois em Membros e convites.")}</p>
       </Card>
-      <Card className="grid gap-4 p-5 sm:p-6">
-        <div className="grid gap-1"><h2 className="rf-text-title-md">{t("Tem outros treinadores?")}</h2><p className="text-sm text-fg-muted">{t("Eles veem todos os alunos e montam treinos com você.")}</p></div>
-        {trainer ? <InviteShare url={trainer.url} clubName={club.name} role="trainer" showQr={false} /> : <Button variant="secondary" loading={create.isPending} onClick={() => create.mutate({ role: "trainer", max_uses: 5 })} className="w-fit">{t("Gerar link para treinadores")}</Button>}
-      </Card>
-      <div className="flex justify-end"><Button size="lg" onClick={onDone}>{t("Continuar")}</Button></div>
+      <div className="flex justify-between gap-2">
+        <Button variant="ghost" onClick={onDone}>{sent ? t("Convidar mais depois") : t("Pular por enquanto")}</Button>
+        <Button size="lg" onClick={onDone}>{t("Continuar")}</Button>
+      </div>
     </div>
   );
 }
@@ -246,7 +239,7 @@ function StepLibrary({ club, onDone }: { club: Club; onDone: () => void }) {
 }
 
 function StepDone({ club }: { club: Club }) {
-  const items = [t("Clube criado"), t("Cores e logo"), t("Link de convite pronto"), t("Biblioteca inicial")];
+  const items = [t("Clube criado"), t("Cores e logo"), t("Convites por e-mail"), t("Biblioteca inicial")];
   return (
     <div className="mx-auto grid max-w-lg justify-items-center gap-6 py-6 text-center">
       <span className="grid size-16 place-items-center rounded-full bg-accent text-on-accent ring-1 ring-inset ring-accent-edge"><CircleCheck className="size-8" /></span>

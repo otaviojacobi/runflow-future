@@ -60,7 +60,7 @@ export function StudentsScreen() {
         <Card className="grid gap-3 p-4">{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="h-12" />)}</Card>
       ) : rows.length === 0 ? (
         <Card><EmptyState icon={<Users />} title={q || group !== "all" ? t("Ninguém encontrado") : t("Nenhum aluno ainda")} action={!q && group === "all" && <Button icon={<UserPlus />} onClick={() => setInvite(true)}>{t("Convidar alunos")}</Button>}>
-          {q || group !== "all" ? t("Tente outro nome ou grupo.") : t("Compartilhe o link de convite no WhatsApp e os alunos aparecem aqui.")}
+          {q || group !== "all" ? t("Tente outro nome ou grupo.") : t("Convide os alunos por e-mail. Eles aparecem aqui quando aceitarem.")}
         </EmptyState></Card>
       ) : (
         <>

@@ -10,6 +10,22 @@ const THEME = "rf.theme";
 const MODE = "rf.mode";
 export type ColorMode = "light" | "dark" | "system";
 
+/**
+ * Public pages are always Runflow's (founder, 2026-11-02): marketing, sign-in, invites, the club picker, club
+ * creation and dev pages never wear a club's colors. The club theme applies only inside the signed-in app.
+ * Keep this pattern in sync with the inline script in index.html (first paint).
+ */
+export const RUNFLOW_BRANDED = /^\/(?:$|login\/?$|invite\/|dev\/|clubs(?:\/new)?\/?$|app\/?$)/;
+export const isRunflowBranded = (path: string) => RUNFLOW_BRANDED.test(path);
+let forceRunflow = 0;
+/** Turn the cached club stylesheet on or off for this path (it stays in the DOM, so switching is instant). */
+export function syncClubTheme(path = location.pathname) {
+  const el = document.getElementById("club-theme") as HTMLStyleElement | null;
+  if (el) el.media = forceRunflow > 0 || isRunflowBranded(path) ? "not all" : "all";
+}
+/** Screens outside the route list that must look like Runflow (404) call this while mounted. */
+export function holdRunflowBrand() { forceRunflow++; syncClubTheme(); return () => { forceRunflow--; syncClubTheme(); }; }
+
 export function applyClubTheme(css: string | null) {
   let el = document.getElementById("club-theme") as HTMLStyleElement | null;
   if (!el) {
@@ -19,6 +35,7 @@ export function applyClubTheme(css: string | null) {
   }
   if (el.textContent !== (css ?? "")) el.textContent = css ?? "";
   promoteClubTheme();
+  syncClubTheme();
   storage.set(THEME, css);
 }
 /** Keep <style id="club-theme"> as the LAST stylesheet so it overrides the token defaults (same specificity). */

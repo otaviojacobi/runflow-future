@@ -4,7 +4,7 @@ import { ArrowLeft, Copy, CreditCard, FlaskConical, Lock, QrCode as QrIcon } fro
 import { useState } from "react";
 import { useMockPay, useMyCharges } from "@/api/finances";
 import { useMe } from "@/api/me";
-import { QrCode } from "@/components/club/InviteShare";
+import { QrCode } from "@/components/QrCode";
 import { RunflowWordmark } from "@/components/brand";
 import { t } from "@/i18n";
 import { fullDate, money } from "@/lib/format";
