@@ -99,3 +99,16 @@ export interface MySummary {
   last_activity: Activity | null;
   next_class: { booking: { id: ID; status: string; waitlist_position: number | null }; session: { id: ID; starts_at: ISOTime; ends_at: ISOTime }; class_type: { name: string; sport: Sport }; location: { name: string } | null } | null;
 }
+
+export interface AthleteRef { membership_id: ID; user: User }
+export interface Dashboard {
+  date: ISODate; students: number;
+  today: { planned: number; done: number; items: { workout: PlannedWorkout; athlete: AthleteRef }[] };
+  week: { planned: number; done: number; compliance_pct: number | null; duration_s: number; distance_m: number };
+  compliance_trend: { week_start: ISODate; pct: number | null; planned: number; done: number; current: boolean }[];
+  feedback: { workout: PlannedWorkout; athlete: AthleteRef; last_comment: Omit<Comment, "author"> | null }[];
+  alerts: { kind: "missed_streak" | "high_rpe" | "no_sync" | "birthday" | "new_member" | "plan_limit"; severity: "danger" | "warning" | "info" | "accent" | "brand"; athlete: AthleteRef | null; text: string; link: string }[];
+  upcoming_classes: { session: { id: ID; starts_at: ISOTime }; class_type: { name: string; sport: Sport }; booked: number; waitlist: number }[];
+  onboarding: { logo: boolean; colors: boolean; students: boolean; workouts: boolean; groups: boolean; strava: boolean };
+  subscription: Subscription;
+}

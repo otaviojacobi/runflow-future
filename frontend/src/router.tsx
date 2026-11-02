@@ -80,7 +80,7 @@ const student = gate("student", ["student"]);
 const S = () => staff, O = () => owner, St = () => student, Sh = () => shell;
 
 const staffRoutes = [
-  r(S, "/dashboard", todo("Painel", "F13")),
+  r(S, "/dashboard", lazyRouteComponent(() => import("./screens/staff/Dashboard"), "DashboardScreen")),
   r(S, "/students", StudentsScreen),
   r(S, "/students/$id", todo("Aluno", "F11")),
   r(S, "/planning", lazyRouteComponent(() => import("./screens/staff/planning/Planning"), "PlanningScreen")),

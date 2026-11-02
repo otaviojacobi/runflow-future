@@ -88,7 +88,7 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 ### Athletes (trainer view) and dashboard
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
-| GET | `/clubs/{club_id}/dashboard?date` | Today's counts, who trained or missed, unread feedback, upcoming classes | W1 |
+| GET | `/clubs/{club_id}/dashboard?date` | `{date, students, today: {planned, done, items}, week: {planned, done, compliance_pct, duration_s, distance_m}, compliance_trend[8], feedback[], alerts[] (missed_streak, high_rpe, no_sync, birthday, new_member, plan_limit; pt-BR text + link), upcoming_classes[], onboarding{logo, colors, students, workouts, groups, strava}, subscription}` | W1 |
 | GET | `/clubs/{club_id}/athletes?q&group_id` | `{membership, user, group_ids, goal, level, compliance_pct (28 d, partial = ½), week: {planned, done}, last_activity_at (only with consent), strava: none\|private\|shared, shares_data}` | W2, W4 |
 | GET | `/clubs/{club_id}/athletes/{membership_id}` | Profile, zones, stats, recent workouts | W3 |
 | PUT | `/clubs/{club_id}/athletes/{membership_id}/profile` | Goal, level, physiology, trainer notes | W3 |
