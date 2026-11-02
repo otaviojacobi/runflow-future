@@ -89,7 +89,7 @@ const staffRoutes = [
   r(S, "/library/$id", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
   r(S, "/plans", todo("Planilhas", "F14")),
   r(S, "/plans/$id", todo("Planilha", "F14")),
-  r(S, "/feedback", todo("Feedbacks", "F12")),
+  r(S, "/feedback", lazyRouteComponent(() => import("./screens/staff/Feedback"), "FeedbackScreen")),
   r(S, "/classes/manage", todo("Gestão de aulas", "F15")),
 ];
 const ownerRoutes = [

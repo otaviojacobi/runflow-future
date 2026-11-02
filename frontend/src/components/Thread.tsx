@@ -6,7 +6,7 @@ import { ago } from "@/lib/format";
 import { Avatar, Button, Skeleton, cn, toast } from "@/ui";
 
 /** Conversation on a planned workout. `meMembershipId` aligns own messages to the right. */
-export function Thread({ clubId, workoutId, meMembershipId, placeholder }: { clubId: string; workoutId: string; meMembershipId: string; placeholder?: string }) {
+export function Thread({ clubId, workoutId, meMembershipId, placeholder, quickReplies }: { clubId: string; workoutId: string; meMembershipId: string; placeholder?: string; quickReplies?: string[] }) {
   const list = useComments(clubId, workoutId);
   const post = usePostComment(clubId, workoutId);
   const [text, setText] = useState("");
@@ -37,6 +37,9 @@ export function Thread({ clubId, workoutId, meMembershipId, placeholder }: { clu
         </ul>
       ) : <p className="text-sm text-fg-muted">{t("Nenhuma mensagem ainda.")}</p>}
       <div ref={end} />
+      {quickReplies && quickReplies.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">{quickReplies.map((q) => <button key={q} type="button" disabled={post.isPending} onClick={() => post.mutate(q, { onError: toast.error })} className="rounded-full border border-line bg-surface px-3 py-1 text-sm hover:bg-soft disabled:opacity-50">{q}</button>)}</div>
+      )}
       <form onSubmit={send} className="flex items-end gap-2">
         <textarea aria-label={t("Mensagem")} value={text} onChange={(e) => setText(e.target.value)} rows={1} placeholder={placeholder ?? t("Escreva uma mensagem")}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(e); } }}

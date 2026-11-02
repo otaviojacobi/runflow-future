@@ -114,7 +114,8 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | GET | `/clubs/{club_id}/my/summary` | Today: `{shares_data, streak_weeks, week: {planned, done, duration_s, distance_m}, last_activity, next_class}` | M1 |
 | PUT | `/clubs/{club_id}/my/workouts/{id}/completion` `{status, rpe, feeling, comment, activity_id?}` | Feedback. Without `activity_id`, a same-day activity of the same sport is matched; compliance = actual ÷ planned distance (or time); the trainer is notified | M5 |
 | GET / POST | `/clubs/{club_id}/planned-workouts/{id}/comments` | Thread (student ⇄ trainers); items carry `author {membership_id, role, user}`; GET marks as read; POST notifies the other side | M2, W8 |
-| GET | `/clubs/{club_id}/feedback?filter=unread\|all\|flagged` | Trainer inbox (completions + comments) | W8 |
+| GET | `/clubs/{club_id}/feedback?filter=needs_reply\|unread\|flagged\|all` | Trainer inbox, last 30 days: `{items: [{workout, athlete, last_comment, needs_reply, flagged}], counts: {needs_reply, unread, flagged, all}}`. Flagged = PSE ≥ 9 or felt bad/awful | W8 |
+| POST | `/clubs/{club_id}/feedback/read` `{workout_ids?}` | Mark threads as read (all if empty) | W8 |
 
 ### Scheduling (aulas)
 | Method | Path | Purpose | Screens |
