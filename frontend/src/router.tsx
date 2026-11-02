@@ -93,9 +93,9 @@ const staffRoutes = [
   r(S, "/classes/manage", lazyRouteComponent(() => import("./screens/staff/classes/ClassesManage"), "ClassesManageScreen")),
 ];
 const ownerRoutes = [
-  r(O, "/club/studio", todo("Club Studio", "F16")),
+  r(O, "/club/studio", lazyRouteComponent(() => import("./screens/owner/Studio"), "StudioScreen")),
   r(O, "/club/members", MembersScreen),
-  r(O, "/club/settings", todo("Configurações do clube", "F16")),
+  r(O, "/club/settings", lazyRouteComponent(() => import("./screens/owner/Settings"), "SettingsScreen")),
   r(O, "/club/billing", todo("Plano e cobrança", "F17")),
 ];
 const studentRoutes = [

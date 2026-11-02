@@ -1,16 +1,16 @@
 /** W9 · Gestão de aulas: week view, recurring schedules, class types and venues. Route: /classes/manage */
 import { Archive, Ban, CalendarClock, CalendarPlus, ChevronLeft, ChevronRight, MapPin, MoreHorizontal, Pencil, Plus, Repeat } from "lucide-react";
 import { useMemo, useState } from "react";
-import { useArchiveClassType, useArchiveVenue, useClassTypes, useEndSchedule, useSchedules, useSessions, useVenues } from "@/api/classes";
-import type { ClassSchedule, ClassSession, ClassType, Club, Venue } from "@/api/types";
-import { Occupancy, VENUE_LABEL, WEEKDAY_LONG, isPast, timeRange } from "@/components/classes";
+import { useArchiveClassType, useClassTypes, useEndSchedule, useSchedules, useSessions } from "@/api/classes";
+import type { ClassSchedule, ClassSession, ClassType, Club } from "@/api/types";
+import { Occupancy, WEEKDAY_LONG, isPast, timeRange } from "@/components/classes";
 import { SportChip, sportBar } from "@/components/sport";
 import { t, tn } from "@/i18n";
 import { useClub } from "@/lib/club";
 import { addDays, dayMonth, localDate, mondayOf, today as todayFn, weekdayShort } from "@/lib/format";
 import { Badge, Button, Card, Dialog, EmptyState, IconButton, Menu, PageHeader, Skeleton, Tabs, cn, toast } from "@/ui";
 import { SessionDialog } from "./SessionDialog";
-import { ClassTypeDialog, OneOffDialog, ScheduleDialog, VenueDialog } from "./SetupDialogs";
+import { ClassTypeDialog, OneOffDialog, ScheduleDialog, VenuesCard } from "./SetupDialogs";
 
 export function ClassesManageScreen() {
   const { club } = useClub();
@@ -147,10 +147,9 @@ function Schedules({ club, onNew }: { club: Club; onNew: () => void }) {
 
 // ---------------------------------------------------------------- class types & venues
 function Setup({ club }: { club: Club }) {
-  const types = useClassTypes(club.id), venues = useVenues(club.id);
-  const archiveType = useArchiveClassType(club.id), archiveVenue = useArchiveVenue(club.id);
+  const types = useClassTypes(club.id);
+  const archiveType = useArchiveClassType(club.id);
   const [type, setType] = useState<ClassType | null | undefined>(undefined);
-  const [venue, setVenue] = useState<Venue | null | undefined>(undefined);
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <Card className="grid content-start gap-3 p-5">
@@ -169,25 +168,8 @@ function Setup({ club }: { club: Club }) {
           </ul>
         )}
       </Card>
-      <Card className="grid content-start gap-3 p-5">
-        <div className="flex items-center justify-between"><h2 className="rf-text-title-md">{t("Locais")}</h2><Button size="sm" variant="secondary" icon={<Plus />} onClick={() => setVenue(null)}>{t("Novo local")}</Button></div>
-        {venues.isPending ? <Skeleton className="h-32" /> : !venues.data?.length ? <p className="text-sm text-fg-muted">{t("Nenhum local cadastrado.")}</p> : (
-          <ul className="divide-y divide-line-subtle">
-            {venues.data.map((l) => (
-              <li key={l.id} className="flex items-center gap-3 py-2.5">
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-soft text-fg-muted"><MapPin className="size-4" /></span>
-                <div className="min-w-0 flex-1"><div className="font-semibold">{l.name}</div><div className="truncate text-xs text-fg-muted">{[t(VENUE_LABEL[l.kind]), l.lanes ? tn(l.lanes, "{n} raia", "{n} raias") : null, l.address].filter(Boolean).join(" · ")}</div></div>
-                <Menu trigger={<IconButton size="sm" label={t("Ações de {name}", { name: l.name })}><MoreHorizontal /></IconButton>} items={[
-                  { label: t("Editar"), icon: <Pencil />, onSelect: () => setVenue(l) },
-                  { label: t("Arquivar"), icon: <Archive />, danger: true, onSelect: () => archiveVenue.mutate(l.id, { onSuccess: () => toast.success(t("Local arquivado")) }) },
-                ]} />
-              </li>
-            ))}
-          </ul>
-        )}
-      </Card>
+      <VenuesCard club={club} />
       <ClassTypeDialog open={type !== undefined} onOpenChange={(v) => !v && setType(undefined)} value={type} />
-      <VenueDialog open={venue !== undefined} onOpenChange={(v) => !v && setVenue(undefined)} value={venue} />
     </div>
   );
 }

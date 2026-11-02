@@ -53,3 +53,5 @@ export async function readLogo(file: File): Promise<{ dataUrl: string; width: nu
   ctx.drawImage(img, 0, 0, w, h);
   return { dataUrl: canvas.toDataURL("image/png"), width: w, height: h, pixels: ctx.getImageData(0, 0, w, h).data };
 }
+
+export const useCloseClub = (clubId: string) => useMutation({ mutationFn: (confirm_name: string) => api.del(`/clubs/${clubId}`, { confirm_name }), onSuccess: () => queryClient.invalidateQueries({ queryKey: meKey }) });

@@ -72,6 +72,7 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 |---|---|---|---|
 | POST | `/clubs` `{name, city, state, modalities}` | Create club → `{club, membership, branding, subscription}`. Caller becomes owner (free plan); a student invite link and a starter library for the chosen modalities are created | A5 |
 | GET / PATCH | `/clubs/{club_id}` | Club settings (name, city, timezone, modalities, trainer_label, subdomain) | O3 |
+| DELETE | `/clubs/{club_id}` `{confirm_name}` | Close the club (owner): soft delete, subscription canceled, invites revoked, subdomain released. Members lose access; their own activities stay in their accounts | O3 |
 | GET | `/clubs/{club_id}/branding` | `{primary_color, secondary_color, logo_url, theme_rev, theme}` | O1 |
 | PUT | `/clubs/{club_id}/branding` `{primary_color?, secondary_color?, logo_asset_id?}` | Save; server derives the theme, bumps `theme_rev` | A5, O1 |
 | POST | `/clubs/{club_id}/assets` (multipart or `{data_url, kind, width, height}`) | Upload a logo (≤ 5 MB; PNG, JPG, WebP, SVG) → `{id, url}` | A5, O1 |

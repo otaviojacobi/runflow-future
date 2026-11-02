@@ -76,6 +76,17 @@ export default function register(h) {
     return c;
   });
 
+  h.delete("/v1/clubs/:club_id", (ctx) => {
+    ctx.owner(ctx.params.club_id);
+    const c = club(ctx.params.club_id);
+    if (String(ctx.body.confirm_name || "").trim().toLowerCase() !== c.name.toLowerCase()) h.invalid([{ field: "confirm_name", message: "Digite o nome do clube exatamente como aparece." }]);
+    const now = h.nowIso();
+    c.deleted_at = now; c.subdomain = null; c.updated_at = now;
+    for (const sub of h.db.club_subscriptions.filter((x) => x.club_id === c.id && x.status !== "canceled")) Object.assign(sub, { status: "canceled", cancel_at_period_end: false, updated_at: now });
+    for (const inv of h.db.invitations.filter((x) => x.club_id === c.id && !x.revoked_at)) inv.revoked_at = now;
+    h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: c.id, actor_user_id: ctx.user().id, action: "club.closed", target_type: "club", target_id: c.id, data: null, created_at: now });
+  });
+
   // ---- branding
   h.get("/v1/clubs/:club_id/branding", (ctx) => { ctx.member(ctx.params.club_id); return h.branding(ctx.params.club_id); });
   h.put("/v1/clubs/:club_id/branding", (ctx) => {

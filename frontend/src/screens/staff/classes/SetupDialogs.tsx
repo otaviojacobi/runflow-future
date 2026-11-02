@@ -1,15 +1,16 @@
 /** W9 dialogs: recurring schedule, one-off session, class type, venue. */
+import { Archive, MapPin, MoreHorizontal, Pencil, Plus } from "lucide-react";
 import { useState } from "react";
-import { type NewSchedule, useClassTypes, useCreateSchedule, useCreateSession, useSaveClassType, useSaveVenue, useVenues } from "@/api/classes";
+import { type NewSchedule, useArchiveVenue, useClassTypes, useCreateSchedule, useCreateSession, useSaveClassType, useSaveVenue, useVenues } from "@/api/classes";
 import { useMembers } from "@/api/members";
-import type { ClassType, Sport, Venue, VenueKind } from "@/api/types";
+import type { ClassType, Club, Sport, Venue, VenueKind } from "@/api/types";
 import { VENUE_KINDS, VENUE_LABEL, WEEKDAY_LONG, WEEKDAY_SHORT } from "@/components/classes";
 import { SPORTS, SPORT_LABEL } from "@/components/sport";
 import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
 import { today as todayFn } from "@/lib/format";
-import { Button, Dialog, Field, Input, Select, Textarea, cn, toast } from "@/ui";
+import { Button, Card, Dialog, Field, IconButton, Input, Menu, Select, Skeleton, Textarea, cn, toast } from "@/ui";
 
 type Open = { open: boolean; onOpenChange: (v: boolean) => void };
 const apiErr = (e: unknown) => (e instanceof ApiError ? e : null);
@@ -160,5 +161,34 @@ function VenueBody({ value, onClose }: { value?: Venue | null; onClose: () => vo
       <Field label={t("Endereço")} optional className="sm:col-span-2">{(id) => <Input id={id} value={v.address} onChange={(e) => set({ address: e.target.value })} placeholder={t("Rua, número, cidade")} />}</Field>
       <div className="flex justify-end gap-2 sm:col-span-2"><Button variant="ghost" onClick={onClose}>{t("Cancelar")}</Button><Button type="submit" loading={save.isPending}>{t("Salvar")}</Button></div>
     </form>
+  );
+}
+
+/** Venues list with create / edit / archive (W9 "Tipos e locais" and O3 settings). */
+export function VenuesCard({ club }: { club: Club }) {
+  const venues = useVenues(club.id);
+  const archiveVenue = useArchiveVenue(club.id);
+  const [venue, setVenue] = useState<Venue | null | undefined>(undefined);
+  return (
+    <>
+      <Card className="grid content-start gap-3 p-5">
+        <div className="flex items-center justify-between"><h2 className="rf-text-title-md">{t("Locais")}</h2><Button size="sm" variant="secondary" icon={<Plus />} onClick={() => setVenue(null)}>{t("Novo local")}</Button></div>
+        {venues.isPending ? <Skeleton className="h-32" /> : !venues.data?.length ? <p className="text-sm text-fg-muted">{t("Nenhum local cadastrado.")}</p> : (
+          <ul className="divide-y divide-line-subtle">
+            {venues.data.map((l) => (
+              <li key={l.id} className="flex items-center gap-3 py-2.5">
+                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-soft text-fg-muted"><MapPin className="size-4" /></span>
+                <div className="min-w-0 flex-1"><div className="font-semibold">{l.name}</div><div className="truncate text-xs text-fg-muted">{[t(VENUE_LABEL[l.kind]), l.lanes ? tn(l.lanes, "{n} raia", "{n} raias") : null, l.address].filter(Boolean).join(" · ")}</div></div>
+                <Menu trigger={<IconButton size="sm" label={t("Ações de {name}", { name: l.name })}><MoreHorizontal /></IconButton>} items={[
+                  { label: t("Editar"), icon: <Pencil />, onSelect: () => setVenue(l) },
+                  { label: t("Arquivar"), icon: <Archive />, danger: true, onSelect: () => archiveVenue.mutate(l.id, { onSuccess: () => toast.success(t("Local arquivado")) }) },
+                ]} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+      <VenueDialog open={venue !== undefined} onOpenChange={(v) => !v && setVenue(undefined)} value={venue} />
+    </>
   );
 }
