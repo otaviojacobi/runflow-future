@@ -4,7 +4,9 @@ pub mod auth;
 pub mod clubs;
 pub mod dev;
 pub mod health;
+pub mod invites;
 pub mod me;
+pub mod members;
 
 use axum::Router;
 
@@ -16,6 +18,8 @@ pub fn v1() -> Router<AppState> {
         .merge(health::routes())
         .merge(auth::routes())
         .merge(clubs::routes())
+        .merge(invites::routes())
+        .merge(members::routes())
         .merge(me::routes())
         .merge(dev::routes())
 }

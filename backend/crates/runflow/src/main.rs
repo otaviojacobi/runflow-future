@@ -37,10 +37,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Apply migrations, then serve the API (what Docker runs).
+    /// Apply migrations, then serve the API and run the background worker (what Docker and the Pi run).
     All,
-    /// Serve the HTTP API (expects an up-to-date database).
+    /// Serve the HTTP API only (expects an up-to-date database).
     Serve,
+    /// Run the background worker only (e-mails and other queued jobs).
+    Worker,
     /// Apply pending database migrations and exit.
     Migrate,
     /// Show what is configured (secrets hidden) and check the database and storage.
@@ -77,8 +79,9 @@ async fn main() -> ExitCode {
     init_logging(config.log_format);
 
     let result = match cli.command {
-        Command::All => run(config, true).await,
-        Command::Serve => run(config, false).await,
+        Command::All => run(config, true, true).await,
+        Command::Serve => run(config, false, false).await,
+        Command::Worker => worker(config).await,
         Command::Migrate => migrate(&config).await,
         Command::Doctor => doctor::run(&config).await,
         Command::EmailTest { to, preview } => email_test(&config, to, preview).await,
@@ -121,7 +124,17 @@ async fn migrate(config: &Config) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn run(config: Config, with_migrations: bool) -> anyhow::Result<()> {
+async fn worker(config: Config) -> anyhow::Result<()> {
+    let pool = connect(&config).await?;
+    let mailer = Mailer::from_settings(&config.email).context("e-mail settings")?;
+    runflow_jobs::Worker::new(pool.clone(), mailer, config.http.public_app_url.clone())
+        .run(shutdown())
+        .await;
+    pool.close().await;
+    Ok(())
+}
+
+async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow::Result<()> {
     let pool = connect(&config).await?;
     if with_migrations {
         runflow_db::migrate(&pool)
@@ -190,10 +203,35 @@ async fn run(config: Config, with_migrations: bool) -> anyhow::Result<()> {
         stripe = config.stripe.is_some(),
         "runflow listening"
     );
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown())
-        .await
-        .context("server")?;
+    // One signal stops both the server and the in-process worker.
+    let (stop_tx, stop_rx) = tokio::sync::watch::channel(false);
+    let worker = with_worker.then(|| {
+        let w = runflow_jobs::Worker::new(
+            pool.clone(),
+            mailer.clone(),
+            config.http.public_app_url.clone(),
+        );
+        let mut rx = stop_rx.clone();
+        tokio::spawn(async move {
+            w.run(async move {
+                let _ = rx.wait_for(|stop| *stop).await;
+            })
+            .await
+        })
+    });
+    let mut rx = stop_rx.clone();
+    let served = axum::serve(listener, app).with_graceful_shutdown(async move {
+        tokio::select! {
+            _ = shutdown() => {}
+            _ = rx.wait_for(|stop| *stop) => {}
+        }
+    });
+    let result = served.await;
+    let _ = stop_tx.send(true);
+    if let Some(w) = worker {
+        let _ = w.await;
+    }
+    result.context("server")?;
     pool.close().await;
     tracing::info!("bye");
     Ok(())

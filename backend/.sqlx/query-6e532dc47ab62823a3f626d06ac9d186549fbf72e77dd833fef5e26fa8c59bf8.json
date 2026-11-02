@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE memberships SET role = coalesce($2, role), status = coalesce($3, status) WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6e532dc47ab62823a3f626d06ac9d186549fbf72e77dd833fef5e26fa8c59bf8"
+}

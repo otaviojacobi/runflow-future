@@ -164,6 +164,7 @@ export default function register(h) {
       h.fail(409, "member.last_owner", "Você é o único gestor", "Promova outra pessoa a gestora em Membros ou encerre o clube.");
     const now = h.nowIso();
     Object.assign(m, { status: "left", left_at: now });
+    h.db.group_members = h.db.group_members.filter((g) => g.membership_id !== m.id);
     for (const c of h.db.consents.filter((c) => c.user_id === m.user_id && c.club_id === m.club_id && !c.revoked_at)) c.revoked_at = now;
     for (const b of h.db.bookings.filter((b) => b.membership_id === m.id && (b.status === "booked" || b.status === "waitlisted"))) b.status = "cancelled";
     h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: m.club_id, actor_user_id: m.user_id, action: "member.left", target_type: "membership", target_id: m.id, data: null, created_at: now });

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE invitations SET revoked_at = coalesce(revoked_at, now()) WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c17f92139259b4ea245e2704d969857151626d4ff33e0f0cba4a82567c9c14d7"
+}

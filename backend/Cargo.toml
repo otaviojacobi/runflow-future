@@ -13,11 +13,13 @@ runflow-api = { path = "crates/api" }
 runflow-db = { path = "crates/db" }
 runflow-domain = { path = "crates/domain" }
 runflow-integrations = { path = "crates/integrations" }
+runflow-jobs = { path = "crates/jobs" }
 
 anyhow = "1"
 aws-lc-rs = "1"
 base64 = "0.22"
 axum = "0.8"
+chrono-tz = "0.10"
 chrono = { version = "0.4", default-features = false, features = ["clock", "serde", "std"] }
 clap = { version = "4", features = ["derive"] }
 dotenvy = "0.15"

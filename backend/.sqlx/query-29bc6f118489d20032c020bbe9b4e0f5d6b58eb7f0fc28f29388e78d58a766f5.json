@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO group_members (group_id, membership_id)\n         SELECT $1, m.id FROM memberships m WHERE m.club_id = $2 AND m.status <> 'left' AND m.id = ANY($3)\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "29bc6f118489d20032c020bbe9b4e0f5d6b58eb7f0fc28f29388e78d58a766f5"
+}

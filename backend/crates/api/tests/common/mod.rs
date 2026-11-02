@@ -96,6 +96,18 @@ impl TestApp {
         }
     }
 
+    /// Run every due background job now (what the worker does in production).
+    pub async fn run_jobs(&self) -> usize {
+        runflow_jobs::Worker::new(
+            self.state.db.clone(),
+            self.state.mailer.clone(),
+            self.state.settings.public_app_url.clone(),
+        )
+        .run_once(500)
+        .await
+        .unwrap()
+    }
+
     pub fn db(&self) -> &PgPool {
         &self.state.db
     }

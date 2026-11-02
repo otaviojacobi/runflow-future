@@ -20,12 +20,13 @@ Settings: every variable is documented in `../.env.example`; the real values liv
 
 ```
 crates/
-  runflow/       the binary: config.rs (env → typed config), doctor.rs, CLI (all | serve | migrate | doctor | email-test | healthcheck)
+  runflow/       the binary: config.rs (env → typed config), doctor.rs, CLI (all | serve | worker | migrate | doctor | email-test | healthcheck)
   api/           axum router under /v1: problem.rs (pt-BR problem+json), body.rs (JSON + field validation),
                  session.rs (tokens, cookies, Auth extractor), routes/ (one module per contract section)
   db/            pool, migrations (embedded), models.rs (JSON row shapes), one query module per area,
                  tests/contract.rs (migrations == api/schema.sql)
   domain/        pure rules, no I/O: the club color engine (port of design/src/color.js)
+  jobs/          the worker: Postgres queue (FOR UPDATE SKIP LOCKED), retries with backoff; job kinds (invite e-mails)
   integrations/  email (Resend + log with a dev outbox, token-based layout), google (ID-token verification);
                  later Strava, Stripe
 migrations/      0001_contract.sql = api/schema.sql at S1; one new file per contract change
@@ -33,7 +34,7 @@ assets/          synced copies: design/dist/tokens.json + color-fixtures.json, a
 ```
 `domain` holds pure rules with no I/O: `color.rs` is the Rust port of `design/src/color.js`, proven by
 `tests/color_fixtures.rs` against the synced golden fixtures (change both together). Workout structure, tags and
-estimates join it when needed. `jobs` (Postgres queue, `worker` subcommand) arrive with the first step that needs them (§7.2).
+estimates join it when needed.
 
 ## Rules
 
@@ -44,5 +45,7 @@ estimates join it when needed. `jobs` (Postgres queue, `worker` subcommand) arri
 - **Config** only from the environment (`config.rs`). A new variable goes into `../.env.example` in the same commit. Secrets use `Secret`/redacted `Debug`.
 - **Tokens only.** E-mail HTML takes colors, type, spacing and radii from `assets/design/tokens.json` through `email::layout`/`paragraph`. Run `scripts/sync-assets.sh` after design changes.
 - **Queries** use `sqlx::query!`/`query_as!` (checked against the real schema at compile time) and live in `db/` modules; handlers never write SQL. The offline data in `.sqlx/` is committed (`scripts/prepare.sh`), and `check.sh`, CI and Docker build with `SQLX_OFFLINE=true`, so a stale `.sqlx` fails the check. Tests may use runtime `sqlx::query` for fixtures.
-- **Auth:** handlers take `Auth` (401 `auth.required`) or `MaybeAuth`; club-scoped routes will add a membership/role extractor (S3). Secrets, tokens and codes are only stored hashed (`session.rs`).
+- **Auth:** handlers take `Auth` (401 `auth.required`) or `MaybeAuth`; club routes call `access::member(…, OWNER | STAFF | ANY)` (404 `club.not_found`, 403 `auth.forbidden`), exactly like the mock.
+- **Slow or retryable work** (e-mails other than sign-in codes, later notifications and sync) goes through the job queue (`runflow_jobs::enqueue`); tests run it with `TestApp::run_jobs()`. Jobs must be idempotent and skip work that became stale.
+- **Secrets, tokens and codes** are only stored hashed (`session.rs`).
 - **Areas stay splittable.** Never import another area's source; the backend reads `api/schema.sql` (contract test) and synced design artifacts only.

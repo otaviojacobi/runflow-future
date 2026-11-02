@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE groups SET name = coalesce($2, name), description = CASE WHEN $3 THEN $4 ELSE description END WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1b5dea5d241fbb544e36da2f15b22f1032348fb5a1f72964df8bd229e678cd37"
+}

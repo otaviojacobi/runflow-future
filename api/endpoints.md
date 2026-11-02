@@ -96,15 +96,15 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 | GET | `/public/clubs/{slug}` | Public name + theme (subdomain, invite pages) | A3 |
 | GET | `/public/invites/{token}` | Branded invite page data: `{club, branding, role, valid, reason, invited_by, name, email_hint (masked), expires_at, members, already_member, email_matches}` (reason: `expired` `revoked` `accepted` `club_full`; `email_matches` is null when signed out). Unknown or rotated token → 404 | A3 |
 | POST | `/invites/{token}/accept` | Join the club. Only the account whose e-mail is the invited one: otherwise `403 invite.email_mismatch`. Single use (`accepted_at`); joins the invite's groups | A3 |
-| GET / POST | `/clubs/{club_id}/invites` `{email, role, name?, group_ids?}` | **Personal invites only (D-023).** POST creates one invite for one e-mail (trainer invites: owner only), valid **7 days**, and e-mails the link (mock: `/mock/outbox`). `409 invite.exists` (open invite for that e-mail: use resend) or `invite.already_member`. GET lists them with `status: pending \| expired \| accepted` and `url` | A5, O2 |
+| GET / POST | `/clubs/{club_id}/invites` `{email, role, name?, group_ids?}` | **Personal invites only (D-023).** POST creates one invite for one e-mail (trainer invites: owner only), valid **7 days**, and e-mails the link through the background worker (development: `/mock/outbox`). `409 invite.exists` (open invite for that e-mail: use resend) or `invite.already_member`. GET lists them with `status: pending \| expired \| accepted` and `url` | A5, O2 |
 | POST | `/clubs/{club_id}/invites/{id}/resend` | Send again: new token (the old link stops working), another 7 days | O2 |
 | POST | `/clubs/{club_id}/invites/bulk` `{rows: [{name?, email, groups?}]}` | CSV import (≤ 500 rows): one personal invite per e-mail (same rules as POST; an open invite is resent), joining the named groups on accept → `{created, items[] (with url, resent), skipped[] {row, email, reason: invalid_email \| duplicate \| already_member}, over_limit}` | O2 |
 | DELETE | `/clubs/{club_id}/invites/{id}` | Cancel (the link stops working) | O2 |
-| GET | `/mock/outbox?to` | **Mock only**: e-mails the backend would send (subject, text, action link), newest first | — |
-| GET | `/clubs/{club_id}/members?role&q&status` | `{membership, user, group_ids}` (role may be a list: `trainer,owner`) | O2 |
-| PATCH / DELETE | `/clubs/{club_id}/members/{membership_id}` | Change role or status / remove | O2 |
+| GET | `/mock/outbox?to` | **Development only** (mock, and the backend with `RUNFLOW_ENV=development` + e-mails in the log): e-mails that would be sent (subject, text, action link), newest first | — |
+| GET | `/clubs/{club_id}/members?role&q&status` | Staff. `{membership, user, group_ids}`; owners, then trainers, then students, each by name (accents ignored); `q` matches name or e-mail; default excludes `left`; up to 500 per page (role may be a list: `trainer,owner`) | O2 |
+| PATCH / DELETE | `/clubs/{club_id}/members/{membership_id}` | Owner: change `role` / `status` (`active` \| `suspended`) or remove (→ `left`, out of groups). Not yourself (`409 member.self`); reactivating a student over the plan limit → `409 plan.limit_reached` | O2 |
 | GET / POST | `/clubs/{club_id}/groups` · PATCH / DELETE `/groups/{id}` · PUT `/groups/{id}/members` `{membership_ids}` | Groups | W2 |
-| POST | `/clubs/{club_id}/leave` | Leave a club: membership → `left`, that club's sharing consents revoked, open bookings cancelled. `409 member.last_owner` for the only owner | C1 |
+| POST | `/clubs/{club_id}/leave` | Leave a club: membership → `left`, out of its groups, that club's sharing consents revoked, open bookings cancelled. `409 member.last_owner` for the only owner | C1 |
 
 ### Athletes (trainer view) and dashboard
 | Method | Path | Purpose | Screens |

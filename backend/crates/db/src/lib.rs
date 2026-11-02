@@ -6,7 +6,10 @@
 
 pub mod auth;
 pub mod clubs;
+pub mod invites;
+pub mod jobs;
 pub mod me;
+pub mod members;
 pub mod models;
 
 use std::time::{Duration, Instant};

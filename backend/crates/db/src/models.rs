@@ -120,3 +120,56 @@ pub struct SessionInfo {
     pub last_seen_at: DateTime<Utc>,
     pub current: bool,
 }
+
+/// A personal invite (D-023). The API adds `status` and `url`.
+#[derive(Debug, Clone, Serialize)]
+pub struct Invitation {
+    pub id: Uuid,
+    pub club_id: Uuid,
+    pub role: String,
+    pub email: String,
+    pub name: Option<String>,
+    pub token: String,
+    pub group_ids: Vec<Uuid>,
+    pub created_by: Uuid,
+    pub expires_at: DateTime<Utc>,
+    pub sent_at: Option<DateTime<Utc>>,
+    pub send_count: i32,
+    pub accepted_at: Option<DateTime<Utc>>,
+    pub accepted_by: Option<Uuid>,
+    pub revoked_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+}
+
+impl Invitation {
+    /// `revoked`, `accepted`, `expired` or `pending`.
+    pub fn status(&self, now: DateTime<Utc>) -> &'static str {
+        if self.revoked_at.is_some() {
+            "revoked"
+        } else if self.accepted_at.is_some() {
+            "accepted"
+        } else if self.expires_at < now {
+            "expired"
+        } else {
+            "pending"
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Group {
+    pub id: Uuid,
+    pub club_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub member_ids: Vec<Uuid>,
+}
+
+/// One row of `GET /clubs/{id}/members`.
+#[derive(Debug, Clone, Serialize)]
+pub struct Member {
+    pub membership: Membership,
+    pub user: User,
+    pub group_ids: Vec<Uuid>,
+}

@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM memberships m JOIN users u ON u.id = m.user_id\n                           WHERE m.club_id = $1 AND lower(u.email) = lower($2) AND u.deleted_at IS NULL AND m.status = 'active') AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9d70bb894781a4971835c12da3b2c354e8d1c24e13c08823861a2d7b0b57f51a"
+}

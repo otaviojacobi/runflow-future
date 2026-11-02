@@ -1,0 +1,21 @@
+[package]
+name = "runflow-jobs"
+description = "Background work on the Postgres queue: e-mails (invites); later notifications, Strava sync, reminders"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+runflow-db.workspace = true
+runflow-integrations.workspace = true
+chrono.workspace = true
+chrono-tz.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true

@@ -53,7 +53,7 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 |---|---|---|
 | S1 | Bootstrap: Cargo workspace, axum `/v1/health`, config from env (`.env.example` lists every variable), sqlx migrations from `api/schema.sql`, problem+json errors (pt-BR), e-mail via Resend (D-026, log fallback), Dockerfile (amd64/arm64), root `docker-compose.yaml` (Postgres + API), backend CI | [x] |
 | S2 | Auth: e-mail code via Resend (cooldown, hourly cap, 5 attempts), Google ID tokens verified against Google's keys, opaque hashed sessions (Bearer or HttpOnly cookie, 60-day sliding), logout; `/me` (+ PATCH, LGPD delete and export), prefs, consents, notifications (keyset pages), sessions; dev outbox `/v1/mock/outbox`. Moved: `/me/avatar` → S3 (storage), calendar feed → S4, `/clubs/{id}/leave` → S3 | [x] |
-| S3 | Clubs, branding (Rust port of the color engine, golden fixtures), invites, members, groups | [ ] |
+| S3 | Clubs (+ starter library from `api/starter-library.json`), settings (timezones, subdomains: reserved/taken/Pro), branding with the Rust port of the color engine (golden fixtures incl. stored theme + CSS), uploads via `object_store` (logos, `/me/avatar`; sandboxed serving), public club page, personal invites e-mailed by the Postgres job queue (`worker`; `all` runs it in-process), bulk import, members, groups, leave | [x] |
 | S4 | Workouts, templates, planilhas, completions, comments, feedback | [ ] |
 | S5 | Activities + Strava (OAuth, webhooks, sync, consent-based visibility) | [ ] |
 | S6 | Scheduling | [ ] |
