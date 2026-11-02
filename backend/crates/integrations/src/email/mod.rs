@@ -87,7 +87,7 @@ pub struct EmailSettings {
     pub provider: Provider,
     pub resend_api_key: Option<String>,
     pub resend_api_url: String,
-    /// `Runflow <ola@runflow.club>`. The domain must be verified in Resend.
+    /// `Runflow <contato@runflow.club>`. The domain must be verified in Resend.
     pub from: String,
     pub reply_to: Option<String>,
 }

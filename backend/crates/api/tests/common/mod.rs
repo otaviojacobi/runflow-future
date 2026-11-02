@@ -76,7 +76,7 @@ fn log_mailer() -> Mailer {
         provider: Provider::Log,
         resend_api_key: None,
         resend_api_url: String::new(),
-        from: "Runflow <ola@runflow.club>".into(),
+        from: "Runflow <contato@runflow.club>".into(),
         reply_to: None,
     })
     .unwrap()

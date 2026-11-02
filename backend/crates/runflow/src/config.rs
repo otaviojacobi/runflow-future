@@ -313,10 +313,10 @@ impl Config {
             e.errors
                 .push("EMAIL_PROVIDER=resend needs RESEND_API_KEY (resend.com/api-keys)".into());
         }
-        let from = e.or("EMAIL_FROM", "Runflow <ola@runflow.club>");
+        let from = e.or("EMAIL_FROM", "Runflow <contato@runflow.club>");
         if !from.contains('@') {
             e.errors.push(format!(
-                "EMAIL_FROM={from:?} needs an e-mail address, e.g. Runflow <ola@runflow.club>"
+                "EMAIL_FROM={from:?} needs an e-mail address, e.g. Runflow <contato@runflow.club>"
             ));
         }
         let email = EmailSettings {

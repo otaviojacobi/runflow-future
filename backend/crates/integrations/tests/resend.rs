@@ -62,8 +62,8 @@ fn mailer(url: &str) -> Mailer {
         provider: Provider::Resend,
         resend_api_key: Some("re_test".into()),
         resend_api_url: url.into(),
-        from: "Runflow <ola@runflow.club>".into(),
-        reply_to: Some("suporte@runflow.club".into()),
+        from: "Runflow <contato@runflow.club>".into(),
+        reply_to: Some("contato@runflow.club".into()),
     })
     .unwrap()
 }
@@ -89,9 +89,9 @@ async fn sends_with_key_headers_and_body() {
     let (headers, body) = &s.calls[0];
     assert_eq!(headers["authorization"], "Bearer re_test");
     assert_eq!(headers["idempotency-key"], "code-1");
-    assert_eq!(body["from"], "Runflow <ola@runflow.club>");
+    assert_eq!(body["from"], "Runflow <contato@runflow.club>");
     assert_eq!(body["to"], json!(["ana@email.com"]));
-    assert_eq!(body["reply_to"], "suporte@runflow.club");
+    assert_eq!(body["reply_to"], "contato@runflow.club");
     assert_eq!(
         body["tags"],
         json!([{ "name": "kind", "value": "sign_in_code" }])

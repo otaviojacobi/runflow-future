@@ -322,7 +322,7 @@ export function LandingScreen() {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-5 py-8 text-sm text-fg-muted">
           <RunflowWordmark />
           <span>© 2026 Runflow · {t("Feito no Brasil")}</span>
-          <span className="ml-auto flex gap-5"><a href="#" className="hover:text-fg">{t("Termos de uso")}</a><a href="#" className="hover:text-fg">{t("Privacidade")}</a><a href="mailto:oi@runflow.club" className="hover:text-fg">oi@runflow.club</a></span>
+          <span className="ml-auto flex gap-5"><a href="#" className="hover:text-fg">{t("Termos de uso")}</a><a href="#" className="hover:text-fg">{t("Privacidade")}</a><a href="mailto:contato@runflow.club" className="hover:text-fg">contato@runflow.club</a></span>
         </div>
       </footer>
     </div>

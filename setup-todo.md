@@ -148,7 +148,7 @@ nano .env    # paste TUNNEL_TOKEN, RESEND_API_KEY, GOOGLE_CLIENT_ID, STRAVA_CLIE
 - [ ] Back up `ops/qa/.env` somewhere safe (a password manager). **Never change `ENCRYPTION_KEY`** once people connect Strava.
 - [ ] Start: `docker compose up -d` then `docker compose ps` (all `healthy`/`running` after ~1 minute).
 - [ ] Check the setup: `docker compose run --rm api doctor` (database ok, e-mail resend, google ok, strava ok, secrets set).
-- [ ] Test e-mail: `docker compose run --rm api email-test --to otavio@runflow.club`
+- [ ] Test e-mail: `docker compose run --rm api email-test --to contato@runflow.club`
 - [ ] Auto-deploy and backups:
 
   ```sh
