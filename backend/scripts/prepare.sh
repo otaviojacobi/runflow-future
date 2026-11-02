@@ -11,7 +11,7 @@ docker compose --project-directory "$root" -f "$root/docker-compose.yaml" up -d 
 export DATABASE_URL="postgres://$(env_get POSTGRES_USER):$(env_get POSTGRES_PASSWORD)@localhost:$(env_get POSTGRES_HOST_PORT)/$(env_get POSTGRES_DB)"
 # Until the beta the bootstrap migration changes in place (D-030): a dev database built from an older one starts over.
 if ! out=$(sqlx migrate run --source migrations 2>&1); then
-  if grep -q "previously applied but has been modified" <<<"$out"; then
+  if grep -qE "previously applied but (has been modified|is missing)" <<<"$out"; then
     echo "bootstrap migration changed: recreating the dev database"
     docker compose --project-directory "$root" -f "$root/docker-compose.yaml" exec -T postgres sh -c \
       'psql -U "$POSTGRES_USER" -d postgres -q -c "DROP DATABASE IF EXISTS \"$POSTGRES_DB\" WITH (FORCE)" -c "CREATE DATABASE \"$POSTGRES_DB\" OWNER \"$POSTGRES_USER\""'
