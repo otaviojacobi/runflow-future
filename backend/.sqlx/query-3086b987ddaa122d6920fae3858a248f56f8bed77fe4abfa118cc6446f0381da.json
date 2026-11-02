@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE consents SET revoked_at = now() WHERE user_id = $1 AND club_id IS NOT NULL AND revoked_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3086b987ddaa122d6920fae3858a248f56f8bed77fe4abfa118cc6446f0381da"
+}

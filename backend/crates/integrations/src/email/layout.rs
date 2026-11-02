@@ -94,6 +94,21 @@ pub fn paragraph(html: &str) -> String {
     )
 }
 
+/// A one-time code, big and spaced, easy to read and copy. `code` is digits only.
+pub fn code_block(code: &str) -> String {
+    format!(
+        r#"<p style="margin:{my}px 0;padding:{p}px;background:{bg};border-radius:{r}px;text-align:center;{css};letter-spacing:{ls}px;color:{fg}">{code}</p>"#,
+        my = space("5"),
+        p = space("4"),
+        bg = color(&["bg", "sunken"]),
+        r = radius("md"),
+        css = text("metricLg"),
+        ls = space("2"),
+        fg = color(&["fg", "default"]),
+        code = escape_html(code),
+    )
+}
+
 /// Wrap already-escaped `body_html` (see [`paragraph`]) in the Runflow frame. `title` and `footer` are plain text.
 pub fn layout(title: &str, body_html: &str, action: Option<Action<'_>>, footer: &str) -> String {
     let (canvas, surface, border, fg, muted) = (

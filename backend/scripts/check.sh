@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Backend check: design-asset sync, rustfmt, clippy, then every test against a real Postgres (§8: no DB mocks).
+# Backend check: design-asset sync, rustfmt, clippy (offline query data), then every test against a real
+# Postgres (§8: no DB mocks).
 # Postgres: $TEST_DATABASE_URL if set (CI), otherwise the docker compose `postgres` service with the
 # credentials from the repo-root .env (started if needed).
 set -euo pipefail
@@ -18,6 +19,8 @@ fi
 
 echo "› rustfmt"
 cargo fmt --all --check
+# Queries compile from the committed .sqlx data, like CI and Docker (scripts/prepare.sh refreshes it).
+export SQLX_OFFLINE=true
 echo "› clippy"
 cargo clippy --workspace --all-targets --locked -q -- -D warnings
 

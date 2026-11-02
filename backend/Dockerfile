@@ -12,7 +12,7 @@ WORKDIR /src
 RUN apt-get update && apt-get install -y --no-install-recommends cmake clang && rm -rf /var/lib/apt/lists/*
 COPY . .
 ARG RUNFLOW_GIT_SHA=""
-ENV RUNFLOW_GIT_SHA=${RUNFLOW_GIT_SHA}
+ENV RUNFLOW_GIT_SHA=${RUNFLOW_GIT_SHA} SQLX_OFFLINE=true
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,target=/src/target,sharing=locked \

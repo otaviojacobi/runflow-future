@@ -92,6 +92,7 @@ export default function register(h) {
     if ("name" in b && !String(b.name || "").trim()) errors.push({ field: "name", message: "Informe seu nome." });
     if ("birth_date" in b && b.birth_date && !/^\d{4}-\d{2}-\d{2}$/.test(b.birth_date)) errors.push({ field: "birth_date", message: "Data inválida." });
     if ("sex" in b && b.sex && !["female", "male", "other"].includes(b.sex)) errors.push({ field: "sex", message: "Opção inválida." });
+    if ("avatar_url" in b && b.avatar_url && !/^\/v1\/assets\/[\w:-]+$/.test(String(b.avatar_url))) errors.push({ field: "avatar_url", message: "Envie a foto pelo app." });
     if (errors.length) h.invalid(errors);
     for (const k of ["name", "phone", "birth_date", "sex", "avatar_url"]) if (k in b) u[k] = typeof b[k] === "string" ? b[k].trim() || null : b[k];
     u.updated_at = h.nowIso();
@@ -102,8 +103,9 @@ export default function register(h) {
     const now = h.nowIso();
     if (h.db.memberships.some((m) => m.user_id === u.id && m.role === "owner" && m.status === "active"))
       h.fail(409, "account.owns_club", "Você ainda é gestor de um clube", "Transfira a gestão ou encerre o clube antes de excluir sua conta.");
-    u.deleted_at = now;
-    u.email = `deleted+${u.id}@runflow.club`;
+    // LGPD: anonymize; training history stays with the clubs under the anonymized account.
+    Object.assign(u, { deleted_at: now, email: `deleted+${u.id}@runflow.club`, name: "Conta excluída", phone: null, birth_date: null, sex: null, avatar_url: null });
+    h.db.auth_identities = h.db.auth_identities.filter((i) => i.user_id !== u.id);
     for (const m of h.db.memberships.filter((m) => m.user_id === u.id)) Object.assign(m, { status: "left", left_at: now });
     for (const s of h.db.sessions.filter((s) => s.user_id === u.id)) s.revoked_at = now;
     for (const c of h.db.provider_connections.filter((c) => c.user_id === u.id)) c.status = "revoked";

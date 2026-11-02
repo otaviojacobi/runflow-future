@@ -106,9 +106,12 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
             "google",
             "ok",
             format!(
-                "client {}… · secret {}{}{}",
+                "client {}…{}{}{}",
                 &g.client_id[..g.client_id.len().min(12)],
-                g.client_secret.hint(),
+                g.client_secret
+                    .as_ref()
+                    .map(|s| format!(" · secret {}", s.hint()))
+                    .unwrap_or_default(),
                 if g.android_client_id.is_some() {
                     " · android"
                 } else {
@@ -124,7 +127,7 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
         None => line(
             "google",
             "missing",
-            "GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET (sign in with Google, S2)",
+            "GOOGLE_CLIENT_ID (sign in with Google; e-mail codes work without it)",
         ),
     }
     match &c.strava {

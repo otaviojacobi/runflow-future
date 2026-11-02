@@ -64,10 +64,22 @@ pub struct Secrets {
 
 #[derive(Debug, Clone)]
 pub struct Google {
+    /// Web OAuth client (Google Identity Services); also the audience the mobile SDK requests.
     pub client_id: String,
-    pub client_secret: Secret,
+    /// Not needed for ID-token sign-in; kept for future server-side Google APIs.
+    pub client_secret: Option<Secret>,
     pub android_client_id: Option<String>,
     pub ios_client_id: Option<String>,
+}
+
+impl Google {
+    /// Client ids whose ID tokens we accept.
+    pub fn audiences(&self) -> Vec<String> {
+        std::iter::once(self.client_id.clone())
+            .chain(self.android_client_id.clone())
+            .chain(self.ios_client_id.clone())
+            .collect()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -304,14 +316,12 @@ impl Config {
             reply_to: e.opt("EMAIL_REPLY_TO"),
         };
 
-        let google = e
-            .pair("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET")
-            .map(|(id, secret)| Google {
-                client_id: id,
-                client_secret: Secret(secret),
-                android_client_id: e.opt("GOOGLE_ANDROID_CLIENT_ID"),
-                ios_client_id: e.opt("GOOGLE_IOS_CLIENT_ID"),
-            });
+        let google = e.opt("GOOGLE_CLIENT_ID").map(|id| Google {
+            client_id: id,
+            client_secret: e.secret("GOOGLE_CLIENT_SECRET"),
+            android_client_id: e.opt("GOOGLE_ANDROID_CLIENT_ID"),
+            ios_client_id: e.opt("GOOGLE_IOS_CLIENT_ID"),
+        });
         let strava = e
             .pair("STRAVA_CLIENT_ID", "STRAVA_CLIENT_SECRET")
             .map(|(id, secret)| Strava {
@@ -445,11 +455,11 @@ mod tests {
     fn pairs_and_secrets() {
         let errs = cfg(&[
             ("DATABASE_URL", "postgres://x"),
-            ("GOOGLE_CLIENT_ID", "id"),
+            ("STRAVA_CLIENT_ID", "id"),
             ("SESSION_SECRET", "short"),
         ])
         .unwrap_err();
-        assert!(errs.iter().any(|e| e.contains("GOOGLE_CLIENT_SECRET")));
+        assert!(errs.iter().any(|e| e.contains("STRAVA_CLIENT_SECRET")));
         assert!(
             errs.iter()
                 .any(|e| e.contains("SESSION_SECRET is too short"))

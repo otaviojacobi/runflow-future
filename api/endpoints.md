@@ -7,7 +7,7 @@ Screen IDs (A*, M*, W*, O*, C*) refer to `docs/build-plan.md`.
 ## Conventions
 
 - **Base path** `/v1`. The web app calls it same-origin as `/api/v1/...` (dev proxy → mock on `:8787`). Mobile calls `https://api.runflow.club/v1`.
-- **Auth**: `Authorization: Bearer <token>`. The real web app will use an HttpOnly cookie carrying the same token (§7.3). Mock tokens start with `mock_`; in the mock, the e-mail code is always `000000`.
+- **Auth**: `Authorization: Bearer <token>`, or the HttpOnly `rf_session` cookie that sign-in sets for web clients (same token, §7.3). Apps send `X-Client: mobile` to get a mobile session (no cookie). Sessions last 60 days after their last use and can be revoked. Mock tokens start with `mock_`; in the mock, the e-mail code is always `000000`.
 - **JSON** is `snake_case`, identical to the column names in `schema.sql`. Dates are `YYYY-MM-DD` (club-local); timestamps are ISO 8601 UTC.
 - **Lists** return `{ "items": [...], "next_cursor": string | null }`. Query: `?cursor=&limit=` (default 50).
 - **Errors** are RFC 9457 `application/problem+json`. `title` and `detail` are **pt-BR** for people; `code` is stable English for code (D-013):
@@ -54,13 +54,13 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 ### Auth and account
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
-| POST | `/auth/email/start` `{email}` | Send a 6-digit code (mock: always `000000`) | A2 |
-| POST | `/auth/email/verify` `{email, code}` | → `{token, user, is_new}` | A2 |
-| POST | `/auth/google` `{id_token}` | → `{token, user, is_new}` (mock: `id_token` = an email) | A2 |
-| POST | `/auth/logout` | Revoke the session | shell |
-| GET | `/me` | `{user, memberships:[{membership, club, theme, subscription}], prefs, unread_notifications}` | all |
-| PATCH | `/me` `{name, phone, birth_date, sex, avatar_url}` | Update profile | A4, C1 |
-| DELETE | `/me` | Delete account (LGPD; App Store) | C1 |
+| POST | `/auth/email/start` `{email}` | E-mail a 6-digit code, valid 10 min → `{sent, expires_in_s, dev_code?}`. A new code replaces the previous one. Limits: one code per 30 s (`429 auth.code_cooldown`, `Retry-After`) and 5 per hour (`429 auth.too_many_codes`) per address; `503 email.unavailable` if sending fails. `dev_code` only in development with e-mails in the log (mock: always `000000`, no limits) | A2 |
+| POST | `/auth/email/verify` `{email, code}` | → `{token, user, is_new}`. Spaces in the code are ignored. `400 auth.code_expired` (none pending), `400 auth.invalid_code`, `429 auth.too_many_attempts` (after 5 tries; ask for a new code) | A2 |
+| POST | `/auth/google` `{id_token}` | Google ID token (web: Google Identity Services; mobile: native SDK), verified against Google's keys and our client ids → `{token, user, is_new}`. Accounts match by Google id, then by e-mail (so e-mail and Google sign-in share one account). `400 auth.google_failed`, `503 auth.google_unavailable` (not configured). Mock: `id_token` = an e-mail | A2 |
+| POST | `/auth/logout` | Revoke the session and clear the cookie → `204` | shell |
+| GET | `/me` | `{user, memberships:[{membership, club, branding, subscription}], prefs, unread_notifications}` | all |
+| PATCH | `/me` `{name, phone, birth_date, sex, avatar_url}` | Update profile. `avatar_url` only accepts `null` or one of our `/v1/assets/{id}` paths | A4, C1 |
+| DELETE | `/me` | Delete account (LGPD; App Store): name/e-mail/phone anonymized, every club left, sessions and provider links revoked, sign-in identities removed (the same e-mail can start over). `409 account.owns_club` | C1 |
 | GET | `/me/export` | All my data as JSON (LGPD portability) | C1 |
 | GET / PATCH | `/me/prefs` | Notification preferences | C1 |
 | GET | `/me/consents` · POST `/me/consents` `{club_id?, kind, text_version}` · DELETE `/me/consents/{id}` | Consents (grant / revoke) | A4, C1 |

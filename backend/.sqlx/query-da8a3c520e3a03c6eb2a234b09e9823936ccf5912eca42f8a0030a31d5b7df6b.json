@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE email_codes SET consumed_at = now() WHERE lower(email) = lower($1) AND consumed_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "da8a3c520e3a03c6eb2a234b09e9823936ccf5912eca42f8a0030a31d5b7df6b"
+}

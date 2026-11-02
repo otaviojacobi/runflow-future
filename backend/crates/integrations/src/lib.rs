@@ -2,3 +2,4 @@
 //! small, provider-neutral API to the rest of the backend.
 
 pub mod email;
+pub mod google;

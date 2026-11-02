@@ -1,7 +1,9 @@
 //! The HTTP API. Implements `api/endpoints.md` (the contract) route by route under `/v1`.
 
-mod health;
+pub mod body;
 pub mod problem;
+pub mod routes;
+pub mod session;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -11,6 +13,8 @@ use axum::extract::{DefaultBodyLimit, Request};
 use axum::http::{HeaderName, HeaderValue, Method, header};
 use axum::response::{IntoResponse, Response};
 use runflow_db::Pool;
+use runflow_integrations::email::Mailer;
+use runflow_integrations::google::GoogleVerifier;
 use tower::ServiceBuilder;
 use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::compression::CompressionLayer;
@@ -31,19 +35,57 @@ pub struct ApiSettings {
     pub request_timeout: Duration,
     /// Largest request body (uploads arrive as data URLs; the mock allows 12 MB).
     pub body_limit: usize,
+    /// Where people open the web app (links in e-mails).
+    pub public_app_url: String,
+    pub auth: AuthSettings,
+}
+
+#[derive(Clone)]
+pub struct AuthSettings {
+    /// HMAC key for e-mail codes (`SESSION_SECRET`).
+    pub secret: Vec<u8>,
+    /// Sessions live this long after their last use.
+    pub session_ttl: chrono::Duration,
+    pub cookie_domain: Option<String>,
+    /// `Secure` cookies (HTTPS deployments).
+    pub cookie_secure: bool,
+    /// Development with e-mails in the log: answer `dev_code` and serve `/v1/mock/outbox`, like the mock.
+    pub dev_affordances: bool,
+}
+
+/// Never prints the secret.
+impl std::fmt::Debug for AuthSettings {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuthSettings")
+            .field("session_ttl", &self.session_ttl)
+            .field("cookie_domain", &self.cookie_domain)
+            .field("cookie_secure", &self.cookie_secure)
+            .field("dev_affordances", &self.dev_affordances)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Clone)]
 pub struct AppState {
     pub db: Pool,
     pub settings: Arc<ApiSettings>,
+    pub mailer: Mailer,
+    /// `None` when Google sign-in isn't configured (`GOOGLE_CLIENT_ID`).
+    pub google: Option<Arc<GoogleVerifier>>,
 }
 
 impl AppState {
-    pub fn new(db: Pool, settings: ApiSettings) -> Self {
+    pub fn new(
+        db: Pool,
+        settings: ApiSettings,
+        mailer: Mailer,
+        google: Option<GoogleVerifier>,
+    ) -> Self {
         Self {
             db,
             settings: Arc::new(settings),
+            mailer,
+            google: google.map(Arc::new),
         }
     }
 }
@@ -52,7 +94,7 @@ const REQUEST_ID: HeaderName = HeaderName::from_static("x-request-id");
 
 pub fn router(state: AppState) -> Router {
     let settings = state.settings.clone();
-    let v1 = Router::new().merge(health::routes());
+    let v1 = routes::v1();
 
     let cors_origins: Vec<HeaderValue> = settings
         .cors_origins

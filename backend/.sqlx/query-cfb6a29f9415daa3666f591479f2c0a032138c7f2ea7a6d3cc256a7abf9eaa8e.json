@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE memberships SET status = 'left', left_at = now() WHERE user_id = $1 AND status <> 'left'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cfb6a29f9415daa3666f591479f2c0a032138c7f2ea7a6d3cc256a7abf9eaa8e"
+}

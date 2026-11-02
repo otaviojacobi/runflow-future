@@ -9,8 +9,11 @@ use std::time::Duration;
 
 use anyhow::Context;
 use clap::{Parser, Subcommand};
-use runflow_api::{ApiSettings, AppState};
-use runflow_integrations::email::{Action, Email, Mailer, escape_html, layout, paragraph};
+use runflow_api::{ApiSettings, AppState, AuthSettings};
+use runflow_integrations::email::{
+    Action, Email, Mailer, Provider, escape_html, layout, paragraph,
+};
+use runflow_integrations::google::{GOOGLE_JWKS_URL, GoogleVerifier};
 use tracing_subscriber::EnvFilter;
 
 use crate::config::{Config, LogFormat, RunEnv};
@@ -127,13 +130,38 @@ async fn run(config: Config, with_migrations: bool) -> anyhow::Result<()> {
     // Fail fast on a broken e-mail setup instead of at the first sign-in.
     let mailer = Mailer::from_settings(&config.email).context("e-mail settings")?;
 
+    let secret = match &config.secrets.session_secret {
+        Some(s) => s.expose().as_bytes().to_vec(),
+        None => {
+            tracing::warn!("SESSION_SECRET is not set: using an insecure development key");
+            b"runflow-development-only-insecure-key".to_vec()
+        }
+    };
     let settings = ApiSettings {
         version: *VERSION,
         cors_origins: config.http.cors_origins.clone(),
         request_timeout: Duration::from_secs(30),
         body_limit: 12 * 1024 * 1024,
+        public_app_url: config.http.public_app_url.clone(),
+        auth: AuthSettings {
+            secret,
+            session_ttl: chrono::Duration::days(60),
+            cookie_domain: config.http.cookie_domain.clone(),
+            cookie_secure: config.http.public_app_url.starts_with("https://"),
+            dev_affordances: config.env == RunEnv::Development
+                && mailer.provider() == Provider::Log,
+        },
     };
-    let app = runflow_api::router(AppState::new(pool.clone(), settings));
+    let google = config
+        .google
+        .as_ref()
+        .map(|g| GoogleVerifier::new(GOOGLE_JWKS_URL, g.audiences()));
+    let app = runflow_api::router(AppState::new(
+        pool.clone(),
+        settings,
+        mailer.clone(),
+        google,
+    ));
     let listener = tokio::net::TcpListener::bind(config.http.bind)
         .await
         .with_context(|| format!("binding {}", config.http.bind))?;

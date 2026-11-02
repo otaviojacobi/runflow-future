@@ -1,0 +1,92 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO notification_prefs (user_id, push_workouts, push_comments, push_classes, email_weekly)\n         VALUES ($1, coalesce($2, true), coalesce($3, true), coalesce($4, true), coalesce($5, true))\n         ON CONFLICT (user_id) DO UPDATE SET\n           push_workouts = coalesce($2, notification_prefs.push_workouts),\n           push_comments = coalesce($3, notification_prefs.push_comments),\n           push_classes  = coalesce($4, notification_prefs.push_classes),\n           email_weekly  = coalesce($5, notification_prefs.email_weekly),\n           updated_at    = now()\n         RETURNING user_id, push_workouts, push_comments, push_classes, email_weekly, updated_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "push_workouts",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "push_workouts"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "push_comments",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "push_comments"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "push_classes",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "push_classes"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "email_weekly",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "email_weekly"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Bool",
+        "Bool",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "501b4745fc01b430a6849a99203e004ca29f7dc892132410be6e911599f6eb7f"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users SET deleted_at = now(), updated_at = now(), email = 'deleted+' || id || '@runflow.club',\n                name = 'Conta excluída', phone = NULL, birth_date = NULL, sex = NULL, avatar_url = NULL\n          WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f487c61de725933c758874a889b531a3ae27405016a5036f0c4d262aae79a30e"
+}

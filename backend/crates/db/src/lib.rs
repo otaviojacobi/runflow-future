@@ -4,6 +4,10 @@
 //! every later contract change lands as a new migration **and** in `api/schema.sql`, and
 //! `tests/contract.rs` proves both produce the same database.
 
+pub mod auth;
+pub mod me;
+pub mod models;
+
 use std::time::{Duration, Instant};
 
 use sqlx::postgres::{PgPool, PgPoolOptions};

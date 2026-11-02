@@ -12,6 +12,7 @@ Read `../root.md` §7.2, §7.3, §7.6 and decisions D-020, D-025, D-026, then `.
 | `npm run doctor` | What's configured and what's missing (secrets hidden), database, storage |
 | `docker compose run --rm api email-test --to you@email.com` | Send a test e-mail (Resend, or the log). `--preview out.html` writes the HTML instead |
 | `cd backend && cargo run -- serve` | Run on the host against the compose Postgres (reads `../.env`) |
+| `bash backend/scripts/prepare.sh` | After adding or changing a `sqlx::query!`: migrate the dev database and refresh `.sqlx/` (commit it). Needs `sqlx-cli` 0.9 |
 
 Settings: every variable is documented in `../.env.example`; the real values live in `../.env` (git-ignored).
 
@@ -20,9 +21,12 @@ Settings: every variable is documented in `../.env.example`; the real values liv
 ```
 crates/
   runflow/       the binary: config.rs (env → typed config), doctor.rs, CLI (all | serve | migrate | doctor | email-test | healthcheck)
-  api/           axum router under /v1, problem.rs (pt-BR problem+json), one module per contract section
-  db/            pool, migrations (embedded), tests/contract.rs (migrations == api/schema.sql)
-  integrations/  email (Resend + log, token-based layout); later Google, Strava, Stripe
+  api/           axum router under /v1: problem.rs (pt-BR problem+json), body.rs (JSON + field validation),
+                 session.rs (tokens, cookies, Auth extractor), routes/ (one module per contract section)
+  db/            pool, migrations (embedded), models.rs (JSON row shapes), one query module per area,
+                 tests/contract.rs (migrations == api/schema.sql)
+  integrations/  email (Resend + log with a dev outbox, token-based layout), google (ID-token verification);
+                 later Strava, Stripe
 migrations/      0001_contract.sql = api/schema.sql at S1; one new file per contract change
 assets/design/   synced copies of design/dist/tokens.json and color-fixtures.json (scripts/sync-design.sh)
 ```
@@ -36,5 +40,6 @@ assets/design/   synced copies of design/dist/tokens.json and color-fixtures.jso
 - **Tests** use `#[sqlx::test]` (a fresh, migrated database per test). No database mocks (§8). External APIs are tested against local fakes (see `integrations/tests/resend.rs`).
 - **Config** only from the environment (`config.rs`). A new variable goes into `../.env.example` in the same commit. Secrets use `Secret`/redacted `Debug`.
 - **Tokens only.** E-mail HTML takes colors, type, spacing and radii from `assets/design/tokens.json` through `email::layout`/`paragraph`. Run `scripts/sync-design.sh` after design changes.
-- **Queries:** when `sqlx::query!` macros arrive, commit the offline data (`cargo sqlx prepare --workspace`, `.sqlx/`) so builds and Docker never need a database.
+- **Queries** use `sqlx::query!`/`query_as!` (checked against the real schema at compile time) and live in `db/` modules; handlers never write SQL. The offline data in `.sqlx/` is committed (`scripts/prepare.sh`), and `check.sh`, CI and Docker build with `SQLX_OFFLINE=true`, so a stale `.sqlx` fails the check. Tests may use runtime `sqlx::query` for fixtures.
+- **Auth:** handlers take `Auth` (401 `auth.required`) or `MaybeAuth`; club-scoped routes will add a membership/role extractor (S3). Secrets, tokens and codes are only stored hashed (`session.rs`).
 - **Areas stay splittable.** Never import another area's source; the backend reads `api/schema.sql` (contract test) and synced design artifacts only.
