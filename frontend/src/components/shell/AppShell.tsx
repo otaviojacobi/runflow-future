@@ -1,9 +1,9 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { Bell, Check, ChevronsUpDown, LogOut, Menu as MenuIcon, Monitor, Moon, Plus, Sun, User } from "lucide-react";
+import { AlertTriangle, Bell, Check, ChevronsUpDown, LogOut, Menu as MenuIcon, Monitor, Moon, Plus, Sun, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { DropdownMenu } from "radix-ui";
 import { signOut } from "@/api/auth";
-import type { MembershipContext } from "@/api/types";
+import type { MembershipContext, Subscription } from "@/api/types";
 import { ClubLogo } from "@/components/brand";
 import { t } from "@/i18n";
 import { homeFor, selectClub, useClub } from "@/lib/club";
@@ -105,6 +105,22 @@ function Bell_({ unread, className }: { unread: number; className?: string }) {
   );
 }
 
+/** Owner-only: the club hit its student limit or a payment failed. Never shown to students. */
+function BillingBanner({ sub }: { sub: Subscription | null }) {
+  const isActive = useIsActive();
+  if (!sub || isActive("/club/billing")) return null;
+  const pastDue = sub.status === "past_due";
+  const full = sub.active_students >= sub.student_limit;
+  if (!pastDue && !full) return null;
+  return (
+    <div role="status" className={cn("mx-auto mb-5 flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-4 py-3 text-sm", pastDue ? "border-danger-line bg-danger-soft text-on-danger-soft" : "border-warning-line bg-warning-soft text-on-warning-soft")}>
+      <AlertTriangle className="size-5 shrink-0" aria-hidden />
+      <span className="min-w-0 flex-1">{pastDue ? t("O último pagamento do plano não foi aprovado. Atualize o cartão para não perder o Pro.") : t("Limite de {n} alunos do plano atingido. Novos alunos não conseguem entrar; ninguém é removido.", { n: sub.student_limit })}</span>
+      <Link to="/club/billing" className="font-semibold underline underline-offset-2">{pastDue ? t("Resolver pagamento") : t("Ver planos")}</Link>
+    </div>
+  );
+}
+
 export function AppShell() {
   const { me, ctx, role } = useClub();
   const [more, setMore] = useState(false);
@@ -142,6 +158,7 @@ export function AppShell() {
       </header>
 
       <main id="conteudo" className="min-w-0 overflow-x-clip px-4 pb-28 pt-5 sm:px-6 lg:px-10 lg:pb-12 lg:pt-8">
+        {role === "owner" && <BillingBanner sub={ctx.subscription} />}
         <Outlet />
       </main>
 

@@ -49,7 +49,7 @@ const signIn = createRoute({
 const invite = createRoute({ getParentRoute: () => root, path: "/invite/$token", component: InviteScreen });
 const devComponents = createRoute({ getParentRoute: () => root, path: "/dev/components", component: ComponentsScreen });
 const devStatus = createRoute({ getParentRoute: () => root, path: "/dev/status", component: StatusScreen });
-const devStripe = createRoute({ getParentRoute: () => root, path: "/dev/stripe/$kind", component: todo("Stripe (simulado)", "F17") });
+const devStripe = createRoute({ getParentRoute: () => root, path: "/dev/stripe/$kind", component: lazyRouteComponent(() => import("./screens/dev/StripeMock"), "StripeMockScreen") });
 
 // ---------------------------------------------------------------- signed in, outside the shell
 const authed = createRoute({
@@ -96,7 +96,7 @@ const ownerRoutes = [
   r(O, "/club/studio", lazyRouteComponent(() => import("./screens/owner/Studio"), "StudioScreen")),
   r(O, "/club/members", MembersScreen),
   r(O, "/club/settings", lazyRouteComponent(() => import("./screens/owner/Settings"), "SettingsScreen")),
-  r(O, "/club/billing", todo("Plano e cobrança", "F17")),
+  r(O, "/club/billing", lazyRouteComponent(() => import("./screens/owner/Billing"), "BillingScreen")),
 ];
 const studentRoutes = [
   r(St, "/today", lazyRouteComponent(() => import("./screens/student/Today"), "TodayScreen")),

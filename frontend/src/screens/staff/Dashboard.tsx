@@ -39,7 +39,7 @@ function Onboarding({ o }: { o: Dashboard["onboarding"] }) {
   const done = items.filter((i) => i.ok).length;
   if (done === items.length) return null;
   return (
-    <Card className="grid gap-3 border-brand-line p-5">
+    <Card edge="brand" className="grid gap-3 p-5">
       <div className="flex items-center justify-between gap-3"><h2 className="flex items-center gap-2 rf-text-title-md"><Sparkles className="size-5 text-accent-text" />{t("Primeiros passos")}</h2><span className="text-sm text-fg-muted">{done}/{items.length}</span></div>
       <ProgressBar value={done} max={items.length} label={t("Primeiros passos")} />
       <ul className="grid gap-1 sm:grid-cols-2">{items.map((i) => <li key={i.label}><Link to={i.to} className={cn("flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm hover:bg-soft", i.ok && "text-fg-muted line-through")}>{i.ok ? <CircleCheck className="size-5 text-success-text" /> : <Circle className="size-5 text-fg-subtle" />}{i.label}</Link></li>)}</ul>

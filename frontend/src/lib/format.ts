@@ -48,6 +48,8 @@ const parts = (d: string) => {
 /** "2026-11-03" → "ter, 3 nov" (Runflow style: no "de", no dots). */
 export const shortDate = (d: string) => { const p = parts(d); return `${p.wd}, ${p.day} ${p.mon}`; };
 /** "2026-11-03" → "terça-feira, 3 de novembro". */
+/** "2026-11-03" → "3 nov 2026". */
+export const fullDate = (d: string) => { const p = parts(d); return `${p.day} ${p.mon} ${d.slice(0, 4)}`; };
 export const longDate = (d: string) => fmt({ weekday: "long", day: "numeric", month: "long" }).format(asUtc(d));
 /** "2026-11-03" → "3 nov". */
 export const dayMonth = (d: string) => { const p = parts(d); return `${p.day} ${p.mon}`; };

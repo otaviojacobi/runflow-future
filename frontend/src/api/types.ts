@@ -30,8 +30,9 @@ export interface Branding {
 }
 export interface Subscription {
   plan: Plan; status: "active" | "trialing" | "past_due" | "canceled"; student_limit: number; active_students: number;
-  current_period_end: ISOTime | null; cancel_at_period_end: boolean;
+  current_period_end: ISOTime | null; cancel_at_period_end: boolean; has_billing_account?: boolean;
 }
+export interface Invoice { id: ID; club_id: ID; stripe_invoice_id: string | null; amount_cents: number; currency: string; status: "draft" | "open" | "paid" | "void" | "uncollectible"; period_start: ISOTime; period_end: ISOTime; hosted_url: string | null; created_at: ISOTime }
 export interface MembershipContext { membership: Membership; club: Club; branding: Branding | null; subscription: Subscription | null }
 export interface NotificationPrefs { user_id: ID; push_workouts: boolean; push_comments: boolean; push_classes: boolean; email_weekly: boolean }
 export interface Me { user: User; memberships: MembershipContext[]; prefs: NotificationPrefs | null; unread_notifications: number }

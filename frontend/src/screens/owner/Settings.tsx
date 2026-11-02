@@ -150,7 +150,7 @@ function DangerZone({ club }: { club: Club }) {
     },
   });
   return (
-    <Card className="grid gap-3 border-danger-line p-5 sm:p-6">
+    <Card edge="danger" className="grid gap-3 p-5 sm:p-6">
       <h2 className="flex items-center gap-2 rf-text-title-md text-danger-text"><AlertTriangle className="size-5" />{t("Zona de perigo")}</h2>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="max-w-md text-sm text-fg-muted">{t("Encerrar o clube remove o acesso de todos os membros, cancela o plano e libera o endereço. As atividades de cada aluno continuam na conta dele.")}</p>

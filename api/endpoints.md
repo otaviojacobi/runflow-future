@@ -137,12 +137,13 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 ### Billing (Stripe)
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
-| GET | `/clubs/{club_id}/subscription` | `{plan, status, student_limit, active_students, current_period_end, cancel_at_period_end}` | O4, shell |
-| POST | `/clubs/{club_id}/subscription/checkout` `{plan}` | → `{checkout_url}` (Stripe Checkout; mock: in-app fake checkout) | O4 |
-| POST | `/clubs/{club_id}/subscription/portal` | → `{portal_url}` (Stripe Billing Portal; mock: in-app page) | O4 |
-| GET | `/clubs/{club_id}/invoices` | Invoices | O4 |
+| GET | `/clubs/{club_id}/subscription` | `{plan, status, student_limit, active_students, current_period_end, cancel_at_period_end, has_billing_account}`. A cancellation scheduled for a past period end is applied on read (the backend does it from the Stripe webhook) | O4, shell |
+| POST | `/clubs/{club_id}/subscription/checkout` `{plan: pro}` | → `{checkout_url}` (Stripe Checkout; mock: `/dev/stripe/checkout`). `409 subscription.exists` when already on Pro, `409 plan.unavailable` for Max | O4 |
+| POST | `/clubs/{club_id}/subscription/portal` | → `{portal_url}` (Stripe Billing Portal; mock: `/dev/stripe/portal`). `409 billing.no_account` before the first checkout | O4 |
+| GET | `/clubs/{club_id}/invoices` | Invoices, newest first (owner) | O4 |
 | POST | `/webhooks/stripe` · `/webhooks/strava` | Backend only | — |
-| POST | `/mock/stripe/complete` `{club_id, plan}` | **Mock only**: what the Stripe webhook would do | O5 |
+| POST | `/mock/stripe/complete` `{club_id, plan}` | **Mock only**: checkout.session.completed → Pro, paid invoice, `billing` notification to the billing owner | O5 |
+| POST | `/mock/stripe/portal` `{club_id, action: cancel \| resume \| fail_payment \| pay \| expire}` | **Mock only**: portal actions and the webhooks they cause | O5 |
 
 **Plans** (D-016, §4.6): `free` = 10 active students; `pro` = 100 students, R$ 20/month, subdomain; `max` = TBD (not sold yet).
 Hitting the limit blocks new joins (`invite.club_full`) and never removes existing students.

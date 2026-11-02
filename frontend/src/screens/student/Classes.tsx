@@ -59,7 +59,7 @@ export function ClassesScreen() {
     <div className="mx-auto grid max-w-3xl gap-6">
       <PageHeader title={t("Aulas")} subtitle={t("Reserve sua vaga e faça check-in no local")} />
       {now && (
-        <Card className="flex flex-wrap items-center gap-4 border-brand-line bg-brand-soft p-4 text-on-brand-soft">
+        <Card tone="brand" className="flex flex-wrap items-center gap-4 p-4">
           <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brand text-on-brand"><ScanLine className="size-5" /></span>
           <div className="min-w-0 flex-1"><div className="font-semibold">{t("Sua aula começa às {h}", { h: timeRange(now, club.timezone).split("–")[0] })}</div><div className="text-sm">{now.class_type.name}{now.location ? ` · ${now.location.name}` : ""}</div></div>
           <Button icon={<QrCode />} onClick={() => setCheckin({ session: now.id, code: "" })}>{t("Fazer check-in")}</Button>
