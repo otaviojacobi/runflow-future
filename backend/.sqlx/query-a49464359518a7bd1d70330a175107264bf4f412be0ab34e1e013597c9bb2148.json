@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO planned_workouts (id, club_id, athlete_membership_id, date, position, sport, title, structure, notes,\n                                       est_duration_s, est_distance_m, template_id, plan_assignment_id, created_by)\n         VALUES ($1, $2, $3, $4, (SELECT count(*)::int FROM planned_workouts WHERE athlete_membership_id = $3 AND date = $4),\n                 $5, $6, $7, $8, $9, $10, $11, $12, $13)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "planned_workouts",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Text",
+        "Int4",
+        "Int4",
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "a49464359518a7bd1d70330a175107264bf4f412be0ab34e1e013597c9bb2148"
+}

@@ -1,0 +1,109 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.id, a.plan_id, a.athlete_membership_id, a.start_date, a.created_by, a.created_at,\n                  jsonb_build_object('membership_id', m.id, 'user', jsonb_build_object(\n                    'id', u.id, 'email', u.email, 'name', u.name, 'avatar_url', u.avatar_url, 'phone', u.phone,\n                    'birth_date', u.birth_date, 'sex', u.sex, 'locale', u.locale, 'created_at', u.created_at)) AS \"athlete!\",\n                  (SELECT count(*) FROM planned_workouts w WHERE w.plan_assignment_id = a.id) AS \"workouts!\",\n                  (SELECT count(*) FROM planned_workouts w JOIN workout_completions c ON c.planned_workout_id = w.id\n                    WHERE w.plan_assignment_id = a.id AND c.status IN ('completed', 'partial')) AS \"done!\"\n             FROM plan_assignments a JOIN memberships m ON m.id = a.athlete_membership_id JOIN users u ON u.id = m.user_id\n            WHERE a.plan_id = $1 ORDER BY a.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "plan_assignments",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "plan_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "plan_assignments",
+            "name": "plan_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "athlete_membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "plan_assignments",
+            "name": "athlete_membership_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "start_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "plan_assignments",
+            "name": "start_date"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "plan_assignments",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "plan_assignments",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "athlete!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "workouts!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 8,
+        "name": "done!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "0adae5baef7be464d3e38492feca868a3bf7ba42310e375d03dfc75578987f60"
+}

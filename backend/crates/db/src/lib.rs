@@ -12,6 +12,8 @@ pub mod library;
 pub mod me;
 pub mod members;
 pub mod models;
+pub mod plans;
+pub mod workouts;
 
 use std::time::{Duration, Instant};
 

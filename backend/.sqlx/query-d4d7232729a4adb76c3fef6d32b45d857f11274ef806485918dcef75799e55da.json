@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM planned_workouts w WHERE w.plan_assignment_id = $1 AND w.date >= $2\n            AND NOT EXISTS (SELECT 1 FROM workout_completions c WHERE c.planned_workout_id = w.id)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d4d7232729a4adb76c3fef6d32b45d857f11274ef806485918dcef75799e55da"
+}

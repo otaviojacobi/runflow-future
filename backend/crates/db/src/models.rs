@@ -205,3 +205,108 @@ pub struct ExerciseRow {
     pub created_at: DateTime<Utc>,
     pub archived_at: Option<DateTime<Utc>>,
 }
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Completion {
+    pub planned_workout_id: Uuid,
+    pub activity_id: Option<Uuid>,
+    pub status: String,
+    pub compliance_pct: Option<i32>,
+    pub rpe: Option<i32>,
+    pub feeling: Option<String>,
+    pub comment: Option<String>,
+    pub completed_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// A planned workout as the API returns it: the row, its completion and thread counters for the viewer.
+#[derive(Debug, Clone, Serialize)]
+pub struct Workout {
+    pub id: Uuid,
+    pub club_id: Uuid,
+    pub athlete_membership_id: Uuid,
+    pub date: NaiveDate,
+    pub position: i32,
+    pub sport: String,
+    pub title: String,
+    pub structure: Value,
+    pub notes: Option<String>,
+    pub est_duration_s: Option<i32>,
+    pub est_distance_m: Option<i32>,
+    pub template_id: Option<Uuid>,
+    pub plan_assignment_id: Option<Uuid>,
+    pub created_by: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub completion: Option<Completion>,
+    pub comments_count: i64,
+    pub unread_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Activity {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub source: String,
+    pub external_id: Option<String>,
+    pub sport: String,
+    pub name: String,
+    pub started_at: DateTime<Utc>,
+    pub duration_s: i32,
+    pub moving_time_s: Option<i32>,
+    pub distance_m: Option<i32>,
+    pub elevation_gain_m: Option<i32>,
+    pub avg_hr: Option<i32>,
+    pub max_hr: Option<i32>,
+    pub avg_pace_s_per_km: Option<i32>,
+    pub avg_power_w: Option<i32>,
+    pub calories: Option<i32>,
+    pub laps: Option<Value>,
+    pub polyline: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// A planilha with its list summary.
+#[derive(Debug, Clone, Serialize)]
+pub struct Plan {
+    pub id: Uuid,
+    pub club_id: Uuid,
+    pub author_membership_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
+    pub weeks: i32,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub archived_at: Option<DateTime<Utc>>,
+    pub items_count: i64,
+    pub weekly_duration_s: Vec<i64>,
+    pub active_assignments: i64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlanItem {
+    pub id: Uuid,
+    pub plan_id: Uuid,
+    pub week: i32,
+    pub weekday: i32,
+    pub template_id: Option<Uuid>,
+    pub sport: String,
+    pub title: String,
+    pub structure: Value,
+    pub est_duration_s: Option<i32>,
+    pub est_distance_m: Option<i32>,
+    pub notes: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct PlanAssignment {
+    pub id: Uuid,
+    pub plan_id: Uuid,
+    pub athlete_membership_id: Uuid,
+    pub start_date: NaiveDate,
+    pub created_by: Uuid,
+    pub created_at: DateTime<Utc>,
+    pub athlete: Value,
+    pub workouts: i64,
+    pub done: i64,
+}

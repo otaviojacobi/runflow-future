@@ -5,6 +5,7 @@ pub mod body;
 pub mod problem;
 pub mod routes;
 pub mod session;
+pub mod time;
 pub mod uploads;
 
 use std::sync::Arc;

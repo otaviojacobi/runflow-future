@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE planned_workouts SET\n            date = coalesce($2, date), sport = coalesce($3, sport), title = coalesce($4, title), structure = coalesce($5, structure),\n            notes = CASE WHEN $6 THEN $7 ELSE notes END,\n            est_duration_s = CASE WHEN $8 THEN $9 ELSE est_duration_s END,\n            est_distance_m = CASE WHEN $10 THEN $11 ELSE est_distance_m END,\n            position = coalesce($12, position), updated_at = now()\n          WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Bool",
+        "Text",
+        "Bool",
+        "Int4",
+        "Bool",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "651fe156ba060185f9bdf12131b71a635d66ced92e15ff38fd42128ae7e34c90"
+}

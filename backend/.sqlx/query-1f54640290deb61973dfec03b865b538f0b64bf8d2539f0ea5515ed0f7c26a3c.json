@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.id FROM memberships m\n          WHERE m.club_id = $1 AND m.role = 'student' AND m.status = 'active'\n            AND (m.id = ANY($2) OR m.id IN (SELECT membership_id FROM group_members WHERE group_id = $3))\n          ORDER BY m.joined_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "memberships",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "1f54640290deb61973dfec03b865b538f0b64bf8d2539f0ea5515ed0f7c26a3c"
+}

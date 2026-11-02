@@ -1,0 +1,146 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.club_id, p.author_membership_id, p.name, p.description, p.weeks, p.created_at, p.updated_at, p.archived_at,\n                  (SELECT count(*) FROM training_plan_items i WHERE i.plan_id = p.id) AS \"items_count!\",\n                  (SELECT array_agg(coalesce((SELECT sum(coalesce(i.est_duration_s, 0)) FROM training_plan_items i\n                                               WHERE i.plan_id = p.id AND i.week = w), 0)::bigint ORDER BY w)\n                     FROM generate_series(1, p.weeks) AS w) AS \"weekly_duration_s!\",\n                  (SELECT count(*) FROM plan_assignments a WHERE a.plan_id = p.id) AS \"active_assignments!\"\n             FROM training_plans p\n            WHERE p.club_id = $1 AND p.archived_at IS NULL AND ($2::uuid IS NULL OR p.id = $2)\n            ORDER BY p.updated_at DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "training_plans",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "club_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "training_plans",
+            "name": "club_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "author_membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "training_plans",
+            "name": "author_membership_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "training_plans",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "training_plans",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "weeks",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "training_plans",
+            "name": "weeks"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "training_plans",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "training_plans",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "archived_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "training_plans",
+            "name": "archived_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "items_count!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 10,
+        "name": "weekly_duration_s!",
+        "type_info": "Int8Array",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 11,
+        "name": "active_assignments!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "469ee34b017d2a65b89dbaccdd9bc2b11580e1f51021483083a9714db6aee70f"
+}

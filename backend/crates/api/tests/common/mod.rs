@@ -82,6 +82,11 @@ impl TestApp {
     }
 
     pub fn with(db: PgPool, dev: bool, google: Option<GoogleVerifier>) -> Self {
+        // Server logs in the test output (cargo shows them only for failing tests).
+        let _ = tracing_subscriber::fmt()
+            .with_test_writer()
+            .with_env_filter("warn,runflow=info")
+            .try_init();
         Self {
             state: AppState::new(db, settings(dev), log_mailer(), google, Storage::memory()),
         }

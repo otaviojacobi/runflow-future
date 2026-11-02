@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO planned_workouts (id, club_id, athlete_membership_id, date, position, sport, title, structure, notes,\n                                       est_duration_s, est_distance_m, template_id, plan_assignment_id, created_by)\n         SELECT gen_random_uuid(), club_id, athlete_membership_id, date + $4::int, position, sport, title, structure, notes,\n                est_duration_s, est_distance_m, template_id, NULL, $5\n           FROM planned_workouts\n          WHERE club_id = $1 AND athlete_membership_id = ANY($2) AND date BETWEEN $3::date AND $3::date + 6",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray",
+        "Date",
+        "Int4",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "232a29635ecb9d785b7aa15b0c717cdca523f4bcabf18108852c21da0de62567"
+}

@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM training_plan_items WHERE plan_id = $1 AND week > $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3419cf45be2ea55326b025cabe851f70a2ed043d7632b06c6629579ff1e86ae9"
+}

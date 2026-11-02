@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE planned_workouts SET plan_assignment_id = NULL WHERE plan_assignment_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "431680d2fcc9b6d5dc06c8af064a8f38f10ea0e046821fa9908e2c5caf1c8c10"
+}
