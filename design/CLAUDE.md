@@ -23,7 +23,8 @@ dist/                GENERATED, committed on purpose (diffs show real values)
   tokens.css         CSS variables (--rf-*), light/dark, text-style classes
   tokens.ts / .json  same data for TS apps and other languages
   tokens.js          classic-script global (window.RunflowTokens) for showcase/mocks
-  color-fixtures.json  golden outputs every port of color.js must reproduce (backend Rust port, mobile)
+  color-fixtures.json  golden outputs every port of color.js must reproduce: scales, roles, resolution, and the
+                       stored club theme + CSS (`themes`). The backend Rust port is tested against it
 assets/fonts/        self-hosted Archivo + Inter (latin subset, OFL)
 showcase/            DS1 foundations page (index.html + showcase.css + showcase.js)
 mocks/               (D3+) screen mocks

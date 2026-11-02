@@ -11,6 +11,7 @@ publish = false
 [workspace.dependencies]
 runflow-api = { path = "crates/api" }
 runflow-db = { path = "crates/db" }
+runflow-domain = { path = "crates/domain" }
 runflow-integrations = { path = "crates/integrations" }
 
 anyhow = "1"

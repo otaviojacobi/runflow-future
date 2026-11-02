@@ -25,12 +25,15 @@ crates/
                  session.rs (tokens, cookies, Auth extractor), routes/ (one module per contract section)
   db/            pool, migrations (embedded), models.rs (JSON row shapes), one query module per area,
                  tests/contract.rs (migrations == api/schema.sql)
+  domain/        pure rules, no I/O: the club color engine (port of design/src/color.js)
   integrations/  email (Resend + log with a dev outbox, token-based layout), google (ID-token verification);
                  later Strava, Stripe
 migrations/      0001_contract.sql = api/schema.sql at S1; one new file per contract change
 assets/design/   synced copies of design/dist/tokens.json and color-fixtures.json (scripts/sync-design.sh)
 ```
-`domain` (pure types and rules: workout structure, tags, estimates) and `jobs` (Postgres queue, `worker` subcommand) arrive with the first step that needs them (§7.2).
+`domain` holds pure rules with no I/O: `color.rs` is the Rust port of `design/src/color.js`, proven by
+`tests/color_fixtures.rs` against the synced golden fixtures (change both together). Workout structure, tags and
+estimates join it when needed. `jobs` (Postgres queue, `worker` subcommand) arrive with the first step that needs them (§7.2).
 
 ## Rules
 

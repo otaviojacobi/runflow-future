@@ -113,6 +113,18 @@ const fixtures = FIXTURE_SEEDS.map((seed) => {
   const { anchor, ...sc } = C.scale(seed);
   return { seed, scale: sc, light: C.roles(seed, "light", env.light), dark: C.roles(seed, "dark", env.dark) };
 });
+// What the backend stores per club (club_branding.theme + theme_css, §7.8): resolved seeds, the role sets
+// for both modes, and the exact CSS it inlines. Ports must produce the same JSON and the same CSS string.
+const themes = RESOLUTION_INPUTS.map((input) => {
+  const r = C.resolveClubColors(input, seeds);
+  const pick = (seed, mode) => Object.fromEntries(C.ROLE_KEYS.map((k) => [k, C.roles(seed, mode, env[mode])[k]]));
+  const rolesFor = (mode) => ({ brand: pick(r.primary, mode), accent: pick(r.secondary, mode) });
+  return {
+    input,
+    theme: { ...r, roles: { light: rolesFor("light"), dark: rolesFor("dark") } },
+    css: C.clubThemeCss(input, env, { brand: seeds.brand, accent: seeds.accent }),
+  };
+});
 // The engine's guarantees must hold for ANY club color, not just ours.
 for (const f of fixtures) {
   for (const mode of modes) {
@@ -227,7 +239,7 @@ const files = {
     `export type Tokens = typeof tokens;\nexport type ColorMode = keyof typeof tokens.semantic;\nexport type SemanticColors = (typeof tokens.semantic)["light"];\n`,
   "dist/tokens.js": `${header}\n(function (root) { root.RunflowTokens = ${json}; })(typeof self !== "undefined" ? self : this);\n`,
   "dist/color-fixtures.json":
-    JSON.stringify({ $description: "Golden fixtures: any port of src/color.js (Rust, Swift, Kotlin…) must reproduce these exactly.", env, defaults: { brand: seeds.brand, accent: seeds.accent }, resolution, fixtures }, null, 2) + "\n",
+    JSON.stringify({ $description: "Golden fixtures: any port of src/color.js (Rust, Swift, Kotlin…) must reproduce these exactly.", env, defaults: { brand: seeds.brand, accent: seeds.accent }, resolution, fixtures, themes }, null, 2) + "\n",
 };
 
 if (failures.length) {
