@@ -132,10 +132,10 @@ export function AppShell() {
   const extra = moreFor(role);
 
   return (
-    <div className="min-h-dvh lg:grid lg:grid-cols-[248px_minmax(0,1fr)]">
-      <a href="#conteudo" className="sr-only-focusable fixed left-2 top-2 z-[70] rounded-md bg-brand px-3 py-2 text-on-brand">{t("Pular para o conteúdo")}</a>
+    <div className="min-h-dvh lg:grid lg:grid-cols-[248px_minmax(0,1fr)] print:block">
+      <a data-print="hide" href="#conteudo" className="sr-only-focusable fixed left-2 top-2 z-[70] rounded-md bg-brand px-3 py-2 text-on-brand">{t("Pular para o conteúdo")}</a>
       {/* desktop sidebar */}
-      <aside className="sticky top-0 hidden h-dvh flex-col gap-4 border-r border-line bg-surface p-3 lg:flex">
+      <aside data-print="hide" className="sticky top-0 hidden h-dvh flex-col gap-4 border-r border-line bg-surface p-3 lg:flex">
         <ClubSwitcher />
         <nav aria-label={t("Navegação principal")} className="flex flex-1 flex-col gap-5 overflow-y-auto">
           {groups.map((g, i) => (
@@ -152,7 +152,7 @@ export function AppShell() {
       </aside>
 
       {/* mobile top bar */}
-      <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-canvas/90 px-3 py-2 backdrop-blur-md lg:hidden">
+      <header data-print="hide" className="sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-canvas/90 px-3 py-2 backdrop-blur-md lg:hidden">
         <div className="min-w-0 flex-1"><ClubSwitcher compact /></div>
         <Bell_ unread={me.unread_notifications} />
       </header>
@@ -163,7 +163,7 @@ export function AppShell() {
       </main>
 
       {/* mobile bottom tabs */}
-      <nav aria-label={t("Navegação principal")} className="fixed inset-x-0 bottom-0 z-30 grid border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden" style={{ gridTemplateColumns: `repeat(${tabs.length + (extra.length ? 1 : 0)}, minmax(0, 1fr))` }}>
+      <nav data-print="hide" aria-label={t("Navegação principal")} className="fixed inset-x-0 bottom-0 z-30 grid border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden" style={{ gridTemplateColumns: `repeat(${tabs.length + (extra.length ? 1 : 0)}, minmax(0, 1fr))` }}>
         {tabs.map((it) => {
           const I = it.icon;
           const active = isActive(it.to);

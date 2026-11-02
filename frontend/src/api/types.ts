@@ -197,3 +197,17 @@ export interface Challenge {
 }
 export interface Ranking { month: string; sport: Sport; items: ChallengeStanding[]; me: { opted_in: boolean; rank: number | null } }
 export interface Badge { id: ID; membership_id: ID; key: string; kind: "streak" | "distance_month" | "challenge" | "race"; title: string; earned_at: ISOTime }
+
+// ---- reports (F25)
+export interface TrainingReport {
+  from: ISODate; to: ISODate; group_id: ID | null;
+  totals: { athletes: number; planned: number; done: number; partial: number; missed: number; compliance_pct: number | null; planned_s: number; done_s: number; distance_m: number; sharing: number };
+  weekly: { week_start: ISODate; pct: number | null; planned: number; done: number; current: boolean }[];
+  athletes: { membership_id: ID; user: User; group_ids: ID[]; planned: number; done: number; partial: number; missed: number; compliance_pct: number | null; planned_s: number; shares_data: boolean; activities: number | null; done_s: number | null; distance_m: number | null }[];
+}
+export interface AttendanceReport {
+  from: ISODate; to: ISODate;
+  totals: { sessions: number; cancelled: number; booked: number; attended: number; no_show: number; occupancy_pct: number | null; attendance_pct: number | null };
+  by_type: { class_type: { id: ID; name: string; sport: Sport }; sessions: number; cancelled: number; capacity: number; booked: number; attended: number; no_show: number; occupancy_pct: number | null; attendance_pct: number | null }[];
+  athletes: { membership_id: ID; user: User; booked: number; attended: number; no_show: number; attendance_pct: number | null }[];
+}

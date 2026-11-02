@@ -34,7 +34,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F22 | Messages: trainer ⇄ student direct chat and club announcements (mural) with read receipts | W13, M10 | [x] |
 | F23 | Assessments and tests: physical assessments, performance tests (Cooper, 3 km, CSS, FTP, 1RM) that update zones | W14 | [x] |
 | F24 | Challenges and rankings: monthly km, streaks, club leaderboard (opt-in), badges (accent color) | W15, M11 | [x] |
-| F25 | Reports and exports: compliance and volume per student/group, attendance for classes, CSV/PDF export | W16 | [ ] |
+| F25 | Reports and exports: compliance and volume per student/group, attendance for classes, CSV/PDF export | W16 | [x] |
 | F26 | Club finances: student monthly fees (Stripe/Pix), status per student, reminders, receipts | O6, M12 | [ ] |
 | F27 | AI assistant: "describe the workout" → structure, weekly plan suggestions from goal and history, feedback summaries | W17 | [ ] |
 | F28 | Exercise library with videos for strength/mobility, linked from exercises | W18 | [ ] |

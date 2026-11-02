@@ -31,7 +31,7 @@ export function Toaster() {
   const list = useSyncExternalStore((l) => (listeners.add(l), () => listeners.delete(l)), () => toasts);
   const Icon = { success: CircleCheck, error: CircleAlert, info: Info };
   return (
-    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+12px)] z-[60] flex flex-col items-center gap-2 px-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:items-end">
+    <div data-print="hide" aria-live="polite" className="pointer-events-none fixed inset-x-0 top-[calc(env(safe-area-inset-top)+12px)] z-[60] flex flex-col items-center gap-2 px-4 sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:items-end">
       {list.map((x) => {
         const I = Icon[x.kind];
         return (

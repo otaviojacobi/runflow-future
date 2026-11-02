@@ -36,6 +36,13 @@ export function setColorMode(mode: ColorMode) {
   storage.set(MODE, mode === "system" ? null : mode);
 }
 
+/** Paper is white: print (and "Salvar como PDF") always uses the light theme, then restores the user's mode. */
+export function installPrintTheme() {
+  let saved: string | null = null;
+  window.addEventListener("beforeprint", () => { saved = document.documentElement.getAttribute("data-theme"); document.documentElement.setAttribute("data-theme", "light"); });
+  window.addEventListener("afterprint", () => { if (saved) document.documentElement.setAttribute("data-theme", saved); else document.documentElement.removeAttribute("data-theme"); });
+}
+
 /** Inline CSS variables that theme one subtree with a club's colors (marketing demos, previews). */
 export function themeVars(input: { primary?: string | null; secondary?: string | null }, mode: "light" | "dark" = "light"): Record<string, string> {
   const r = Color.resolveClubColors(input, { brand: tokens.seeds.brand, accent: tokens.seeds.accent });

@@ -136,6 +136,14 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | PATCH | `/clubs/{club_id}/bookings/{id}` `{status: attended \| no_show \| booked}` | Attendance (staff) | W9 |
 | POST | `/clubs/{club_id}/class-sessions/{id}/check-in` `{checkin_code}` | Student check-in (45 min before → end); creates a booking if there is room | M6 |
 
+### Reports
+| Method | Path | Purpose | Screens |
+|---|---|---|---|
+| GET | `/clubs/{club_id}/reports/training?from&to&group_id` | Period ≤ 1 year (default: last 28 days). `totals`, `weekly[]` (same shape as the dashboard trend) and `athletes[] {planned, done, partial, missed, compliance_pct, planned_s, shares_data, activities, done_s, distance_m}`. Activity volume only for students who share training data (else null) | W16 |
+| GET | `/clubs/{club_id}/reports/attendance?from&to&group_id` | Classes already held in the period: `totals {sessions, cancelled, booked, attended, no_show, occupancy_pct, attendance_pct}`, `by_type[]`, `athletes[]` | W16 |
+
+Exports are built by the app from these payloads: CSV (`;`-separated, decimal comma, UTF-8 BOM for Excel) and PDF via the print stylesheet.
+
 ### Assessments and tests
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
