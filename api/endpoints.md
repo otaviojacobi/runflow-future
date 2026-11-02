@@ -115,7 +115,7 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 | GET | `/clubs/{club_id}/athletes?q&group_id` | `{membership, user, group_ids, goal, level, compliance_pct (28 d, partial = ½), week: {planned, done}, last_activity_at (only with consent), strava: none\|private\|shared, shares_data}` | W2, W4 |
 | GET | `/clubs/{club_id}/athletes/{membership_id}` | Summary + `profile` (with trainer notes), latest `zones` (pace, hr), `consents {training_data, strava}`, `weekly[12] {week_start, planned_s, done_s, distance_m, sessions}`, `recent_activities` (consent-aware), `groups` | W3 |
 | PUT | `/clubs/{club_id}/athletes/{membership_id}/profile` | Goal, level, physiology, trainer notes | W3 |
-| GET / PUT | `/clubs/{club_id}/my/profile` | Student's own profile: goal, goal_date, level, weekly_sessions, recent_race, HR (a race result estimates the threshold pace). Response adds `zones` (latest pace + HR, set by the trainer; read-only here) | A4, M7 |
+| GET / PUT | `/clubs/{club_id}/my/profile` | Student's own profile: goal, goal_date, level, weekly_sessions (0–14), recent_race, HR (max 100–240, resting 25–120 bpm); a race result estimates the threshold pace (Riegel to 10 km) when none is set. Response adds `zones` (latest pace + HR, set by the trainer; read-only here) | A4, M7 |
 | PUT | `/clubs/{club_id}/athletes/{membership_id}/zones` `{kind: pace, threshold_pace_s_per_km \| race{distance_m,time_s}}` or `{kind: hr, max_hr}` | Recalculate zones (5 zones; race → threshold via Riegel) | W3, M7 |
 | GET | `/clubs/{club_id}/athletes/{membership_id}/activities` | Activities shared by consent | W3 |
 

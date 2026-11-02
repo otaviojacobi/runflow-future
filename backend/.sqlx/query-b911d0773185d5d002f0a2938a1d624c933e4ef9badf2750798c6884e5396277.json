@@ -1,0 +1,112 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT ON (kind) id, membership_id, kind, source, bounds, valid_from, created_by, created_at\n           FROM zones WHERE membership_id = $1 AND kind IN ('pace', 'hr') ORDER BY kind DESC, valid_from DESC, created_at DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "membership_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "source"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "bounds",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "bounds"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "valid_from",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "valid_from"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "b911d0773185d5d002f0a2938a1d624c933e4ef9badf2750798c6884e5396277"
+}

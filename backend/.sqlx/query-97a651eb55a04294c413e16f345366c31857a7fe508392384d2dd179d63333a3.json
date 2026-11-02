@@ -1,0 +1,118 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO zones (id, membership_id, kind, source, bounds, valid_from, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7)\n         RETURNING id, membership_id, kind, source, bounds, valid_from, created_by, created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "membership_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "source"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "bounds",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "bounds"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "valid_from",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "valid_from"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Jsonb",
+        "Date",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "97a651eb55a04294c413e16f345366c31857a7fe508392384d2dd179d63333a3"
+}

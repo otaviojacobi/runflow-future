@@ -4,6 +4,7 @@
 //! every later contract change lands as a new migration **and** in `api/schema.sql`, and
 //! `tests/contract.rs` proves both produce the same database.
 
+pub mod athletes;
 pub mod auth;
 pub mod clubs;
 pub mod invites;

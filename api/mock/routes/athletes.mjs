@@ -15,6 +15,8 @@ export default function register(h) {
     if ("weekly_sessions" in b && b.weekly_sessions !== null && !(b.weekly_sessions >= 0 && b.weekly_sessions <= 14)) errors.push({ field: "weekly_sessions", message: "Entre 0 e 14 treinos por semana." });
     if ("goal_date" in b && b.goal_date && !/^\d{4}-\d{2}-\d{2}$/.test(b.goal_date)) errors.push({ field: "goal_date", message: "Data inválida." });
     if ("recent_race" in b && b.recent_race && !(b.recent_race.distance_m > 0 && b.recent_race.time_s > 0)) errors.push({ field: "recent_race", message: "Informe a distância e o tempo." });
+    if ("max_hr" in b && b.max_hr != null && !(b.max_hr >= 100 && b.max_hr <= 240)) errors.push({ field: "max_hr", message: "Informe uma FC máxima entre 100 e 240 bpm." });
+    if ("resting_hr" in b && b.resting_hr != null && !(b.resting_hr >= 25 && b.resting_hr <= 120)) errors.push({ field: "resting_hr", message: "Informe uma FC de repouso entre 25 e 120 bpm." });
     if (errors.length) h.invalid(errors);
     const fields = ["goal", "goal_date", "level", "weekly_sessions", "recent_race", "max_hr", "resting_hr"];
     if (trainer) fields.push("threshold_pace_s_per_km", "css_s_per_100m", "ftp_w", "trainer_notes");

@@ -1,0 +1,172 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT membership_id, goal, goal_date, level, weekly_sessions, max_hr, resting_hr, threshold_pace_s_per_km, css_s_per_100m, ftp_w,\n                recent_race, trainer_notes, updated_at\n           FROM athlete_profiles WHERE membership_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "membership_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "goal",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "goal"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "goal_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "goal_date"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "level",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "level"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "weekly_sessions",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "weekly_sessions"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "max_hr",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "max_hr"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "resting_hr",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "resting_hr"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "threshold_pace_s_per_km",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "threshold_pace_s_per_km"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "css_s_per_100m",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "css_s_per_100m"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "ftp_w",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "ftp_w"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "recent_race",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "recent_race"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "trainer_notes",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "trainer_notes"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "f8cbfae5599e936c4012be21005fb2aad46e8e1010cb88d578c4ed096acfb7c8"
+}

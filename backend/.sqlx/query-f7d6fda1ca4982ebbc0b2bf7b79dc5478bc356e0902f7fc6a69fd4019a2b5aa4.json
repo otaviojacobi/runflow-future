@@ -1,0 +1,44 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce((SELECT logo_asset_id IS NOT NULL FROM club_branding WHERE club_id = $1), false) AS \"logo!\",\n                  coalesce((SELECT primary_color IS NOT NULL FROM club_branding WHERE club_id = $1), false) AS \"colors!\",\n                  EXISTS (SELECT 1 FROM groups WHERE club_id = $1) AS \"groups!\",\n                  EXISTS (SELECT 1 FROM memberships m JOIN provider_connections pc ON pc.user_id = m.user_id\n                           WHERE m.club_id = $1 AND m.role = 'student' AND m.status = 'active' AND pc.status = 'active') AS \"strava!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "logo!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "colors!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "groups!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "strava!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "f7d6fda1ca4982ebbc0b2bf7b79dc5478bc356e0902f7fc6a69fd4019a2b5aa4"
+}

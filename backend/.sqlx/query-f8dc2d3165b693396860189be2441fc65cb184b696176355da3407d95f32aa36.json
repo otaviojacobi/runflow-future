@@ -1,0 +1,183 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO athlete_profiles (membership_id, goal, goal_date, level, weekly_sessions, max_hr, resting_hr, threshold_pace_s_per_km,\n                                       css_s_per_100m, ftp_w, recent_race, trainer_notes, updated_at)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())\n         ON CONFLICT (membership_id) DO UPDATE SET goal = $2, goal_date = $3, level = $4, weekly_sessions = $5, max_hr = $6, resting_hr = $7,\n                threshold_pace_s_per_km = $8, css_s_per_100m = $9, ftp_w = $10, recent_race = $11, trainer_notes = $12, updated_at = now()\n         RETURNING membership_id, goal, goal_date, level, weekly_sessions, max_hr, resting_hr, threshold_pace_s_per_km, css_s_per_100m, ftp_w,\n                   recent_race, trainer_notes, updated_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "membership_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "goal",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "goal"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "goal_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "goal_date"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "level",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "level"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "weekly_sessions",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "weekly_sessions"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "max_hr",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "max_hr"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "resting_hr",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "resting_hr"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "threshold_pace_s_per_km",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "threshold_pace_s_per_km"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "css_s_per_100m",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "css_s_per_100m"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "ftp_w",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "ftp_w"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "recent_race",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "recent_race"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "trainer_notes",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "trainer_notes"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "updated_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Date",
+        "Text",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Jsonb",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "f8dc2d3165b693396860189be2441fc65cb184b696176355da3407d95f32aa36"
+}

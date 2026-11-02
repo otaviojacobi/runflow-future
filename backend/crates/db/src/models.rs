@@ -310,3 +310,32 @@ pub struct PlanAssignment {
     pub workouts: i64,
     pub done: i64,
 }
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AthleteProfile {
+    pub membership_id: Uuid,
+    pub goal: Option<String>,
+    pub goal_date: Option<NaiveDate>,
+    pub level: Option<String>,
+    pub weekly_sessions: Option<i32>,
+    pub max_hr: Option<i32>,
+    pub resting_hr: Option<i32>,
+    pub threshold_pace_s_per_km: Option<i32>,
+    pub css_s_per_100m: Option<i32>,
+    pub ftp_w: Option<i32>,
+    pub recent_race: Option<Value>,
+    pub trainer_notes: Option<String>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ZoneSet {
+    pub id: Uuid,
+    pub membership_id: Uuid,
+    pub kind: String,
+    pub source: String,
+    pub bounds: Value,
+    pub valid_from: NaiveDate,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+}

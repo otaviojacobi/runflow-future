@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT coalesce(jsonb_agg(x ORDER BY (x->'session'->>'starts_at')), '[]') AS \"x!\" FROM (\n             SELECT jsonb_build_object('session', to_jsonb(s), 'class_type', to_jsonb(t),\n                      'booked', (SELECT count(*) FROM bookings b WHERE b.session_id = s.id AND b.status = 'booked'),\n                      'waitlist', (SELECT count(*) FROM bookings b WHERE b.session_id = s.id AND b.status = 'waitlisted')) AS x\n               FROM class_sessions s JOIN class_types t ON t.id = s.class_type_id\n              WHERE s.club_id = $1 AND s.status = 'scheduled' AND s.starts_at > now()\n              ORDER BY s.starts_at LIMIT 3) q",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c18076c4e7b29a6668bf267120b5541b13984c862da6daf89dedfddc7bb877ce"
+}

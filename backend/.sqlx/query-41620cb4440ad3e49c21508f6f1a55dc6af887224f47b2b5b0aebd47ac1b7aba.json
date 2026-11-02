@@ -1,0 +1,292 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH s AS (\n             SELECT m.*, (SELECT EXISTS (SELECT 1 FROM consents c WHERE c.user_id = m.user_id AND c.club_id = m.club_id AND c.kind = 'share_training_data' AND c.revoked_at IS NULL)) AS shares,\n                         (SELECT EXISTS (SELECT 1 FROM consents c WHERE c.user_id = m.user_id AND c.club_id = m.club_id AND c.kind = 'share_strava' AND c.revoked_at IS NULL)) AS strava_shared\n               FROM memberships m\n              WHERE m.club_id = $1 AND m.role = 'student' AND m.status = 'active'\n                AND ($4::uuid IS NULL OR m.id IN (SELECT membership_id FROM group_members WHERE group_id = $4))\n                AND ($5::uuid IS NULL OR m.id = $5))\n           SELECT s.id, s.club_id, s.user_id, s.role, s.status, s.is_billing_owner, s.joined_at, s.left_at,\n                  u.email, u.name, u.avatar_url, u.phone, u.birth_date, u.sex, u.locale, u.created_at,\n                  coalesce((SELECT array_agg(g.group_id ORDER BY g.added_at) FROM group_members g WHERE g.membership_id = s.id), '{}') AS \"group_ids!\",\n                  ap.goal, ap.level,\n                  (SELECT CASE WHEN count(*) = 0 THEN NULL\n                               ELSE round(100.0 * sum(CASE c.status WHEN 'completed' THEN 1 WHEN 'partial' THEN 0.5 ELSE 0 END) / count(*))::int END\n                     FROM planned_workouts p LEFT JOIN workout_completions c ON c.planned_workout_id = p.id\n                    WHERE p.athlete_membership_id = s.id AND p.date >= $2::date - 28 AND p.date < $2) AS compliance_pct,\n                  (SELECT count(*) FROM planned_workouts p WHERE p.athlete_membership_id = s.id AND p.date BETWEEN $3 AND $3::date + 6) AS \"week_planned!\",\n                  (SELECT count(*) FROM planned_workouts p JOIN workout_completions c ON c.planned_workout_id = p.id\n                    WHERE p.athlete_membership_id = s.id AND p.date BETWEEN $3 AND $3::date + 6 AND c.status IN ('completed', 'partial')) AS \"week_done!\",\n                  s.shares AS \"shares!\", s.strava_shared AS \"strava_shared!\",\n                  (SELECT EXISTS (SELECT 1 FROM provider_connections pc WHERE pc.user_id = s.user_id AND pc.provider = 'strava' AND pc.status = 'active')) AS \"strava_connected!\",\n                  (SELECT max(a.started_at) FROM activities a WHERE a.user_id = s.user_id AND (a.source <> 'strava' OR s.strava_shared)) AS last_activity_at\n             FROM s JOIN users u ON u.id = s.user_id LEFT JOIN athlete_profiles ap ON ap.membership_id = s.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "memberships",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "club_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "memberships",
+            "name": "club_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "memberships",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "role",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "memberships",
+            "name": "role"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "memberships",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "is_billing_owner",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "memberships",
+            "name": "is_billing_owner"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "joined_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "memberships",
+            "name": "joined_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "left_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "memberships",
+            "name": "left_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "avatar_url",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "avatar_url"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "phone",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "phone"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "birth_date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "birth_date"
+          }
+        }
+      },
+      {
+        "ordinal": 13,
+        "name": "sex",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "sex"
+          }
+        }
+      },
+      {
+        "ordinal": 14,
+        "name": "locale",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "locale"
+          }
+        }
+      },
+      {
+        "ordinal": 15,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 16,
+        "name": "group_ids!",
+        "type_info": "UuidArray",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 17,
+        "name": "goal",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "goal"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
+        "name": "level",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "level"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
+        "name": "compliance_pct",
+        "type_info": "Int4",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 20,
+        "name": "week_planned!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 21,
+        "name": "week_done!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 22,
+        "name": "shares!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 23,
+        "name": "strava_shared!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 24,
+        "name": "strava_connected!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 25,
+        "name": "last_activity_at",
+        "type_info": "Timestamptz",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      null,
+      true,
+      true,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "41620cb4440ad3e49c21508f6f1a55dc6af887224f47b2b5b0aebd47ac1b7aba"
+}

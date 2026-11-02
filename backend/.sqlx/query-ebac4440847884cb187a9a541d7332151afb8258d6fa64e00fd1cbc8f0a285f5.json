@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT athlete_membership_id FROM planned_workouts WHERE club_id = $1 AND date >= $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "athlete_membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "planned_workouts",
+            "name": "athlete_membership_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "ebac4440847884cb187a9a541d7332151afb8258d6fa64e00fd1cbc8f0a285f5"
+}
