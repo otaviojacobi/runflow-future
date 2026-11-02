@@ -230,7 +230,7 @@ The design system lives in **`design/`**, a deliberately small package (§7.1). 
 
 ### 6.1 Screens
 
-The design system was approved after D1. The HTML-mock phase (D-015) was replaced by building the real web app, then the mobile app, against a mock API (D-020). **The full screen inventory, routes and build order live in [`docs/build-plan.md`](docs/build-plan.md).** Component pages (DS2/DS3) become a `/dev/componentes` route in the web app.
+The design system was approved after D1. The HTML-mock phase (D-015) was replaced by building the real web app, then the mobile app, against a mock API (D-020). **The full screen inventory, routes and build order live in [`docs/build-plan.md`](docs/build-plan.md).** Component pages (DS2/DS3) become a `/dev/components` route in the web app.
 
 ---
 

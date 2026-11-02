@@ -18,8 +18,8 @@ export function selectClub(m: MembershipContext | null) {
   applyClubTheme(m?.branding?.theme_css ?? null);
   listeners.forEach((l) => l());
 }
-export function homeFor(role: Role | null | undefined): "/painel" | "/hoje" | "/clubes" {
-  return role === "owner" || role === "trainer" ? "/painel" : role === "student" ? "/hoje" : "/clubes";
+export function homeFor(role: Role | null | undefined): "/dashboard" | "/today" | "/clubs" {
+  return role === "owner" || role === "trainer" ? "/dashboard" : role === "student" ? "/today" : "/clubs";
 }
 /** Hook for screens inside the app shell: always has a club (the shell guarantees it). */
 export function useClub() {

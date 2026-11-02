@@ -1,4 +1,4 @@
-/** A6/A7 · Meus clubes: pick the active club, or start one / use an invite. Route: /clubes */
+/** A6/A7 · Meus clubes: pick the active club, or start one / use an invite. Route: /clubs */
 import { useNavigate } from "@tanstack/react-router";
 import { ChevronRight, LogOut, Plus, Ticket } from "lucide-react";
 import { useState } from "react";
@@ -12,11 +12,11 @@ import { Badge, Button, ButtonLink, Card, Field, Input, Skeleton } from "@/ui";
 
 export const ROLE_LABEL = { owner: "Gestor(a)", trainer: "Treinador(a)", student: "Aluno(a)" } as const;
 
-/** Accepts a full invite link (…/convite/abc) or just the code. */
+/** Accepts a full invite link (…/invite/abc) or just the code. */
 export function inviteTokenFrom(input: string): string | null {
   const s = input.trim();
   if (!s) return null;
-  const m = s.match(/convite\/([\w-]+)/);
+  const m = s.match(/invite\/([\w-]+)/);
   return m ? m[1]! : /^[\w-]{3,}$/.test(s) ? s : null;
 }
 
@@ -33,8 +33,8 @@ export function ClubsScreen() {
   const goInvite = (e: React.FormEvent) => {
     e.preventDefault();
     const token = inviteTokenFrom(invite);
-    if (!token) return setInviteError(t("Cole o link de convite que você recebeu, como runflow.club/convite/…"));
-    navigate({ to: "/convite/$token", params: { token } });
+    if (!token) return setInviteError(t("Cole o link de convite que você recebeu, como runflow.club/invite/…"));
+    navigate({ to: "/invite/$token", params: { token } });
   };
   const list = me.data?.memberships ?? [];
 
@@ -42,7 +42,7 @@ export function ClubsScreen() {
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col gap-8 px-5 py-8">
       <header className="flex items-center justify-between">
         <RunflowWordmark />
-        <Button variant="ghost" size="sm" icon={<LogOut />} onClick={async () => { await signOut(); navigate({ to: "/entrar" }); }}>{t("Sair")}</Button>
+        <Button variant="ghost" size="sm" icon={<LogOut />} onClick={async () => { await signOut(); navigate({ to: "/login" }); }}>{t("Sair")}</Button>
       </header>
       {me.isPending ? (
         <div className="grid gap-3"><Skeleton className="h-8 w-48" /><Skeleton className="h-20" /><Skeleton className="h-20" /></div>
@@ -80,11 +80,11 @@ export function ClubsScreen() {
           <h2 className="rf-text-title-md">{t("Criar um clube")}</h2>
           <p className="text-sm text-fg-muted">{t("Para assessorias, academias e equipes de natação. Grátis até 10 alunos.")}</p>
         </div>
-        <ButtonLink to="/criar-clube" icon={<Plus />} block>{t("Criar meu clube")}</ButtonLink>
+        <ButtonLink to="/clubs/new" icon={<Plus />} block>{t("Criar meu clube")}</ButtonLink>
         <div className="h-px bg-line-subtle" />
         <form onSubmit={goInvite} className="grid gap-3">
           <Field label={t("Tenho um convite")} error={inviteError} hint={t("Cole o link ou o código do convite.")}>
-            {(id, d) => <Input id={id} aria-describedby={d} placeholder="runflow.club/convite/…" value={invite} onChange={(e) => { setInvite(e.target.value); setInviteError(null); }} invalid={!!inviteError} />}
+            {(id, d) => <Input id={id} aria-describedby={d} placeholder="runflow.club/invite/…" value={invite} onChange={(e) => { setInvite(e.target.value); setInviteError(null); }} invalid={!!inviteError} />}
           </Field>
           <Button type="submit" variant="secondary" icon={<Ticket />}>{t("Usar convite")}</Button>
         </form>

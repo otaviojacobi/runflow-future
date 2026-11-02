@@ -101,10 +101,10 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 |---|---|---|---|
 | GET / POST | `/clubs/{club_id}/templates?sport&q` | Library | W6, W5 |
 | GET / PATCH / DELETE | `/clubs/{club_id}/templates/{id}` | Template CRUD (delete = archive) | W5, W6 |
-| GET | `/clubs/{club_id}/planned-workouts?from&to&athlete_id&group_id` | Calendar data (with completion + unread count) | W4, W3 |
+| GET | `/clubs/{club_id}/planned-workouts?from&to&athlete_id&group_id` | Calendar data: rows + `completion` + `comments_count` + `unread_count` (for the caller) | W4, W3 |
 | POST | `/clubs/{club_id}/planned-workouts` `{athlete_ids \| group_id, dates[], template_id? \| {sport,title,structure,notes}}` | Assign (bulk) | W4, W5, A5 |
-| GET / PATCH / DELETE | `/clubs/{club_id}/planned-workouts/{id}` | Edit / move (date) / remove | W4 |
-| POST | `/clubs/{club_id}/planned-workouts/copy-week` `{from_monday, to_monday, athlete_ids}` | Copy a week | W4 |
+| GET / PATCH / DELETE | `/clubs/{club_id}/planned-workouts/{id}` | GET adds `athlete` and the linked `activity` (only with consent). PATCH edits or moves (date); the student is notified | W4 |
+| POST | `/clubs/{club_id}/planned-workouts/copy-week` `{from_monday, to_monday, athlete_ids?}` | Copy a week (all students if no ids) → `{copied}` | W4 |
 | GET / POST | `/clubs/{club_id}/plans` · GET / PATCH / DELETE `/plans/{id}` | Planilhas | W7 |
 | PUT | `/clubs/{club_id}/plans/{id}/items` `{items}` | Replace the plan grid | W7 |
 | POST | `/clubs/{club_id}/plans/{id}/assign` `{athlete_ids, start_date}` | Apply → creates planned_workouts | W7 |

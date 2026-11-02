@@ -71,3 +71,23 @@ export interface AthleteSummary {
   compliance_pct: number | null; week: { planned: number; done: number }; last_activity_at: ISOTime | null;
   strava: "none" | "private" | "shared"; shares_data: boolean;
 }
+
+export type CompletionStatus = "completed" | "partial" | "missed" | "skipped";
+export type Feeling = "great" | "good" | "ok" | "bad" | "awful";
+export interface Completion {
+  planned_workout_id: ID; activity_id: ID | null; status: CompletionStatus; compliance_pct: number | null;
+  rpe: number | null; feeling: Feeling | null; comment: string | null; completed_at: ISOTime; updated_at: ISOTime;
+}
+export interface PlannedWorkout {
+  id: ID; club_id: ID; athlete_membership_id: ID; date: ISODate; position: number; sport: Sport; title: string;
+  structure: import("@/domain/workout").Structure; notes: string | null; est_duration_s: number | null; est_distance_m: number | null;
+  template_id: ID | null; plan_assignment_id: ID | null; created_by: ID; created_at: ISOTime; updated_at: ISOTime;
+  completion: Completion | null; comments_count: number; unread_count: number;
+}
+export interface Activity {
+  id: ID; user_id: ID; source: "strava" | "garmin" | "manual" | "file"; external_id: string | null; sport: Sport; name: string;
+  started_at: ISOTime; duration_s: number; moving_time_s: number | null; distance_m: number | null; elevation_gain_m: number | null;
+  avg_hr: number | null; max_hr: number | null; avg_pace_s_per_km: number | null; avg_power_w: number | null; calories: number | null;
+  laps: { distance_m: number; duration_s: number; avg_hr: number | null; avg_pace_s_per_km?: number }[] | null; polyline: string | null; created_at: ISOTime;
+}
+export interface PlannedWorkoutDetail extends PlannedWorkout { athlete: { membership_id: ID; user: User }; activity: Activity | null }

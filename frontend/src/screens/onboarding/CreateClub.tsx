@@ -1,4 +1,4 @@
-/** A5 · Criar clube: dados → cores e logo → convite → biblioteca → pronto. Route: /criar-clube */
+/** A5 · Criar clube: dados → cores e logo → convite → biblioteca → pronto. Route: /clubs/new */
 import Color from "@runflow/design/color";
 import { tokens } from "@runflow/design/tokens";
 import { useNavigate } from "@tanstack/react-router";
@@ -59,7 +59,7 @@ export function CreateClubScreen() {
       <header className="sticky top-0 z-20 border-b border-line bg-canvas/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-4xl items-center gap-4 px-5 py-3">
           <RunflowWordmark />
-          <div className="ml-auto"><Button variant="ghost" size="sm" icon={<X />} onClick={() => navigate({ to: club ? "/painel" : "/clubes" })}>{club ? t("Terminar depois") : t("Cancelar")}</Button></div>
+          <div className="ml-auto"><Button variant="ghost" size="sm" icon={<X />} onClick={() => navigate({ to: club ? "/dashboard" : "/clubs" })}>{club ? t("Terminar depois") : t("Cancelar")}</Button></div>
         </div>
       </header>
       <main className="mx-auto grid max-w-4xl gap-8 px-5 py-8">
@@ -255,8 +255,8 @@ function StepDone({ club }: { club: Club }) {
         {items.map((i) => <li key={i} className="flex items-center gap-3 rounded-md border border-line bg-surface px-4 py-3 font-medium"><Check className="size-5 text-success-text" />{i}</li>)}
       </ul>
       <div className="flex flex-wrap justify-center gap-2">
-        <ButtonLink to="/planejamento" variant="secondary" size="lg">{t("Montar a semana")}</ButtonLink>
-        <ButtonLink to="/painel" size="lg">{t("Ir para o painel")}</ButtonLink>
+        <ButtonLink to="/planning" variant="secondary" size="lg">{t("Montar a semana")}</ButtonLink>
+        <ButtonLink to="/dashboard" size="lg">{t("Ir para o painel")}</ButtonLink>
       </div>
     </div>
   );

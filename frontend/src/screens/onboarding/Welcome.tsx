@@ -1,4 +1,4 @@
-/** A4 · Boas-vindas do aluno: consentimento → perfil → objetivo → relógio → pronto. Route: /bem-vindo */
+/** A4 · Boas-vindas do aluno: consentimento → perfil → objetivo → relógio → pronto. Route: /welcome */
 import { useNavigate } from "@tanstack/react-router";
 import { Check, ShieldCheck, Sparkles } from "lucide-react";
 import { useState } from "react";
@@ -114,7 +114,7 @@ export function WelcomeScreen() {
         <span className="grid size-16 place-items-center rounded-full bg-accent text-on-accent ring-1 ring-inset ring-accent-edge"><Sparkles className="size-8" /></span>
         <h1 className="rf-text-display-sm">{t("Tudo certo, {name}!", { name: first! })}</h1>
         <p className="max-w-sm text-fg-muted">{t("Seu treinador já foi avisado. Assim que ele montar sua semana, os treinos aparecem em Hoje.")}</p>
-        <Button size="lg" onClick={() => navigate({ to: "/hoje" })}>{t("Ver meus treinos")}</Button>
+        <Button size="lg" onClick={() => navigate({ to: "/today" })}>{t("Ver meus treinos")}</Button>
       </div>
     ),
   };
@@ -124,7 +124,7 @@ export function WelcomeScreen() {
       <header className="flex items-center gap-3">
         <ClubLogo club={club} branding={ctx?.branding} size={40} />
         <div className="min-w-0 flex-1"><div className="truncate font-bold">{club.name}</div>{step <= total && <div className="text-sm text-fg-muted">{t("Passo {n} de {total}", { n: step, total })}</div>}</div>
-        {step > 1 && step <= total && <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/hoje" })}>{t("Pular")}</Button>}
+        {step > 1 && step <= total && <Button variant="ghost" size="sm" onClick={() => navigate({ to: "/today" })}>{t("Pular")}</Button>}
       </header>
       {step <= total && <div className="h-1.5 overflow-hidden rounded-full bg-soft"><div className="h-full rounded-full bg-brand transition-[width] duration-300" style={{ width: `${(step / total) * 100}%` }} /></div>}
       {steps[step]}

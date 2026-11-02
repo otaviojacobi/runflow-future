@@ -1,4 +1,4 @@
-/** W5 · Construtor de treino (library template). Routes: /biblioteca/novo, /biblioteca/$id */
+/** W5 · Construtor de treino (library template). Routes: /library/new, /library/$id */
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { ArrowLeft, Save } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -34,7 +34,7 @@ export function BuilderScreen() {
   const submit = () => {
     const est = estimate(structure, sport);
     save.mutate({ id: params.id, data: { name, sport, description: description || null, structure, est_duration_s: est.duration_s || null, est_distance_m: est.distance_m, tags: [] } }, {
-      onSuccess: (r) => { toast.success(isNew ? t("Treino salvo na biblioteca") : t("Alterações salvas")); if (isNew) navigate({ to: "/biblioteca/$id", params: { id: r.id }, replace: true }); },
+      onSuccess: (r) => { toast.success(isNew ? t("Treino salvo na biblioteca") : t("Alterações salvas")); if (isNew) navigate({ to: "/library/$id", params: { id: r.id }, replace: true }); },
       onError: (e) => { if (!(e instanceof ApiError && e.errors.length)) toast.error(e); },
     });
   };
@@ -43,7 +43,7 @@ export function BuilderScreen() {
   return (
     <div className="mx-auto grid max-w-6xl gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <ButtonLink to="/biblioteca" variant="ghost" size="sm" icon={<ArrowLeft />}>{t("Biblioteca")}</ButtonLink>
+        <ButtonLink to="/library" variant="ghost" size="sm" icon={<ArrowLeft />}>{t("Biblioteca")}</ButtonLink>
         <Button icon={<Save />} loading={save.isPending} onClick={submit}>{isNew ? t("Salvar na biblioteca") : t("Salvar alterações")}</Button>
       </div>
       <div className="grid gap-4">

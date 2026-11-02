@@ -1,4 +1,4 @@
-/** O2 · Membros e convites: trainers, students (suspend/remove), invite links. Route: /clube/membros */
+/** O2 · Membros e convites: trainers, students (suspend/remove), invite links. Route: /club/members */
 import { Link } from "@tanstack/react-router";
 import { Ban, Copy, MessageCircle, MoreHorizontal, Plus, RotateCcw, Ticket, Trash2, UserMinus } from "lucide-react";
 import { useState } from "react";
@@ -55,7 +55,7 @@ export function MembersScreen() {
       {sub && (
         <Card className="flex flex-wrap items-center gap-4 p-4">
           <div className="min-w-48 flex-1"><div className="flex items-baseline justify-between text-sm"><span className="font-semibold">{t("{n} de {limit} alunos", { n: sub.active_students, limit: sub.student_limit })}</span><span className="text-fg-muted">{t("Plano {plan}", { plan: sub.plan === "free" ? "Free" : sub.plan === "pro" ? "Pro" : "Max" })}</span></div><ProgressBar className="mt-2" value={sub.active_students} max={sub.student_limit} tone={sub.active_students >= sub.student_limit ? "danger" : sub.active_students / sub.student_limit >= 0.8 ? "warning" : "brand"} label={t("Alunos no plano")} /></div>
-          {sub.plan === "free" && <Link to="/clube/plano" className="text-sm font-semibold text-brand-text hover:underline">{t("Ver planos")}</Link>}
+          {sub.plan === "free" && <Link to="/club/billing" className="text-sm font-semibold text-brand-text hover:underline">{t("Ver planos")}</Link>}
         </Card>
       )}
       <Tabs.Root defaultValue="students">

@@ -1,4 +1,4 @@
-/** W2 · Alunos: search, groups, compliance, this week, last activity, Strava. Route: /alunos */
+/** W2 · Alunos: search, groups, compliance, this week, last activity, Strava. Route: /students */
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Activity, ChevronRight, Lock, Search, UserPlus, Users } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -39,7 +39,7 @@ export function StudentsScreen() {
   }, [athletes.data, sort]);
   if (!club) return null;
   const groupName = (id: string) => groups.data?.find((g) => g.id === id)?.name;
-  const open = (a: AthleteSummary) => navigate({ to: "/alunos/$id", params: { id: a.membership.id } });
+  const open = (a: AthleteSummary) => navigate({ to: "/students/$id", params: { id: a.membership.id } });
 
   return (
     <div className="mx-auto grid max-w-6xl gap-6">
@@ -72,7 +72,7 @@ export function StudentsScreen() {
               <tbody>
                 {rows.map((a) => (
                   <tr key={a.membership.id} onClick={() => open(a)} className="cursor-pointer border-t border-line-subtle hover:bg-soft">
-                    <td className="px-4 py-3"><Link to="/alunos/$id" params={{ id: a.membership.id }} className="flex items-center gap-3 font-semibold outline-none focus-visible:underline" onClick={(e) => e.stopPropagation()}><Avatar name={a.user.name} src={a.user.avatar_url} size={34} /><span><span className="block">{a.user.name}</span><span className="block text-xs font-normal text-fg-muted">{[goalLabel(a.goal), a.level && t({ beginner: "Iniciante", intermediate: "Intermediário", advanced: "Avançado" }[a.level])].filter(Boolean).join(" · ") || "–"}</span></span></Link></td>
+                    <td className="px-4 py-3"><Link to="/students/$id" params={{ id: a.membership.id }} className="flex items-center gap-3 font-semibold outline-none focus-visible:underline" onClick={(e) => e.stopPropagation()}><Avatar name={a.user.name} src={a.user.avatar_url} size={34} /><span><span className="block">{a.user.name}</span><span className="block text-xs font-normal text-fg-muted">{[goalLabel(a.goal), a.level && t({ beginner: "Iniciante", intermediate: "Intermediário", advanced: "Avançado" }[a.level])].filter(Boolean).join(" · ") || "–"}</span></span></Link></td>
                     <td className="px-3 py-3"><div className="flex flex-wrap gap-1">{a.group_ids.map((g) => <Badge key={g}>{groupName(g)}</Badge>)}</div></td>
                     <td className="px-3 py-3">{a.shares_data ? <ComplianceBar pct={a.compliance_pct} /> : <span className="text-xs text-fg-subtle">{t("Sem consentimento")}</span>}</td>
                     <td className="px-3 py-3 tabular-nums">{a.week.planned ? <span><b>{a.week.done}</b><span className="text-fg-muted">/{a.week.planned}</span></span> : <span className="text-fg-subtle">{t("Sem treinos")}</span>}</td>
@@ -87,7 +87,7 @@ export function StudentsScreen() {
           <ul className="grid gap-2 md:hidden">
             {rows.map((a) => (
               <li key={a.membership.id}>
-                <Link to="/alunos/$id" params={{ id: a.membership.id }} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-lg border border-line bg-surface p-3">
+                <Link to="/students/$id" params={{ id: a.membership.id }} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-lg border border-line bg-surface p-3">
                   <Avatar name={a.user.name} size={40} />
                   <span className="min-w-0"><span className="block truncate font-semibold">{a.user.name}</span><span className="block truncate text-xs text-fg-muted">{a.week.planned ? t("{done}/{planned} na semana", { done: a.week.done, planned: a.week.planned }) : t("Sem treinos na semana")} · {a.last_activity_at ? ago(a.last_activity_at) : t("sem atividade")}</span></span>
                   <span className="w-16">{a.shares_data && <ComplianceBar pct={a.compliance_pct} />}</span>

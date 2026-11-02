@@ -43,7 +43,7 @@ function ClubSwitcher({ compact }: { compact?: boolean }) {
             </DropdownMenu.Item>
           ))}
           <DropdownMenu.Separator className="my-1 h-px bg-line-subtle" />
-          <DropdownMenu.Item onSelect={() => navigate({ to: "/criar-clube" })} className="flex h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2.5 text-sm outline-none data-[highlighted]:bg-soft"><Plus className="size-4" />{t("Criar novo clube")}</DropdownMenu.Item>
+          <DropdownMenu.Item onSelect={() => navigate({ to: "/clubs/new" })} className="flex h-9 cursor-pointer items-center gap-2.5 rounded-sm px-2.5 text-sm outline-none data-[highlighted]:bg-soft"><Plus className="size-4" />{t("Criar novo clube")}</DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
@@ -67,7 +67,7 @@ function AccountMenu() {
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
         <DropdownMenu.Content side="top" align="start" sideOffset={6} className="z-50 w-60 rounded-md border border-line-subtle bg-raised p-1 text-fg shadow-md">
-          <DropdownMenu.Item className={item} onSelect={() => navigate({ to: "/conta" })}><User />{t("Minha conta")}</DropdownMenu.Item>
+          <DropdownMenu.Item className={item} onSelect={() => navigate({ to: "/account" })}><User />{t("Minha conta")}</DropdownMenu.Item>
           <DropdownMenu.Separator className="my-1 h-px bg-line-subtle" />
           <DropdownMenu.Label className="px-2.5 py-1 rf-text-overline text-fg-muted">{t("Aparência")}</DropdownMenu.Label>
           {modes.map((m) => (
@@ -76,7 +76,7 @@ function AccountMenu() {
             </DropdownMenu.Item>
           ))}
           <DropdownMenu.Separator className="my-1 h-px bg-line-subtle" />
-          <DropdownMenu.Item className={item} onSelect={async () => { await signOut(); navigate({ to: "/entrar" }); }}><LogOut />{t("Sair")}</DropdownMenu.Item>
+          <DropdownMenu.Item className={item} onSelect={async () => { await signOut(); navigate({ to: "/login" }); }}><LogOut />{t("Sair")}</DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
@@ -97,7 +97,7 @@ function NavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
 
 function Bell_({ unread, className }: { unread: number; className?: string }) {
   return (
-    <Link to="/notificacoes" aria-label={unread ? t("Notificações: {n} novas", { n: unread }) : t("Notificações")}
+    <Link to="/notifications" aria-label={unread ? t("Notificações: {n} novas", { n: unread }) : t("Notificações")}
       className={cn("relative grid size-10 place-items-center rounded-full text-fg hover:bg-soft", className)}>
       <Bell className="size-5" aria-hidden />
       {unread > 0 && <span className="absolute right-1.5 top-1.5 grid min-w-[18px] place-items-center rounded-full bg-danger px-1 text-[11px] font-bold leading-[18px] text-on-danger ring-2 ring-canvas">{unread > 9 ? "9+" : unread}</span>}

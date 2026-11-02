@@ -1,3 +1,5 @@
+import Color from "@runflow/design/color";
+import { tokens } from "@runflow/design/tokens";
 import { storage } from "./storage";
 
 /**
@@ -26,4 +28,16 @@ export function setColorMode(mode: ColorMode) {
   if (mode === "system") document.documentElement.removeAttribute("data-theme");
   else document.documentElement.setAttribute("data-theme", mode);
   storage.set(MODE, mode === "system" ? null : mode);
+}
+
+/** Inline CSS variables that theme one subtree with a club's colors (marketing demos, previews). */
+export function themeVars(input: { primary?: string | null; secondary?: string | null }, mode: "light" | "dark" = "light"): Record<string, string> {
+  const r = Color.resolveClubColors(input, { brand: tokens.seeds.brand, accent: tokens.seeds.accent });
+  const out: Record<string, string> = {};
+  const kebab = (k: string) => k.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase());
+  for (const [name, seed] of [["brand", r.primary], ["accent", r.secondary]] as const) {
+    const roles = Color.roles(seed, mode, tokens.env[mode]);
+    for (const k of ["solid", "solidHover", "solidActive", "onSolid", "solidBorder", "text", "subtle", "subtleHover", "subtleFg", "border", "ring"] as const) out[`--rf-${name}-${kebab(k)}`] = roles[k];
+  }
+  return out;
 }

@@ -45,7 +45,7 @@ export function StatusScreen() {
     <div className="mx-auto grid max-w-4xl gap-8 px-5 py-8">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <RunflowWordmark />
-        <div className="flex gap-2"><ButtonLink to="/dev/componentes" variant="secondary" size="sm" icon={<Palette />}>{t("Componentes")}</ButtonLink><ButtonLink to="/entrar" size="sm" icon={<LogIn />}>{t("Entrar no app")}</ButtonLink></div>
+        <div className="flex gap-2"><ButtonLink to="/dev/components" variant="secondary" size="sm" icon={<Palette />}>{t("Componentes")}</ButtonLink><ButtonLink to="/login" size="sm" icon={<LogIn />}>{t("Entrar no app")}</ButtonLink></div>
       </header>
       <div className="grid gap-2">
         <h1 className="rf-text-display-sm">{t("Status do desenvolvimento")}</h1>

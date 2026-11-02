@@ -16,7 +16,7 @@ export default function register(h) {
   };
   const club = (id) => h.db.clubs.find((c) => c.id === id && !c.deleted_at) || h.fail(404, "club.not_found", "Clube não encontrado", "Ele pode ter sido encerrado.");
   const inviteToken = () => h.uuid("inv").replace(/-/g, "").slice(0, 10);
-  const inviteOut = (i) => ({ ...i, url: `https://runflow.club/convite/${i.token}` });
+  const inviteOut = (i) => ({ ...i, url: `https://runflow.club/invite/${i.token}` });
   const setBranding = (clubId, primary, secondary, logoId) => {
     let b = h.db.club_branding.find((x) => x.club_id === clubId);
     const th = h.themeFor(primary, secondary);
@@ -181,7 +181,7 @@ export default function register(h) {
     else { m = { id: h.uuid("m"), club_id: c.id, user_id: u.id, role: i.role, status: "active", is_billing_owner: false, joined_at: now, left_at: null }; h.db.memberships.push(m); }
     i.uses++;
     for (const staff of h.db.memberships.filter((x) => x.club_id === c.id && x.role !== "student" && x.status === "active"))
-      h.db.notifications.push({ id: h.uuid("n"), user_id: staff.user_id, club_id: c.id, kind: "member_joined", title: `${u.name} entrou no clube`, body: i.role === "trainer" ? "Novo treinador na equipe." : null, link: i.role === "trainer" ? "/clube/membros" : "/alunos", read_at: null, created_at: now });
+      h.db.notifications.push({ id: h.uuid("n"), user_id: staff.user_id, club_id: c.id, kind: "member_joined", title: `${u.name} entrou no clube`, body: i.role === "trainer" ? "Novo treinador na equipe." : null, link: i.role === "trainer" ? "/club/members" : "/students", read_at: null, created_at: now });
     return { __status: 201, data: { membership: m, club: c, already_member: false } };
   });
 }

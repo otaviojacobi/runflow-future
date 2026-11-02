@@ -1,4 +1,4 @@
-/** DS2/DS3: the whole UI kit + domain components, live with club themes and modes. Route: /dev/componentes */
+/** DS2/DS3: the whole UI kit + domain components, live with club themes and modes. Route: /dev/components */
 import Color from "@runflow/design/color";
 import { tokens } from "@runflow/design/tokens";
 import { Bell, Copy, Filter, MoreHorizontal, Pencil, Plus, Trash2, Trophy, Users } from "lucide-react";

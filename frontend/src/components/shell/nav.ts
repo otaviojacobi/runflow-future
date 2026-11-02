@@ -8,26 +8,26 @@ export interface NavItem { to: string; label: string; icon: LucideIcon; tab?: bo
 export interface NavGroup { title?: string; items: NavItem[] }
 
 const STAFF: NavItem[] = [
-  { to: "/painel", label: "Painel", icon: LayoutDashboard, tab: true },
-  { to: "/alunos", label: "Alunos", icon: Users, tab: true },
-  { to: "/planejamento", label: "Planejamento", icon: CalendarRange, tab: true },
-  { to: "/feedbacks", label: "Feedbacks", icon: MessageSquare, tab: true },
-  { to: "/biblioteca", label: "Biblioteca", icon: Library },
-  { to: "/planilhas", label: "Planilhas", icon: ClipboardList },
-  { to: "/aulas/gestao", label: "Aulas", icon: CalendarClock },
+  { to: "/dashboard", label: "Painel", icon: LayoutDashboard, tab: true },
+  { to: "/students", label: "Alunos", icon: Users, tab: true },
+  { to: "/planning", label: "Planejamento", icon: CalendarRange, tab: true },
+  { to: "/feedback", label: "Feedbacks", icon: MessageSquare, tab: true },
+  { to: "/library", label: "Biblioteca", icon: Library },
+  { to: "/plans", label: "Planilhas", icon: ClipboardList },
+  { to: "/classes/manage", label: "Aulas", icon: CalendarClock },
 ];
 const OWNER: NavItem[] = [
-  { to: "/clube/estudio", label: "Club Studio", icon: Palette },
-  { to: "/clube/membros", label: "Membros", icon: UserCog },
-  { to: "/clube/configuracoes", label: "Configurações", icon: Settings },
-  { to: "/clube/plano", label: "Plano e cobrança", icon: CreditCard },
+  { to: "/club/studio", label: "Club Studio", icon: Palette },
+  { to: "/club/members", label: "Membros", icon: UserCog },
+  { to: "/club/settings", label: "Configurações", icon: Settings },
+  { to: "/club/billing", label: "Plano e cobrança", icon: CreditCard },
 ];
 const STUDENT: NavItem[] = [
-  { to: "/hoje", label: "Hoje", icon: Sun, tab: true },
-  { to: "/agenda", label: "Agenda", icon: Calendar, tab: true },
-  { to: "/atividades", label: "Atividades", icon: Activity, tab: true },
-  { to: "/aulas", label: "Aulas", icon: Waves, tab: true },
-  { to: "/conta", label: "Perfil", icon: User, tab: true },
+  { to: "/today", label: "Hoje", icon: Sun, tab: true },
+  { to: "/schedule", label: "Agenda", icon: Calendar, tab: true },
+  { to: "/activities", label: "Atividades", icon: Activity, tab: true },
+  { to: "/classes", label: "Aulas", icon: Waves, tab: true },
+  { to: "/account", label: "Perfil", icon: User, tab: true },
 ];
 
 export function navFor(role: Role): NavGroup[] {

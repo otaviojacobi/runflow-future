@@ -10,7 +10,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | Step | Scope | Screens | Status |
 |---|---|---|---|
 | F0 | Scaffold: npm workspaces, Vite + React + TS, Tailwind v4 bound to `@runflow/design` tokens, TanStack Router + Query, i18n (pt-BR source strings), API client + problem+json errors, mock API core (auth, `/me`), `check` script | — | [x] |
-| F1 | UI kit `src/ui/*` + domain components `src/components/*`, plus a `/dev/componentes` page (replaces the DS2/DS3 HTML pages) | DS2, DS3 | [x] |
+| F1 | UI kit `src/ui/*` + domain components `src/components/*`, plus a `/dev/components` page (replaces the DS2/DS3 HTML pages) | DS2, DS3 | [x] |
 | F2 | Sign-in (Google mock chooser + email code), session, route guards, "no club yet" | A2, A7 | [x] |
 | F3 | App shell per role (sidebar on desktop, bottom tabs on phones), club context, club theme without a flash (§7.8), club switcher | A6 | [x] |
 | F4 | Owner onboarding wizard: create club → Studio quick step (0–2 colors, logo, live preview) → invite (link, WhatsApp, QR) → starter library → done | A5 | [x] |
@@ -66,34 +66,34 @@ IDs are used in commits. Routes are pt-BR (users see them).
 | ID | Screen | Route (web) | Role |
 |---|---|---|---|
 | A1 | Landing + preços | `/` (public site) | public |
-| A2 | Entrar (Google, código por e-mail) | `/entrar` | all |
-| A3 | Convite (tema do clube) | `/convite/:token` | all |
-| A4 | Boas-vindas do aluno: consentimento, perfil, objetivo, Strava | `/bem-vindo` | student |
-| A5 | Criar clube: dados → estúdio → convite → primeiro treino → checklist | `/criar-clube` | owner |
-| A6 | Troca de clube | shell + `/clubes` | all |
-| A7 | Sem clube ainda | `/clubes` (empty) | all |
-| M1 | Hoje | `/hoje` | student |
-| M2 | Treino | `/treinos/:id` | student |
-| M3 | Agenda | `/agenda` | student |
-| M4 | Atividades / atividade | `/atividades`, `/atividades/:id` | student |
+| A2 | Entrar (Google, código por e-mail) | `/login` | all |
+| A3 | Convite (tema do clube) | `/invite/:token` | all |
+| A4 | Boas-vindas do aluno: consentimento, perfil, objetivo, Strava | `/welcome` | student |
+| A5 | Criar clube: dados → estúdio → convite → primeiro treino → checklist | `/clubs/new` | owner |
+| A6 | Troca de clube | shell + `/clubs` | all |
+| A7 | Sem clube ainda | `/clubs` (empty) | all |
+| M1 | Hoje | `/today` | student |
+| M2 | Treino | `/workouts/:id` | student |
+| M3 | Agenda | `/schedule` | student |
+| M4 | Atividades / atividade | `/activities`, `/activities/:id` | student |
 | M5 | Feedback do treino (folha) | in M2 | student |
-| M6 | Aulas (reservar, lista de espera, check-in) | `/aulas` | student |
-| M7 | Perfil (zonas, objetivo) | `/conta/perfil` | student |
-| W1 | Painel | `/painel` | trainer |
-| W2 | Alunos + grupos | `/alunos` | trainer |
-| W3 | Aluno | `/alunos/:id` | trainer |
-| W4 | Planejamento | `/planejamento` | trainer |
-| W5 | Construtor de treino | `/biblioteca/novo`, `/biblioteca/:id` (+ dialog in W4) | trainer |
-| W6 | Biblioteca | `/biblioteca` | trainer |
-| W7 | Planilhas | `/planilhas`, `/planilhas/:id` | trainer |
-| W8 | Feedbacks | `/feedbacks` | trainer |
-| W9 | Gestão de aulas | `/aulas/gestao` | trainer |
-| W11 | Notificações | `/notificacoes` | all |
-| O1 | Club Studio | `/clube/estudio` | owner |
-| O2 | Membros e convites | `/clube/membros` | owner |
-| O3 | Configurações do clube | `/clube/configuracoes` | owner |
-| O4 | Plano e cobrança | `/clube/plano` | owner |
+| M6 | Aulas (reservar, lista de espera, check-in) | `/classes` | student |
+| M7 | Perfil (zonas, objetivo) | `/account/profile` | student |
+| W1 | Painel | `/dashboard` | trainer |
+| W2 | Alunos + grupos | `/students` | trainer |
+| W3 | Aluno | `/students/:id` | trainer |
+| W4 | Planejamento | `/planning` | trainer |
+| W5 | Construtor de treino | `/library/new`, `/library/:id` (+ dialog in W4) | trainer |
+| W6 | Biblioteca | `/library` | trainer |
+| W7 | Planilhas | `/plans`, `/plans/:id` | trainer |
+| W8 | Feedbacks | `/feedback` | trainer |
+| W9 | Gestão de aulas | `/classes/manage` | trainer |
+| W11 | Notificações | `/notifications` | all |
+| O1 | Club Studio | `/club/studio` | owner |
+| O2 | Membros e convites | `/club/members` | owner |
+| O3 | Configurações do clube | `/club/settings` | owner |
+| O4 | Plano e cobrança | `/club/billing` | owner |
 | O5 | Checkout / portal Stripe (mock) | `/dev/stripe/*` | owner (mock only) |
-| C1 | Minha conta | `/conta` | all |
+| C1 | Minha conta | `/account` | all |
 
-Home after sign-in: owner and trainer → `/painel`; student → `/hoje`; no membership → `/clubes`.
+Home after sign-in: owner and trainer → `/dashboard`; student → `/today`; no membership → `/clubs`.

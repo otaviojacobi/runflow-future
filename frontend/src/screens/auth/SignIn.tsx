@@ -1,4 +1,4 @@
-/** A2 · Entrar: Google (mock chooser in dev) or a 6-digit code by e-mail. Route: /entrar */
+/** A2 · Entrar: Google (mock chooser in dev) or a 6-digit code by e-mail. Route: /login */
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, CalendarCheck, Mail, Users, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -23,7 +23,7 @@ const HERO: Structure = { v: 1, blocks: [
 const ROLE: Record<string, string> = { owner: "gestor(a)", trainer: "treinador(a)", student: "aluno(a)" };
 
 export function SignInScreen() {
-  const { redirect } = useSearch({ from: "/entrar" });
+  const { redirect } = useSearch({ from: "/login" });
   const navigate = useNavigate();
   const [step, setStep] = useState<"start" | "code">("start");
   const [email, setEmail] = useState("");

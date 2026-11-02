@@ -22,7 +22,7 @@ import { LibraryScreen } from "./screens/staff/Library";
 import { Toaster } from "./ui";
 
 /**
- * Route tree (code-based). Screen IDs and steps: docs/build-plan.md. Routes are pt-BR.
+ * Route tree (code-based). Screen IDs and steps: docs/build-plan.md. Routes are English; all visible text is pt-BR.
  * Placeholders mark screens whose step isn't built yet; each step swaps in the real component.
  */
 const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: () => (<><Outlet /><Toaster /></>) });
@@ -32,38 +32,40 @@ const r = <P extends string>(parent: Parameters<typeof createRoute>[0]["getParen
   createRoute({ getParentRoute: parent, path, component } as never);
 
 // ---------------------------------------------------------------- public
-const index = createRoute({
-  getParentRoute: () => root, path: "/",
+const index = createRoute({ getParentRoute: () => root, path: "/", component: lazyRouteComponent(() => import("./screens/public/Landing"), "LandingScreen") });
+/** /app: "open the app" — sends a signed-in user to their role's home. */
+const appHome = createRoute({
+  getParentRoute: () => root, path: "/app",
   beforeLoad: async ({ context }) => {
-    if (!session.isSignedIn()) throw redirect({ to: "/entrar" });
+    if (!session.isSignedIn()) throw redirect({ to: "/login" });
     throw redirect({ to: homeFor(activeMembership(await ensureMe(context.queryClient))?.membership.role) });
   },
 });
 const signIn = createRoute({
-  getParentRoute: () => root, path: "/entrar", component: SignInScreen,
+  getParentRoute: () => root, path: "/login", component: SignInScreen,
   validateSearch: (s: Record<string, unknown>): { redirect?: string } => ({ redirect: typeof s.redirect === "string" ? s.redirect : undefined }),
-  beforeLoad: () => { if (session.isSignedIn()) throw redirect({ to: "/" }); },
+  beforeLoad: () => { if (session.isSignedIn()) throw redirect({ to: "/app" }); },
 });
-const invite = createRoute({ getParentRoute: () => root, path: "/convite/$token", component: InviteScreen });
-const devComponents = createRoute({ getParentRoute: () => root, path: "/dev/componentes", component: ComponentsScreen });
+const invite = createRoute({ getParentRoute: () => root, path: "/invite/$token", component: InviteScreen });
+const devComponents = createRoute({ getParentRoute: () => root, path: "/dev/components", component: ComponentsScreen });
 const devStatus = createRoute({ getParentRoute: () => root, path: "/dev/status", component: StatusScreen });
 const devStripe = createRoute({ getParentRoute: () => root, path: "/dev/stripe/$kind", component: todo("Stripe (simulado)", "F17") });
 
 // ---------------------------------------------------------------- signed in, outside the shell
 const authed = createRoute({
   getParentRoute: () => root, id: "authed", component: () => <Outlet />,
-  beforeLoad: ({ location }) => { if (!session.isSignedIn()) throw redirect({ to: "/entrar", search: { redirect: location.href } }); },
+  beforeLoad: ({ location }) => { if (!session.isSignedIn()) throw redirect({ to: "/login", search: { redirect: location.href } }); },
 });
-const clubs = createRoute({ getParentRoute: () => authed, path: "/clubes", component: ClubsScreen, loader: ({ context }) => ensureMe(context.queryClient) });
-const createClub = createRoute({ getParentRoute: () => authed, path: "/criar-clube", component: CreateClubScreen });
-const welcome = createRoute({ getParentRoute: () => authed, path: "/bem-vindo", component: WelcomeScreen, loader: ({ context }) => ensureMe(context.queryClient) });
+const clubs = createRoute({ getParentRoute: () => authed, path: "/clubs", component: ClubsScreen, loader: ({ context }) => ensureMe(context.queryClient) });
+const createClub = createRoute({ getParentRoute: () => authed, path: "/clubs/new", component: CreateClubScreen });
+const welcome = createRoute({ getParentRoute: () => authed, path: "/welcome", component: WelcomeScreen, loader: ({ context }) => ensureMe(context.queryClient) });
 
 // ---------------------------------------------------------------- the club shell (role-gated groups)
 const shell = createRoute({
   getParentRoute: () => authed, id: "shell", component: AppShell,
   beforeLoad: async ({ context }) => {
     const m = activeMembership(await ensureMe(context.queryClient));
-    if (!m) throw redirect({ to: "/clubes" });
+    if (!m) throw redirect({ to: "/clubs" });
     return { role: m.membership.role };
   },
 });
@@ -78,47 +80,47 @@ const student = gate("student", ["student"]);
 const S = () => staff, O = () => owner, St = () => student, Sh = () => shell;
 
 const staffRoutes = [
-  r(S, "/painel", todo("Painel", "F13")),
-  r(S, "/alunos", StudentsScreen),
-  r(S, "/alunos/$id", todo("Aluno", "F11")),
-  r(S, "/planejamento", todo("Planejamento", "F9")),
-  r(S, "/biblioteca", LibraryScreen),
-  r(S, "/biblioteca/novo", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
-  r(S, "/biblioteca/$id", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
-  r(S, "/planilhas", todo("Planilhas", "F14")),
-  r(S, "/planilhas/$id", todo("Planilha", "F14")),
-  r(S, "/feedbacks", todo("Feedbacks", "F12")),
-  r(S, "/aulas/gestao", todo("Gestão de aulas", "F15")),
+  r(S, "/dashboard", todo("Painel", "F13")),
+  r(S, "/students", StudentsScreen),
+  r(S, "/students/$id", todo("Aluno", "F11")),
+  r(S, "/planning", todo("Planejamento", "F9")),
+  r(S, "/library", LibraryScreen),
+  r(S, "/library/new", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
+  r(S, "/library/$id", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
+  r(S, "/plans", todo("Planilhas", "F14")),
+  r(S, "/plans/$id", todo("Planilha", "F14")),
+  r(S, "/feedback", todo("Feedbacks", "F12")),
+  r(S, "/classes/manage", todo("Gestão de aulas", "F15")),
 ];
 const ownerRoutes = [
-  r(O, "/clube/estudio", todo("Club Studio", "F16")),
-  r(O, "/clube/membros", MembersScreen),
-  r(O, "/clube/configuracoes", todo("Configurações do clube", "F16")),
-  r(O, "/clube/plano", todo("Plano e cobrança", "F17")),
+  r(O, "/club/studio", todo("Club Studio", "F16")),
+  r(O, "/club/members", MembersScreen),
+  r(O, "/club/settings", todo("Configurações do clube", "F16")),
+  r(O, "/club/billing", todo("Plano e cobrança", "F17")),
 ];
 const studentRoutes = [
-  r(St, "/hoje", todo("Hoje", "F10")),
-  r(St, "/agenda", todo("Agenda", "F10")),
-  r(St, "/treinos/$id", todo("Treino", "F10")),
-  r(St, "/atividades", todo("Atividades", "F11")),
-  r(St, "/atividades/$id", todo("Atividade", "F11")),
-  r(St, "/aulas", todo("Aulas", "F15")),
+  r(St, "/today", todo("Hoje", "F10")),
+  r(St, "/schedule", todo("Agenda", "F10")),
+  r(St, "/workouts/$id", todo("Treino", "F10")),
+  r(St, "/activities", todo("Atividades", "F11")),
+  r(St, "/activities/$id", todo("Atividade", "F11")),
+  r(St, "/classes", todo("Aulas", "F15")),
 ];
 const commonRoutes = [
-  r(Sh, "/notificacoes", todo("Notificações", "F18")),
-  r(Sh, "/conta", todo("Minha conta", "F18")),
-  r(Sh, "/conta/perfil", todo("Perfil", "F18")),
+  r(Sh, "/notifications", todo("Notificações", "F18")),
+  r(Sh, "/account", todo("Minha conta", "F18")),
+  r(Sh, "/account/profile", todo("Perfil", "F18")),
 ];
 
 const routeTree = root.addChildren([
-  index, signIn, invite, devComponents, devStatus, devStripe,
+  index, appHome, signIn, invite, devComponents, devStatus, devStripe,
   authed.addChildren([
     clubs, createClub, welcome,
     shell.addChildren([staff.addChildren(staffRoutes), owner.addChildren(ownerRoutes), student.addChildren(studentRoutes), ...commonRoutes]),
   ]),
 ]);
 export const router = createRouter({ routeTree, context: { queryClient }, defaultPreload: "intent", scrollRestoration: true });
-setUnauthorizedHandler(() => router.navigate({ to: "/entrar", search: { redirect: router.state.location.href } }));
+setUnauthorizedHandler(() => router.navigate({ to: "/login", search: { redirect: router.state.location.href } }));
 
 declare module "@tanstack/react-router" {
   interface Register { router: typeof router }

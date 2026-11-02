@@ -1,4 +1,4 @@
-/** A3 · Convite: club-themed invite landing. Public; accepts after sign-in. Route: /convite/$token */
+/** A3 · Convite: club-themed invite landing. Public; accepts after sign-in. Route: /invite/$token */
 import { useNavigate, useParams } from "@tanstack/react-router";
 import { CircleAlert, LogIn, MapPin, Users } from "lucide-react";
 import { useEffect } from "react";
@@ -22,7 +22,7 @@ const REASON: Record<string, [string, string]> = {
 };
 
 export function InviteScreen() {
-  const { token } = useParams({ from: "/convite/$token" });
+  const { token } = useParams({ from: "/invite/$token" });
   const navigate = useNavigate();
   const inv = usePublicInvite(token);
   const accept = useAcceptInvite();
@@ -37,7 +37,7 @@ export function InviteScreen() {
         selectClub(m);
         if (r.already_member) return navigate({ to: homeFor(m?.membership.role) });
         toast.success(t("Você entrou no {club}!", { club: r.club.name }));
-        navigate({ to: r.membership.role === "student" ? "/bem-vindo" : "/painel" });
+        navigate({ to: r.membership.role === "student" ? "/welcome" : "/dashboard" });
       },
       onError: toast.error,
     });
@@ -51,7 +51,7 @@ export function InviteScreen() {
         {inv.isPending ? (
           <Card className="grid justify-items-center gap-4 p-8"><Skeleton className="size-20 rounded-2xl" /><Skeleton className="h-7 w-64" /><Skeleton className="h-4 w-48" /></Card>
         ) : notFound || !d ? (
-          <Card><EmptyState icon={<CircleAlert />} title={t("Convite não encontrado")} action={<ButtonLink to="/clubes" variant="secondary">{t("Voltar")}</ButtonLink>}>{t("Confira o link com quem te convidou.")}</EmptyState></Card>
+          <Card><EmptyState icon={<CircleAlert />} title={t("Convite não encontrado")} action={<ButtonLink to="/clubs" variant="secondary">{t("Voltar")}</ButtonLink>}>{t("Confira o link com quem te convidou.")}</EmptyState></Card>
         ) : (
           <Card className="grid justify-items-center gap-5 overflow-hidden p-0 text-center">
             <div className="h-20 w-full bg-brand" />
@@ -77,7 +77,7 @@ export function InviteScreen() {
                 <Button size="lg" block onClick={join} loading={accept.isPending}>{d.role === "trainer" ? t("Entrar como treinador(a)") : t("Aceitar convite")}</Button>
               ) : (
                 <>
-                  <ButtonLink to="/entrar" search={{ redirect: `/convite/${token}` }} size="lg" block icon={<LogIn />}>{t("Entrar para aceitar")}</ButtonLink>
+                  <ButtonLink to="/login" search={{ redirect: `/invite/${token}` }} size="lg" block icon={<LogIn />}>{t("Entrar para aceitar")}</ButtonLink>
                   <p className="text-xs text-fg-muted">{t("Use sua conta Google ou o seu e-mail. Leva menos de um minuto.")}</p>
                 </>
               )}

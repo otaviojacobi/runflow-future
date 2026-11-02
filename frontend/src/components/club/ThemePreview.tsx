@@ -16,10 +16,11 @@ const SAMPLE: Structure = { v: 1, blocks: [
 ] };
 
 /** A small phone showing the active theme (brand + accent) on real UI. `mode` forces light/dark. */
-export function ThemePreview({ name, logoUrl, mode, className }: { name: string; logoUrl?: string | null; mode?: "light" | "dark"; className?: string }) {
+/** `vars` (from lib/theme themeVars) themes this preview only; it must sit on the same element as data-theme to win. */
+export function ThemePreview({ name, logoUrl, mode, className, vars }: { name: string; logoUrl?: string | null; mode?: "light" | "dark"; className?: string; vars?: Record<string, string> }) {
   const branding = logoUrl ? ({ logo_url: logoUrl } as Pick<Branding, "logo_url">) : null;
   return (
-    <div data-theme={mode} className={cn("w-[260px] shrink-0 rounded-[38px] bg-[var(--rf-neutral-1000)] p-2 shadow-lg", className)}>
+    <div data-theme={mode} style={vars} className={cn("w-[260px] shrink-0 rounded-[38px] bg-[var(--rf-neutral-1000)] p-2 shadow-lg", className)}>
       <div className="flex h-[500px] flex-col overflow-hidden rounded-[30px] bg-canvas text-fg">
         <div className="flex items-center gap-2.5 px-4 pb-3 pt-6">
           {logoUrl?.startsWith("data:") ? <img src={logoUrl} alt="" className="size-9 rounded-[10px] bg-surface object-contain p-0.5 ring-1 ring-line" /> : <ClubLogo club={{ name: name || "Clube" }} branding={branding} size={36} />}
