@@ -23,10 +23,10 @@
 
 Runflow is a **training platform that connects trainers and clubs with their students**, built for the Brazilian market.
 
-- **Trainers and owners** prescribe workouts and training plans (*planilhas*), schedule classes, and follow how their students are doing.
+- **Trainers and owners** prescribe workouts and training plans (*planilhas*) and follow how their students are doing (class scheduling comes later, D-035).
 - **Students** see what to do today, train, and their results sync back from **Strava** (Garmin later).
 - **Every club sees its own colors.** Runflow is the app. The *Club Studio* lets a club set its logo and colors, and Runflow displays them to the club's members on web and mobile. This is included on the free tier.
-- **More than running.** Runflow serves running clubs (*assessorias*) and also **gyms (scheduling)**, **swimming clubs**, and **hybrids** that mix modalities.
+- **More than running.** Runflow serves running clubs (*assessorias*) and also **gyms** (class scheduling later, D-035), **swimming clubs**, and **hybrids** that mix modalities.
 
 ## 2. Why we win
 
@@ -39,7 +39,7 @@ We compete on three things. Each one is a commitment we measure, not a slogan.
 | **SPEED**: never slow, never down | API p95 **< 100 ms** on reads. Web app interactive **< 1.5 s** on 4G on a mid-range Android. Mobile cold start **< 2 s**. Today's and this week's workouts work **offline**. Full budgets are in §7.7. |
 
 Two structural differentiators sit on top of these:
-1. **Multi-modality.** One platform covers prescription (running, swimming, cycling, strength) and scheduling (gym classes, swim lessons), so hybrid clubs stop paying for two tools.
+1. **Multi-modality.** One platform covers prescription (running, swimming, cycling, strength) and, later (D-035), scheduling (gym classes, swim lessons), so hybrid clubs stop paying for two tools.
 2. **Club Studio.** Runflow displays each club's logo and colors, even on the free tier, and Pro adds a custom subdomain.
 
 ## 3. Competitive landscape: sisrun
@@ -71,7 +71,7 @@ Snapshot from sisrun.com.br (2026-11-01). Re-check before marketing claims.
 The product is built on two engines that a club can enable together:
 
 - **Prescription engine (*planilha*).** A trainer builds structured workouts, assigns them to a student or group on a date, and the student executes. The completed activity syncs from the watch, is matched to the plan automatically, and the student adds feedback (RPE/*PSE*, comment). The trainer then reviews compliance.
-- **Scheduling engine (*aulas*).** Recurring classes with capacity, instructor and location. Students book, join a waitlist, cancel, and check in (e.g. QR code at the gym). The trainer sees the roster and attendance.
+- **Later (D-035): scheduling engine (*aulas*).** Recurring classes with capacity, instructor and location. Students book, join a waitlist, cancel, and check in (e.g. QR code at the gym). The trainer sees the roster and attendance.
 
 ### 4.2 Roles
 
@@ -85,7 +85,7 @@ Membership is **per club**. One person can be a student in club A and a trainer 
 | Build workouts, library, *planilhas*; assign to students or groups | ✓ | ✓ | – |
 | See students' synced activities, feedback, compliance | ✓ | ✓ | own only |
 | Manage class schedule and rosters | ✓ | ✓ | – |
-| Receive workouts, send to watch, give feedback, book classes, connect devices | – | – | ✓ |
+| Receive workouts, send to watch, give feedback, connect devices (class booking later, D-035) | – | – | ✓ |
 
 Trainers see **all** students in their club (D-017). The owner is also a trainer by default.
 
@@ -102,7 +102,7 @@ Trainers see **all** students in their club (D-017). The owner is also a trainer
 - **Week release.** Plan ahead in private, then unlock the week for everyone at once, by hand or on a schedule (D-031).
 - **Club Studio** (§4.4), **invites** (§4.5) and **notifications** (push and email), each user choosing what reaches them and how (D-032).
 
-**Next:** swim and strength builders (sets, send-off times, equipment; exercises, sets/reps/load), multi-week *planilhas*, groups, the scheduling engine, trainer analytics, billing.
+**Next:** swim and strength builders (sets, send-off times, equipment; exercises, sets/reps/load), multi-week *planilhas*, groups, trainer analytics, billing.
 **Later:** Garmin (activities and send to watch), Sign in with Apple and the iOS App Store release, club finances (students pay monthly fees, which is also a revenue lever for us), race and event calendar, challenges, AI assistant (plan suggestions, free-text-to-workout), Apple Health / Health Connect.
 
 ### 4.4 Club Studio (club theming)
@@ -111,7 +111,7 @@ Trainers see **all** students in their club (D-017). The owner is also a trainer
 
 | Tier | What the club gets |
 |---|---|
-| **Free** | Club name, logo, and up to two colors (primary and an optional secondary). The colors theme the **signed-in** app on web and mobile for the club's members. Public pages (landing, sign-in, invite page) always stay in Runflow's brand and show only the club's logo and name, as do invite e-mails (D-024). |
+| **Free** | Club name, logo, and up to two colors (primary and an optional secondary). The colors theme the **signed-in** app on web and mobile for the club's members. Public pages (landing, sign-in, invite page) always stay in Runflow's brand and show only the club's logo and name (D-024). The club's e-mails (invites, notices) wear its colors (D-036). |
 | **Pro** | Everything in Free, plus a **`<club>.runflow.club`** subdomain that opens straight into the club's Runflow (themed once signed in). |
 
 How theming works (D-014; details in `design/`):
@@ -143,7 +143,7 @@ Auth is **Sign in with Google** or an **email one-time code**. There are no pass
    - The invite page (Runflow's brand, with the club's logo and name) says who invited them and to which e-mail ("Marcos te convidou").
    - Sign in with the invited e-mail (another account is told to switch).
    - **LGPD consent**, explicit and highlighted: share training and health data with the club's trainers.
-   - Profile basics: name, birth date, goal (5k / 10k / 21k / 42k / triathlon / saúde…), and optionally a recent race time to set zones.
+   - Profile basics: full name ("Nome completo"), birth date. The e-mail comes from the invite. Goal and zones are set later in the profile (D-035).
    - **Connect Strava** (Garmin later). Connecting asks for consent to share activities with the club's trainers (§5).
    - Install the app via a deep link, then land on "Hoje".
 4. **Multi-club:** a club switcher appears whenever the user has more than one membership.
@@ -416,7 +416,7 @@ flowchart LR
 | D-007 | Auth: Google + email code now; Apple when the Apple Developer account exists (before the iOS App Store release); opaque hashed sessions; no passwords | Best UX, revocable; the founder deferred the Apple account | Accepted (founder) |
 | D-008 | Multi-tenancy: shared DB, `club_id` scoping, per-club roles | Simple, cheap, supports multi-club users | Proposed |
 | D-009 | Jobs on Postgres; no Redis | One fewer service on the Pi | Proposed |
-| D-010 | Object storage via `object_store`: disk (Pi) → S3 (cloud) | Zero extra services now, config-only migration | Proposed |
+| D-010 | Object storage via `object_store`: disk (Pi) → S3 (cloud) | Zero extra services now, config-only migration | **Superseded by D-037** |
 | D-011 | Students connect their own provider accounts (**Strava at launch; Garmin deferred**). Activities sync into Runflow's training model, and trainers see them with the student's explicit, per-club, revocable consent. Provenance is kept per activity. | Founder's sync model. Strava's agreement forbids sharing with other users *without explicit consent* | Accepted (founder); confirm with Strava in writing |
 | D-012 | Hosting: Pi + Cloudflare Tunnel → AWS sa-east-1 | Near-zero cost now; Brazilian data residency | Accepted (founder) |
 | D-013 | Everything user-facing is pt-BR by default: apps, design system pages, mocks, emails, notifications and all error messages, backend included. i18n-ready. Code, comments, commits, logs and docs in English | Market focus without future rewrites | Accepted (founder) |
@@ -436,7 +436,10 @@ flowchart LR
 | D-032 | **Notification control for every user.** Per notification kind: in-app, push and e-mail on/off, and "instant" or a daily digest; quiet hours for push; trainers can limit feedback/comment notices to chosen groups. Role-aware defaults: students instant, trainers get feedback/comments/new members as a digest. Replaces the four booleans in `notification_prefs`. Detail in F35 | Founder (2026-11-02): a big club easily overwhelms a trainer | Accepted (founder intent) |
 | D-033 | **Observability:** errors to Sentry (backend, web, later mobile; DSN set by the founder; user id only, no personal data); metrics and logs with Prometheus (`/metrics` on an internal port, never through the tunnel), Loki and Grafana, as an optional compose profile on the Pi or Grafana Cloud's free tier. Steps S12–S13 | Founder (2026-11-02): needed before real clubs, can come after the product steps | Accepted (founder) |
 | D-034 | **Smoke tests against deployed environments.** A small Playwright suite runs the main loop against QA after every deploy (and production later): sign in, create a throwaway club, invite and accept a student, assign and release a week, the student sees and completes it, the trainer sees the feedback, the club is deleted. Sign-in uses accounts on `smoke.runflow.club` (never delivered): with the secret `SMOKE_KEY` header the API returns their code instead of e-mailing it. Step S11 | Founder (2026-11-02): know the main operation works where people use it, not only in CI | Accepted (founder) |
-| D-024 | Public pages are **always Runflow's brand** (landing, sign-in, invite page, club picker, club creation); the club's colors apply only inside the signed-in app (web and mobile) | Founder: the marketing site and sign-in are ours | Accepted (founder, 2026-11-02) |
+| D-035 | **Simpler beta (founder, 2026-11-02).** Removed completely, like D-027 (screens, menus, mock, contract and tables; the code stays in git history): **class scheduling ("Aulas")** and **"Desafios"** (challenges, monthly ranking, badges). Kept: messages and mural, reports, assistant, races, assessments. Students get a 4-item bottom bar (Hoje, Agenda, Mensagens, Perfil); "Atividades" moves inside Perfil. Gym tools are tailored: the exercise library screen shows only to clubs that teach musculação; any club can still type exercise names (with suggestions) in the builder. Onboarding drops the goal step | Too many features confused the first users; make the Agenda great instead | Accepted (founder) |
+| D-036 | **Club e-mails wear the club's Studio colors** (invites, notices, digests): header, buttons and accents use the club theme, with the club's logo and name, and Runflow is credited only in the footer. E-mails not tied to a club (sign-in codes, account) stay in Runflow's brand. Supersedes the e-mail part of D-024; public *pages* stay Runflow's | Founder (2026-11-02): an invite should feel like it comes from the club | Accepted (founder) |
+| D-037 | **Object storage is S3-compatible everywhere**: **Garage** (self-hosted, Rust, arm64) in local dev and on the Pi; production points the same settings at any S3 (AWS, R2…). The disk backend stays for tests only. Supersedes D-010 | Founder (2026-11-02): run what production will run; MinIO has been in maintenance mode with no official images since Oct 2025 | Accepted (founder) |
+| D-024 | Public pages are **always Runflow's brand** (landing, sign-in, invite page, club picker, club creation); the club's colors apply only inside the signed-in app (web and mobile) | Founder: the marketing site and sign-in are ours | Accepted (founder, 2026-11-02); e-mails changed by D-036 |
 | D-016 | Payments via Stripe; no charging during the beta; NFS-e handled by the founder outside the product | Founder decision | Accepted (founder) |
 | D-017 | Trainers see all students in their club | Simple default; per-trainer assignment can come later if clubs ask | Accepted (founder) |
 | D-019 | Club themes: the DB stores the owner's choices plus the theme derived at save time. Web inlines it in the HTML; mobile caches it on the device; both revalidate by `rev`/ETag (§7.8) | The first paint is already in the club's colors; one engine run per save, not per request | Proposed |
@@ -457,7 +460,7 @@ flowchart LR
 | **3: Mobile app** | Expo app mirroring the web flows, on the real API | X0 done; X1–X10 after Phase 2 |
 | **4: Private beta** | Friendly running clubs; Strava app review; LGPD texts | — |
 | **5: Public launch** | Stripe live (Pro), subdomains, cloud migration plan | — |
-| **6: Growth** | Garmin, Sign in with Apple + iOS App Store, club finances, events, challenges, AI assistant, Apple Health / Health Connect, Max, Enterprise | — |
+| **6: Growth** | Garmin, Sign in with Apple + iOS App Store, club finances, class scheduling, events, challenges, AI assistant, Apple Health / Health Connect, Max, Enterprise | — |
 
 **Next step:** the first unchecked row in `docs/build-plan.md`. Each step ends with its box ticked, the checks green, and a commit pushed.
 
