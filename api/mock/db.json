@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-02T06:08:27.744Z",
+  "generated_at": "2026-11-02T06:13:17.319Z",
   "version": 1
  },
  "users": [
@@ -25464,6 +25464,159 @@
    "read_at": "2026-10-30T10:00:00.000Z"
   }
  ],
+ "challenges": [
+  {
+   "id": "9b603af1-359c-4f4a-a7a6-ead6e6a31e25",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "description": "Some 100 km de corrida até o fim do mês. Vale treino e prova!",
+   "sport": "run",
+   "goal": 100,
+   "group_ids": [],
+   "created_by": "ad896c19-0fab-4810-a0c7-c565db721527",
+   "created_at": "2026-11-01T11:00:00.000Z",
+   "archived_at": null,
+   "name": "100 km no mês",
+   "metric": "distance",
+   "starts_on": "2026-11-01",
+   "ends_on": "2026-11-30"
+  },
+  {
+   "id": "6dc5a38b-0e96-464f-ae93-688217b5d24c",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "description": "Doze treinos no mês, de qualquer modalidade.",
+   "sport": null,
+   "goal": 12,
+   "group_ids": [
+    "60f0edc8-0c54-422b-a3ee-a89caeee06ab"
+   ],
+   "created_by": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "created_at": "2026-11-01T11:00:00.000Z",
+   "archived_at": null,
+   "name": "Constância: 12 treinos",
+   "metric": "sessions",
+   "starts_on": "2026-11-01",
+   "ends_on": "2026-11-30"
+  },
+  {
+   "id": "8344f528-a4be-4fe2-af11-1c429c72beaa",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "description": "Quem sobe mais no mês?",
+   "sport": "run",
+   "goal": null,
+   "group_ids": [],
+   "created_by": "ad896c19-0fab-4810-a0c7-c565db721527",
+   "created_at": "2026-10-01T11:00:00.000Z",
+   "archived_at": null,
+   "name": "Outubro de altimetria",
+   "metric": "elevation",
+   "starts_on": "2026-10-01",
+   "ends_on": "2026-10-31"
+  },
+  {
+   "id": "6ca2cb90-cde8-4af6-a6cc-423f1f66695d",
+   "club_id": "c3da5abf-0ea4-43dd-ac57-f9bfa5861b1b",
+   "description": "Some 30 km de natação no mês.",
+   "sport": "swim",
+   "goal": 30,
+   "group_ids": [],
+   "created_by": "de29c338-7e71-44c8-aaff-25c3fba47aa3",
+   "created_at": "2026-11-01T11:00:00.000Z",
+   "archived_at": null,
+   "name": "30 km nadados",
+   "metric": "distance",
+   "starts_on": "2026-11-01",
+   "ends_on": "2026-11-30"
+  }
+ ],
+ "challenge_participants": [
+  {
+   "challenge_id": "9b603af1-359c-4f4a-a7a6-ead6e6a31e25",
+   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "joined_at": "2026-11-01T12:00:00.000Z"
+  },
+  {
+   "challenge_id": "9b603af1-359c-4f4a-a7a6-ead6e6a31e25",
+   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
+   "joined_at": "2026-11-01T12:00:00.000Z"
+  },
+  {
+   "challenge_id": "9b603af1-359c-4f4a-a7a6-ead6e6a31e25",
+   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
+   "joined_at": "2026-11-01T12:00:00.000Z"
+  },
+  {
+   "challenge_id": "9b603af1-359c-4f4a-a7a6-ead6e6a31e25",
+   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
+   "joined_at": "2026-11-01T12:00:00.000Z"
+  },
+  {
+   "challenge_id": "9b603af1-359c-4f4a-a7a6-ead6e6a31e25",
+   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
+   "joined_at": "2026-11-01T12:00:00.000Z"
+  },
+  {
+   "challenge_id": "6dc5a38b-0e96-464f-ae93-688217b5d24c",
+   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
+   "joined_at": "2026-11-01T12:00:00.000Z"
+  },
+  {
+   "challenge_id": "6dc5a38b-0e96-464f-ae93-688217b5d24c",
+   "membership_id": "bd220e4e-63e3-4c08-a9d3-3294d21e3a8b",
+   "joined_at": "2026-11-01T12:00:00.000Z"
+  },
+  {
+   "challenge_id": "8344f528-a4be-4fe2-af11-1c429c72beaa",
+   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "joined_at": "2026-10-01T12:00:00.000Z"
+  },
+  {
+   "challenge_id": "8344f528-a4be-4fe2-af11-1c429c72beaa",
+   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
+   "joined_at": "2026-10-01T12:00:00.000Z"
+  },
+  {
+   "challenge_id": "8344f528-a4be-4fe2-af11-1c429c72beaa",
+   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
+   "joined_at": "2026-10-01T12:00:00.000Z"
+  },
+  {
+   "challenge_id": "6ca2cb90-cde8-4af6-a6cc-423f1f66695d",
+   "membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
+   "joined_at": "2026-11-01T12:00:00.000Z"
+  },
+  {
+   "challenge_id": "6ca2cb90-cde8-4af6-a6cc-423f1f66695d",
+   "membership_id": "29cb433b-c2a8-438b-a931-6847f9b63f24",
+   "joined_at": "2026-11-01T12:00:00.000Z"
+  },
+  {
+   "challenge_id": "6ca2cb90-cde8-4af6-a6cc-423f1f66695d",
+   "membership_id": "3d7e10ff-b1da-4909-a60d-8d941a81ea99",
+   "joined_at": "2026-11-01T12:00:00.000Z"
+  }
+ ],
+ "ranking_opt_ins": [
+  {
+   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "opted_in_at": "2026-08-24T13:00:00.000Z"
+  },
+  {
+   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
+   "opted_in_at": "2026-08-24T13:00:00.000Z"
+  },
+  {
+   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
+   "opted_in_at": "2026-08-24T13:00:00.000Z"
+  },
+  {
+   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
+   "opted_in_at": "2026-08-24T13:00:00.000Z"
+  },
+  {
+   "membership_id": "bd220e4e-63e3-4c08-a9d3-3294d21e3a8b",
+   "opted_in_at": "2026-08-24T13:00:00.000Z"
+  }
+ ],
  "races": [
   {
    "id": "d88037ca-2649-4363-a363-ec68c7bcbd67",
@@ -25925,5 +26078,6 @@
  "webhook_events": [],
  "push_tokens": [],
  "audit_log": [],
- "jobs": []
+ "jobs": [],
+ "badges": []
 }

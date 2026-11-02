@@ -426,6 +426,22 @@ export function generate(anchor) {
   for (const k of ["ana", "bruno", "diego", "henrique"]) t("announcement_reads").push({ announcement_id: a3.id, membership_id: M["paceforte:" + k].id, read_at: at(addDays(anchor, -4), "07:00") });
   ann("mare-touca", MARE, "equipemare:renata", -4, "Touca obrigatória na piscina", "O Sesc passou a exigir touca em todas as raias. Sem touca, não entra. Temos toucas da equipe à venda por R$ 25.");
 
+  // ---- challenges and rankings (F24)
+  const monthStart = anchor.slice(0, 7) + "-01";
+  const monthEnd = addDays(new Date(Date.UTC(+anchor.slice(0, 4), +anchor.slice(5, 7), 1)).toISOString().slice(0, 10), -1);
+  const prevStart = new Date(Date.UTC(+anchor.slice(0, 4), +anchor.slice(5, 7) - 2, 1)).toISOString().slice(0, 10);
+  const challenge = (key, clubRow, row, members) => {
+    const c = { id: uuid("ch:" + key), club_id: clubRow.id, description: null, sport: null, goal: null, group_ids: [], created_by: null, created_at: at(row.starts_on, "08:00"), archived_at: null, ...row };
+    t("challenges").push(c);
+    for (const mk of members) t("challenge_participants").push({ challenge_id: c.id, membership_id: M[mk].id, joined_at: at(row.starts_on, "09:00") });
+    return c;
+  };
+  challenge("pf-100k", PF, { name: "100 km no mês", description: "Some 100 km de corrida até o fim do mês. Vale treino e prova!", metric: "distance", sport: "run", goal: 100, starts_on: monthStart, ends_on: monthEnd, created_by: M["paceforte:marcos"].id }, ["paceforte:ana", "paceforte:bruno", "paceforte:diego", "paceforte:henrique", "paceforte:carla"]);
+  challenge("pf-constancia", PF, { name: "Constância: 12 treinos", description: "Doze treinos no mês, de qualquer modalidade.", metric: "sessions", goal: 12, starts_on: monthStart, ends_on: monthEnd, created_by: M["paceforte:julia"].id, group_ids: [uuid("group:iniciantes")] }, ["paceforte:elisa", "paceforte:gabriela"]);
+  challenge("pf-outubro", PF, { name: "Outubro de altimetria", description: "Quem sobe mais no mês?", metric: "elevation", sport: "run", starts_on: prevStart, ends_on: addDays(monthStart, -1), created_by: M["paceforte:marcos"].id }, ["paceforte:ana", "paceforte:bruno", "paceforte:diego"]);
+  challenge("mare-30k", MARE, { name: "30 km nadados", description: "Some 30 km de natação no mês.", metric: "distance", sport: "swim", goal: 30, starts_on: monthStart, ends_on: monthEnd, created_by: M["equipemare:renata"].id }, ["equipemare:ana", "equipemare:lucas", "equipemare:marina"]);
+  for (const k of ["ana", "bruno", "diego", "henrique", "gabriela"]) t("ranking_opt_ins").push({ membership_id: M["paceforte:" + k].id, opted_in_at: createdLongAgo });
+
   // ---- races (F21)
   const race = (key, clubRow, row) => { const x = { id: uuid("race:" + key), club_id: clubRow.id, sport: "run", start_time: "07:00", city: null, state: null, url: null, notes: null, created_by: null, created_at: createdLongAgo, archived_at: null, ...row }; t("races").push(x); return x; };
   const RIEGEL = (thr, m) => Math.round(thr * 10 * Math.pow(m / 10000, 1.06));
@@ -456,7 +472,7 @@ export function generate(anchor) {
   note("marcos", PF, "billing", "9 de 10 alunos no plano Free", "Faça upgrade para o Pro e tenha até 100 alunos.", "/club/billing", at(addDays(anchor, -2), "19:13"));
 
   // empty tables (present so the mock and the check know them)
-  for (const k of ["email_codes", "sessions", "assets", "plan_assignments", "webhook_events", "push_tokens", "audit_log", "jobs"]) t(k);
+  for (const k of ["email_codes", "sessions", "assets", "plan_assignments", "webhook_events", "push_tokens", "audit_log", "jobs", "badges"]) t(k);
   return { meta: { anchor_date: anchor, generated_at: new Date().toISOString(), version: 1 }, ...T };
 }
 

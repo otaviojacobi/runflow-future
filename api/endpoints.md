@@ -161,6 +161,17 @@ Kinds, `data` → `result`: `body {weight_kg, height_cm, body_fat_pct?, waist_cm
 | POST | `/clubs/{club_id}/announcements/read` `{ids}` | Mark announcements read | M10 |
 | GET | `/clubs/{club_id}/announcements/{id}/reads` | Staff: audience with `read_at` (who read, who didn't) | W13 |
 
+### Challenges, rankings and badges
+| Method | Path | Purpose | Screens |
+|---|---|---|---|
+| GET | `/clubs/{club_id}/challenges` | Active, then upcoming, then finished. Students only see club-wide ones and those for their groups. Each has `status` (`upcoming` `active` `finished`), `participants_count`, `joined`, `my_progress {rank, value, pct}` | W15, M11 |
+| POST | `/clubs/{club_id}/challenges` `{name, metric, starts_on, ends_on, description?, sport?, goal?, group_ids?}` | Create (staff). `metric`: `distance` (km) `duration` (h) `sessions` `elevation` (m); `sport` null = any; `goal` null = ranking only | W15 |
+| GET / PATCH / DELETE | `/clubs/{club_id}/challenges/{id}` | GET adds `leaderboard[] {rank, membership_id, user, value, pct}` (participants only). DELETE archives | W15, M11 |
+| POST / DELETE | `/clubs/{club_id}/challenges/{id}/join` | Join / leave (student). Joining = showing your progress on that leaderboard | M11 |
+| GET | `/clubs/{club_id}/rankings?month=YYYY-MM&sport` | Monthly distance ranking of opted-in students (`items[] {rank, user, value km}`, `me {opted_in, rank}`) | M11, W15 |
+| PUT | `/clubs/{club_id}/my/ranking` `{opted_in}` | Opt in / out of the monthly ranking | M11 |
+| GET | `/clubs/{club_id}/my/badges` | `{items[] {key, kind, title, earned_at}, streak_weeks}`. Badges are awarded on read in the mock (nightly job in the backend): streaks of 4/8/12/26 weeks, 100 km running in a month, a challenge goal reached, a race finished | M11, M1 |
+
 ### Races and events
 | Method | Path | Purpose | Screens |
 |---|---|---|---|

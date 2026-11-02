@@ -186,3 +186,14 @@ export interface Assessment {
   data: import("@/domain/assessments").AssessmentData; result: import("@/domain/assessments").AssessmentResult; notes: string | null;
   zones_id: ID | null; created_by: ID | null; created_at: ISOTime; athlete: { membership_id: ID; user: User }; zones: Zone | null;
 }
+
+// ---- challenges, rankings, badges (F24)
+export type ChallengeMetric = "distance" | "duration" | "sessions" | "elevation";
+export interface ChallengeStanding { rank: number; membership_id: ID; user: User; value: number; pct: number | null; joined_at?: ISOTime }
+export interface Challenge {
+  id: ID; club_id: ID; name: string; description: string | null; metric: ChallengeMetric; sport: Sport | null; goal: number | null;
+  starts_on: ISODate; ends_on: ISODate; group_ids: ID[]; created_by: ID | null; created_at: ISOTime; archived_at: ISOTime | null;
+  status: "upcoming" | "active" | "finished"; participants_count: number; joined: boolean; my_progress: ChallengeStanding | null; leaderboard?: ChallengeStanding[];
+}
+export interface Ranking { month: string; sport: Sport; items: ChallengeStanding[]; me: { opted_in: boolean; rank: number | null } }
+export interface Badge { id: ID; membership_id: ID; key: string; kind: "streak" | "distance_month" | "challenge" | "race"; title: string; earned_at: ISOTime }

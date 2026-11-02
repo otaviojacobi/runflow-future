@@ -483,6 +483,45 @@ CREATE TABLE announcement_reads (
   PRIMARY KEY (announcement_id, membership_id)
 );
 
+-- =========================================================================== challenges, rankings, badges (F24)
+-- Progress comes from the participant's own activities. Joining a challenge, or opting in to the monthly
+-- ranking, is consent to show that progress to the club.
+CREATE TABLE challenges (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id      uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+  name         text NOT NULL,
+  description  text,
+  metric       text NOT NULL CHECK (metric IN ('distance', 'duration', 'sessions', 'elevation')),
+  sport        text CHECK (sport IN ('run', 'swim', 'bike', 'strength', 'mobility', 'other')),   -- null = any
+  goal         numeric CHECK (goal > 0),     -- per participant: km | h | sessions | m; null = ranking only
+  starts_on    date NOT NULL,
+  ends_on      date NOT NULL,
+  group_ids    uuid[] NOT NULL DEFAULT '{}', -- empty = the whole club
+  created_by   uuid REFERENCES memberships (id) ON DELETE SET NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  archived_at  timestamptz,
+  CHECK (ends_on >= starts_on)
+);
+CREATE TABLE challenge_participants (
+  challenge_id   uuid NOT NULL REFERENCES challenges (id) ON DELETE CASCADE,
+  membership_id  uuid NOT NULL REFERENCES memberships (id) ON DELETE CASCADE,
+  joined_at      timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (challenge_id, membership_id)
+);
+CREATE TABLE ranking_opt_ins (
+  membership_id  uuid PRIMARY KEY REFERENCES memberships (id) ON DELETE CASCADE,
+  opted_in_at    timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE badges (
+  id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  membership_id  uuid NOT NULL REFERENCES memberships (id) ON DELETE CASCADE,
+  key            text NOT NULL,                -- e.g. streak-8, month-100-2026-10, challenge-<id>, race-<entry id>
+  kind           text NOT NULL CHECK (kind IN ('streak', 'distance_month', 'challenge', 'race')),
+  title          text NOT NULL,                -- pt-BR, rendered when earned
+  earned_at      timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (membership_id, key)
+);
+
 -- =========================================================================== races and events (F21)
 -- The club's race calendar. Students sign up for a distance; an entry marked is_goal is their "A race":
 -- it sets the profile goal and goal_date, which planning and plans use for periodization.
