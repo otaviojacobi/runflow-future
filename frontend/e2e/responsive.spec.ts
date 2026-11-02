@@ -16,7 +16,7 @@ test.describe.configure({ timeout: 90_000 });
 
 test("student screens fit a 360 px phone", async ({ page }) => {
   await signIn(page, STUDENT);
-  for (const p of ["/today", "/schedule", "/activities", "/classes", "/races", "/challenges", "/messages", "/payments", "/account", "/account/profile", "/notifications"]) await noSideScroll(page, p);
+  for (const p of ["/today", "/schedule", "/activities", "/classes", "/races", "/challenges", "/messages", "/account", "/account/profile", "/notifications"]) await noSideScroll(page, p);
 });
 test("staff screens fit a 360 px phone", async ({ page }) => {
   await signIn(page, OWNER);

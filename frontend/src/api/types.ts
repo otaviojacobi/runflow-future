@@ -217,21 +217,6 @@ export interface AttendanceReport {
   athletes: { membership_id: ID; user: User; booked: number; attended: number; no_show: number; attendance_pct: number | null }[];
 }
 
-// ---- club finances (F26)
-export type ChargeMethod = "pix" | "card" | "boleto" | "cash" | "transfer" | "other";
-export interface FeePlan { id: ID; club_id: ID; name: string; description: string | null; amount_cents: number; interval: "month" | "quarter" | "year"; created_at: ISOTime; archived_at: ISOTime | null; students?: number }
-export interface StudentFeeRow { membership_id: ID; user: User; fee: { membership_id: ID; fee_plan_id: ID; amount_cents: number | null; due_day: number; starts_on: ISODate; plan: FeePlan; effective_cents: number } | null; overdue_cents: number }
-export interface Charge {
-  id: ID; club_id: ID; membership_id: ID; fee_plan_id: ID | null; period: string | null; description: string; amount_cents: number; due_date: ISODate;
-  status: "open" | "paid" | "void"; state: "open" | "paid" | "void" | "overdue"; paid_at: ISOTime | null; method: ChargeMethod | null; external_ref: string | null;
-  receipt_number: number | null; last_reminded_at: ISOTime | null; created_at: ISOTime; athlete: { membership_id: ID; user: User };
-}
-export interface FinanceSummary {
-  period: string; expected_cents: number; received_cents: number; open_cents: number; overdue_cents: number; charges: number; paid: number;
-  students_with_fee: number; overdue_total_cents: number; overdue_students: number; account: "not_connected" | "pending" | "active" | "restricted"; generated: boolean;
-}
-export interface Receipt { charge: Charge; club: { id: ID; name: string; city: string | null; state: string | null }; branding: Branding | null }
-
 // ---- exercise library (F28)
 export type ExerciseCategory = "strength" | "core" | "mobility" | "stretch" | "plyometrics" | "drill";
 export interface LibraryExercise { id: ID; club_id: ID | null; scope: "club" | "global"; name: string; category: ExerciseCategory; muscles: string[]; equipment: string[]; cues: string | null; video_url: string | null; created_at: ISOTime; archived_at: ISOTime | null }

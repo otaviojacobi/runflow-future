@@ -583,57 +583,6 @@ CREATE TABLE race_entries (
   CHECK (status <> 'finished' OR result_time_s IS NOT NULL)
 );
 
--- =========================================================================== club finances (F26)
--- Clubs charge their own students (monthly fees). In the backend, payments go through Stripe Connect on the
--- club's account (card, Pix); owners can also record payments received outside the app. Runflow's take rate
--- is still to be decided (root.md §4.6). "Overdue" is derived: status = 'open' and due_date < today.
-CREATE TABLE club_payout_accounts (
-  club_id            uuid PRIMARY KEY REFERENCES clubs (id) ON DELETE CASCADE,
-  stripe_account_id  text UNIQUE,
-  status             text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'restricted')),
-  created_at         timestamptz NOT NULL DEFAULT now(),
-  updated_at         timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE fee_plans (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  club_id       uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
-  name          text NOT NULL,
-  description   text,
-  amount_cents  int NOT NULL CHECK (amount_cents > 0),
-  interval      text NOT NULL DEFAULT 'month' CHECK (interval IN ('month', 'quarter', 'year')),
-  created_at    timestamptz NOT NULL DEFAULT now(),
-  archived_at   timestamptz
-);
-CREATE TABLE student_fees (
-  membership_id  uuid PRIMARY KEY REFERENCES memberships (id) ON DELETE CASCADE,
-  club_id        uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
-  fee_plan_id    uuid NOT NULL REFERENCES fee_plans (id),
-  amount_cents   int CHECK (amount_cents > 0),    -- override (discounts); null = the plan's amount
-  due_day        int NOT NULL DEFAULT 10 CHECK (due_day BETWEEN 1 AND 28),
-  starts_on      date NOT NULL,
-  created_at     timestamptz NOT NULL DEFAULT now()
-);
-CREATE TABLE charges (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  club_id           uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
-  membership_id     uuid NOT NULL REFERENCES memberships (id) ON DELETE CASCADE,
-  fee_plan_id       uuid REFERENCES fee_plans (id) ON DELETE SET NULL,
-  period            char(7),                      -- 'YYYY-MM' for recurring fees; null for one-off charges
-  description       text NOT NULL,
-  amount_cents      int NOT NULL CHECK (amount_cents > 0),
-  due_date          date NOT NULL,
-  status            text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'paid', 'void')),
-  paid_at           timestamptz,
-  method            text CHECK (method IN ('pix', 'card', 'boleto', 'cash', 'transfer', 'other')),
-  external_ref      text,                         -- Stripe PaymentIntent id
-  receipt_number    int,
-  last_reminded_at  timestamptz,
-  created_at        timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (membership_id, period),
-  CHECK (status <> 'paid' OR (paid_at IS NOT NULL AND method IS NOT NULL))
-);
-CREATE INDEX charges_club_due_idx ON charges (club_id, due_date);
-
 -- =========================================================================== billing (Stripe, D-016)
 CREATE TABLE club_subscriptions (
   club_id                 uuid PRIMARY KEY REFERENCES clubs (id) ON DELETE CASCADE,

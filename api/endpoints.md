@@ -222,25 +222,6 @@ Kinds, `data` → `result`: `body {weight_kg, height_cm, body_fat_pct?, waist_cm
 | POST | `/clubs/{club_id}/races/{id}/entries` `{distance_m, goal_time_s?, is_goal?, membership_id?}` | Sign up (student: self; staff: `membership_id`). Upsert | M9, W12 |
 | PATCH / DELETE | `/clubs/{club_id}/race-entries/{id}` `{distance_m?, goal_time_s?, is_goal?, status?, result_time_s?, result_position?}` | Edit, record a result, or cancel. `is_goal` makes it the student's single "A race": profile `goal` and `goal_date` follow it. A finished run result becomes the profile's `recent_race` | M9, W12 |
 
-### Club finances (student fees)
-Owner only unless noted. Money in integer centavos. A charge's `state` adds `overdue` (open and past due) to `status`.
-
-| Method | Path | Purpose | Screens |
-|---|---|---|---|
-| GET / POST | `/clubs/{club_id}/finance/account` · `/finance/account/connect` | Payout account (Stripe Connect; mock: connect activates at once) → `{status: not_connected \| pending \| active \| restricted}` | O6 |
-| GET | `/clubs/{club_id}/finance/summary?period=YYYY-MM` | `{expected_cents, received_cents, open_cents, overdue_cents, charges, paid, students_with_fee, overdue_total_cents, overdue_students, account, generated}` | O6 |
-| GET / POST / PATCH / DELETE | `/clubs/{club_id}/fee-plans` | Fee plans `{name, amount_cents, interval: month \| quarter \| year, description?}`; each with `students`. Archiving a plan in use → `409 fee_plan.in_use` | O6 |
-| GET | `/clubs/{club_id}/student-fees` | Every active student with `fee` (plan, `effective_cents`, `due_day`) or null, and `overdue_cents` | O6 |
-| PUT / DELETE | `/clubs/{club_id}/student-fees/{membership_id}` `{fee_plan_id, amount_cents?, due_day?}` | Assign / remove a fee (`amount_cents` overrides the plan: discounts) | O6 |
-| GET | `/clubs/{club_id}/charges?period&state&membership_id` | Charges with `athlete` and `state` | O6 |
-| POST | `/clubs/{club_id}/charges/generate` `{period}` | Create the period's charges for every assigned student (idempotent; quarterly/yearly plans on their months) and notify them → `{created}` | O6 |
-| POST | `/clubs/{club_id}/charges` `{membership_id, description, amount_cents, due_date}` | One-off charge (event, uniform…) | O6 |
-| POST | `/clubs/{club_id}/charges/{id}/mark-paid` `{method}` · `/void` · `/remind` | Record a payment received outside the app (`pix card boleto cash transfer other`), cancel, or remind (`billing` notification; once per 24 h) | O6 |
-| GET | `/clubs/{club_id}/my/charges` | Student: own charges, newest first, plus `account` (can pay in the app) | M12 |
-| POST | `/clubs/{club_id}/my/charges/{id}/checkout` | Student: → `{checkout_url}` (Stripe Checkout with card + Pix; mock: `/dev/pay/{id}`) | M12 |
-| GET | `/clubs/{club_id}/charges/{id}/receipt` | Paid charge + club + branding, for the printable receipt (owner, or the student who paid) | O6, M12 |
-| POST | `/mock/payments/complete` `{charge_id, method}` | **Mock only**: payment_intent.succeeded → paid, receipt number, owner notified | M12 |
-
 ### Billing (Stripe)
 | Method | Path | Purpose | Screens |
 |---|---|---|---|

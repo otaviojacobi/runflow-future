@@ -160,7 +160,7 @@ Auth is **Sign in with Google** or an **email one-time code**. There are no pass
 
 - **Counting rule:** only **active students** count. Owners and trainers are unlimited and free, which matches sisrun.
 - **Billing: Stripe (D-016). We're not charging yet.** During the beta every club is free, but plan limits already work in the product. Invoicing (NFS-e) is handled by the founder, outside the product.
-- **Future revenue:** a small take rate when clubs collect student fees through Runflow.
+- **Future revenue:** a small take rate when clubs collect student fees through Runflow (later, D-027).
 
 ### 4.7 Language, locale, glossary
 
@@ -427,6 +427,7 @@ flowchart LR
 | D-023 | Joining needs a **personal invite**: one per e-mail, sent by e-mail, valid 7 days, single use, and only the account with that e-mail can accept. No club-wide or reusable links, invite QR codes or WhatsApp sharing | Founder: invites must not be permanent and must be tied to the invited person | Accepted (founder, 2026-11-02) |
 | D-025 | **Backend before mobile.** Phase 2 is the Rust backend implementing the whole contract (everything the web app does on the mock); mobile follows on the real API | Validates the 55-table contract on a real database before more clients depend on it; real sign-in, e-mail, Strava and Stripe need a server; mobile skips mock-only work | Accepted (founder, 2026-11-02) |
 | D-026 | Transactional e-mail (sign-in codes, invites, notices) via **Resend**, behind an `EmailSender` trait; without an API key the backend logs e-mails instead (dev). Config only in `.env` | Founder has an account; simple API; swappable (SES in the cloud phase) | Accepted (founder, 2026-11-02) |
+| D-027 | **No club-fee payments in v1.** Students don't pay their club through Runflow; clubs keep collecting fees their own way. Fee plans, charges, checkout and receipts (built in F26) are on the later list | Founder: too much for a first version (Stripe Connect onboarding, money flows, support) | Accepted (founder, 2026-11-02) |
 | D-024 | Public pages are **always Runflow's brand** (landing, sign-in, invite page, club picker, club creation); the club's colors apply only inside the signed-in app (web and mobile) | Founder: the marketing site and sign-in are ours | Accepted (founder, 2026-11-02) |
 | D-016 | Payments via Stripe; no charging during the beta; NFS-e handled by the founder outside the product | Founder decision | Accepted (founder) |
 | D-017 | Trainers see all students in their club | Simple default; per-trainer assignment can come later if clubs ask | Accepted (founder) |
@@ -463,6 +464,7 @@ flowchart LR
 - 2026-11-02. Founder decisions: backend before mobile (D-025: Phase 2 is now the Rust backend, mobile is Phase 3 on the real API); e-mail via Resend (D-026); workout hashtags first-class (F32); `.xlsx`/`.xls` import recorded as a later TODO (CSV covers it now). The invite form now sends one person at a time.
 - 2026-11-02. **S1 backend bootstrap.** Cargo workspace (`runflow` binary + `api`, `db`, `integrations`), `/v1/health`, pt-BR problem+json, config from env with every variable in `.env.example` (local `.env` git-ignored), migrations starting from `api/schema.sql` with a test proving they build the same database, Resend e-mail with a log fallback (D-026) and a token-based layout, Dockerfile, root `docker-compose.yaml` (Postgres 18 :5433 + API :3000), backend CI. `npm run check` now covers the backend.
 - 2026-11-02. **S2 auth.** E-mail codes through Resend (HMAC-hashed, bound to the address, rate-limited), Google ID tokens verified against Google's keys (no client secret needed), opaque SHA-256-hashed sessions as Bearer or HttpOnly cookie, the `/me` family (profile, LGPD delete and export, prefs, consents, notifications, sessions). Queries are compile-time checked (`sqlx::query!`, offline data committed). The mock now anonymizes deleted accounts and restricts `avatar_url` like the backend. New step S9: switch the web app to the real backend.
+- 2026-11-02. Founder decision: no club-fee payments in v1 (D-027). F26 (club finances) removed from the web app, mock, contract and schema (F33; backend migration `0002` drops its tables) and moved to the later list.
 - 2026-11-01. Founder decisions: design-first Phase 0 with the full UI mocked before implementation (D-015); Stripe, no charging during the beta, NFS-e outside the product (D-016); trainers see all students (D-017); Runflow is the app and clubs only theme it (D-018); Apple and Garmin developer programs deferred (D-007, D-011); no guardian accounts. Added the screen inventory (§6.1) and `CLAUDE.md`. Roadmap renumbered: Phase 0 is now design and validation, and **D1 is next**.
 
 ---
@@ -474,13 +476,13 @@ flowchart LR
 2. **Strava written confirmation.** In Strava's app review, describe the coaching use case (students consent to share with their club's trainers) and keep the reply on file. Do this before inviting real clubs.
 3. **Brand.** Approve or redirect the palette and type in §6 (validated in D1).
 4. **AI provider and budget (F27).** The assistant's contract is provider-agnostic and the mock is a rules engine. Before the backend's assistant endpoints (S-phase) pick the LLM (e.g. Claude via the Anthropic API), the per-club monthly cap per plan, and what student data may be sent (LGPD: only the club's own data, never health notes without consent).
-5. **Take rate on club fees (F26).** Runflow's cut when clubs collect student fees through the app (§4.6 "future revenue"); the UI shows no fee until decided.
 
 **Deferred by the founder (2026-11-01)**
 - Apple Developer Program: blocks Sign in with Apple and the iOS App Store release.
 - Garmin Connect Developer Program: blocks Garmin sync and send-to-watch. It costs nothing, but needs an application and approval.
 - Charging customers: Stripe goes live in Phase 5. NFS-e stays outside the product.
 - Guardian accounts for minors: not planned.
+- Club fees through Runflow (D-027): removed from v1; decide Runflow's take rate before bringing it back (§4.6).
 - `.xlsx` / `.xls` import (students, workouts): CSV upload and paste from Excel / Google Sheets cover it for now (`docs/build-plan.md` § Later).
 
 ---

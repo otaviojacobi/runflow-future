@@ -35,7 +35,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F23 | Assessments and tests: physical assessments, performance tests (Cooper, 3 km, CSS, FTP, 1RM) that update zones | W14 | [x] |
 | F24 | Challenges and rankings: monthly km, streaks, club leaderboard (opt-in), badges (accent color) | W15, M11 | [x] |
 | F25 | Reports and exports: compliance and volume per student/group, attendance for classes, CSV/PDF export | W16 | [x] |
-| F26 | Club finances: student monthly fees (Stripe/Pix), status per student, reminders, receipts | O6, M12 | [x] |
+| F26 | ~~Club finances: student monthly fees (Stripe/Pix), status per student, reminders, receipts~~ Built, then removed in F33 (D-027); see Later | O6, M12 | [x] |
 | F27 | AI assistant: "describe the workout" → structure, weekly plan suggestions from goal and history, feedback summaries | W17 | [x] |
 | F28 | Exercise library with videos for strength/mobility, linked from exercises | W18 | [x] |
 | F29 | Import/export: students via CSV, workouts via pasted text, `.FIT` workout export, `.ics` calendar feed for students | — | [x] |
@@ -43,6 +43,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F20 | Hardening: 404 and error pages, empty states audit, accessibility pass, responsive pass, performance budget (§7.7: initial JS is ~195 KB gzip after F30, lazy-load the remaining eager screens), Playwright e2e suite in CI | — | [x] |
 | F31 | Founder revisions (2026-11-02): personal e-mail invites (D-023: 7 days, single use, only the invited e-mail; resend/cancel; dev outbox at `/dev/outbox`) and Runflow-branded public pages (D-024); the invite form sends one person at a time (e-mail + name), bulk stays in the spreadsheet import | A3, A5, O2 | [x] |
 | F32 | Founder revisions (2026-11-02): workout hashtags are first-class: `#tag` in quick text and import lines, a tag editor in the builder (it used to drop tags on save), library tag filter and `#` search, `?tag=` + normalization rules in the contract (api/endpoints.md § Tags) | W5, W6 | [x] |
+| F33 | Founder revision (2026-11-02, D-027): club fees through Runflow removed from v1 (screens, nav, mock, contract, schema; backend migration `0002` drops the tables) and moved to Later | O6, M12 | [x] |
 
 ## Phase 2: real backend (`backend/`, Rust) replacing the mock
 
@@ -77,6 +78,8 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 | X10 | Push notifications, widgets (today's workout), Apple Health / Health Connect read | [ ] |
 
 ## Later (TODO, not scheduled)
+
+- **Club fees through Runflow** (D-027): fee plans, per-student fees with discounts, monthly charges, Pix/card checkout via Stripe Connect on the club's account, overdue reminders, receipts, payments recorded outside the app. Built in F26 and removed in F33 as too much for v1; the full UI, mock and contract are in git history (commit `24b188a` and earlier). Needs Runflow's take rate (root.md §11) and Stripe Connect onboarding.
 
 - **Spreadsheet files: `.xlsx` / `.xls` import** for students (Members) and workouts (Library). Today: `.csv` upload or paste from Excel / Google Sheets (F29). Parse in the browser (lazy-loaded, outside the initial-JS budget) or server-side; keep the same preview and per-row errors.
 
@@ -128,7 +131,7 @@ IDs are used in commits. Routes are English; everything visible is pt-BR.
 | M9 | Provas | `/races` | student |
 | M10 | Mensagens | `/messages` | all |
 | M11 | Desafios | `/challenges` | student |
-| M12 | Mensalidades | `/account/payments` | student |
+| M12 | Mensalidades (later, D-027) | — | student |
 | W1 | Painel | `/dashboard` | trainer |
 | W2 | Alunos + grupos | `/students` | trainer |
 | W3 | Aluno | `/students/:id` | trainer |
@@ -151,7 +154,7 @@ IDs are used in commits. Routes are English; everything visible is pt-BR.
 | O3 | Configurações do clube | `/club/settings` | owner |
 | O4 | Plano e cobrança | `/club/billing` | owner |
 | O5 | Checkout / portal Stripe (mock) | `/dev/stripe/*` | owner (mock only) |
-| O6 | Mensalidades dos alunos | `/club/finance` | owner |
+| O6 | Mensalidades dos alunos (later, D-027) | — | owner |
 | C1 | Minha conta | `/account` | all |
 
 Home after sign-in: owner and trainer → `/dashboard`; student → `/today`; no membership → `/clubs`. `/app` sends a signed-in user to their home.
