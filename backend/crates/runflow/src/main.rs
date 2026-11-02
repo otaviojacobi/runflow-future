@@ -11,7 +11,7 @@ use anyhow::Context;
 use clap::{Parser, Subcommand};
 use runflow_api::{ApiSettings, AppState, AuthSettings};
 use runflow_integrations::email::{
-    Action, Email, Mailer, Provider, escape_html, layout, paragraph,
+    Action, ClubFrame, Email, Mailer, Provider, club_layout, escape_html, layout, paragraph,
 };
 use runflow_integrations::google::{GOOGLE_JWKS_URL, GoogleVerifier};
 use runflow_integrations::secrets::TokenCipher;
@@ -57,6 +57,9 @@ enum Command {
         /// Write the HTML to this file instead of sending (to review the layout).
         #[arg(long)]
         preview: Option<std::path::PathBuf>,
+        /// Use this club's e-mail frame (its slug): colors, logo and name, as invites look (D-036).
+        #[arg(long)]
+        club: Option<String>,
     },
     /// Exit 0 when the local server answers /v1/health (Docker healthcheck; no curl in the image).
     Healthcheck,
@@ -86,7 +89,7 @@ async fn main() -> ExitCode {
         Command::Worker => worker(config).await,
         Command::Migrate => migrate(&config).await,
         Command::Doctor => doctor::run(&config).await,
-        Command::EmailTest { to, preview } => email_test(&config, to, preview).await,
+        Command::EmailTest { to, preview, club } => email_test(&config, to, preview, club).await,
         Command::Healthcheck => healthcheck(&config).await,
     };
     match result {
@@ -129,7 +132,8 @@ async fn migrate(config: &Config) -> anyhow::Result<()> {
 async fn worker(config: Config) -> anyhow::Result<()> {
     let pool = connect(&config).await?;
     let mailer = Mailer::from_settings(&config.email).context("e-mail settings")?;
-    let mut w = runflow_jobs::Worker::new(pool.clone(), mailer, config.http.public_app_url.clone());
+    let mut w = runflow_jobs::Worker::new(pool.clone(), mailer, config.http.public_app_url.clone())
+        .with_api_url(config.http.public_api_url.clone());
     if let Some(st) = &config.strava {
         w = w.with_strava(
             StravaClient::new(
@@ -240,7 +244,8 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
             pool.clone(),
             mailer.clone(),
             config.http.public_app_url.clone(),
-        );
+        )
+        .with_api_url(config.http.public_api_url.clone());
         if let Some(client) = strava.clone() {
             w = w.with_strava(client, cipher.clone());
         }
@@ -310,6 +315,7 @@ async fn email_test(
     config: &Config,
     to: String,
     preview: Option<std::path::PathBuf>,
+    club: Option<String>,
 ) -> anyhow::Result<()> {
     let mailer = Mailer::from_settings(&config.email).context("e-mail settings")?;
     let env = if config.env == RunEnv::Production {
@@ -325,18 +331,40 @@ async fn email_test(
     ];
     let html_body: String = lines.iter().map(|l| paragraph(&escape_html(l))).collect();
     let footer = "Você recebeu este e-mail porque alguém testou a configuração do Runflow com o seu endereço.";
+    let action = Some(Action {
+        label: "Abrir o Runflow",
+        url: &config.http.public_app_url,
+    });
+    // With --club, the club's frame (D-036), read from the database like the invite job does.
+    let html = match club {
+        Some(slug) => {
+            let pool = connect(config).await?;
+            let c = runflow_db::clubs::club_by_slug(&pool, &slug)
+                .await?
+                .with_context(|| format!("no club with slug {slug}"))?;
+            let theme = runflow_db::clubs::branding(&pool, c.id)
+                .await?
+                .map(|b| b.theme)
+                .unwrap_or_default();
+            let logo = runflow_db::clubs::email_logo(&pool, c.id).await?.map(|id| {
+                format!(
+                    "{}/v1/assets/{id}",
+                    config.http.public_api_url.trim_end_matches('/')
+                )
+            });
+            let frame = ClubFrame {
+                name: &c.name,
+                logo_url: logo.as_deref(),
+                theme: &theme,
+            };
+            club_layout(&frame, title, &html_body, action, footer)
+        }
+        None => layout(title, &html_body, action, footer),
+    };
     let email = Email {
         to: vec![to.clone()],
         subject: "Runflow: e-mail de teste".into(),
-        html: layout(
-            title,
-            &html_body,
-            Some(Action {
-                label: "Abrir o Runflow",
-                url: &config.http.public_app_url,
-            }),
-            footer,
-        ),
+        html,
         text: format!(
             "{title}\n\n{}\n\nAbrir o Runflow: {}\n\n{footer}",
             lines.join("\n\n"),

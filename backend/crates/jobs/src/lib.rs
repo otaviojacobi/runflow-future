@@ -55,6 +55,8 @@ pub struct Worker {
     mailer: Mailer,
     /// Links in e-mails point here (`PUBLIC_APP_URL`).
     public_app_url: String,
+    /// Absolute base for `/v1/assets/…` links in e-mails (club logos); none = no images.
+    public_api_url: Option<String>,
     id: String,
     strava: Option<StravaCtx>,
 }
@@ -85,12 +87,18 @@ impl Worker {
             db,
             mailer,
             public_app_url: public_app_url.into().trim_end_matches('/').to_string(),
+            public_api_url: None,
             id,
             strava: None,
         }
     }
 
     /// Enable the Strava jobs.
+    pub fn with_api_url(mut self, url: impl Into<String>) -> Self {
+        self.public_api_url = Some(url.into().trim_end_matches('/').to_string());
+        self
+    }
+
     pub fn with_strava(mut self, client: StravaClient, cipher: TokenCipher) -> Self {
         self.strava = Some(StravaCtx { client, cipher });
         self

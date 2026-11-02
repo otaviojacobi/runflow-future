@@ -121,7 +121,8 @@ impl TestApp {
             self.state.db.clone(),
             self.state.mailer.clone(),
             self.state.settings.public_app_url.clone(),
-        );
+        )
+        .with_api_url(self.state.settings.public_api_url.clone());
         if let Some(s) = &self.state.strava {
             w = w.with_strava((**s).clone(), self.state.cipher.clone());
         }

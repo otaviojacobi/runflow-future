@@ -1,8 +1,8 @@
-//! `email.invite {invite_id, token}`: e-mail a personal invite (D-023), pt-BR, in Runflow's brand.
+//! `email.invite {invite_id, token}`: e-mail a personal invite (D-023), pt-BR, in the club's colors (D-036).
 
 use chrono_tz::Tz;
 use runflow_db::{clubs, invites};
-use runflow_integrations::email::{Action, Email, escape_html, layout, paragraph};
+use runflow_integrations::email::{Action, ClubFrame, Email, club_layout, escape_html, paragraph};
 use serde_json::Value;
 use uuid::Uuid;
 
@@ -62,12 +62,26 @@ pub(crate) async fn run(w: &Worker, payload: &Value) -> Result<(), JobError> {
             invite.email
         ),
     ];
+    let theme = clubs::branding(&w.db, club.id)
+        .await?
+        .map(|b| b.theme)
+        .unwrap_or(Value::Null);
+    let logo = match (&w.public_api_url, clubs::email_logo(&w.db, club.id).await?) {
+        (Some(api), Some(id)) => Some(format!("{api}/v1/assets/{id}")),
+        _ => None,
+    };
+    let frame = ClubFrame {
+        name: &club.name,
+        logo_url: logo.as_deref(),
+        theme: &theme,
+    };
     let title = format!("Convite para o {}", club.name);
     let footer = "Se você não esperava este convite, pode ignorar este e-mail.";
     let email = Email {
         to: vec![invite.email.clone()],
         subject: format!("{inviter} convidou você para o {} no Runflow", club.name),
-        html: layout(
+        html: club_layout(
+            &frame,
             &title,
             &lines
                 .iter()

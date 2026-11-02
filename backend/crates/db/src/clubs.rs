@@ -268,6 +268,17 @@ pub async fn audit(
 
 // ------------------------------------------------------------------------------------ branding
 
+/// The club logo e-mails can show (D-036): its asset id, unless it's an SVG (most e-mail clients don't render those).
+pub async fn email_logo(db: impl PgExecutor<'_>, club_id: Uuid) -> sqlx::Result<Option<Uuid>> {
+    sqlx::query_scalar!(
+        "SELECT a.id FROM club_branding b JOIN assets a ON a.id = b.logo_asset_id
+          WHERE b.club_id = $1 AND a.content_type <> 'image/svg+xml'",
+        club_id
+    )
+    .fetch_optional(db)
+    .await
+}
+
 pub async fn branding(db: impl PgExecutor<'_>, club_id: Uuid) -> sqlx::Result<Option<Branding>> {
     Ok(sqlx::query!(
         "SELECT primary_color, secondary_color, logo_asset_id, theme_rev, theme, theme_css FROM club_branding WHERE club_id = $1",

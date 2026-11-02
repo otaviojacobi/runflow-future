@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 
-pub use layout::{Action, code_block, escape_html, layout, paragraph};
+pub use layout::{Action, ClubFrame, club_layout, code_block, escape_html, layout, paragraph};
 pub use resend::Resend;
 
 /// One message. `html` and `text` should say the same thing (text is the fallback for plain clients).

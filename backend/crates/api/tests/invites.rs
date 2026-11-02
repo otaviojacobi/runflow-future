@@ -758,3 +758,41 @@ async fn failing_jobs_retry_then_close_with_the_error(db: PgPool) {
         "an invite that no longer exists is simply skipped"
     );
 }
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn invite_emails_wear_the_club_colors(db: PgPool) {
+    let app = TestApp::new(db);
+    let c = club(&app).await;
+    let branding = app
+        .call(
+            Method::PUT,
+            &format!("/v1/clubs/{}/branding", c.id),
+            Some(&c.owner),
+            Some(json!({ "primary_color": "#D62828", "secondary_color": "#FFB703" })),
+            &[],
+        )
+        .await;
+    let brand = branding.ok()["theme"]["roles"]["light"]["brand"]["solid"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    app.post(
+        &format!("/v1/clubs/{}/invites", c.id),
+        Some(&c.owner),
+        json!({ "email": "joao@email.com" }),
+    )
+    .await
+    .ok();
+    app.run_jobs().await;
+    let sent = app.state.mailer.outbox().unwrap().list();
+    let html = &sent
+        .iter()
+        .find(|m| m.email.to == ["joao@email.com"])
+        .unwrap()
+        .email
+        .html;
+    // D-036: the club's primary on the button, its name on top, Runflow only in the footer.
+    assert!(html.contains(&format!("background:{brand}")), "{brand}");
+    assert!(html.contains("Pace Forte usa o Runflow para os treinos."));
+    assert!(!html.contains(">runflow</td>"));
+}

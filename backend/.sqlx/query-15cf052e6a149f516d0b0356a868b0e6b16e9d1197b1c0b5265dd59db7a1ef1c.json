@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.id FROM club_branding b JOIN assets a ON a.id = b.logo_asset_id\n          WHERE b.club_id = $1 AND a.content_type <> 'image/svg+xml'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "assets",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "15cf052e6a149f516d0b0356a868b0e6b16e9d1197b1c0b5265dd59db7a1ef1c"
+}
