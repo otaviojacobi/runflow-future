@@ -40,7 +40,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F28 | Exercise library with videos for strength/mobility, linked from exercises | W18 | [x] |
 | F29 | Import/export: students via CSV, workouts via pasted text, `.FIT` workout export, `.ics` calendar feed for students | — | [x] |
 | F30 | Power features: command palette (⌘K), keyboard shortcuts in planning, PWA install, offline today, print-friendly week | — | [x] |
-| F20 | Hardening: 404 and error pages, empty states audit, accessibility pass, responsive pass, performance budget (§7.7: initial JS is ~195 KB gzip after F30, lazy-load the remaining eager screens), Playwright e2e suite in CI | — | [ ] |
+| F20 | Hardening: 404 and error pages, empty states audit, accessibility pass, responsive pass, performance budget (§7.7: initial JS is ~195 KB gzip after F30, lazy-load the remaining eager screens), Playwright e2e suite in CI | — | [x] |
 
 ## Phase 2: mobile app on the mock API (`mobile/`)
 

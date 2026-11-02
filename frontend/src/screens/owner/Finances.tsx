@@ -86,7 +86,7 @@ function Charges({ club, period, generated, withFee }: { club: Club; period: str
         </div>
         <Button variant="secondary" icon={<Plus />} onClick={() => setOneOff(true)}>{t("Cobrança avulsa")}</Button>
       </div>
-      <Card className="overflow-x-auto">
+      <Card className="relative min-w-0 overflow-x-auto">
         {list.isPending ? <Skeleton className="m-4 h-40" /> : !list.data?.length ? <EmptyState icon={<Wallet />} title={t("Nenhuma cobrança aqui")}>{t("Defina os planos dos alunos e gere as mensalidades do mês.")}</EmptyState> : (
           <table className="w-full min-w-[720px] text-sm">
             <thead className="border-b border-line bg-sunken text-left text-xs text-fg-muted"><tr><th className="px-4 py-2.5 font-semibold">{t("Aluno")}</th><th className="px-4 py-2.5 font-semibold">{t("Descrição")}</th><th className="px-4 py-2.5 font-semibold">{t("Vencimento")}</th><th className="px-4 py-2.5 text-right font-semibold">{t("Valor")}</th><th className="px-4 py-2.5 font-semibold">{t("Situação")}</th><th className="px-4 py-2.5"><span className="sr-only">{t("Ações")}</span></th></tr></thead>
@@ -158,7 +158,7 @@ function Students({ club }: { club: Club }) {
   const [edit, setEdit] = useState<StudentFeeRow | null>(null);
   if (rows.isPending) return <Skeleton className="h-64" />;
   return (
-    <Card className="overflow-x-auto">
+    <Card className="relative min-w-0 overflow-x-auto">
       <table className="w-full min-w-[640px] text-sm">
         <thead className="border-b border-line bg-sunken text-left text-xs text-fg-muted"><tr><th className="px-4 py-2.5 font-semibold">{t("Aluno")}</th><th className="px-4 py-2.5 font-semibold">{t("Plano")}</th><th className="px-4 py-2.5 text-right font-semibold">{t("Valor")}</th><th className="px-4 py-2.5 font-semibold">{t("Vencimento")}</th><th className="px-4 py-2.5 text-right font-semibold">{t("Em atraso")}</th><th className="px-4 py-2.5" /></tr></thead>
         <tbody className="divide-y divide-line-subtle">

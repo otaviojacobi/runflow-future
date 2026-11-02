@@ -8,7 +8,8 @@ Read `../root.md` (§4, §6, §7.4, §7.8) and `../docs/build-plan.md` first. Fu
 | From the repo root | What |
 |---|---|
 | `npm run dev` | Mock API (:8787) + web (:8080, keep it running: the founder previews there; `/dev/status` = plan progress). The web proxies `/api/*` → mock. |
-| `npm run check -w @runflow/frontend` | typecheck + unit tests + production build (must be green before committing) |
+| `npm run check -w @runflow/frontend` | typecheck + unit tests + production build + initial-JS budget (≤ 200 KB gzip; must be green before committing) |
+| `npm run e2e` | Playwright suite (`frontend/e2e`): flows, axe accessibility (WCAG AA serious/critical fail), no sideways scroll at 360 px. Starts its own mock (:8788, fresh seed) and web (:8089), so the demo on :8080 is untouched. Locally: `PW_CHROME=/usr/bin/google-chrome npm run e2e`. CI runs it on every push |
 | `npm run check` | Everything: design + API contract + frontend |
 
 ## Layout
@@ -31,5 +32,5 @@ src/
 - **Club theme**: `brand` = the club's primary color, `accent` = its secondary. Never use them for data meaning (status, zones, sports have their own tokens).
 - **Data**: screens use hooks from `src/api/*`; only endpoints from `api/endpoints.md`. Errors are `ApiError` with pt-BR `title`/`detail`: show them as they are.
 - **Formats**: always `lib/format.ts` (pace `4:30`, `10,4 km`, `ter, 3 nov`, 24 h).
-- **Accessibility**: real buttons and links, labels on inputs, visible focus, 44 px touch targets on mobile layouts.
+- **Accessibility**: real buttons and links, labels on inputs, visible focus, 44 px touch targets on mobile layouts. Accessible names must contain the visible text (prefer `sr-only` spans over `aria-label`), and anything `sr-only` needs a `relative` ancestor inside scroll areas. `npm run e2e` runs axe on the main screens.
 - **Performance**: route-level code splitting for heavy screens (builder, planning); keep the initial JS under 200 KB gzip (§7.7).

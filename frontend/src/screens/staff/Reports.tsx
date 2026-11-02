@@ -78,7 +78,7 @@ function Training({ r }: { r: TrainingReport }) {
         <div className="flex items-baseline justify-between gap-3"><h2 className="rf-text-title-md">{t("Aderência por semana")}</h2><span className="text-sm text-fg-muted">{t("alunos do filtro")}</span></div>
         <ComplianceTrend data={r.weekly} />
       </Card>
-      <Card className="overflow-x-auto">
+      <Card className="relative min-w-0 overflow-x-auto">
         <div data-print="hide" className="flex justify-end border-b border-line-subtle px-4 py-2"><Segmented label={t("Ordenar")} value={sort} onChange={setSort} size="sm" options={[{ value: "name", label: t("Nome") }, { value: "compliance", label: t("Menor aderência") }]} /></div>
         <table className="w-full min-w-[760px] text-sm">
           <thead className="border-b border-line bg-sunken text-left text-xs text-fg-muted"><tr><Th>{t("Aluno")}</Th><Th>{t("Aderência")}</Th><Th right>{t("Feitos")}</Th><Th right>{t("Parciais")}</Th><Th right>{t("Faltas")}</Th><Th right>{t("Planejado")}</Th><Th right>{t("Treinado")}</Th><Th right>{t("Distância")}</Th></tr></thead>
@@ -112,7 +112,7 @@ function Attendance({ r }: { r: AttendanceReport }) {
         <Kpi label={t("Presença")} value={pct(T.attendance_pct)} sub={t("{a} presenças · {n} faltas", { a: T.attended, n: T.no_show })} />
         <Kpi label={t("Reservas")} value={String(T.booked)} />
       </div>
-      <Card className="overflow-x-auto">
+      <Card className="relative min-w-0 overflow-x-auto">
         <table className="w-full min-w-[640px] text-sm">
           <thead className="border-b border-line bg-sunken text-left text-xs text-fg-muted"><tr><Th>{t("Aula")}</Th><Th right>{t("Aulas")}</Th><Th right>{t("Canceladas")}</Th><Th right>{t("Ocupação")}</Th><Th right>{t("Presentes")}</Th><Th right>{t("Faltas")}</Th><Th right>{t("Presença")}</Th></tr></thead>
           <tbody className="divide-y divide-line-subtle">{r.by_type.map((x) => (
@@ -120,7 +120,7 @@ function Attendance({ r }: { r: AttendanceReport }) {
           ))}</tbody>
         </table>
       </Card>
-      <Card className="overflow-x-auto">
+      <Card className="relative min-w-0 overflow-x-auto">
         <table className="w-full min-w-[520px] text-sm">
           <thead className="border-b border-line bg-sunken text-left text-xs text-fg-muted"><tr><Th>{t("Aluno")}</Th><Th right>{t("Reservas")}</Th><Th right>{t("Presentes")}</Th><Th right>{t("Faltas")}</Th><Th right>{t("Presença")}</Th></tr></thead>
           <tbody className="divide-y divide-line-subtle">{r.athletes.map((a) => (

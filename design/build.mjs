@@ -77,7 +77,7 @@ for (const mode of modes) {
   need("fg.default/surface", s.fg.default, s.bg.surface, 7);
   need("fg.muted/surface", s.fg.muted, s.bg.surface, 4.5);
   need("fg.muted/canvas", s.fg.muted, s.bg.canvas, 4.5);
-  need("fg.subtle/surface", s.fg.subtle, s.bg.surface, 3);
+  for (const bg of ["surface", "canvas", "sunken"]) need(`fg.subtle/${bg}`, s.fg.subtle, s.bg[bg], 4.5); // meta text is text: WCAG AA
   need("border.strong/surface", s.border.strong, s.bg.surface, 3);
   for (const k of ["brand", "accent", "success", "warning", "danger", "info"]) {
     need(`${k}.onSolid/solid`, s[k].onSolid, s[k].solid, 4.5);

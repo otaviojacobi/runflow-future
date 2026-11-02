@@ -17,7 +17,8 @@
     "seed": "node api/mock/seed.mjs",
     "check": "npm run check:design && npm run check:api && npm run check -w @runflow/frontend",
     "check:design": "node design/build.mjs --check",
-    "check:api": "node api/mock/check.mjs"
+    "check:api": "node api/mock/check.mjs",
+    "e2e": "npm run e2e -w @runflow/frontend"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.14"

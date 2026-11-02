@@ -13,12 +13,11 @@ import { ProviderConnections } from "@/components/account/StravaConnect";
 import { ClubLogo } from "@/components/brand";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
-import { selectClub, useClub } from "@/lib/club";
+import { ROLE_LABEL, selectClub, useClub } from "@/lib/club";
 import { ago, fullDate, localDate, today as todayFn } from "@/lib/format";
 import { promptInstall, useInstall } from "@/lib/pwa";
 import { getColorMode, setColorMode, type ColorMode } from "@/lib/theme";
 import { queryClient } from "@/queryClient";
-import { ROLE_LABEL } from "@/screens/clubs/Clubs";
 import { Avatar, Badge, Button, Card, Dialog, Field, Input, PageHeader, Segmented, Select, Skeleton, Switch, toast } from "@/ui";
 
 const Section = ({ id, title, description, children, edge }: { id: string; title: string; description?: string; children: React.ReactNode; edge?: "danger" }) => (

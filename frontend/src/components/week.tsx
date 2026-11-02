@@ -19,17 +19,18 @@ export function WeekStrip({ monday, states, selected, onSelect, className }: { m
         const Tag = onSelect ? "button" : "div";
         return (
           <Tag key={date} type={onSelect ? "button" : undefined} onClick={onSelect ? () => onSelect(date) : undefined}
-            aria-label={onSelect ? t("{day}, dia {n}", { day: NAME[isoWeekday(date) - 1]!, n: Number(date.slice(8)) }) : undefined}
             aria-pressed={onSelect ? isSel : undefined}
-            className="flex flex-col items-center gap-1 rounded-md py-0.5 text-[11px] font-semibold text-fg-subtle">
-            <span className={cn(isToday && "text-brand-text")}>{LETTER[i]}</span>
+            className="relative flex flex-col items-center gap-1 rounded-md py-0.5 text-[11px] font-semibold text-fg-subtle">
+            <span aria-hidden className={cn(isToday && "text-brand-text")}>{LETTER[i]}</span>
+            <span className="sr-only">{t("{day}, dia", { day: NAME[isoWeekday(date) - 1]! })} </span>
             <span className={cn("grid size-[30px] place-items-center rounded-full text-[13px] font-bold tabular-nums text-fg",
               st === "done" && "bg-success-soft text-on-success-soft", st === "partial" && "bg-warning-soft text-on-warning-soft", st === "missed" && "bg-danger-soft text-on-danger-soft",
               st === "rest" && "font-medium text-fg-subtle",
               isToday && "bg-brand text-on-brand ring-1 ring-inset ring-brand-edge", isSel && !isToday && "ring-2 ring-brand-ring")}>
               {Number(date.slice(8))}
             </span>
-            <i className={cn("size-[5px] rounded-full", st === "planned" && "bg-fg-subtle", st === "done" && "bg-success", st === "partial" && "bg-warning", st === "missed" && "bg-danger", isToday && st === "planned" && "bg-brand")} />
+            {st !== "rest" && <span className="sr-only">{t({ planned: ", treino planejado", done: ", feito", partial: ", feito em parte", missed: ", não feito" }[st])}</span>}
+            <i aria-hidden className={cn("size-[5px] rounded-full", st === "planned" && "bg-fg-subtle", st === "done" && "bg-success", st === "partial" && "bg-warning", st === "missed" && "bg-danger", isToday && st === "planned" && "bg-brand")} />
           </Tag>
         );
       })}

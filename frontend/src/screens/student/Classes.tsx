@@ -82,10 +82,11 @@ export function ClassesScreen() {
               {days.map((d) => {
                 const n = byDay.get(d)?.length ?? 0, booked = byDay.get(d)?.some((s) => s.my_booking && s.my_booking.status !== "cancelled");
                 return (
-                  <button key={d} role="tab" aria-selected={d === day} onClick={() => setDay(d)} aria-label={`${weekdayShort(d)}, ${dayMonth(d)}: ${tn(n, "{n} aula", "{n} aulas")}`}
-                    className={cn("grid min-w-[52px] shrink-0 justify-items-center gap-0.5 rounded-lg border px-2 py-2", d === day ? "border-brand bg-brand text-on-brand" : "border-line bg-surface hover:bg-soft", !n && d !== day && "text-fg-subtle")}>
+                  <button key={d} role="tab" aria-selected={d === day} onClick={() => setDay(d)}
+                    className={cn("relative grid min-w-[52px] shrink-0 justify-items-center gap-0.5 rounded-lg border px-2 py-2", d === day ? "border-brand bg-brand text-on-brand" : "border-line bg-surface hover:bg-soft", !n && d !== day && "text-fg-subtle")}>
                     <span className="text-[11px] font-bold uppercase">{d === today ? t("Hoje") : weekdayShort(d)}</span>
                     <span className="text-lg font-bold tabular-nums leading-none">{Number(d.slice(8))}</span>
+                    <span className="sr-only">{dayMonth(d).replace(/^\d+\s*/, "")}, {tn(n, "{n} aula", "{n} aulas")}</span>
                     <span aria-hidden className={cn("size-1.5 rounded-full", booked ? (d === day ? "bg-on-brand" : "bg-brand") : n ? (d === day ? "bg-on-brand/50" : "bg-line-strong") : "bg-transparent")} />
                   </button>
                 );

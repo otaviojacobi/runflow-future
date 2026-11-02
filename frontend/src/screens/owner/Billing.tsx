@@ -122,7 +122,7 @@ function Invoices({ items }: { items?: Invoice[] }) {
   return (
     <section className="grid gap-3" aria-labelledby="inv-h">
       <h2 id="inv-h" className="rf-text-title-md">{t("Faturas")}</h2>
-      <Card className="overflow-x-auto">
+      <Card className="relative min-w-0 overflow-x-auto">
         {!items ? <Skeleton className="m-4 h-20" /> : items.length === 0 ? (
           <p className="flex items-center gap-2 p-5 text-fg-muted"><Receipt className="size-5" />{t("Nenhuma fatura ainda. No plano Free nada é cobrado.")}</p>
         ) : (

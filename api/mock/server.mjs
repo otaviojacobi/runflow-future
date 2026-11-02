@@ -5,6 +5,7 @@
  *   node api/mock/server.mjs           -> http://localhost:8787  (state persists in api/mock/.data/)
  *   node api/mock/server.mjs --reset   -> reseed relative to today
  *   PORT=… MOCK_LATENCY=ms             -> defaults 8787 / 120 ms (feels like a real network)
+ *   MOCK_DATA_FILE=path                -> state file (default api/mock/.data/db.local.json)
  *
  * Route modules live in ./routes/*.mjs and export `default function register(h)`; see `h` below.
  */
@@ -19,7 +20,8 @@ const here = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 8787;
 const LATENCY = Number(process.env.MOCK_LATENCY ?? 120);
 const DATA = join(here, ".data");
-const LOCAL = join(DATA, "db.local.json");
+// MOCK_DATA_FILE: separate state for automated tests (e2e runs on its own port and file, never the demo).
+const LOCAL = process.env.MOCK_DATA_FILE || join(DATA, "db.local.json");
 
 // ------------------------------------------------------------------ time (club-local = America/Sao_Paulo, UTC-3)
 const nowIso = () => new Date().toISOString();
@@ -48,7 +50,7 @@ function load() {
 let timer = null;
 function persist(now = false) {
   clearTimeout(timer);
-  const write = () => { mkdirSync(DATA, { recursive: true }); writeFileSync(LOCAL, JSON.stringify(db)); };
+  const write = () => { mkdirSync(dirname(LOCAL), { recursive: true }); writeFileSync(LOCAL, JSON.stringify(db)); };
   if (now) write();
   else timer = setTimeout(write, 300);
 }

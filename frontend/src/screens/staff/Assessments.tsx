@@ -58,7 +58,7 @@ export function AssessmentsScreen() {
             <Select aria-label={t("Tipo")} value={kind} onChange={(e) => setKind(e.target.value)} className="w-48"><option value="">{t("Todos os testes")}</option>{PROTOCOLS.map((p) => <option key={p.kind} value={p.kind}>{t(p.name)}</option>)}</Select>
           </div>
         </div>
-        <Card className="overflow-x-auto">
+        <Card className="relative min-w-0 overflow-x-auto">
           {list.isPending ? <Skeleton className="m-4 h-40" /> : !list.data?.length ? <EmptyState icon={<Gauge />} title={t("Nenhuma avaliação ainda")}>{t("Escolha um protocolo acima para registrar a primeira.")}</EmptyState> : (
             <table className="w-full min-w-[720px] text-sm">
               <thead className="border-b border-line bg-sunken text-left text-xs text-fg-muted"><tr><th className="px-4 py-2.5 font-semibold">{t("Data")}</th><th className="px-4 py-2.5 font-semibold">{t("Aluno")}</th><th className="px-4 py-2.5 font-semibold">{t("Teste")}</th><th className="px-4 py-2.5 font-semibold">{t("Resultado")}</th><th className="px-4 py-2.5 font-semibold">{t("Variação")}</th><th className="px-4 py-2.5"><span className="sr-only">{t("Ações")}</span></th></tr></thead>

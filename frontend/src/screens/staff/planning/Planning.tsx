@@ -119,7 +119,7 @@ export function PlanningScreen() {
       {athletes.isPending ? <Skeleton className="h-96" /> : rows.length === 0 ? (
         <Card><EmptyState title={t("Nenhum aluno aqui")}>{t("Convide alunos ou escolha outro grupo.")}</EmptyState></Card>
       ) : (
-        <Card className="overflow-x-auto print:overflow-visible print:shadow-none">
+        <Card className="relative min-w-0 overflow-x-auto print:overflow-visible print:shadow-none">
           <div className="grid min-w-[980px] print:min-w-0 print:text-[10px]" style={{ gridTemplateColumns: "200px repeat(7, minmax(110px, 1fr))" }}>
             <div className="sticky left-0 z-10 border-b border-line bg-sunken px-3 py-2.5 text-[11px] font-bold uppercase tracking-[0.06em] text-fg-muted">{t("Aluno")}</div>
             {days.map((d) => (

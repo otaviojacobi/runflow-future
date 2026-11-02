@@ -6,11 +6,10 @@ import { signOut } from "@/api/auth";
 import type { MembershipContext, Subscription } from "@/api/types";
 import { ClubLogo } from "@/components/brand";
 import { t } from "@/i18n";
-import { homeFor, selectClub, useClub } from "@/lib/club";
+import { ROLE_LABEL, homeFor, selectClub, useClub } from "@/lib/club";
 import { useOnline } from "@/lib/pwa";
 import { applyClubTheme, getColorMode, setColorMode, type ColorMode } from "@/lib/theme";
 import { Avatar, Dialog, cn } from "@/ui";
-import { ROLE_LABEL } from "@/screens/clubs/Clubs";
 import { CommandPalette, useCommandPalette } from "./CommandPalette";
 import { moreFor, navFor, tabsFor, type NavItem } from "./nav";
 

@@ -8,10 +8,9 @@ import type { Member } from "@/api/types";
 import { whatsappLink } from "@/components/club/InviteShare";
 import { ImportStudentsDialog } from "@/components/ImportDialogs";
 import { t, tn } from "@/i18n";
-import { useClub } from "@/lib/club";
+import { ROLE_LABEL, useClub } from "@/lib/club";
 import { ago } from "@/lib/format";
 import { Avatar, Badge, Button, Card, Dialog, EmptyState, Field, IconButton, Menu, PageHeader, ProgressBar, Select, Skeleton, Tabs, toast } from "@/ui";
-import { ROLE_LABEL } from "../clubs/Clubs";
 
 export function MembersScreen() {
   const { club, ctx } = useClub();

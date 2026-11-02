@@ -7,10 +7,9 @@ import { useMe } from "@/api/me";
 import type { MembershipContext } from "@/api/types";
 import { ClubLogo, RunflowWordmark } from "@/components/brand";
 import { t } from "@/i18n";
-import { activeMembership, homeFor, selectClub } from "@/lib/club";
+import { ROLE_LABEL, activeMembership, homeFor, selectClub } from "@/lib/club";
 import { Badge, Button, ButtonLink, Card, Field, Input, Skeleton } from "@/ui";
 
-export const ROLE_LABEL = { owner: "Gestor(a)", trainer: "Treinador(a)", student: "Aluno(a)" } as const;
 
 /** Accepts a full invite link (…/invite/abc) or just the code. */
 export function inviteTokenFrom(input: string): string | null {

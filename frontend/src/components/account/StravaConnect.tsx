@@ -40,7 +40,7 @@ export function ProviderConnections({ onConnected }: { onConnected?: () => void 
           <Button icon={<Link2 />} loading={start.isPending} onClick={connect} className="w-full sm:w-auto">{t("Conectar com Strava")}</Button>
         )}
       </Card>
-      <Card className="flex items-center gap-4 p-4 opacity-70">
+      <Card className="flex items-center gap-4 bg-sunken p-4">
         <span className="grid size-11 place-items-center rounded-lg bg-soft text-fg"><Watch className="size-6" /></span>
         <div className="min-w-0 flex-1"><div className="font-semibold">Garmin</div><p className="text-sm text-fg-muted">{t("Em breve: treinos direto no relógio.")}</p></div>
         <Badge>{t("Em breve")}</Badge>

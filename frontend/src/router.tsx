@@ -8,15 +8,7 @@ import { activeMembership, homeFor } from "./lib/club";
 import { session } from "./lib/session";
 import { queryClient } from "./queryClient";
 import { SignInScreen } from "./screens/auth/SignIn";
-import { ClubsScreen } from "./screens/clubs/Clubs";
-import { ComponentsScreen } from "./screens/dev/Components";
-import { StatusScreen } from "./screens/dev/Status";
-import { CreateClubScreen } from "./screens/onboarding/CreateClub";
-import { InviteScreen } from "./screens/onboarding/Invite";
-import { WelcomeScreen } from "./screens/onboarding/Welcome";
-import { StudentsScreen } from "./screens/staff/Students";
-import { MembersScreen } from "./screens/owner/Members";
-import { LibraryScreen } from "./screens/staff/Library";
+import { ErrorScreen, NotFoundScreen } from "./screens/Fallbacks";
 import { Toaster } from "./ui";
 
 /**
@@ -42,9 +34,9 @@ const signIn = createRoute({
   validateSearch: (s: Record<string, unknown>): { redirect?: string } => ({ redirect: typeof s.redirect === "string" ? s.redirect : undefined }),
   beforeLoad: () => { if (session.isSignedIn()) throw redirect({ to: "/app" }); },
 });
-const invite = createRoute({ getParentRoute: () => root, path: "/invite/$token", component: InviteScreen });
-const devComponents = createRoute({ getParentRoute: () => root, path: "/dev/components", component: ComponentsScreen });
-const devStatus = createRoute({ getParentRoute: () => root, path: "/dev/status", component: StatusScreen });
+const invite = createRoute({ getParentRoute: () => root, path: "/invite/$token", component: lazyRouteComponent(() => import("./screens/onboarding/Invite"), "InviteScreen") });
+const devComponents = createRoute({ getParentRoute: () => root, path: "/dev/components", component: lazyRouteComponent(() => import("./screens/dev/Components"), "ComponentsScreen") });
+const devStatus = createRoute({ getParentRoute: () => root, path: "/dev/status", component: lazyRouteComponent(() => import("./screens/dev/Status"), "StatusScreen") });
 const devPay = createRoute({ getParentRoute: () => root, path: "/dev/pay/$id", component: lazyRouteComponent(() => import("./screens/dev/PayMock"), "PayMockScreen") });
 const devStripe = createRoute({ getParentRoute: () => root, path: "/dev/stripe/$kind", component: lazyRouteComponent(() => import("./screens/dev/StripeMock"), "StripeMockScreen") });
 
@@ -53,9 +45,9 @@ const authed = createRoute({
   getParentRoute: () => root, id: "authed", component: () => <Outlet />,
   beforeLoad: ({ location }) => { if (!session.isSignedIn()) throw redirect({ to: "/login", search: { redirect: location.href } }); },
 });
-const clubs = createRoute({ getParentRoute: () => authed, path: "/clubs", component: ClubsScreen, loader: ({ context }) => ensureMe(context.queryClient) });
-const createClub = createRoute({ getParentRoute: () => authed, path: "/clubs/new", component: CreateClubScreen });
-const welcome = createRoute({ getParentRoute: () => authed, path: "/welcome", component: WelcomeScreen, loader: ({ context }) => ensureMe(context.queryClient) });
+const clubs = createRoute({ getParentRoute: () => authed, path: "/clubs", component: lazyRouteComponent(() => import("./screens/clubs/Clubs"), "ClubsScreen"), loader: ({ context }) => ensureMe(context.queryClient) });
+const createClub = createRoute({ getParentRoute: () => authed, path: "/clubs/new", component: lazyRouteComponent(() => import("./screens/onboarding/CreateClub"), "CreateClubScreen") });
+const welcome = createRoute({ getParentRoute: () => authed, path: "/welcome", component: lazyRouteComponent(() => import("./screens/onboarding/Welcome"), "WelcomeScreen"), loader: ({ context }) => ensureMe(context.queryClient) });
 
 // ---------------------------------------------------------------- the club shell (role-gated groups)
 const shell = createRoute({
@@ -78,10 +70,10 @@ const S = () => staff, O = () => owner, St = () => student, Sh = () => shell;
 
 const staffRoutes = [
   r(S, "/dashboard", lazyRouteComponent(() => import("./screens/staff/Dashboard"), "DashboardScreen")),
-  r(S, "/students", StudentsScreen),
+  r(S, "/students", lazyRouteComponent(() => import("./screens/staff/Students"), "StudentsScreen")),
   r(S, "/students/$id", lazyRouteComponent(() => import("./screens/staff/Student"), "StudentScreen")),
   r(S, "/planning", lazyRouteComponent(() => import("./screens/staff/planning/Planning"), "PlanningScreen")),
-  r(S, "/library", LibraryScreen),
+  r(S, "/library", lazyRouteComponent(() => import("./screens/staff/Library"), "LibraryScreen")),
   r(S, "/library/new", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
   r(S, "/library/$id", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
   r(S, "/exercises", lazyRouteComponent(() => import("./screens/staff/Exercises"), "ExercisesScreen")),
@@ -96,7 +88,7 @@ const staffRoutes = [
 ];
 const ownerRoutes = [
   r(O, "/club/studio", lazyRouteComponent(() => import("./screens/owner/Studio"), "StudioScreen")),
-  r(O, "/club/members", MembersScreen),
+  r(O, "/club/members", lazyRouteComponent(() => import("./screens/owner/Members"), "MembersScreen")),
   r(O, "/club/settings", lazyRouteComponent(() => import("./screens/owner/Settings"), "SettingsScreen")),
   r(O, "/club/finances", lazyRouteComponent(() => import("./screens/owner/Finances"), "FinancesScreen")),
   r(O, "/club/billing", lazyRouteComponent(() => import("./screens/owner/Billing"), "BillingScreen")),
@@ -127,7 +119,11 @@ const routeTree = root.addChildren([
     shell.addChildren([staff.addChildren(staffRoutes), owner.addChildren(ownerRoutes), student.addChildren(studentRoutes), ...commonRoutes]),
   ]),
 ]);
-export const router = createRouter({ routeTree, context: { queryClient }, defaultPreload: "intent", scrollRestoration: true });
+export const router = createRouter({
+  routeTree, context: { queryClient }, defaultPreload: "intent", scrollRestoration: true,
+  defaultNotFoundComponent: NotFoundScreen,
+  defaultErrorComponent: ({ error, reset }) => <ErrorScreen error={error} reset={reset} />,
+});
 setUnauthorizedHandler(() => router.navigate({ to: "/login", search: { redirect: router.state.location.href } }));
 
 declare module "@tanstack/react-router" {

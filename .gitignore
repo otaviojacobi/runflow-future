@@ -7,3 +7,5 @@ dist/
 api/mock/.data/
 .DS_Store
 *.tsbuildinfo
+frontend/test-results/
+frontend/playwright-report/

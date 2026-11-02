@@ -67,7 +67,7 @@ export function PlanEditorScreen() {
         </div>
       </div>
 
-      <Card className="overflow-x-auto">
+      <Card className="relative min-w-0 overflow-x-auto">
         <div className="grid min-w-[1000px]" style={{ gridTemplateColumns: "96px repeat(7, minmax(110px, 1fr)) 100px" }}>
           <div className="border-b border-line bg-sunken px-3 py-2.5 text-[11px] font-bold uppercase tracking-[0.06em] text-fg-muted">{t("Semana")}</div>
           {WD.map((d) => <div key={d} className="border-b border-l border-line-subtle bg-sunken py-2.5 text-center text-[11px] font-bold uppercase tracking-[0.06em] text-fg-muted">{t(d)}</div>)}

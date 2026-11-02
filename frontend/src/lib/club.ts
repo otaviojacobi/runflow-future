@@ -28,3 +28,6 @@ export function useClub() {
   const ctx = activeMembership(me.data);
   return { me: me.data, ctx, club: ctx?.club, role: ctx?.membership.role, isStaff: ctx ? ctx.membership.role !== "student" : false, isOwner: ctx?.membership.role === "owner" };
 }
+
+/** pt-BR role names (pass through t()). */
+export const ROLE_LABEL = { owner: "Gestor(a)", trainer: "Treinador(a)", student: "Aluno(a)" } as const;
