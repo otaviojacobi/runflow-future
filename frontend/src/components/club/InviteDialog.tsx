@@ -44,7 +44,7 @@ export function InviteForm({ club, onSent }: { club: Club; onSent?: (email: stri
         <Field label={t("E-mail")} error={typo ? t("Confira o e-mail, como nome@email.com.") : err ? `${err.title}. ${err.detail}` : null}>
           {(id, d) => <Input ref={emailRef} id={id} aria-describedby={d} type="email" inputMode="email" autoComplete="off" value={email} onChange={(e) => { setEmail(e.target.value); if (create.error) create.reset(); }} placeholder="nome@email.com" />}
         </Field>
-        <Field label={t("Nome")} optional hint={t("Usado na saudação do e-mail.")}>{(id, d) => <Input id={id} aria-describedby={d} autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("Ex.: Ana")} />}</Field>
+        <Field label={t("Nome completo")} optional hint={t("Usado na saudação do e-mail.")}>{(id, d) => <Input id={id} aria-describedby={d} autoComplete="off" value={name} onChange={(e) => setName(e.target.value)} placeholder={t("Ex.: Ana")} />}</Field>
       </div>
       {role === "student" && (groups.data?.length ?? 0) > 0 && (
         <fieldset className="grid gap-2">

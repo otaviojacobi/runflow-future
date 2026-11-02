@@ -11,6 +11,7 @@ import { fetchMe, meKey } from "@/api/me";
 import type { ConsentKind, MembershipContext, NotificationPrefs, User, UserSession } from "@/api/types";
 import { ProviderConnections } from "@/components/account/StravaConnect";
 import { ClubLogo } from "@/components/brand";
+import { profileLinksFor } from "@/components/shell/nav";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { ROLE_LABEL, selectClub, useClub } from "@/lib/club";
@@ -27,6 +28,13 @@ const Section = ({ id, title, description, children, edge }: { id: string; title
   </Card>
 );
 
+/** What each of the student's profile links holds (D-035: Atividades and Provas live here on mobile). */
+const PROFILE_HINT: Record<string, string> = {
+  "/account/profile": "Objetivo, nível, provas recentes e suas zonas",
+  "/activities": "Seus treinos sincronizados e registrados",
+  "/races": "As provas que você vai correr",
+};
+
 export function AccountScreen() {
   const { me, role } = useClub();
   if (!me) return null;
@@ -34,11 +42,15 @@ export function AccountScreen() {
     <div className="mx-auto grid max-w-2xl gap-6">
       <PageHeader title={t("Minha conta")} subtitle={me.user.email} />
       {role === "student" && (
-        <Link to="/account/profile" className="flex items-center gap-3 rounded-lg border border-line bg-surface p-4 shadow-sm hover:bg-soft">
-          <span className="grid size-10 place-items-center rounded-full bg-brand-soft text-on-brand-soft"><UserRound className="size-5" /></span>
-          <span className="min-w-0 flex-1"><span className="block font-semibold">{t("Perfil de atleta")}</span><span className="block text-sm text-fg-muted">{t("Objetivo, nível, provas recentes e suas zonas")}</span></span>
-          <ChevronRight className="size-5 text-fg-muted" />
-        </Link>
+        <nav aria-label={t("Seu perfil")} className="grid divide-y divide-line-subtle overflow-hidden rounded-lg border border-line bg-surface shadow-sm">
+          {[{ to: "/account/profile", label: "Perfil de atleta", icon: UserRound }, ...profileLinksFor(role)].map((l) => (
+            <Link key={l.to} to={l.to} className="flex items-center gap-3 p-4 hover:bg-soft">
+              <span className="grid size-10 place-items-center rounded-full bg-brand-soft text-on-brand-soft"><l.icon className="size-5" /></span>
+              <span className="min-w-0 flex-1"><span className="block font-semibold">{t(l.label)}</span><span className="block text-sm text-fg-muted">{t(PROFILE_HINT[l.to] ?? "")}</span></span>
+              <ChevronRight className="size-5 text-fg-muted" />
+            </Link>
+          ))}
+        </nav>
       )}
       <Profile user={me.user} key={me.user.id} />
       <Appearance />
@@ -80,7 +92,7 @@ function Profile({ user }: { user: User }) {
         <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" aria-label={t("Arquivo da foto")} onChange={(e) => { onFile(e.target.files?.[0]); e.target.value = ""; }} />
       </div>
       <form className="grid gap-4 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); update.mutate({ name: v.name, phone: v.phone || null, birth_date: v.birth_date || null, sex: (v.sex || null) as User["sex"] }, { onSuccess: () => toast.success(t("Perfil salvo")) }); }}>
-        <Field label={t("Nome")} error={err?.fieldError("name")} className="sm:col-span-2">{(id) => <Input id={id} value={v.name} onChange={(e) => set({ name: e.target.value })} autoComplete="name" />}</Field>
+        <Field label={t("Nome completo")} error={err?.fieldError("name")} className="sm:col-span-2">{(id) => <Input id={id} value={v.name} onChange={(e) => set({ name: e.target.value })} autoComplete="name" />}</Field>
         <Field label={t("Celular")} optional>{(id) => <Input id={id} type="tel" value={v.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="(11) 91234-5678" autoComplete="tel" />}</Field>
         <Field label={t("Nascimento")} optional error={err?.fieldError("birth_date")}>{(id) => <Input id={id} type="date" value={v.birth_date} onChange={(e) => set({ birth_date: e.target.value })} />}</Field>
         <Field label={t("Sexo")} optional hint={t("Usado só para estimar zonas e calorias.")}>{(id, d) => <Select id={id} aria-describedby={d} value={v.sex} onChange={(e) => set({ sex: e.target.value })}><option value="">{t("Prefiro não informar")}</option><option value="female">{t("Feminino")}</option><option value="male">{t("Masculino")}</option><option value="other">{t("Outro")}</option></Select>}</Field>

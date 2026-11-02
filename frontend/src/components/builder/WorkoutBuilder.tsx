@@ -86,9 +86,9 @@ export function WorkoutBuilder({ sport, structure, onChange, onTags, compact }: 
   };
 
   return (
-    <div className={cn("grid gap-5", !compact && "lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start")}>
-      <div className="grid min-w-0 gap-5">
-        <Card className="grid gap-3 p-4">
+    <div className={cn("grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5", !compact && "lg:grid-cols-[minmax(0,1fr)_320px] lg:items-start")}>
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-5">
+        <Card className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <label htmlFor="quicktext" className="flex items-center gap-2 font-semibold"><Wand2 className="size-[18px] text-accent-text" />{t("Escrita rápida")}</label>
             <span className="text-xs text-fg-muted">{t("Escreva como no WhatsApp. O editor abaixo acompanha.")}</span>
@@ -108,7 +108,7 @@ export function WorkoutBuilder({ sport, structure, onChange, onTags, compact }: 
             ))}
           </div>
         </Card>
-        <section className="grid gap-2">
+        <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2">
           <h2 className="rf-text-title-sm">{sport === "strength" ? t("Exercícios") : t("Etapas")}</h2>
           <BlockEditor blocks={structure.blocks} sport={sport} onChange={(blocks) => onChange({ v: 1, blocks })} />
         </section>

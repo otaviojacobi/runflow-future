@@ -108,7 +108,7 @@ pub async fn profile(
 ) -> sqlx::Result<Option<AthleteProfile>> {
     sqlx::query_as!(
         AthleteProfile,
-        "SELECT membership_id, goal, goal_date, level, weekly_sessions, max_hr, resting_hr, threshold_pace_s_per_km, css_s_per_100m, ftp_w,
+        "SELECT membership_id, goal, goal_note, goal_date, level, weekly_sessions, max_hr, resting_hr, threshold_pace_s_per_km, css_s_per_100m, ftp_w,
                 recent_race, trainer_notes, updated_at
            FROM athlete_profiles WHERE membership_id = $1",
         membership_id
@@ -124,11 +124,11 @@ pub async fn save_profile(
     sqlx::query_as!(
         AthleteProfile,
         "INSERT INTO athlete_profiles (membership_id, goal, goal_date, level, weekly_sessions, max_hr, resting_hr, threshold_pace_s_per_km,
-                                       css_s_per_100m, ftp_w, recent_race, trainer_notes, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())
+                                       css_s_per_100m, ftp_w, recent_race, trainer_notes, goal_note, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, now())
          ON CONFLICT (membership_id) DO UPDATE SET goal = $2, goal_date = $3, level = $4, weekly_sessions = $5, max_hr = $6, resting_hr = $7,
-                threshold_pace_s_per_km = $8, css_s_per_100m = $9, ftp_w = $10, recent_race = $11, trainer_notes = $12, updated_at = now()
-         RETURNING membership_id, goal, goal_date, level, weekly_sessions, max_hr, resting_hr, threshold_pace_s_per_km, css_s_per_100m, ftp_w,
+                threshold_pace_s_per_km = $8, css_s_per_100m = $9, ftp_w = $10, recent_race = $11, trainer_notes = $12, goal_note = $13, updated_at = now()
+         RETURNING membership_id, goal, goal_note, goal_date, level, weekly_sessions, max_hr, resting_hr, threshold_pace_s_per_km, css_s_per_100m, ftp_w,
                    recent_race, trainer_notes, updated_at",
         p.membership_id,
         p.goal,
@@ -141,7 +141,8 @@ pub async fn save_profile(
         p.css_s_per_100m,
         p.ftp_w,
         p.recent_race,
-        p.trainer_notes
+        p.trainer_notes,
+        p.goal_note
     )
     .fetch_one(db)
     .await

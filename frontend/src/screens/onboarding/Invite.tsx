@@ -77,13 +77,13 @@ export function InviteScreen() {
               ) : signedIn && d.email_matches === false ? (
                 <div className="grid gap-3 text-left">
                   <p className="flex items-start gap-2 text-sm"><CircleAlert className="mt-0.5 size-5 shrink-0 text-warning-text" /><span>{t("Você entrou como {me}, mas este convite é para {email}. Entre com o e-mail que recebeu o convite.", { me: me.data?.user.email ?? "", email: d.email_hint })}</span></p>
-                  <Button size="lg" block variant="secondary" icon={<LogOut />} onClick={async () => { await signOut(); navigate({ to: "/login", search: { redirect: `/invite/${token}` } }); }}>{t("Sair e entrar com outro e-mail")}</Button>
+                  <Button size="lg" block variant="secondary" icon={<LogOut />} onClick={async () => { await signOut(); navigate({ to: "/login", search: { redirect: `/invite/${token}`, email: d.email ?? undefined } }); }}>{t("Sair e entrar com outro e-mail")}</Button>
                 </div>
               ) : signedIn ? (
                 <Button size="lg" block onClick={join} loading={accept.isPending}>{d.role === "trainer" ? t("Entrar como treinador(a)") : t("Aceitar convite")}</Button>
               ) : (
                 <>
-                  <ButtonLink to="/login" search={{ redirect: `/invite/${token}` }} size="lg" block icon={<LogIn />}>{t("Entrar para aceitar")}</ButtonLink>
+                  <ButtonLink to="/login" search={{ redirect: `/invite/${token}`, email: d.email ?? undefined }} size="lg" block icon={<LogIn />}>{t("Entrar para aceitar")}</ButtonLink>
                   <p className="text-xs text-fg-muted">{t("Entre com o e-mail que recebeu o convite ({email}), pela conta Google ou com um código.", { email: d.email_hint })}</p>
                 </>
               )}

@@ -1,5 +1,5 @@
 /** Assign a workout (from the library or built on the spot) to students/groups on one or more days. */
-import { Check, Library, Search, Wand2 } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Library, Search, Wand2, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTemplates } from "@/api/library";
 import { useAthletes, useGroups } from "@/api/members";
@@ -11,8 +11,8 @@ import { IntensityProfile } from "@/components/workout";
 import { estimate, type Structure } from "@/domain/workout";
 import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
-import { addDays, duration, weekdayShort } from "@/lib/format";
-import { Avatar, Button, Dialog, Field, Input, Segmented, Textarea, cn, toast } from "@/ui";
+import { addDays, dayMonth, duration, weekdayShort } from "@/lib/format";
+import { Avatar, Button, Dialog, Field, IconButton, Input, Segmented, Textarea, cn, toast } from "@/ui";
 
 export interface AssignPrefill { athleteIds?: string[]; dates?: string[] }
 
@@ -29,14 +29,15 @@ function AssignBody({ club, monday, onClose, prefill }: { club: Club; monday: st
   const [structure, setStructure] = useState<Structure>({ v: 1, blocks: [] });
   const [athletes, setAthletes] = useState<Set<string>>(new Set(prefill?.athleteIds ?? []));
   const [dates, setDates] = useState<Set<string>>(new Set(prefill?.dates ?? []));
-  const [extraDate, setExtraDate] = useState("");
+  const [shown, setShown] = useState(monday);
   const [notes, setNotes] = useState("");
   const [who, setWho] = useState("");
   const templates = useTemplates(club.id);
   const list = useAthletes(club.id);
   const groups = useGroups(club.id);
   const assign = useAssign(club.id);
-  const week = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
+  const week = Array.from({ length: 7 }, (_, i) => addDays(shown, i));
+  const elsewhere = [...dates].filter((d) => !week.includes(d)).sort();
   const tpls = useMemo(() => (templates.data ?? []).filter((w) => !q || w.name.toLowerCase().includes(q.toLowerCase())), [templates.data, q]);
   const people = (list.data ?? []).filter((a) => !who || a.user.name.toLowerCase().includes(who.toLowerCase()));
   const toggle = <T,>(set: Set<T>, v: T) => { const n = new Set(set); if (n.has(v)) n.delete(v); else n.add(v); return n; };
@@ -49,7 +50,13 @@ function AssignBody({ club, monday, onClose, prefill }: { club: Club; monday: st
     const est = estimate(structure, sport);
     const v: AssignInput = source === "library" ? { ...base, template_id: templateId! } : { ...base, sport, title, structure, est_duration_s: est.duration_s || null, est_distance_m: est.distance_m };
     assign.mutate(v, {
-      onSuccess: (r) => { toast.success(tn(r.items.length, "{n} treino atribuído", "{n} treinos atribuídos"), t("Os alunos já veem na agenda.")); onClose(); },
+      onSuccess: (r) => {
+        // Drafts (D-031) wait for their week's release.
+        const seen = r.items.filter((w) => w.visible).length;
+        const detail = seen === r.items.length ? t("Os alunos já veem na agenda.") : seen === 0 ? t("Ficam em rascunho até a semana ser liberada.") : t("Os da semana em andamento já aparecem; os outros ficam em rascunho até a liberação.");
+        toast.success(tn(r.items.length, "{n} treino atribuído", "{n} treinos atribuídos"), detail);
+        onClose();
+      },
       onError: (e) => { if (!(e instanceof ApiError && e.errors.length)) toast.error(e); },
     });
   };
@@ -79,7 +86,7 @@ function AssignBody({ club, monday, onClose, prefill }: { club: Club; monday: st
               </ul>
             </>
           ) : (
-            <div className="grid gap-3">
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3">
               <Field label={t("Nome do treino")} error={err?.fieldError("title")}>{(id) => <Input id={id} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("Ex.: Regenerativo 30′")} invalid={!!err?.fieldError("title")} />}</Field>
               <SportPicker value={sport} onChange={(s) => { setSport(s); setStructure({ v: 1, blocks: [] }); }} allowed={club.modalities} />
               <WorkoutBuilder compact sport={sport} structure={structure} onChange={setStructure} />
@@ -90,6 +97,11 @@ function AssignBody({ club, monday, onClose, prefill }: { club: Club; monday: st
         <section className="grid content-start gap-5">
           <fieldset className="grid gap-2">
             <legend className="mb-2 rf-text-label-sm">{t("Quando")} {err?.fieldError("dates") && <span className="font-normal text-danger-text">· {err.fieldError("dates")}</span>}</legend>
+            <div className="flex items-center justify-between gap-2">
+              <IconButton size="sm" variant="ghost" label={t("Semana anterior")} onClick={() => setShown(addDays(shown, -7))}><ChevronLeft /></IconButton>
+              <span className="text-sm font-semibold tabular-nums">{`${dayMonth(shown)} – ${dayMonth(addDays(shown, 6))}`}</span>
+              <IconButton size="sm" variant="ghost" label={t("Próxima semana")} onClick={() => setShown(addDays(shown, 7))}><ChevronRight /></IconButton>
+            </div>
             <div className="grid grid-cols-7 gap-1">
               {week.map((d) => (
                 <button key={d} type="button" aria-pressed={dates.has(d)} onClick={() => setDates(toggle(dates, d))}
@@ -98,11 +110,17 @@ function AssignBody({ club, monday, onClose, prefill }: { club: Club; monday: st
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-2 text-sm">
-              <Input type="date" aria-label={t("Outra data")} value={extraDate} onChange={(e) => setExtraDate(e.target.value)} className="h-9 w-44" />
-              <Button size="sm" variant="secondary" disabled={!extraDate} onClick={() => { setDates(toggle(dates, extraDate)); setExtraDate(""); }}>{t("Adicionar data")}</Button>
-            </div>
-            {[...dates].filter((d) => !week.includes(d)).length > 0 && <p className="text-xs text-fg-muted">{t("Também em: {d}", { d: [...dates].filter((d) => !week.includes(d)).sort().map((d) => d.split("-").reverse().slice(0, 2).join("/")).join(", ") })}</p>}
+            {elsewhere.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 text-xs text-fg-muted">
+                <span>{t("Também em:")}</span>
+                {elsewhere.map((d) => (
+                  <button key={d} type="button" onClick={() => setDates(toggle(dates, d))} aria-label={t("Remover {d}", { d: `${weekdayShort(d)}, ${dayMonth(d)}` })}
+                    className="inline-flex h-7 items-center gap-1 rounded-full border border-brand-ring bg-brand-soft px-2.5 font-semibold text-on-brand-soft hover:bg-brand-soft/70">
+                    {weekdayShort(d)}, {dayMonth(d)}<X className="size-3" aria-hidden />
+                  </button>
+                ))}
+              </div>
+            )}
           </fieldset>
           <fieldset className="grid gap-2">
             <legend className="mb-2 flex w-full items-center justify-between rf-text-label-sm"><span>{t("Para quem")} · {athletes.size}</span>

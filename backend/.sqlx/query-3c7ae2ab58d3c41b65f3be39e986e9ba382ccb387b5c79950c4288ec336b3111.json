@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO athlete_profiles (membership_id, goal, goal_date, level, weekly_sessions, max_hr, resting_hr, threshold_pace_s_per_km,\n                                       css_s_per_100m, ftp_w, recent_race, trainer_notes, updated_at)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, now())\n         ON CONFLICT (membership_id) DO UPDATE SET goal = $2, goal_date = $3, level = $4, weekly_sessions = $5, max_hr = $6, resting_hr = $7,\n                threshold_pace_s_per_km = $8, css_s_per_100m = $9, ftp_w = $10, recent_race = $11, trainer_notes = $12, updated_at = now()\n         RETURNING membership_id, goal, goal_date, level, weekly_sessions, max_hr, resting_hr, threshold_pace_s_per_km, css_s_per_100m, ftp_w,\n                   recent_race, trainer_notes, updated_at",
+  "query": "INSERT INTO athlete_profiles (membership_id, goal, goal_date, level, weekly_sessions, max_hr, resting_hr, threshold_pace_s_per_km,\n                                       css_s_per_100m, ftp_w, recent_race, trainer_notes, goal_note, updated_at)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, now())\n         ON CONFLICT (membership_id) DO UPDATE SET goal = $2, goal_date = $3, level = $4, weekly_sessions = $5, max_hr = $6, resting_hr = $7,\n                threshold_pace_s_per_km = $8, css_s_per_100m = $9, ftp_w = $10, recent_race = $11, trainer_notes = $12, goal_note = $13, updated_at = now()\n         RETURNING membership_id, goal, goal_note, goal_date, level, weekly_sessions, max_hr, resting_hr, threshold_pace_s_per_km, css_s_per_100m, ftp_w,\n                   recent_race, trainer_notes, updated_at",
   "describe": {
     "columns": [
       {
@@ -27,6 +27,17 @@
       },
       {
         "ordinal": 2,
+        "name": "goal_note",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "athlete_profiles",
+            "name": "goal_note"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
         "name": "goal_date",
         "type_info": "Date",
         "origin": {
@@ -37,7 +48,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "level",
         "type_info": "Text",
         "origin": {
@@ -48,7 +59,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "weekly_sessions",
         "type_info": "Int4",
         "origin": {
@@ -59,7 +70,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "max_hr",
         "type_info": "Int4",
         "origin": {
@@ -70,7 +81,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "resting_hr",
         "type_info": "Int4",
         "origin": {
@@ -81,7 +92,7 @@
         }
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "threshold_pace_s_per_km",
         "type_info": "Int4",
         "origin": {
@@ -92,7 +103,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "css_s_per_100m",
         "type_info": "Int4",
         "origin": {
@@ -103,7 +114,7 @@
         }
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "ftp_w",
         "type_info": "Int4",
         "origin": {
@@ -114,7 +125,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "recent_race",
         "type_info": "Jsonb",
         "origin": {
@@ -125,7 +136,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "trainer_notes",
         "type_info": "Text",
         "origin": {
@@ -136,7 +147,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -160,6 +171,7 @@
         "Int4",
         "Int4",
         "Jsonb",
+        "Text",
         "Text"
       ]
     },
@@ -176,8 +188,9 @@
       true,
       true,
       true,
+      true,
       false
     ]
   },
-  "hash": "f8dc2d3165b693396860189be2441fc65cb184b696176355da3407d95f32aa36"
+  "hash": "3c7ae2ab58d3c41b65f3be39e986e9ba382ccb387b5c79950c4288ec336b3111"
 }

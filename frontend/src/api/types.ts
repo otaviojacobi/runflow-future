@@ -53,7 +53,7 @@ export interface Invitation {
 export interface PublicInvite {
   club: Pick<Club, "id" | "slug" | "name" | "city" | "state" | "modalities" | "trainer_label">; branding: Branding | null;
   role: "trainer" | "student"; valid: boolean; reason: "expired" | "revoked" | "accepted" | "club_full" | null;
-  invited_by: string | null; name: string | null; email_hint: string; expires_at: ISOTime; members: number; already_member: boolean;
+  invited_by: string | null; name: string | null; email: string | null; email_hint: string; expires_at: ISOTime; members: number; already_member: boolean;
   /** null when signed out */
   email_matches: boolean | null;
 }
@@ -66,7 +66,7 @@ export interface WorkoutTemplate {
 export type Goal = "health" | "5k" | "10k" | "21k" | "42k" | "trail" | "triathlon" | "swim" | "strength" | "other";
 export type Level = "beginner" | "intermediate" | "advanced";
 export interface AthleteProfile {
-  membership_id: ID; goal: Goal | null; goal_date: ISODate | null; level: Level | null; weekly_sessions: number | null;
+  membership_id: ID; goal: Goal | null; goal_note: string | null; goal_date: ISODate | null; level: Level | null; weekly_sessions: number | null;
   max_hr: number | null; resting_hr: number | null; threshold_pace_s_per_km: number | null; css_s_per_100m: number | null; ftp_w: number | null;
   recent_race: { distance_m: number; time_s: number; date?: ISODate } | null; trainer_notes?: string | null; updated_at: ISOTime;
   /** Only on the student's own profile (GET /my/profile): latest pace + HR zones, read-only. */

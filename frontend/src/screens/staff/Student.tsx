@@ -153,7 +153,7 @@ export function StudentScreen() {
         <Avatar name={a.user.name} src={a.user.avatar_url} size={64} />
         <div className="min-w-0 flex-1">
           <h1 className="rf-text-display-sm">{a.user.name}</h1>
-          <p className="text-fg-muted">{[goalLabel(a.goal), a.profile.goal_date && t("prova em {d}", { d: dayMonth(a.profile.goal_date) }), a.level && t({ beginner: "Iniciante", intermediate: "Intermediário", advanced: "Avançado" }[a.level])].filter(Boolean).join(" · ") || t("Sem objetivo definido")}</p>
+          <p className="text-fg-muted">{[a.goal === "other" && a.profile.goal_note ? a.profile.goal_note : goalLabel(a.goal), a.profile.goal_date && t("prova em {d}", { d: dayMonth(a.profile.goal_date) }), a.level && t({ beginner: "Iniciante", intermediate: "Intermediário", advanced: "Avançado" }[a.level])].filter(Boolean).join(" · ") || t("Sem objetivo definido")}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {a.groups.map((g) => <Badge key={g.id}>{g.name}</Badge>)}
             {a.consents.training_data ? <Badge tone="success" icon={<ShieldCheck />}>{t("Compartilha dados")}</Badge> : <Badge tone="warning" icon={<ShieldOff />}>{t("Sem consentimento")}</Badge>}

@@ -176,6 +176,7 @@ CREATE INDEX consents_user_idx ON consents (user_id, club_id, kind);
 CREATE TABLE athlete_profiles (
   membership_id           uuid PRIMARY KEY REFERENCES memberships (id) ON DELETE CASCADE,
   goal                    text CHECK (goal IN ('health', '5k', '10k', '21k', '42k', 'trail', 'triathlon', 'swim', 'strength', 'other')),
+  goal_note               text,          -- the student's own words, e.g. for goal 'other' (≤ 120 chars)
   goal_date               date,
   level                   text CHECK (level IN ('beginner', 'intermediate', 'advanced')),
   weekly_sessions         int CHECK (weekly_sessions BETWEEN 0 AND 14),

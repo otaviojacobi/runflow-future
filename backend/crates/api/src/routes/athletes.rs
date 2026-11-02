@@ -161,6 +161,7 @@ fn empty_profile(membership_id: Uuid) -> AthleteProfile {
     AthleteProfile {
         membership_id,
         goal: None,
+        goal_note: None,
         goal_date: None,
         level: None,
         weekly_sessions: None,
@@ -298,6 +299,14 @@ fn apply_profile(p: &mut AthleteProfile, b: &Body, trainer: bool) -> Result<(), 
                 errors.push(fail("level", "Escolha o nível."))
             }
             l => p.level = l,
+        }
+    }
+    if let Some(note) = opt_str("goal_note") {
+        match note {
+            Some(n) if n.chars().count() > 120 => {
+                errors.push(fail("goal_note", "Use no máximo 120 caracteres."))
+            }
+            n => p.goal_note = n,
         }
     }
     if let Some(d) = opt_str("goal_date") {

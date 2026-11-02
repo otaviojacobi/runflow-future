@@ -23,10 +23,12 @@ const HERO: Structure = { v: 1, blocks: [
 const ROLE: Record<string, string> = { owner: "gestor(a)", trainer: "treinador(a)", student: "aluno(a)" };
 
 export function SignInScreen() {
-  const { redirect } = useSearch({ from: "/login" });
+  const { redirect, email: invited } = useSearch({ from: "/login" });
   const navigate = useNavigate();
   const [step, setStep] = useState<"start" | "code">("start");
-  const [email, setEmail] = useState("");
+  // From an invite: the invited address, locked (only it can accept, D-023) unless the person chooses another.
+  const [email, setEmail] = useState(invited ?? "");
+  const [locked, setLocked] = useState(!!invited);
   const [code, setCode] = useState("");
   const [chooser, setChooser] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -92,9 +94,10 @@ export function SignInScreen() {
                 </Button>
                 <div className="flex items-center gap-3 text-sm text-fg-subtle"><span className="h-px flex-1 bg-line" />{t("ou")}<span className="h-px flex-1 bg-line" /></div>
                 <form onSubmit={sendCode} className="grid gap-3" noValidate>
-                  <Field label={t("E-mail")} error={emailError}>
-                    {(id, d) => <Input id={id} aria-describedby={d} type="email" inputMode="email" autoComplete="email" placeholder="nome@email.com" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!emailError} required />}
+                  <Field label={t("E-mail")} error={emailError} hint={locked ? t("O convite é para este e-mail.") : undefined}>
+                    {(id, d) => <Input id={id} aria-describedby={d} type="email" inputMode="email" autoComplete="email" placeholder="nome@email.com" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!emailError} readOnly={locked} required />}
                   </Field>
+                  {locked && <button type="button" className="w-fit text-sm font-semibold text-brand-text hover:underline" onClick={() => setLocked(false)}>{t("Usar outro e-mail")}</button>}
                   <Button type="submit" size="lg" block icon={<Mail />} loading={start.isPending}>{t("Receber código por e-mail")}</Button>
                 </form>
               </div>

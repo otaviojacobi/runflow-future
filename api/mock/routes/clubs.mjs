@@ -256,7 +256,7 @@ export default function register(h) {
     return {
       club: { id: c.id, slug: c.slug, name: c.name, city: c.city, state: c.state, modalities: c.modalities, trainer_label: c.trainer_label },
       branding: h.branding(c.id), role: i.role, valid: !reason, reason, invited_by: byUser ? byUser.name : null, name: i.name,
-      email_hint: maskEmail(i.email), expires_at: i.expires_at, members: h.activeStudents(c.id), already_member: !!already,
+      email: reason ? null : i.email, email_hint: maskEmail(i.email), expires_at: i.expires_at, members: h.activeStudents(c.id), already_member: !!already,
       // Signed in: does this account's e-mail match? (null when signed out)
       email_matches: signed ? signed.email.toLowerCase() === i.email : null,
     };

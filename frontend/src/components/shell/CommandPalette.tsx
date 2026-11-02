@@ -5,7 +5,7 @@ import { Dialog as RDialog } from "radix-ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTemplates } from "@/api/library";
 import { useAthletes } from "@/api/members";
-import type { Role } from "@/api/types";
+import type { Role, Sport } from "@/api/types";
 import { t } from "@/i18n";
 import { getColorMode, setColorMode } from "@/lib/theme";
 import { Avatar, cn } from "@/ui";
@@ -24,7 +24,7 @@ export function useCommandPalette() {
   return [open, setOpen] as const;
 }
 
-export function CommandPalette({ open, onOpenChange, role, clubId }: { open: boolean; onOpenChange: (v: boolean) => void; role: Role; clubId: string }) {
+export function CommandPalette({ open, onOpenChange, role, clubId, modalities }: { open: boolean; onOpenChange: (v: boolean) => void; role: Role; clubId: string; modalities: Sport[] }) {
   const navigate = useNavigate();
   const staff = role !== "student";
   const [q, setQ] = useState("");
@@ -35,7 +35,7 @@ export function CommandPalette({ open, onOpenChange, role, clubId }: { open: boo
   useEffect(() => { if (open) { setQ(""); setActive(0); } }, [open]);
   const go = (to: string) => () => navigate({ to });
   const items = useMemo<Item[]>(() => {
-    const nav: Item[] = navFor(role).flatMap((g) => g.items).map((n) => ({ id: "nav:" + n.to, group: t("Ir para"), label: t(n.label), icon: n.icon, run: go(n.to) }));
+    const nav: Item[] = navFor(role, modalities).flatMap((g) => g.items).map((n) => ({ id: "nav:" + n.to, group: t("Ir para"), label: t(n.label), icon: n.icon, run: go(n.to) }));
     for (const extra of [{ id: "nav:/notifications", group: t("Ir para"), label: t("Notificações"), icon: ArrowRight, run: go("/notifications") }, { id: "nav:/account", group: t("Ir para"), label: t("Minha conta"), icon: ArrowRight, run: go("/account") }])
       if (!nav.some((n) => n.id === extra.id)) nav.push(extra);
     const dark = getColorMode() === "dark";

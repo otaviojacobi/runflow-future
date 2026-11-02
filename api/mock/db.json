@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-02T21:39:01.272Z",
+  "generated_at": "2026-11-02T22:08:16.961Z",
   "version": 1
  },
  "users": [
@@ -1988,6 +1988,7 @@
   {
    "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
    "goal": "42k",
+   "goal_note": null,
    "goal_date": "2027-06-06",
    "level": "advanced",
    "weekly_sessions": 5,
@@ -2007,6 +2008,7 @@
   {
    "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
    "goal": "21k",
+   "goal_note": null,
    "goal_date": null,
    "level": "intermediate",
    "weekly_sessions": 5,
@@ -2026,6 +2028,7 @@
   {
    "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
    "goal": "10k",
+   "goal_note": null,
    "goal_date": null,
    "level": "intermediate",
    "weekly_sessions": 5,
@@ -2045,6 +2048,7 @@
   {
    "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
    "goal": "42k",
+   "goal_note": null,
    "goal_date": "2027-06-06",
    "level": "advanced",
    "weekly_sessions": 5,
@@ -2064,6 +2068,7 @@
   {
    "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
    "goal": "5k",
+   "goal_note": null,
    "goal_date": null,
    "level": "beginner",
    "weekly_sessions": 3,
@@ -2079,6 +2084,7 @@
   {
    "membership_id": "55354e5d-3b51-4ff4-a4d8-40acd1dee3ce",
    "goal": "health",
+   "goal_note": null,
    "goal_date": null,
    "level": "beginner",
    "weekly_sessions": 3,
@@ -2094,6 +2100,7 @@
   {
    "membership_id": "bd220e4e-63e3-4c08-a9d3-3294d21e3a8b",
    "goal": "10k",
+   "goal_note": null,
    "goal_date": null,
    "level": "beginner",
    "weekly_sessions": 3,
@@ -2109,6 +2116,7 @@
   {
    "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
    "goal": "21k",
+   "goal_note": null,
    "goal_date": null,
    "level": "intermediate",
    "weekly_sessions": 5,
@@ -2128,6 +2136,7 @@
   {
    "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
    "goal": "health",
+   "goal_note": null,
    "goal_date": null,
    "level": "intermediate",
    "weekly_sessions": 5,
@@ -2147,6 +2156,7 @@
   {
    "membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
    "goal": "swim",
+   "goal_note": null,
    "goal_date": null,
    "level": "intermediate",
    "weekly_sessions": 2,

@@ -247,13 +247,13 @@ export function generate(anchor) {
   // ---- athlete profiles + zones
   for (const [k, , , , goal, level, thr, maxhr] of PF_STUDENTS) {
     const m = M["paceforte:" + k];
-    t("athlete_profiles").push({ membership_id: m.id, goal, goal_date: goal === "42k" ? "2027-06-06" : null, level, weekly_sessions: level === "beginner" ? 3 : 5, max_hr: maxhr, resting_hr: r(48, 62), threshold_pace_s_per_km: thr, css_s_per_100m: null, ftp_w: null, recent_race: level === "beginner" ? null : { distance_m: 10000, time_s: Math.round(thr * 10 * 1.04), date: addDays(W0, -40) }, trainer_notes: k === "carla" ? "Plantões no hospital: evitar treinos fortes às segundas." : null, updated_at: createdLongAgo });
+    t("athlete_profiles").push({ membership_id: m.id, goal, goal_note: null, goal_date: goal === "42k" ? "2027-06-06" : null, level, weekly_sessions: level === "beginner" ? 3 : 5, max_hr: maxhr, resting_hr: r(48, 62), threshold_pace_s_per_km: thr, css_s_per_100m: null, ftp_w: null, recent_race: level === "beginner" ? null : { distance_m: 10000, time_s: Math.round(thr * 10 * 1.04), date: addDays(W0, -40) }, trainer_notes: k === "carla" ? "Plantões no hospital: evitar treinos fortes às segundas." : null, updated_at: createdLongAgo });
     const f = [1.3, 1.17, 1.08, 1.0, 0.94];
     t("zones").push({ id: uuid("zones:pace:" + k), membership_id: m.id, kind: "pace", source: level === "beginner" ? "estimated" : "race", bounds: f.map((x, i) => ({ zone: i + 1, min: Math.round(thr * (f[i + 1] || 0.85)), max: Math.round(thr * x) })), valid_from: addDays(W0, -40), created_by: M["paceforte:marcos"].id, created_at: createdLongAgo });
     const hrf = [0.6, 0.7, 0.8, 0.9, 1.0];
     t("zones").push({ id: uuid("zones:hr:" + k), membership_id: m.id, kind: "hr", source: "estimated", bounds: hrf.map((x, i) => ({ zone: i + 1, min: Math.round(maxhr * (hrf[i - 1] || 0.5)), max: Math.round(maxhr * x) })), valid_from: addDays(W0, -40), created_by: M["paceforte:marcos"].id, created_at: createdLongAgo });
   }
-  t("athlete_profiles").push({ membership_id: M["equipemare:ana"].id, goal: "swim", goal_date: null, level: "intermediate", weekly_sessions: 2, max_hr: 186, resting_hr: 52, threshold_pace_s_per_km: null, css_s_per_100m: 98, ftp_w: null, recent_race: null, trainer_notes: null, updated_at: createdLongAgo });
+  t("athlete_profiles").push({ membership_id: M["equipemare:ana"].id, goal: "swim", goal_note: null, goal_date: null, level: "intermediate", weekly_sessions: 2, max_hr: 186, resting_hr: 52, threshold_pace_s_per_km: null, css_s_per_100m: 98, ftp_w: null, recent_race: null, trainer_notes: null, updated_at: createdLongAgo });
 
   // ---- library
   const TPL = {};

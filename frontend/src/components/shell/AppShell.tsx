@@ -163,9 +163,10 @@ export function AppShell() {
   const isActive = useIsActive();
   useEffect(() => { if (ctx) applyClubTheme(ctx.branding?.theme_css ?? null); }, [ctx?.club.id, ctx?.branding?.theme_rev]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!ctx || !role || !me) return null;
-  const groups = navFor(role);
-  const tabs = tabsFor(role);
-  const extra = moreFor(role);
+  const modalities = ctx.club.modalities;
+  const groups = navFor(role, modalities).map((g) => ({ ...g, items: g.items.filter((i) => i.sidebar !== false) }));
+  const tabs = tabsFor(role, modalities);
+  const extra = moreFor(role, modalities);
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[248px_minmax(0,1fr)] print:block">
@@ -202,7 +203,7 @@ export function AppShell() {
         {role === "owner" && <BillingBanner sub={ctx.subscription} />}
         <Outlet />
       </main>
-      <CommandPalette open={palette} onOpenChange={setPalette} role={role} clubId={ctx.club.id} />
+      <CommandPalette open={palette} onOpenChange={setPalette} role={role} clubId={ctx.club.id} modalities={modalities} />
       <ShortcutsDialog open={keys} onOpenChange={setKeys} />
 
       {/* mobile bottom tabs */}

@@ -32,14 +32,14 @@ export function ProfileScreen() {
 function Form({ clubId, p }: { clubId: string; p: AthleteProfile }) {
   const save = useSaveMyProfile(clubId);
   const [v, setV] = useState({
-    goal: p.goal ?? "", goal_date: p.goal_date ?? "", level: p.level ?? "", weekly_sessions: p.weekly_sessions?.toString() ?? "",
+    goal: p.goal ?? "", goal_note: p.goal_note ?? "", goal_date: p.goal_date ?? "", level: p.level ?? "", weekly_sessions: p.weekly_sessions?.toString() ?? "",
     race_m: p.recent_race?.distance_m ?? 10000, race_time: p.recent_race ? clock(p.recent_race.time_s) : "", max_hr: p.max_hr?.toString() ?? "", resting_hr: p.resting_hr?.toString() ?? "",
   });
   const set = (x: Partial<typeof v>) => setV((o) => ({ ...o, ...x }));
   const err = save.error instanceof ApiError ? save.error : null;
   const raceS = v.race_time ? parseTime(v.race_time) : null;
   const submit = () => save.mutate({
-    goal: (v.goal || null) as Goal | null, goal_date: v.goal_date || null, level: (v.level || null) as Level | null,
+    goal: (v.goal || null) as Goal | null, goal_note: v.goal === "other" ? v.goal_note.trim() || null : null, goal_date: v.goal_date || null, level: (v.level || null) as Level | null,
     weekly_sessions: v.weekly_sessions ? Number(v.weekly_sessions) : null,
     recent_race: raceS ? { distance_m: v.race_m, time_s: raceS } : null,
     max_hr: v.max_hr ? Number(v.max_hr) : null, resting_hr: v.resting_hr ? Number(v.resting_hr) : null,
@@ -49,6 +49,9 @@ function Form({ clubId, p }: { clubId: string; p: AthleteProfile }) {
       <form className="grid gap-4 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); submit(); }}>
         <h2 className="rf-text-title-md sm:col-span-2">{t("Objetivo e rotina")}</h2>
         <Field label={t("Objetivo")} error={err?.fieldError("goal")}>{(id) => <Select id={id} value={v.goal} onChange={(e) => set({ goal: e.target.value })}><option value="">{t("Escolha…")}</option>{GOALS.map((g) => <option key={g.value} value={g.value}>{t(g.label)}</option>)}</Select>}</Field>
+        {v.goal === "other" && (
+          <Field label={t("Qual é o seu objetivo?")} error={err?.fieldError("goal_note")} className="sm:col-span-2">{(id) => <Input id={id} value={v.goal_note} onChange={(e) => set({ goal_note: e.target.value })} maxLength={120} placeholder={t("Ex.: voltar a correr depois de uma lesão")} />}</Field>
+        )}
         <Field label={t("Data da prova")} optional error={err?.fieldError("goal_date")}>{(id) => <Input id={id} type="date" value={v.goal_date} onChange={(e) => set({ goal_date: e.target.value })} />}</Field>
         <Field label={t("Nível")} error={err?.fieldError("level")}>{(id) => <Select id={id} value={v.level} onChange={(e) => set({ level: e.target.value })}><option value="">{t("Escolha…")}</option>{LEVELS.map((l) => <option key={l.value} value={l.value}>{t(l.label)}</option>)}</Select>}</Field>
         <Field label={t("Treinos por semana")} error={err?.fieldError("weekly_sessions")}>{(id) => <Input id={id} type="number" min={0} max={14} value={v.weekly_sessions} onChange={(e) => set({ weekly_sessions: e.target.value })} />}</Field>

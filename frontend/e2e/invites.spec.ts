@@ -34,9 +34,21 @@ test("owner invites by e-mail and only that account can join", async ({ page, br
   const invited = await (await browser.newContext({ locale: "pt-BR", timezoneId: "America/Sao_Paulo" })).newPage();
   await invited.goto(link);
   await invited.getByRole("link", { name: "Entrar para aceitar" }).click();
-  await invited.getByLabel("E-mail").fill(email);
+  // The invite pre-fills (and locks) the invited address.
+  await expect(invited.getByLabel("E-mail")).toHaveValue(email);
+  await expect(invited.getByLabel("E-mail")).toHaveAttribute("readonly", "");
   await invited.getByRole("button", { name: "Receber código por e-mail" }).click();
   await invited.getByLabel("Código").fill("000000");
   await invited.getByRole("button", { name: "Aceitar convite" }).click();
   await expect(invited).toHaveURL(/\/welcome/);
+
+  // Onboarding: consent, then "Nome completo" (first and last name), then the watch; no goal step (D-035).
+  await invited.getByRole("checkbox").first().check();
+  await invited.getByRole("button", { name: "Continuar" }).click();
+  await invited.getByLabel("Nome completo").fill("Helena");
+  await invited.getByRole("button", { name: "Continuar" }).click();
+  await expect(invited.getByText("Informe nome e sobrenome.")).toBeVisible();
+  await invited.getByLabel("Nome completo").fill("Helena Prado");
+  await invited.getByRole("button", { name: "Continuar" }).click();
+  await expect(invited.getByRole("heading", { name: "Conecte seu relógio" })).toBeVisible();
 });

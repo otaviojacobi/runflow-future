@@ -414,6 +414,8 @@ async fn public(
         "reason": reason,
         "invited_by": db::inviter_name(&state.db, i.created_by).await?,
         "name": i.name,
+        // The token only reached that mailbox: while valid, hand the address back so sign-in can pre-fill it.
+        "email": reason.is_none().then_some(&i.email),
         "email_hint": mask_email(&i.email),
         "expires_at": i.expires_at,
         "members": db::active_students(&state.db, c.id).await?,

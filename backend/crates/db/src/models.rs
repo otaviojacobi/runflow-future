@@ -321,6 +321,7 @@ pub struct PlanAssignment {
 pub struct AthleteProfile {
     pub membership_id: Uuid,
     pub goal: Option<String>,
+    pub goal_note: Option<String>,
     pub goal_date: Option<NaiveDate>,
     pub level: Option<String>,
     pub weekly_sessions: Option<i32>,
