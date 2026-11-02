@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-02T02:07:43.976Z",
+  "generated_at": "2026-11-02T06:02:32.078Z",
   "version": 1
  },
  "users": [
@@ -25026,6 +25026,236 @@
    "checked_in_at": null,
    "created_at": "2026-11-17T15:00:00.000Z",
    "updated_at": "2026-11-17T15:00:00.000Z"
+  }
+ ],
+ "conversations": [
+  {
+   "id": "cfb6a544-2587-4e1d-a838-3323d6596bd4",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "student_membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "last_message_at": "2026-11-03T00:02:00.000Z",
+   "created_at": "2026-10-22T12:00:00.000Z"
+  },
+  {
+   "id": "a9306247-9ed8-4591-a4b5-79d8105c35fb",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "student_membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
+   "last_message_at": "2026-10-29T10:10:00.000Z",
+   "created_at": "2026-10-22T12:00:00.000Z"
+  },
+  {
+   "id": "beb7bbd6-7550-4aef-ad46-fcae1dc1167a",
+   "club_id": "c3da5abf-0ea4-43dd-ac57-f9bfa5861b1b",
+   "student_membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
+   "last_message_at": "2026-11-01T21:00:00.000Z",
+   "created_at": "2026-10-22T12:00:00.000Z"
+  }
+ ],
+ "messages": [
+  {
+   "id": "4bdcc361-e912-4f4e-aa0b-a4da91dbf0f3",
+   "conversation_id": "cfb6a544-2587-4e1d-a838-3323d6596bd4",
+   "author_membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "body": "Marcos, posso trocar o longão de sábado para domingo? Tenho um casamento no sábado.",
+   "created_at": "2026-10-31T10:40:00.000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "2ebe2584-17fc-4b23-a567-7925b3853954",
+   "conversation_id": "cfb6a544-2587-4e1d-a838-3323d6596bd4",
+   "author_membership_id": "ad896c19-0fab-4810-a0c7-c565db721527",
+   "body": "Pode sim! Só mantém o ritmo Z2 e hidrata bem. Já mudei no seu plano.",
+   "created_at": "2026-10-31T11:15:00.000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "fcd0dd5a-5e5b-4edd-a747-22b51e6e61ce",
+   "conversation_id": "cfb6a544-2587-4e1d-a838-3323d6596bd4",
+   "author_membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "body": "Perfeito, obrigada!",
+   "created_at": "2026-10-31T11:20:00.000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "78ef8547-4d3e-4864-aa2a-2103f6defa40",
+   "conversation_id": "cfb6a544-2587-4e1d-a838-3323d6596bd4",
+   "author_membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "body": "Senti a panturrilha no final do intervalado. Faço o regenerativo amanhã mesmo assim?",
+   "created_at": "2026-11-03T00:02:00.000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "fa49da0e-b29c-4e18-a878-5721e16ae7bc",
+   "conversation_id": "a9306247-9ed8-4591-a4b5-79d8105c35fb",
+   "author_membership_id": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "body": "Oi Carla! Vi que a semana foi puxada no hospital. Quer que eu reduza o volume da próxima?",
+   "created_at": "2026-10-28T15:00:00.000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "52095856-6d1d-4fe4-aeab-2191e40e5a0e",
+   "conversation_id": "a9306247-9ed8-4591-a4b5-79d8105c35fb",
+   "author_membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
+   "body": "Quero sim, por favor. Plantão de novo na quarta.",
+   "created_at": "2026-10-29T01:30:00.000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "f8a69c22-515e-4493-a5db-b1b6c906541a",
+   "conversation_id": "a9306247-9ed8-4591-a4b5-79d8105c35fb",
+   "author_membership_id": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "body": "Feito: tirei o treino de quarta e deixei o de sexta mais curto.",
+   "created_at": "2026-10-29T10:10:00.000Z",
+   "deleted_at": null
+  },
+  {
+   "id": "68d7c8aa-7ab4-4966-a7c2-d10fa0219ed4",
+   "conversation_id": "beb7bbd6-7550-4aef-ad46-fcae1dc1167a",
+   "author_membership_id": "de29c338-7e71-44c8-aaff-25c3fba47aa3",
+   "body": "Ana, amanhã vamos trabalhar a virada olímpica. Traz a nadadeira!",
+   "created_at": "2026-11-01T21:00:00.000Z",
+   "deleted_at": null
+  }
+ ],
+ "conversation_reads": [
+  {
+   "conversation_id": "cfb6a544-2587-4e1d-a838-3323d6596bd4",
+   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "last_read_at": "2026-10-31T11:20:00.000Z"
+  },
+  {
+   "conversation_id": "cfb6a544-2587-4e1d-a838-3323d6596bd4",
+   "membership_id": "ad896c19-0fab-4810-a0c7-c565db721527",
+   "last_read_at": "2026-10-31T11:21:00.000Z"
+  },
+  {
+   "conversation_id": "a9306247-9ed8-4591-a4b5-79d8105c35fb",
+   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
+   "last_read_at": "2026-10-29T11:00:00.000Z"
+  },
+  {
+   "conversation_id": "a9306247-9ed8-4591-a4b5-79d8105c35fb",
+   "membership_id": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "last_read_at": "2026-10-29T01:40:00.000Z"
+  },
+  {
+   "conversation_id": "a9306247-9ed8-4591-a4b5-79d8105c35fb",
+   "membership_id": "ad896c19-0fab-4810-a0c7-c565db721527",
+   "last_read_at": "2026-10-29T12:00:00.000Z"
+  }
+ ],
+ "announcements": [
+  {
+   "id": "f2417a8b-e0e5-4ada-a090-3f0ab2fcd5e7",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "author_membership_id": "ad896c19-0fab-4810-a0c7-c565db721527",
+   "title": "Uniforme novo da equipe",
+   "body": "Chegaram as camisetas 2027! Retirem no estúdio de terça a quinta, das 18h às 20h. Tamanhos P ao GG.",
+   "group_ids": [],
+   "pinned": true,
+   "created_at": "2026-10-25T13:00:00.000Z",
+   "edited_at": null,
+   "deleted_at": null
+  },
+  {
+   "id": "20550b94-53d3-417c-ac40-f4e3b07b9d8d",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "author_membership_id": "e0f69b7e-7b20-435c-ae22-74e55fc70ae4",
+   "title": "Treino de pista no feriado",
+   "body": "No dia 15/11 o treino de pista acontece normalmente às 6h30. Quem for viajar, avisa aqui no app para eu ajustar a planilha.",
+   "group_ids": [],
+   "pinned": false,
+   "created_at": "2026-11-01T13:00:00.000Z",
+   "edited_at": null,
+   "deleted_at": null
+  },
+  {
+   "id": "9ef625ec-6377-4905-a110-08a16a7cda50",
+   "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "author_membership_id": "ad896c19-0fab-4810-a0c7-c565db721527",
+   "title": "Grupo da maratona: longões de domingo",
+   "body": "A partir deste mês os longões de domingo saem às 6h do portão 10 do Ibirapuera. Teremos apoio de hidratação no km 12.",
+   "group_ids": [
+    "4aa80b44-d1d3-4906-a205-7f1008bc1a5d"
+   ],
+   "pinned": false,
+   "created_at": "2026-10-29T13:00:00.000Z",
+   "edited_at": null,
+   "deleted_at": null
+  },
+  {
+   "id": "dbd88678-b5c2-4d3a-ad6b-c8f2501e7273",
+   "club_id": "c3da5abf-0ea4-43dd-ac57-f9bfa5861b1b",
+   "author_membership_id": "de29c338-7e71-44c8-aaff-25c3fba47aa3",
+   "title": "Touca obrigatória na piscina",
+   "body": "O Sesc passou a exigir touca em todas as raias. Sem touca, não entra. Temos toucas da equipe à venda por R$ 25.",
+   "group_ids": [],
+   "pinned": false,
+   "created_at": "2026-10-30T13:00:00.000Z",
+   "edited_at": null,
+   "deleted_at": null
+  }
+ ],
+ "announcement_reads": [
+  {
+   "announcement_id": "f2417a8b-e0e5-4ada-a090-3f0ab2fcd5e7",
+   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "read_at": "2026-10-26T15:00:00.000Z"
+  },
+  {
+   "announcement_id": "f2417a8b-e0e5-4ada-a090-3f0ab2fcd5e7",
+   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
+   "read_at": "2026-10-26T15:00:00.000Z"
+  },
+  {
+   "announcement_id": "f2417a8b-e0e5-4ada-a090-3f0ab2fcd5e7",
+   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
+   "read_at": "2026-10-26T15:00:00.000Z"
+  },
+  {
+   "announcement_id": "f2417a8b-e0e5-4ada-a090-3f0ab2fcd5e7",
+   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
+   "read_at": "2026-10-26T15:00:00.000Z"
+  },
+  {
+   "announcement_id": "f2417a8b-e0e5-4ada-a090-3f0ab2fcd5e7",
+   "membership_id": "55354e5d-3b51-4ff4-a4d8-40acd1dee3ce",
+   "read_at": "2026-10-26T15:00:00.000Z"
+  },
+  {
+   "announcement_id": "f2417a8b-e0e5-4ada-a090-3f0ab2fcd5e7",
+   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
+   "read_at": "2026-10-26T15:00:00.000Z"
+  },
+  {
+   "announcement_id": "20550b94-53d3-417c-ac40-f4e3b07b9d8d",
+   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
+   "read_at": "2026-11-02T22:00:00.000Z"
+  },
+  {
+   "announcement_id": "20550b94-53d3-417c-ac40-f4e3b07b9d8d",
+   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
+   "read_at": "2026-11-02T22:00:00.000Z"
+  },
+  {
+   "announcement_id": "9ef625ec-6377-4905-a110-08a16a7cda50",
+   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "read_at": "2026-10-30T10:00:00.000Z"
+  },
+  {
+   "announcement_id": "9ef625ec-6377-4905-a110-08a16a7cda50",
+   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
+   "read_at": "2026-10-30T10:00:00.000Z"
+  },
+  {
+   "announcement_id": "9ef625ec-6377-4905-a110-08a16a7cda50",
+   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
+   "read_at": "2026-10-30T10:00:00.000Z"
+  },
+  {
+   "announcement_id": "9ef625ec-6377-4905-a110-08a16a7cda50",
+   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
+   "read_at": "2026-10-30T10:00:00.000Z"
   }
  ],
  "races": [

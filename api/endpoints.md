@@ -53,7 +53,7 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | GET | `/me/export` | All my data as JSON (LGPD portability) | C1 |
 | GET / PATCH | `/me/prefs` | Notification preferences | C1 |
 | GET | `/me/consents` · POST `/me/consents` `{club_id?, kind, text_version}` · DELETE `/me/consents/{id}` | Consents (grant / revoke) | A4, C1 |
-| GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first. Kinds: `workout_assigned` `workout_changed` `comment` `feedback` `class_reminder` (booked class in the next 12 h) `class_cancelled` `waitlist_promoted` `member_joined` `billing`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
+| GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first. Kinds: `workout_assigned` `workout_changed` `comment` `feedback` `class_reminder` (booked class in the next 12 h) `class_cancelled` `waitlist_promoted` `member_joined` `billing` `message` `announcement`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
 | GET | `/me/sessions` · DELETE `/me/sessions/{id}` · POST `/me/sessions/revoke-others` | Signed-in devices `{id, kind, user_agent, created_at, last_seen_at, current}` | C1 |
 | POST / DELETE | `/me/avatar` `{data_url, width, height}` | Upload (PNG/JPG/WebP ≤ 5 MB) or remove the profile photo → `/me` payload; `avatar_url` is an `/assets/{id}` path | C1 |
 
@@ -135,6 +135,21 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | DELETE | `/clubs/{club_id}/bookings/{id}` | Cancel; the first in the waitlist is promoted and notified | M6, W9 |
 | PATCH | `/clubs/{club_id}/bookings/{id}` `{status: attended \| no_show \| booked}` | Attendance (staff) | W9 |
 | POST | `/clubs/{club_id}/class-sessions/{id}/check-in` `{checkin_code}` | Student check-in (45 min before → end); creates a booking if there is room | M6 |
+
+### Messages and announcements
+| Method | Path | Purpose | Screens |
+|---|---|---|---|
+| GET | `/clubs/{club_id}/conversations?q` | Staff: every active student (`id: null` until the first message), newest conversation first, with `student`, `last_message`, `unread_count`. Student: their single conversation with the club staff (created on first read) | W13, M10 |
+| POST | `/clubs/{club_id}/conversations` `{student_membership_id}` | Staff: open (get or create) a student's conversation | W13 |
+| GET | `/clubs/{club_id}/conversations/{id}` | Summary + `messages[]` (each with `author {membership_id, role, user}`; deleted ones have an empty body) + `reads[]` of the other participants (`last_read_at`, for "Visto" receipts) | W13, M10 |
+| POST | `/clubs/{club_id}/conversations/{id}/messages` `{body}` | Send (≤ 4,000 chars). Student → `message` notification to every staff member; staff → to the student | W13, M10 |
+| POST | `/clubs/{club_id}/conversations/{id}/read` | Mark read up to now | W13, M10 |
+| DELETE | `/clubs/{club_id}/messages/{id}` | Author deletes a message (shown as "mensagem apagada") | W13, M10 |
+| GET | `/clubs/{club_id}/announcements` | Mural, pinned first then newest. Students only see club-wide ones and those for their groups; each has `read_at` (mine). Staff also get `audience_count`, `reads_count` | W13, M10 |
+| POST | `/clubs/{club_id}/announcements` `{title, body, group_ids?, pinned?}` | Publish (staff); `announcement` notification to the audience. Empty `group_ids` = whole club | W13 |
+| PATCH / DELETE | `/clubs/{club_id}/announcements/{id}` | Edit (sets `edited_at`), pin, retarget / delete | W13 |
+| POST | `/clubs/{club_id}/announcements/read` `{ids}` | Mark announcements read | M10 |
+| GET | `/clubs/{club_id}/announcements/{id}/reads` | Staff: audience with `read_at` (who read, who didn't) | W13 |
 
 ### Races and events
 | Method | Path | Purpose | Screens |

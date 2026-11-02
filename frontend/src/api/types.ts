@@ -36,7 +36,7 @@ export interface Invoice { id: ID; club_id: ID; stripe_invoice_id: string | null
 export interface MembershipContext { membership: Membership; club: Club; branding: Branding | null; subscription: Subscription | null }
 export interface NotificationPrefs { user_id: ID; push_workouts: boolean; push_comments: boolean; push_classes: boolean; email_weekly: boolean }
 export interface Me { user: User; memberships: MembershipContext[]; prefs: NotificationPrefs | null; unread_notifications: number }
-export type NotificationKind = "workout_assigned" | "workout_changed" | "comment" | "feedback" | "class_reminder" | "class_cancelled" | "waitlist_promoted" | "member_joined" | "billing";
+export type NotificationKind = "workout_assigned" | "workout_changed" | "comment" | "feedback" | "class_reminder" | "class_cancelled" | "waitlist_promoted" | "member_joined" | "billing" | "message" | "announcement";
 export interface AppNotification { id: ID; user_id: ID; club_id: ID | null; kind: NotificationKind; title: string; body: string | null; link: string | null; read_at: ISOTime | null; created_at: ISOTime }
 export interface UserSession { id: ID; kind: "web" | "mobile"; user_agent: string | null; created_at: ISOTime; last_seen_at: ISOTime; current: boolean }
 export interface AuthResult { token: string; user: User; is_new: boolean }
@@ -165,4 +165,17 @@ export interface Race {
   id: ID; club_id: ID; name: string; sport: RaceSport; date: ISODate; start_time: string | null; city: string | null; state: string | null; url: string | null;
   distances_m: number[]; notes: string | null; created_by: ID | null; created_at: ISOTime; archived_at: ISOTime | null;
   entries_count: number; my_entry: RaceEntry | null; entries?: (RaceEntry & { athlete: { membership_id: ID; user: User } })[];
+}
+
+// ---- messages and announcements (F22)
+export interface MessageAuthor { membership_id: ID; role?: Role; user: User }
+export interface Message { id: ID; conversation_id: ID; author_membership_id: ID; body: string; created_at: ISOTime; deleted_at: ISOTime | null; author: MessageAuthor }
+export interface ConversationSummary {
+  id: ID | null; club_id: ID; student_membership_id: ID; last_message_at: ISOTime | null; created_at: ISOTime | null;
+  student: { membership_id: ID; user: User }; last_message: Message | null; unread_count: number;
+}
+export interface ConversationDetail extends ConversationSummary { id: ID; messages: Message[]; reads: { membership_id: ID; user: User; role?: Role; last_read_at: ISOTime }[] }
+export interface Announcement {
+  id: ID; club_id: ID; author_membership_id: ID; title: string; body: string; group_ids: ID[]; pinned: boolean; created_at: ISOTime; edited_at: ISOTime | null; deleted_at: ISOTime | null;
+  author: { membership_id: ID; user: User }; read_at: ISOTime | null; audience_count?: number; reads_count?: number;
 }

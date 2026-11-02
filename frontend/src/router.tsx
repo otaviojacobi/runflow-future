@@ -106,6 +106,7 @@ const studentRoutes = [
   r(St, "/account/profile", lazyRouteComponent(() => import("./screens/student/Profile"), "ProfileScreen")),
 ];
 const commonRoutes = [
+  r(Sh, "/messages", lazyRouteComponent(() => import("./screens/common/messages/Messages"), "MessagesScreen")),
   r(Sh, "/notifications", lazyRouteComponent(() => import("./screens/common/Notifications"), "NotificationsScreen")),
   r(Sh, "/account", lazyRouteComponent(() => import("./screens/common/Account"), "AccountScreen")),
 ];

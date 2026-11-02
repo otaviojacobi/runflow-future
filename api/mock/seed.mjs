@@ -373,6 +373,41 @@ export function generate(anchor) {
     bs.forEach((b, i) => { b.status = i < s.capacity ? "booked" : "waitlisted"; b.waitlist_position = i < s.capacity ? null : i - s.capacity + 1; });
   }
 
+  // ---- messages and announcements (F22)
+  const convo = (ckey, mk, msgs) => {
+    const c = { id: uuid("conv:" + ckey), club_id: M[mk].club_id, student_membership_id: M[mk].id, last_message_at: null, created_at: at(addDays(anchor, -12), "09:00") };
+    t("conversations").push(c);
+    for (const [i, [who, day, hhmm, body]] of msgs.entries()) {
+      const created = at(addDays(anchor, day), hhmm);
+      t("messages").push({ id: uuid(`msg:${ckey}:${i}`), conversation_id: c.id, author_membership_id: M[who].id, body, created_at: created, deleted_at: null });
+      c.last_message_at = created;
+    }
+    return c;
+  };
+  const cAna = convo("pf-ana", "paceforte:ana", [
+    ["paceforte:ana", -3, "07:40", "Marcos, posso trocar o longão de sábado para domingo? Tenho um casamento no sábado."],
+    ["paceforte:marcos", -3, "08:15", "Pode sim! Só mantém o ritmo Z2 e hidrata bem. Já mudei no seu plano."],
+    ["paceforte:ana", -3, "08:20", "Perfeito, obrigada!"],
+    ["paceforte:ana", -1, "21:02", "Senti a panturrilha no final do intervalado. Faço o regenerativo amanhã mesmo assim?"],
+  ]);
+  const cCarla = convo("pf-carla", "paceforte:carla", [
+    ["paceforte:julia", -6, "12:00", "Oi Carla! Vi que a semana foi puxada no hospital. Quer que eu reduza o volume da próxima?"],
+    ["paceforte:carla", -6, "22:30", "Quero sim, por favor. Plantão de novo na quarta."],
+    ["paceforte:julia", -5, "07:10", "Feito: tirei o treino de quarta e deixei o de sexta mais curto."],
+  ]);
+  const cMareAna = convo("mare-ana", "equipemare:ana", [["equipemare:renata", -2, "18:00", "Ana, amanhã vamos trabalhar a virada olímpica. Traz a nadadeira!"]]);
+  const read = (c, mk, day, hhmm) => t("conversation_reads").push({ conversation_id: c.id, membership_id: M[mk].id, last_read_at: at(addDays(anchor, day), hhmm) });
+  read(cAna, "paceforte:ana", -3, "08:20"); read(cAna, "paceforte:marcos", -3, "08:21");
+  read(cCarla, "paceforte:carla", -5, "08:00"); read(cCarla, "paceforte:julia", -6, "22:40"); read(cCarla, "paceforte:marcos", -5, "09:00");
+  const ann = (key, clubRow, author, day, title, body, extra = {}) => { const a = { id: uuid("ann:" + key), club_id: clubRow.id, author_membership_id: M[author].id, title, body, group_ids: [], pinned: false, created_at: at(addDays(anchor, day), "10:00"), edited_at: null, deleted_at: null, ...extra }; t("announcements").push(a); return a; };
+  const a1 = ann("pf-uniforme", PF, "paceforte:marcos", -9, "Uniforme novo da equipe", "Chegaram as camisetas 2027! Retirem no estúdio de terça a quinta, das 18h às 20h. Tamanhos P ao GG.", { pinned: true });
+  const a2 = ann("pf-feriado", PF, "paceforte:julia", -2, "Treino de pista no feriado", "No dia 15/11 o treino de pista acontece normalmente às 6h30. Quem for viajar, avisa aqui no app para eu ajustar a planilha.");
+  const a3 = ann("pf-maratona", PF, "paceforte:marcos", -5, "Grupo da maratona: longões de domingo", "A partir deste mês os longões de domingo saem às 6h do portão 10 do Ibirapuera. Teremos apoio de hidratação no km 12.", { group_ids: [uuid("group:maratona")] });
+  for (const k of ["ana", "bruno", "carla", "diego", "felipe", "henrique"]) t("announcement_reads").push({ announcement_id: a1.id, membership_id: M["paceforte:" + k].id, read_at: at(addDays(anchor, -8), "12:00") });
+  for (const k of ["bruno", "diego"]) t("announcement_reads").push({ announcement_id: a2.id, membership_id: M["paceforte:" + k].id, read_at: at(addDays(anchor, -1), "19:00") });
+  for (const k of ["ana", "bruno", "diego", "henrique"]) t("announcement_reads").push({ announcement_id: a3.id, membership_id: M["paceforte:" + k].id, read_at: at(addDays(anchor, -4), "07:00") });
+  ann("mare-touca", MARE, "equipemare:renata", -4, "Touca obrigatória na piscina", "O Sesc passou a exigir touca em todas as raias. Sem touca, não entra. Temos toucas da equipe à venda por R$ 25.");
+
   // ---- races (F21)
   const race = (key, clubRow, row) => { const x = { id: uuid("race:" + key), club_id: clubRow.id, sport: "run", start_time: "07:00", city: null, state: null, url: null, notes: null, created_by: null, created_at: createdLongAgo, archived_at: null, ...row }; t("races").push(x); return x; };
   const RIEGEL = (thr, m) => Math.round(thr * 10 * Math.pow(m / 10000, 1.06));

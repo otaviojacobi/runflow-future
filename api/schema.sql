@@ -419,6 +419,52 @@ CREATE TABLE bookings (
   UNIQUE (session_id, membership_id)
 );
 
+-- =========================================================================== messages and announcements (F22)
+-- One direct conversation per student and club, shared by all of the club's staff (D-017: trainers see all
+-- students). Announcements (the "mural") go to the whole club or to some groups. Both have read receipts.
+CREATE TABLE conversations (
+  id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id                uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+  student_membership_id  uuid NOT NULL REFERENCES memberships (id) ON DELETE CASCADE,
+  last_message_at        timestamptz,
+  created_at             timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (club_id, student_membership_id)
+);
+CREATE TABLE messages (
+  id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  conversation_id       uuid NOT NULL REFERENCES conversations (id) ON DELETE CASCADE,
+  author_membership_id  uuid NOT NULL REFERENCES memberships (id),
+  body                  text NOT NULL CHECK (length(body) BETWEEN 1 AND 4000),
+  created_at            timestamptz NOT NULL DEFAULT now(),
+  deleted_at            timestamptz
+);
+CREATE INDEX messages_conversation_idx ON messages (conversation_id, created_at);
+CREATE TABLE conversation_reads (
+  conversation_id  uuid NOT NULL REFERENCES conversations (id) ON DELETE CASCADE,
+  membership_id    uuid NOT NULL REFERENCES memberships (id) ON DELETE CASCADE,
+  last_read_at     timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (conversation_id, membership_id)
+);
+CREATE TABLE announcements (
+  id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id               uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+  author_membership_id  uuid NOT NULL REFERENCES memberships (id),
+  title                 text NOT NULL CHECK (length(title) BETWEEN 1 AND 120),
+  body                  text NOT NULL CHECK (length(body) BETWEEN 1 AND 4000),
+  group_ids             uuid[] NOT NULL DEFAULT '{}',   -- empty = the whole club
+  pinned                boolean NOT NULL DEFAULT false,
+  created_at            timestamptz NOT NULL DEFAULT now(),
+  edited_at             timestamptz,
+  deleted_at            timestamptz
+);
+CREATE INDEX announcements_club_idx ON announcements (club_id, created_at DESC);
+CREATE TABLE announcement_reads (
+  announcement_id  uuid NOT NULL REFERENCES announcements (id) ON DELETE CASCADE,
+  membership_id    uuid NOT NULL REFERENCES memberships (id) ON DELETE CASCADE,
+  read_at          timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (announcement_id, membership_id)
+);
+
 -- =========================================================================== races and events (F21)
 -- The club's race calendar. Students sign up for a distance; an entry marked is_goal is their "A race":
 -- it sets the profile goal and goal_date, which planning and plans use for periodization.
@@ -486,7 +532,7 @@ CREATE TABLE notifications (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   club_id     uuid REFERENCES clubs (id) ON DELETE CASCADE,
-  kind        text NOT NULL CHECK (kind IN ('workout_assigned', 'workout_changed', 'comment', 'feedback', 'class_reminder', 'class_cancelled', 'waitlist_promoted', 'member_joined', 'billing')),
+  kind        text NOT NULL CHECK (kind IN ('workout_assigned', 'workout_changed', 'comment', 'feedback', 'class_reminder', 'class_cancelled', 'waitlist_promoted', 'member_joined', 'billing', 'message', 'announcement')),
   title       text NOT NULL,             -- pt-BR, rendered at creation time
   body        text,
   link        text,                      -- in-app path, e.g. /treinos/<id>
