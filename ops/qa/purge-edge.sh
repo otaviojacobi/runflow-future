@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Drop Cloudflare's cached copy of the QA web app (app shell, icons, bundles) so a deploy shows up at
 # once instead of within the hour. update.sh runs it when the web image changed; run it by hand anytime.
-# Needs CF_ZONE_ID and CF_CACHE_PURGE_TOKEN in .env (setup-todo.md §6); skipped while they're empty.
+# Needs CF_ZONE_ID and CF_CACHE_PURGE_TOKEN in .env (docs/ops/qa-pi.md §6); skipped while they're empty.
 set -euo pipefail
 cd "$(dirname "$0")"
 

@@ -1,236 +1,66 @@
-# Setup to-do: Runflow QA on the Raspberry Pi
+# Setup to-do (founder)
 
-QA = what testers and beta clubs use until the beta ends: **https://qa.runflow.club**. `runflow.club` (and `www`)
-redirect there. After the beta, everything moves to a cloud (maybe k8s); the images and the database dump move as-is.
+What's still open for the environments. The full guide for building QA from zero (and what each piece does) is
+`docs/ops/qa-pi.md`. Tick boxes here as you go; I keep this list current as steps land.
 
-Plan on about **2–3 hours**, most of it waiting for DNS and the first image build. Tick the boxes as you go.
+## Done (checked 2026-11-02)
 
----
+QA is live at **https://qa.runflow.club**:
+- **Domain and mail:** DNS is on Cloudflare with the mailboxes intact, and `runflow.club` redirects to QA. HTTP goes to HTTPS.
+- **Pi and tunnel:** the tunnel is connected (São Paulo), `doctor` is all green, and Debian updates were applied.
+- **E-mail:** Resend sends from `contato@`; sign-in codes arrive.
+- **Strava:** the webhook is subscribed (id 382315).
+- **Deploys:** each one arrives within 5 minutes of a push (`runflow-update` timer). The nightly database backup runs at 03:30.
+- **Speed:** the API answers in about 1 ms on the Pi and about 30 ms more through the tunnel. Bundles are served by Cloudflare's edge.
 
-## 0. How it fits together
+## Now
 
-```
-browser ──https──▶ Cloudflare (TLS, edge cache, redirects)
-                       │  Cloudflare Tunnel (outbound from the Pi: no open ports, works behind CGNAT)
-                       ▼
-Raspberry Pi 5:  cloudflared ─▶ web (Caddy: the app + /api proxy) ─▶ api (+ worker) ─▶ postgres
-                                                                      │
-                                                     Resend (e-mail), Strava, Google
-```
+- [ ] **Serve the whole web app from the edge** (`docs/ops/qa-pi.md` §6, 5 minutes). Cloudflare → runflow.club → Caching:
+  - **Cache Rules** → rule `QA web app at the edge`, expression
+    `(http.host eq "qa.runflow.club" and not starts_with(http.request.uri.path, "/api/"))` → Eligible for cache ·
+    Edge TTL "Use cache-control header if present" · Browser TTL "Respect origin TTL".
+  - Rule `QA API`, expression `(http.host eq "qa.runflow.club" and starts_with(http.request.uri.path, "/api/"))` → Bypass cache.
+  - **Tiered Cache** on, if it isn't yet.
+  - Purge token: My Profile → API Tokens → Custom token, **Zone · Cache Purge · Purge**, zone runflow.club only.
+    On the Pi, add `CF_CACHE_PURGE_TOKEN=<token>` and `CF_ZONE_ID=<runflow.club → Overview, right column>` to
+    `~/runflow/ops/qa/.env` (or send them to me and I'll put them there), then `./purge-edge.sh`.
+  - Check: `curl -sI https://qa.runflow.club/ | grep cf-cache-status` says `HIT` (the first request after a purge says `MISS`).
+- [ ] **Change the Pi's password**: `ssh runflow@runflow-qa.local`, then `passwd`. The current one was shared in chat.
+  Tell me if you want me to keep root access. If so, the cleanest way is a sudoers rule only for `apt` and `systemctl`.
+- [ ] **Keep a copy of the Pi's secrets** in your password manager: `scp runflow@runflow-qa.local:runflow/ops/qa/.env ~/runflow-qa.env`.
+  It holds the only copy of the database password and `ENCRYPTION_KEY`, which unlocks the stored Strava tokens.
+- [ ] **Google sign-in**: Google Cloud → APIs & Services → Credentials → the Web client → Authorized JavaScript origins:
+  `https://qa.runflow.club` and `http://localhost:8080`. The button itself ships in S9.
+- [ ] **Strava**: strava.com/settings/api → Authorization Callback Domain = `qa.runflow.club` (needed when "Conectar Strava" goes live in S9).
 
-**Deploys.** You push to `main` → GitHub Actions builds two arm64 images (`runflow-api`, `runflow-web`) and pushes them
-to GHCR → a timer on the Pi pulls them every 5 minutes and restarts what changed (the API migrates the database
-at start). Roll back by pinning a commit: `RUNFLOW_TAG=sha-<7 chars>` in `ops/qa/.env`.
+## Before the private beta
 
-**Speed.** The whole web app comes from Cloudflare's edge (São Paulo), so the Pi only answers `/api`. JS/CSS have hashed
-names and `Cache-Control: immutable`; the app shell (`index.html` for every route, icons, manifest, `sw.js`) is kept at
-the edge for an hour by a cache rule (§6), and `update.sh` purges it after each deploy so new versions show up at once.
-Browsers revalidate the shell on every load (cheap: answered by the edge). The installed app (PWA service worker) keeps
-the shell on the device after the first visit. Measured 2026-11-02: API ~1 ms inside the Pi, ~30 ms extra through the
-tunnel; database queries 0.1–0.8 ms; SD card commits ~1 ms.
+- [ ] **Off-site backups.** Today the dumps sit on the same SD card as the database. Create a Cloudflare R2 bucket
+  `runflow-backups` (10 GB free) and an R2 API token with Object Read & Write on that bucket only. I'll make `backup.sh`
+  copy every dump there and add a restore drill (S8).
+- [ ] **An SSD for the Pi** (M.2 HAT + NVMe, or a USB 3 SSD). SD cards wear out under a database. Today's card is fine while
+  data is disposable (D-030).
+- [ ] **Strava app review** with the coaching use case: students consent to share with their club's trainers. Keep the
+  written reply on file (`root.md` §11.2).
+- [ ] **Terms and privacy policy (LGPD)** naming the processors: Cloudflare, Resend, Strava, Google, and Sentry once O1 lands.
 
----
+## When these steps land (I'll ping you)
 
-## 1. Accounts and keys (do these first, in any order)
-
-- [ ] **Cloudflare** account (free).
-- [ ] **Resend** (you have it): we'll add the domain in step 3.
-- [ ] **Google Cloud**: an OAuth client (step 4). The web "Entrar com o Google" button is switched on in S9; create the client now anyway.
-- [ ] **Strava API app** (step 5).
-- [ ] **GitHub**: nothing to create; you'll flip two packages to public in step 6.
-
----
-
-## 2. Move DNS to Cloudflare (GoDaddy stays the registrar)
-
-Today: DNS at GoDaddy, `runflow.club` + `www` on Vercel, e-mail (otavio@, contato@) on GoDaddy. Details in `docs/hosting.md`.
-
-- [ ] Cloudflare → **Add a site** → `runflow.club` → Free plan. It imports your records.
-- [ ] Check the imported records **before** switching. They must include:
-  - MX `mailstore1.secureserver.net` (10) and `smtp.secureserver.net` (0)
-  - TXT `v=spf1 include:secureserver.net -all`
-  - TXT `_dmarc` (`v=DMARC1; p=quarantine; …`)
-  - anything e-mail related you see in GoDaddy's DNS page (`email`, `autodiscover`, DKIM): copy it if missing.
-  - E-mail records: **DNS only** (grey cloud).
-- [ ] GoDaddy → My Products → runflow.club → DNS → **Nameservers** → "I'll use my own" → paste Cloudflare's two.
-- [ ] Wait until Cloudflare says the site is **Active** (minutes to a few hours). Send yourself an e-mail at otavio@ to confirm mail still works.
-- [ ] Cloudflare → SSL/TLS → Edge Certificates: **Always Use HTTPS** on, minimum TLS 1.2.
-- [ ] Cloudflare → Caching → **Tiered Cache** on (free, better edge hit rate).
-
-### 2b. `runflow.club` → `qa.runflow.club`
-
-This replaces the Vercel site at `runflow.club`.
-- [ ] DNS: delete the Vercel `A` (`runflow.club`) and `CNAME` (`www`); add **proxied** (orange) `AAAA @ 100::` and `AAAA www 100::` (Cloudflare's placeholder for redirect-only names).
-- [ ] Rules → **Redirect Rules** → Create → Single redirect:
-  - If: hostname equals `runflow.club` **or** hostname equals `www.runflow.club`
-  - Then: Dynamic, expression `concat("https://qa.runflow.club", http.request.uri.path)`, status **302** (temporary: the target changes after the beta), preserve query string.
-
----
-
-## 3. Resend (e-mail)
-
-- [ ] Resend → Domains → **Add** `runflow.club` (region: São Paulo if offered, else us-east-1).
-- [ ] Add the records it shows in Cloudflare DNS, **DNS only**: `resend._domainkey` TXT (DKIM) and `send` MX + TXT (SPF). They don't touch your mailboxes.
-- [ ] **Verify** in Resend. Until it's verified, use `EMAIL_FROM="Runflow <onboarding@resend.dev>"` (it only delivers to your own Resend account e-mail; fine for your first sign-in).
-- [ ] Resend → API Keys → create one with **Sending access** → keep it for `RESEND_API_KEY`.
-
-Your DMARC is `quarantine`: mail from Resend lands in spam until DKIM verifies, so verify before inviting anyone.
-
----
-
-## 4. Google sign-in (prepare)
-
-- [ ] console.cloud.google.com → new project "Runflow" → APIs & Services → OAuth consent screen: External, app name **Runflow**, support e-mail contato@runflow.club, domain runflow.club.
-- [ ] Credentials → Create **OAuth client ID** → Web application → Authorized JavaScript origins: `https://qa.runflow.club` (and `http://localhost:8080` for dev). No redirect URI needed.
-- [ ] Keep the **Client ID** for `GOOGLE_CLIENT_ID` (the secret isn't needed).
-
----
-
-## 5. Strava (prepare)
-
-- [ ] strava.com/settings/api → create the app: name **Runflow**, website `https://qa.runflow.club`, **Authorization Callback Domain** `qa.runflow.club`.
-- [ ] Keep **Client ID** and **Client Secret** for `STRAVA_CLIENT_ID` / `STRAVA_CLIENT_SECRET`.
-- [ ] New apps start with a 1-athlete limit (you). Ask Strava for more (and confirm the coaching use case in writing, root.md §11) before inviting clubs.
-- [ ] After S9 (the web page `/connect/strava`), create the webhook subscription once (the `.env` has the verify token):
-
-  ```sh
-  curl -X POST https://www.strava.com/api/v3/push_subscriptions \
-    -F client_id=$STRAVA_CLIENT_ID -F client_secret=$STRAVA_CLIENT_SECRET \
-    -F callback_url=https://qa.runflow.club/api/v1/webhooks/strava -F verify_token=$STRAVA_WEBHOOK_VERIFY_TOKEN
-  ```
-
----
-
-## 6. Cloudflare Tunnel + images
-
-- [ ] Cloudflare → **Zero Trust** → Networks → Tunnels → **Create a tunnel** → Cloudflared → name `runflow-qa`.
-  Copy the **token** (the long string after `--token`) for `TUNNEL_TOKEN`. Skip the install step (it runs in Docker).
-- [ ] In the tunnel → **Public Hostname** → Add: subdomain `qa`, domain `runflow.club`, service **HTTP** `web:80`.
-  (Cloudflare creates the `qa` DNS record for you.)
-- [ ] Cloudflare → runflow.club → Caching → **Cache Rules** → Create rule (serve the web app from the edge):
-  - name `QA web app at the edge`; "Custom filter expression" → Edit expression:
-    `(http.host eq "qa.runflow.club" and not starts_with(http.request.uri.path, "/api/"))`
-  - Cache eligibility **Eligible for cache** · Edge TTL **Use cache-control header if present** (the web image sends
-    one hour for the shell, one year for bundles) · Browser TTL **Respect origin TTL** → Deploy.
-- [ ] Second rule, so the API is never cached: name `QA API`, expression
-  `(http.host eq "qa.runflow.club" and starts_with(http.request.uri.path, "/api/"))` → **Bypass cache** → Deploy.
-- [ ] Purge after deploys: Cloudflare → My Profile → API Tokens → Create Token → **Custom token**, permission
-  Zone · **Cache Purge** · Purge, zone resources: runflow.club only. Put it in the Pi's `ops/qa/.env` as
-  `CF_CACHE_PURGE_TOKEN`, and the zone ID (runflow.club → Overview, right column) as `CF_ZONE_ID`. Test with
-  `./purge-edge.sh` → `edge cache purged for qa.runflow.club`. (Skip it and deploys still land, within the hour.)
-- [ ] GitHub → repo → **Actions** → check the `images` workflow ran green on `main` (first run: ~15 min for the Rust build).
-- [ ] github.com/otaviojacobi?tab=packages → `runflow-api` → Package settings → **Change visibility → Public**. Same for `runflow-web`.
-  (The images have no secrets; public means the Pi pulls without logging in.)
-
----
-
-## 7. The Raspberry Pi
-
-### 7a. The card
-
-You're starting on a memory card: fine for QA, but SD cards wear out under a database. Use a good one
-(A2 / "high endurance", 64 GB+), keep the off-Pi backups (step 8), and move to an NVMe SSD before real clubs depend on it (§7.6).
-
-- [ ] **Raspberry Pi Imager** → Raspberry Pi 5 → **Raspberry Pi OS Lite (64-bit)** → your card → Edit settings:
-  hostname `runflow-qa`, username **`runflow`** (the systemd units assume it), your SSH public key, time zone `America/Sao_Paulo`,
-  Wi-Fi only if you can't use a cable (cable is better).
-- [ ] Boot, then from your laptop: `ssh runflow@runflow-qa.local`
-
-### 7b. System + Docker
-
-```sh
-sudo apt update && sudo apt full-upgrade -y
-sudo apt install -y git unattended-upgrades
-sudo dpkg-reconfigure -plow unattended-upgrades        # yes: automatic security updates
-curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker runflow && exit                 # log in again so the group applies
-```
-
-### 7c. Runflow
-
-```sh
-git clone https://github.com/otaviojacobi/runflow-future.git ~/runflow
-cd ~/runflow/ops/qa
-cp .env.example .env && chmod 600 .env
-sed -i "s|^POSTGRES_PASSWORD=$|POSTGRES_PASSWORD=$(openssl rand -hex 24)|;
-        s|^SESSION_SECRET=$|SESSION_SECRET=$(openssl rand -base64 32)|;
-        s|^ENCRYPTION_KEY=$|ENCRYPTION_KEY=$(openssl rand -base64 32)|;
-        s|^STRAVA_WEBHOOK_VERIFY_TOKEN=$|STRAVA_WEBHOOK_VERIFY_TOKEN=$(openssl rand -hex 16)|" .env
-nano .env    # paste TUNNEL_TOKEN, RESEND_API_KEY, GOOGLE_CLIENT_ID, STRAVA_CLIENT_ID/SECRET (EMAIL_FROM: see step 3)
-```
-
-- [ ] Back up `ops/qa/.env` somewhere safe (a password manager). **Never change `ENCRYPTION_KEY`** once people connect Strava.
-- [ ] Start: `docker compose up -d` then `docker compose ps` (all `healthy`/`running` after ~1 minute).
-- [ ] Check the setup: `docker compose run --rm api doctor` (database ok, e-mail resend, google ok, strava ok, secrets set).
-- [ ] Test e-mail: `docker compose run --rm api email-test --to contato@runflow.club`
-- [ ] Auto-deploy and backups:
-
-  ```sh
-  sudo cp ~/runflow/ops/qa/runflow-*.service ~/runflow/ops/qa/runflow-*.timer /etc/systemd/system/
-  sudo systemctl daemon-reload
-  sudo systemctl enable --now runflow-update.timer runflow-backup.timer
-  systemctl list-timers 'runflow-*'
-  ```
-
----
-
-## 8. Backups (the Pi is one card away from losing everything)
-
-- [ ] Nightly at 03:30: `~/runflow-backups/` gets a database dump + the uploads (14 days kept).
-- [ ] Copy them **off the Pi** at least weekly (to your laptop: `scp -r runflow@runflow-qa.local:runflow-backups ~/`; or rclone to a cloud drive).
-- [ ] Once a month, try a restore on your laptop: `gunzip -c runflow-YYYYMMDD-HHMM.sql.gz | docker compose exec -T postgres psql -U runflow -d runflow`
-  (with the repo-root `docker-compose.yaml`, an empty database).
-
----
-
-## 9. First run
-
-- [ ] Open **https://qa.runflow.club** → Entrar → your e-mail → the 6-digit code arrives → create your club.
-- [ ] https://runflow.club redirects to QA.
-- [ ] https://qa.runflow.club/dev/status shows the build plan (what's done).
-- [ ] Invite yourself on another address as a student; check the invite e-mail, accept, assign a workout.
-
-### What works on QA today
-
-Built in the real backend (S1–S5): e-mail code sign-in, account, clubs and settings, Club Studio (colors, logo),
-personal invites by e-mail (single and spreadsheet), members and groups, workout library and builder, planning,
-planilhas, the student side (today, schedule, workout with personal zones, feedback), threads and the feedback inbox,
-dashboard, students list and detail, profiles and zones, exercise library, calendar feed (.ics), manual activities,
-Strava (backend done; the web return page arrives in S9).
-
-### Not yet (those screens will show errors on QA until their step lands)
-
-| What | Step |
+| Step | What you'll do |
 |---|---|
-| Google button, Strava connect return page, demo-only paths hidden | S9 |
-| Classes and scheduling (aulas, bookings, check-in) | S6 |
-| Messages and mural, challenges, races, assessments, reports, assistant | S6b |
-| Billing (Stripe test mode), push notifications | S7 |
-| Club subdomains `<club>-qa.runflow.club` | S9 (see below) |
+| B1 Logo | Pick one of the concepts (or redirect) |
+| S9 Web on the real backend | Tunnel → Routes → add `*.runflow.club` → `http://web:80` and a proxied DNS record `*` (club sites `<club>-qa.runflow.club`, D-029); add the Google client id as GitHub repo variable `VITE_GOOGLE_CLIENT_ID` |
+| S11 Smoke tests | One random secret, `openssl rand -hex 32`, saved twice: as GitHub secret `SMOKE_KEY` and as `SMOKE_KEY=` in the Pi's `.env` |
+| O1 Sentry | sentry.io → org → two projects (Rust: `runflow-api`, React: `runflow-web`) → their DSNs: `SENTRY_DSN` in the Pi's `.env`, GitHub variable `VITE_SENTRY_DSN` |
+| O2 Grafana | Choose between Grafana Cloud's free tier (nothing to run) and the stack on the Pi (no account, uses ~1 GB RAM) |
 
-### Club subdomains (`myclub-qa.runflow.club`, D-029)
+## Handy (on the Pi, in `~/runflow/ops/qa`)
 
-Not implemented end to end yet: clubs can save a subdomain, but nothing serves the club's site at its address
-(the server-side "web shell", S9). In QA the address is **one level**, `<club>-qa.runflow.club`, so Cloudflare's free
-certificate (`*.runflow.club`) covers it and there's nothing to pay. Production never accepts subdomains ending in `-qa`.
-When it lands you'll add, in the tunnel, a public hostname `*.runflow.club` → `web:80` and a proxied `*` DNS record
-(explicit records like `qa`, `www` and the mail ones still win).
-
----
-
-## 10. Day-to-day
-
-| Task | Command (on the Pi, in `~/runflow/ops/qa`) |
+| Task | Command |
 |---|---|
-| Status | `docker compose ps` |
-| Logs | `docker compose logs -f api` (or `web`, `cloudflared`) |
-| Deploy now (don't wait 5 min) | `./update.sh` |
-| Drop the edge copy of the app | `./purge-edge.sh` (`update.sh` does it after each deploy) |
-| Is the edge serving the app? | `curl -sI https://qa.runflow.club/ \| grep cf-cache-status` → `HIT` (`MISS` once after a purge) |
-| Roll back / pin a version | set `RUNFLOW_TAG=sha-<commit>` in `.env`, then `./update.sh` |
-| Configuration check | `docker compose run --rm api doctor` |
-| Database shell | `docker compose exec postgres psql -U runflow -d runflow` |
-| Backup now | `./backup.sh` |
-
-After the beta: the same images run anywhere (cloud VM, ECS, k8s); move the database with a `pg_dump`/restore and the
-uploads folder, point the DNS and the tunnel (or a load balancer) at the new place, and change the redirect target.
+| Status and logs | `docker compose ps` · `docker compose logs -f api` |
+| Deploy now | `./update.sh` |
+| Pin or roll back | `RUNFLOW_TAG=sha-<commit>` in `.env`, then `./update.sh` |
+| Health of everything | `docker compose run --rm api doctor` |
+| Drop the edge copy of the app | `./purge-edge.sh` |
+| Start over with an empty database (D-030) | `./reset-db.sh --yes` (takes a backup first) |

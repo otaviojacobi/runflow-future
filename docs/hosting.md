@@ -1,6 +1,6 @@
 # Hosting: one Raspberry Pi 5 + Cloudflare Tunnel, deploy on push (S8 plan)
 
-This file is the background; the step-by-step for QA is `setup-todo.md` (D-028: QA at `qa.runflow.club`, `runflow.club` redirects there).
+This file is the background; the step-by-step for QA is `docs/ops/qa-pi.md` (open items: `setup-todo.md`) (D-028: QA at `qa.runflow.club`, `runflow.club` redirects there).
 **Recommended:** Raspberry Pi OS + Docker + the root `docker-compose.yaml` + `cloudflared`, deployed by GitHub Actions over
 Tailscale (§3). **Alternative:** balenaCloud (§4). DNS (§1) and the tunnel (§2) are the same either way.
 
@@ -55,7 +55,7 @@ The repo is public, so: arm64 images build on GitHub's free native arm64 runners
   3. `deploy.sh`: `git pull` (compose/ops changes), record the running tag, `RUNFLOW_TAG=<sha> docker compose pull && up -d`
      (the API migrates at start), wait for `/v1/health`; on failure, start the previous tag again and exit non-zero.
 - **Rules this implies:** migrations stay compatible with the previous release (expand, then contract) so a rollback
-  never meets a schema it can't read; a deploy restarts the API (a few seconds of 502 through the tunnel; fine for the beta).
+  never meets a schema it can't read (from the beta on: until then data is disposable, D-030, and `ops/qa/reset-db.sh` starts over); a deploy restarts the API (a few seconds of 502 through the tunnel; fine for the beta).
 - **Fallback without Tailscale:** a systemd timer on the Pi runs `deploy.sh` every minute when `:main` on GHCR has a new
   digest (pull-based, zero inbound access, but no deploy logs in GitHub).
 

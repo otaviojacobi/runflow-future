@@ -1,7 +1,7 @@
 # Runflow QA (Raspberry Pi 5): everything behind one Cloudflare Tunnel, nothing exposed on the network.
 #   qa.runflow.club → web (static app + /api proxy) → api (+ worker) → postgres
 # Images are built for arm64 by GitHub Actions (.github/workflows/images.yml) and pulled from GHCR.
-# Setup: setup-todo.md at the repo root. Settings: ops/qa/.env (from ops/qa/.env.example).
+# Setup: docs/ops/qa-pi.md (open items: setup-todo.md). Settings: ops/qa/.env (from ops/qa/.env.example).
 
 name: runflow-qa
 

@@ -25,7 +25,7 @@
 
 	# Everything else is the app shell (index.html for every route), sw.js, the manifest and icons.
 	# Browsers revalidate on every load; Cloudflare answers from its edge for an hour (cache rule in
-	# setup-todo.md §6) and update.sh purges it after each deploy, so the Pi only sees API calls.
+	# docs/ops/qa-pi.md §6) and update.sh purges it after each deploy, so the Pi only sees API calls.
 	handle {
 		root * /srv
 		header Cache-Control "no-cache"
