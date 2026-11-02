@@ -6,7 +6,7 @@ import { useAthlete, useSaveAthleteProfile, useSetZones } from "@/api/activities
 import type { AthleteDetail, Goal, Level } from "@/api/types";
 import { usePlanned } from "@/api/workouts";
 import { sportBar } from "@/components/sport";
-import { ComplianceBar, Stat, zoneBg } from "@/components/workout";
+import { ComplianceBar, Stat, ZoneTable } from "@/components/workout";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
@@ -84,12 +84,6 @@ function ZonesTab({ a, clubId }: { a: AthleteDetail; clubId: string }) {
   const hrZ = a.zones.find((z) => z.kind === "hr");
   const err = set.error instanceof ApiError ? set.error : null;
   const savePace = (body: Parameters<typeof set.mutate>[0]) => set.mutate(body, { onSuccess: () => toast.success(t("Zonas atualizadas"), t("Os treinos do aluno já usam os novos ritmos.")), onError: (e) => { if (!(e instanceof ApiError && e.errors.length)) toast.error(e); } });
-  const ZoneTable = ({ z, unit }: { z: NonNullable<typeof paceZ>; unit: "pace" | "hr" }) => (
-    <table className="w-full text-sm"><tbody>{[...z.bounds].reverse().map((b) => (
-      <tr key={b.zone} className="border-t border-line-subtle"><td className="py-2"><span className={cn("inline-grid size-7 place-items-center rounded-md text-xs font-bold", zoneBg[b.zone as 1])} style={{ color: `var(--rf-zone-${b.zone}-on-solid)` }}>Z{b.zone}</span></td>
-        <td className="py-2 font-semibold tabular-nums">{unit === "pace" ? `${pace(b.min)} – ${pace(b.max)} /km` : `${b.min} – ${b.max} bpm`}</td></tr>
-    ))}</tbody></table>
-  );
   return (
     <div className="grid gap-5 lg:grid-cols-2">
       <Card className="grid content-start gap-4 p-5">

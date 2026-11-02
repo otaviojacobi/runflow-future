@@ -66,3 +66,6 @@ export const qs = (params: Record<string, string | number | boolean | null | und
   const s = p.toString();
   return s ? `?${s}` : "";
 };
+
+/** API asset paths ("/v1/assets/…") are served through the dev proxy / same-origin "/api". */
+export const assetUrl = (u: string | null | undefined) => (u && u.startsWith("/v1/") ? `/api${u}` : u ?? null);

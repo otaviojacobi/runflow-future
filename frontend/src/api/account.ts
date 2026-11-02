@@ -1,8 +1,8 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { queryClient } from "@/queryClient";
 import { meKey } from "./me";
-import type { AthleteProfile, Consent, ConsentKind, Me, ProviderStatus, User } from "./types";
+import type { AppNotification, AthleteProfile, Consent, ConsentKind, Me, NotificationPrefs, ProviderStatus, User, UserSession } from "./types";
 
 export const accountKeys = { connections: ["me", "connections"] as const, consents: ["me", "consents"] as const, myProfile: (clubId: string) => ["clubs", clubId, "my-profile"] as const };
 
@@ -26,3 +26,26 @@ export const useMyProfile = (clubId: string | undefined) =>
   useQuery({ queryKey: accountKeys.myProfile(clubId ?? ""), enabled: !!clubId, queryFn: () => api.get<AthleteProfile>(`/clubs/${clubId}/my/profile`) });
 export const useSaveMyProfile = (clubId: string) =>
   useMutation({ mutationFn: (v: Partial<AthleteProfile>) => api.put<AthleteProfile>(`/clubs/${clubId}/my/profile`, v), onSuccess: (p) => queryClient.setQueryData(accountKeys.myProfile(clubId), p) });
+
+// ---- notifications (W11)
+export const notificationKeys = { all: ["me", "notifications"] as const };
+export const useNotifications = () =>
+  useInfiniteQuery({
+    queryKey: notificationKeys.all, initialPageParam: "",
+    queryFn: ({ pageParam }) => api.get<{ items: AppNotification[]; next_cursor: string | null }>(`/me/notifications${pageParam ? `?cursor=${pageParam}` : ""}`),
+    getNextPageParam: (last) => last.next_cursor || undefined,
+  });
+export const useMarkNotificationsRead = () =>
+  useMutation({ mutationFn: (ids?: string[]) => api.post("/me/notifications/read", ids ? { ids } : {}), onSuccess: () => { queryClient.invalidateQueries({ queryKey: notificationKeys.all }); queryClient.invalidateQueries({ queryKey: meKey }); } });
+
+// ---- account (C1)
+export const usePrefs = () => useQuery({ queryKey: ["me", "prefs"], queryFn: () => api.get<NotificationPrefs>("/me/prefs") });
+export const useUpdatePrefs = () => useMutation({ mutationFn: (v: Partial<Omit<NotificationPrefs, "user_id">>) => api.patch<NotificationPrefs>("/me/prefs", v), onSuccess: (p) => queryClient.setQueryData(["me", "prefs"], p) });
+export const useSessions = () => useQuery({ queryKey: ["me", "sessions"], queryFn: () => api.get<{ items: UserSession[] }>("/me/sessions").then((r) => r.items) });
+export const useRevokeSession = () => useMutation({ mutationFn: (id: string) => api.del(`/me/sessions/${id}`), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me", "sessions"] }) });
+export const useRevokeOtherSessions = () => useMutation({ mutationFn: () => api.post<{ revoked: number }>("/me/sessions/revoke-others"), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me", "sessions"] }) });
+export const useUploadAvatar = () => useMutation({ mutationFn: (v: { data_url: string; width: number; height: number }) => api.post<Me>("/me/avatar", v), onSuccess: (me) => queryClient.setQueryData(meKey, me) });
+export const useRemoveAvatar = () => useMutation({ mutationFn: () => api.del<Me>("/me/avatar"), onSuccess: (me) => queryClient.setQueryData(meKey, me) });
+export const useLeaveClub = () => useMutation({ mutationFn: (clubId: string) => api.post(`/clubs/${clubId}/leave`), onSuccess: () => queryClient.invalidateQueries({ queryKey: meKey }) });
+export const useDeleteAccount = () => useMutation({ mutationFn: () => api.del("/me") });
+export const exportMyData = () => api.get<unknown>("/me/export");

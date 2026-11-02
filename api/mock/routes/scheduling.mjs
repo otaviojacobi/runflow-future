@@ -50,6 +50,22 @@ export default function register(h) {
     if (n) h.persist();
   };
 
+  /** class_reminder for booked sessions starting in the next 12 h (a backend job sends these, plus push). */
+  h.remindClasses = (userId) => {
+    const now = Date.now(), until = new Date(now + 12 * 3600000).toISOString(), nowIso = new Date(now).toISOString();
+    const mids = new Set(h.db.memberships.filter((m) => m.user_id === userId && m.status === "active").map((m) => m.id));
+    for (const b of h.db.bookings) {
+      if (!mids.has(b.membership_id) || b.status !== "booked") continue;
+      const s = h.db.class_sessions.find((x) => x.id === b.session_id);
+      if (!s || s.status !== "scheduled" || s.starts_at <= nowIso || s.starts_at > until) continue;
+      const link = `/classes?session=${s.id}`;
+      if (h.db.notifications.some((n) => n.user_id === userId && n.link === link && n.kind === "class_reminder")) continue;
+      const ct = h.db.class_types.find((t) => t.id === s.class_type_id), loc = h.db.locations.find((l) => l.id === s.location_id);
+      const hhmm = new Date(Date.parse(s.starts_at) + tz * 3600000).toISOString().slice(11, 16);
+      h.db.notifications.push({ id: h.uuid("n"), user_id: userId, club_id: s.club_id, kind: "class_reminder", title: `Aula às ${hhmm}: ${ct?.name ?? "aula"}`, body: loc ? `${loc.name} · faça check-in pelo QR no local` : "Faça check-in pelo QR no local", link, read_at: null, created_at: nowIso });
+    }
+  };
+
   // ---- venues
   h.get("/v1/clubs/:club_id/locations", (ctx) => { ctx.member(ctx.params.club_id); return { items: h.db.locations.filter((l) => l.club_id === ctx.params.club_id && !l.archived_at), next_cursor: null }; });
   h.post("/v1/clubs/:club_id/locations", (ctx) => {

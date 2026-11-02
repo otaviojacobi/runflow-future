@@ -36,6 +36,9 @@ export interface Invoice { id: ID; club_id: ID; stripe_invoice_id: string | null
 export interface MembershipContext { membership: Membership; club: Club; branding: Branding | null; subscription: Subscription | null }
 export interface NotificationPrefs { user_id: ID; push_workouts: boolean; push_comments: boolean; push_classes: boolean; email_weekly: boolean }
 export interface Me { user: User; memberships: MembershipContext[]; prefs: NotificationPrefs | null; unread_notifications: number }
+export type NotificationKind = "workout_assigned" | "workout_changed" | "comment" | "feedback" | "class_reminder" | "class_cancelled" | "waitlist_promoted" | "member_joined" | "billing";
+export interface AppNotification { id: ID; user_id: ID; club_id: ID | null; kind: NotificationKind; title: string; body: string | null; link: string | null; read_at: ISOTime | null; created_at: ISOTime }
+export interface UserSession { id: ID; kind: "web" | "mobile"; user_agent: string | null; created_at: ISOTime; last_seen_at: ISOTime; current: boolean }
 export interface AuthResult { token: string; user: User; is_new: boolean }
 
 export interface Invitation {
@@ -59,6 +62,8 @@ export interface AthleteProfile {
   membership_id: ID; goal: Goal | null; goal_date: ISODate | null; level: Level | null; weekly_sessions: number | null;
   max_hr: number | null; resting_hr: number | null; threshold_pace_s_per_km: number | null; css_s_per_100m: number | null; ftp_w: number | null;
   recent_race: { distance_m: number; time_s: number; date?: ISODate } | null; trainer_notes?: string | null; updated_at: ISOTime;
+  /** Only on the student's own profile (GET /my/profile): latest pace + HR zones, read-only. */
+  zones?: Zone[];
 }
 export interface Connection { id: ID; provider: "strava" | "garmin"; athlete_name: string | null; status: "active" | "error" | "revoked"; connected_at: ISOTime; last_sync_at: ISOTime | null }
 export interface ProviderStatus { provider: "strava" | "garmin"; available: boolean; connection: Connection | null }

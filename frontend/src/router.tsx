@@ -3,7 +3,6 @@ import type { QueryClient } from "@tanstack/react-query";
 import { fetchMe, meKey } from "./api/me";
 import type { Role } from "./api/types";
 import { AppShell } from "./components/shell/AppShell";
-import { t } from "./i18n";
 import { setUnauthorizedHandler } from "./lib/api";
 import { activeMembership, homeFor } from "./lib/club";
 import { session } from "./lib/session";
@@ -15,7 +14,6 @@ import { StatusScreen } from "./screens/dev/Status";
 import { CreateClubScreen } from "./screens/onboarding/CreateClub";
 import { InviteScreen } from "./screens/onboarding/Invite";
 import { WelcomeScreen } from "./screens/onboarding/Welcome";
-import { Placeholder } from "./screens/Placeholder";
 import { StudentsScreen } from "./screens/staff/Students";
 import { MembersScreen } from "./screens/owner/Members";
 import { LibraryScreen } from "./screens/staff/Library";
@@ -23,11 +21,9 @@ import { Toaster } from "./ui";
 
 /**
  * Route tree (code-based). Screen IDs and steps: docs/build-plan.md. Routes are English; all visible text is pt-BR.
- * Placeholders mark screens whose step isn't built yet; each step swaps in the real component.
  */
 const root = createRootRouteWithContext<{ queryClient: QueryClient }>()({ component: () => (<><Outlet /><Toaster /></>) });
 const ensureMe = (qc: QueryClient) => qc.ensureQueryData({ queryKey: meKey, queryFn: fetchMe });
-const todo = (title: string, step: string) => () => <Placeholder title={t(title)} step={step} />;
 const r = <P extends string>(parent: Parameters<typeof createRoute>[0]["getParentRoute"], path: P, component: unknown) =>
   createRoute({ getParentRoute: parent, path, component } as never);
 
@@ -105,11 +101,11 @@ const studentRoutes = [
   r(St, "/activities", lazyRouteComponent(() => import("./screens/student/Activities"), "ActivitiesScreen")),
   r(St, "/activities/$id", lazyRouteComponent(() => import("./screens/student/ActivityDetail"), "ActivityDetailScreen")),
   r(St, "/classes", lazyRouteComponent(() => import("./screens/student/Classes"), "ClassesScreen")),
+  r(St, "/account/profile", lazyRouteComponent(() => import("./screens/student/Profile"), "ProfileScreen")),
 ];
 const commonRoutes = [
-  r(Sh, "/notifications", todo("Notificações", "F18")),
-  r(Sh, "/account", todo("Minha conta", "F18")),
-  r(Sh, "/account/profile", todo("Perfil", "F18")),
+  r(Sh, "/notifications", lazyRouteComponent(() => import("./screens/common/Notifications"), "NotificationsScreen")),
+  r(Sh, "/account", lazyRouteComponent(() => import("./screens/common/Account"), "AccountScreen")),
 ];
 
 const routeTree = root.addChildren([

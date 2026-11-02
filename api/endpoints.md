@@ -53,7 +53,9 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | GET | `/me/export` | All my data as JSON (LGPD portability) | C1 |
 | GET / PATCH | `/me/prefs` | Notification preferences | C1 |
 | GET | `/me/consents` · POST `/me/consents` `{club_id?, kind, text_version}` · DELETE `/me/consents/{id}` | Consents (grant / revoke) | A4, C1 |
-| GET | `/me/notifications` · POST `/me/notifications/read` `{ids?}` | Notification center | W11 |
+| GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first. Kinds: `workout_assigned` `workout_changed` `comment` `feedback` `class_reminder` (booked class in the next 12 h) `class_cancelled` `waitlist_promoted` `member_joined` `billing`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
+| GET | `/me/sessions` · DELETE `/me/sessions/{id}` · POST `/me/sessions/revoke-others` | Signed-in devices `{id, kind, user_agent, created_at, last_seen_at, current}` | C1 |
+| POST / DELETE | `/me/avatar` `{data_url, width, height}` | Upload (PNG/JPG/WebP ≤ 5 MB) or remove the profile photo → `/me` payload; `avatar_url` is an `/assets/{id}` path | C1 |
 
 ### Providers and activities (user-owned)
 | Method | Path | Purpose | Screens |
@@ -85,7 +87,7 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | GET | `/clubs/{club_id}/members?role&q&status` | `{membership, user, group_ids}` (role may be a list: `trainer,owner`) | O2 |
 | PATCH / DELETE | `/clubs/{club_id}/members/{membership_id}` | Change role or status / remove | O2 |
 | GET / POST | `/clubs/{club_id}/groups` · PATCH / DELETE `/groups/{id}` · PUT `/groups/{id}/members` `{membership_ids}` | Groups | W2 |
-| POST | `/clubs/{club_id}/leave` | Leave a club | C1 |
+| POST | `/clubs/{club_id}/leave` | Leave a club: membership → `left`, that club's sharing consents revoked, open bookings cancelled. `409 member.last_owner` for the only owner | C1 |
 
 ### Athletes (trainer view) and dashboard
 | Method | Path | Purpose | Screens |
@@ -94,7 +96,7 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | GET | `/clubs/{club_id}/athletes?q&group_id` | `{membership, user, group_ids, goal, level, compliance_pct (28 d, partial = ½), week: {planned, done}, last_activity_at (only with consent), strava: none\|private\|shared, shares_data}` | W2, W4 |
 | GET | `/clubs/{club_id}/athletes/{membership_id}` | Summary + `profile` (with trainer notes), latest `zones` (pace, hr), `consents {training_data, strava}`, `weekly[12] {week_start, planned_s, done_s, distance_m, sessions}`, `recent_activities` (consent-aware), `groups` | W3 |
 | PUT | `/clubs/{club_id}/athletes/{membership_id}/profile` | Goal, level, physiology, trainer notes | W3 |
-| GET / PUT | `/clubs/{club_id}/my/profile` | Student's own profile: goal, goal_date, level, weekly_sessions, recent_race, HR (a race result estimates the threshold pace) | A4, M7 |
+| GET / PUT | `/clubs/{club_id}/my/profile` | Student's own profile: goal, goal_date, level, weekly_sessions, recent_race, HR (a race result estimates the threshold pace). Response adds `zones` (latest pace + HR, set by the trainer; read-only here) | A4, M7 |
 | PUT | `/clubs/{club_id}/athletes/{membership_id}/zones` `{kind: pace, threshold_pace_s_per_km \| race{distance_m,time_s}}` or `{kind: hr, max_hr}` | Recalculate zones (5 zones; race → threshold via Riegel) | W3, M7 |
 | GET | `/clubs/{club_id}/athletes/{membership_id}/activities` | Activities shared by consent | W3 |
 

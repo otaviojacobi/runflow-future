@@ -1,3 +1,4 @@
+import { assetUrl } from "@/lib/api";
 import { Tabs as RTabs } from "radix-ui";
 import type { ComponentProps, ReactNode } from "react";
 import { cn } from "./cn";
@@ -24,7 +25,7 @@ export function Avatar({ name, src, size = 32, className }: { name: string; src?
   const ini = name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");
   const style = { width: size, height: size, fontSize: Math.round(size * 0.38) };
   return src ? (
-    <img src={src} alt="" style={style} className={cn("shrink-0 rounded-full object-cover", className)} />
+    <img src={assetUrl(src) ?? undefined} alt="" style={style} className={cn("shrink-0 rounded-full object-cover", className)} />
   ) : (
     <span aria-hidden style={style} className={cn("inline-grid shrink-0 place-items-center rounded-full bg-soft font-bold text-fg-muted", className)}>{ini}</span>
   );

@@ -31,6 +31,7 @@ export default function register(h) {
     return { token, user: h.publicUser(user), is_new };
   }
   function me(user) {
+    h.remindClasses?.(user.id);
     const memberships = h.db.memberships
       .filter((m) => m.user_id === user.id && m.status === "active")
       .map((m) => {
@@ -119,6 +120,53 @@ export default function register(h) {
     };
   });
 
+  // ---- sessions (signed-in devices)
+  const sessionOut = (s, current) => ({ id: s.id, kind: s.kind, user_agent: s.user_agent, created_at: s.created_at, last_seen_at: s.last_seen_at, current: s.id === current });
+  h.get("/v1/me/sessions", (ctx) => {
+    const u = ctx.user(), cur = ctx.auth.session.id;
+    return { items: h.db.sessions.filter((s) => s.user_id === u.id && !s.revoked_at && s.expires_at > h.nowIso()).sort((a, b) => (b.id === cur) - (a.id === cur) || b.last_seen_at.localeCompare(a.last_seen_at)).map((s) => sessionOut(s, cur)), next_cursor: null };
+  });
+  h.delete("/v1/me/sessions/:id", (ctx) => {
+    const u = ctx.user();
+    const s = h.db.sessions.find((x) => x.id === ctx.params.id && x.user_id === u.id && !x.revoked_at);
+    if (!s) h.fail(404, "session.not_found", "Sessão não encontrada", "Ela pode já ter sido encerrada.");
+    s.revoked_at = h.nowIso();
+  });
+  h.post("/v1/me/sessions/revoke-others", (ctx) => {
+    const u = ctx.user(), cur = ctx.auth.session.id, now = h.nowIso();
+    let n = 0;
+    for (const s of h.db.sessions) if (s.user_id === u.id && s.id !== cur && !s.revoked_at) { s.revoked_at = now; n++; }
+    return { revoked: n };
+  });
+
+  // ---- avatar (user-owned asset; same storage as club logos)
+  h.post("/v1/me/avatar", (ctx) => {
+    const u = ctx.user();
+    const match = /^data:(image\/(png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(ctx.body.data_url || ""));
+    if (!match) h.fail(415, "asset.unsupported", "Formato não suportado", "Envie uma foto PNG, JPG ou WebP.");
+    const bytes = Buffer.from(match[3], "base64");
+    if (bytes.length > 5 * 1024 * 1024) h.fail(413, "asset.too_large", "Imagem muito grande", "O limite é 5 MB.");
+    const id = h.uuid("asset");
+    h.db._blobs ||= {};
+    h.db._blobs[id] = { content_type: match[1], data: match[3] };
+    h.db.assets.push({ id, owner_user_id: u.id, club_id: null, kind: "avatar", storage_key: `users/${u.id}/${id}`, content_type: match[1], bytes: bytes.length, width: Number(ctx.body.width) || null, height: Number(ctx.body.height) || null, sha256: h.sha256(match[3]), created_at: h.nowIso() });
+    u.avatar_url = `/v1/assets/${id}`; u.updated_at = h.nowIso();
+    return me(u);
+  });
+  h.delete("/v1/me/avatar", (ctx) => { const u = ctx.user(); u.avatar_url = null; u.updated_at = h.nowIso(); return me(u); });
+
+  // ---- leave a club
+  h.post("/v1/clubs/:club_id/leave", (ctx) => {
+    const m = ctx.member(ctx.params.club_id);
+    if (m.role === "owner" && !h.db.memberships.some((x) => x.club_id === m.club_id && x.role === "owner" && x.status === "active" && x.id !== m.id))
+      h.fail(409, "member.last_owner", "Você é o único gestor", "Promova outra pessoa a gestora em Membros ou encerre o clube.");
+    const now = h.nowIso();
+    Object.assign(m, { status: "left", left_at: now });
+    for (const c of h.db.consents.filter((c) => c.user_id === m.user_id && c.club_id === m.club_id && !c.revoked_at)) c.revoked_at = now;
+    for (const b of h.db.bookings.filter((b) => b.membership_id === m.id && (b.status === "booked" || b.status === "waitlisted"))) b.status = "cancelled";
+    h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: m.club_id, actor_user_id: m.user_id, action: "member.left", target_type: "membership", target_id: m.id, data: null, created_at: now });
+  });
+
   // ---- prefs
   h.get("/v1/me/prefs", (ctx) => h.db.notification_prefs.find((p) => p.user_id === ctx.user().id));
   h.patch("/v1/me/prefs", (ctx) => {
@@ -152,6 +200,7 @@ export default function register(h) {
   // ---- notifications
   h.get("/v1/me/notifications", (ctx) => {
     const u = ctx.user();
+    h.remindClasses?.(u.id);
     const items = h.db.notifications.filter((n) => n.user_id === u.id).sort((a, b) => b.created_at.localeCompare(a.created_at));
     return h.list(items, ctx);
   });

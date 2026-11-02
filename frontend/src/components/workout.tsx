@@ -1,7 +1,8 @@
 import { Check, Circle, CircleDashed, Minus, X } from "lucide-react";
-import type { Sport } from "@/api/types";
+import type { Sport, Zone } from "@/api/types";
 import { segments, type Structure, type ZoneN } from "@/domain/workout";
 import { t } from "@/i18n";
+import { pace } from "@/lib/format";
 import { Badge, cn, type Tone } from "@/ui";
 
 const ZONE_BG: Record<ZoneN, string> = { 1: "bg-z1", 2: "bg-z2", 3: "bg-z3", 4: "bg-z4", 5: "bg-z5" };
@@ -64,5 +65,15 @@ export function ComplianceBar({ pct, className }: { pct: number | null; classNam
       <span className={cn("text-sm font-bold tabular-nums", text)}>{pct}%</span>
       <span className="h-[5px] overflow-hidden rounded-full bg-soft"><i className={cn("block h-full rounded-full", bar)} style={{ width: `${Math.min(100, pct)}%` }} /></span>
     </div>
+  );
+}
+
+/** Zone bounds, Z5 on top. `unit` picks pace (/km) or heart rate (bpm). */
+export function ZoneTable({ z, unit }: { z: Pick<Zone, "bounds">; unit: "pace" | "hr" }) {
+  return (
+    <table className="w-full text-sm"><tbody>{[...z.bounds].reverse().map((b) => (
+      <tr key={b.zone} className="border-t border-line-subtle"><td className="py-2"><span className={cn("inline-grid size-7 place-items-center rounded-md text-xs font-bold", ZONE_BG[b.zone as ZoneN])} style={{ color: `var(--rf-zone-${b.zone}-on-solid)` }}>Z{b.zone}</span></td>
+        <td className="py-2 font-semibold tabular-nums">{unit === "pace" ? `${pace(b.min)} – ${pace(b.max)} /km` : `${b.min} – ${b.max} bpm`}</td></tr>
+    ))}</tbody></table>
   );
 }

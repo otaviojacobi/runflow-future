@@ -29,15 +29,17 @@ export default function register(h) {
     return p;
   }
 
+  /** Latest pace and HR zones (set by the trainer); the student sees them read-only. */
+  const latestZones = (mid) => ["pace", "hr"].map((kind) => h.db.zones.filter((z) => z.membership_id === mid && z.kind === kind).sort((a, b) => b.valid_from.localeCompare(a.valid_from))[0]).filter(Boolean);
   h.get("/v1/clubs/:club_id/my/profile", (ctx) => {
     const m = ctx.member(ctx.params.club_id, ["student"]);
-    return publicProfile(profileOf(m.id) || emptyProfile(m.id));
+    return { ...publicProfile(profileOf(m.id) || emptyProfile(m.id)), zones: latestZones(m.id) };
   });
   h.put("/v1/clubs/:club_id/my/profile", (ctx) => {
     const m = ctx.member(ctx.params.club_id, ["student"]);
     let p = profileOf(m.id);
     if (!p) { p = emptyProfile(m.id); h.db.athlete_profiles.push(p); }
-    return publicProfile(applyProfile(p, ctx.body, false));
+    return { ...publicProfile(applyProfile(p, ctx.body, false)), zones: latestZones(m.id) };
   });
   h.applyProfile = applyProfile; // shared with trainer routes (F11)
   h.emptyProfile = emptyProfile;
