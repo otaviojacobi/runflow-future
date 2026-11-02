@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
-import { generate } from "./seed.mjs";
+import { generate, starterLibrary } from "./seed.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const fail = (msg) => { console.error("✗ " + msg); process.exit(1); };
@@ -61,5 +61,7 @@ for (const tname of ORDER) {
 const snapshot = readFileSync(join(here, "db.json"), "utf8");
 const strip = (o) => JSON.stringify({ ...o, meta: { ...o.meta, generated_at: null } });
 if (strip(JSON.parse(snapshot)) !== strip(seed)) fail("api/mock/db.json is stale: run `npm run seed`");
+const starter = readFileSync(join(here, "..", "starter-library.json"), "utf8");
+if (starter !== JSON.stringify(starterLibrary(), null, 1) + "\n") fail("api/starter-library.json is stale: run `npm run seed`");
 
 console.log(`✓ schema.sql applies on PostgreSQL · ${tables.length} tables · ${inserted} seed rows inserted with all constraints · db.json up to date`);

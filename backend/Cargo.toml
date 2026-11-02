@@ -22,6 +22,7 @@ chrono = { version = "0.4", default-features = false, features = ["clock", "serd
 clap = { version = "4", features = ["derive"] }
 dotenvy = "0.15"
 http-body-util = "0.1"
+object_store = { version = "0.14", features = ["aws"] }
 jsonwebtoken = { version = "11", default-features = false, features = ["aws_lc_rs", "use_pem"] }
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "http2"] }
 serde = { version = "1", features = ["derive"] }

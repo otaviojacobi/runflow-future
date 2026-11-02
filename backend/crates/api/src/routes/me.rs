@@ -38,6 +38,7 @@ pub fn routes() -> Router<AppState> {
         .route("/me/sessions", get(sessions))
         .route("/me/sessions/revoke-others", post(revoke_others))
         .route("/me/sessions/{id}", delete(revoke_session))
+        .route("/me/avatar", post(upload_avatar).delete(remove_avatar))
 }
 
 #[derive(Serialize)]
@@ -170,6 +171,25 @@ async fn delete_account(State(state): State<AppState>, auth: Auth) -> Result<Res
 
 async fn export(State(state): State<AppState>, auth: Auth) -> Result<Json<Value>, Problem> {
     Ok(Json(db::export(&state.db, auth.user_id).await?))
+}
+
+// ------------------------------------------------------------------------------------ avatar
+
+async fn upload_avatar(
+    State(state): State<AppState>,
+    auth: Auth,
+    body: Body,
+) -> Result<Json<Me>, Problem> {
+    let img = crate::uploads::read_image(&body, false)?;
+    let id = crate::uploads::store(&state, auth.user_id, None, "avatar", img).await?;
+    runflow_db::clubs::set_avatar(&state.db, auth.user_id, Some(&format!("/v1/assets/{id}")))
+        .await?;
+    Ok(Json(me_payload(&state, auth.user_id).await?))
+}
+
+async fn remove_avatar(State(state): State<AppState>, auth: Auth) -> Result<Json<Me>, Problem> {
+    runflow_db::clubs::set_avatar(&state.db, auth.user_id, None).await?;
+    Ok(Json(me_payload(&state, auth.user_id).await?))
 }
 
 // ------------------------------------------------------------------------------------ prefs

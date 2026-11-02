@@ -1,0 +1,146 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE clubs SET\n            name = coalesce($2, name),\n            city = CASE WHEN $3 THEN $4 ELSE city END,\n            state = CASE WHEN $5 THEN $6 ELSE state END,\n            timezone = coalesce($7, timezone),\n            modalities = coalesce($8, modalities),\n            trainer_label = coalesce($9, trainer_label),\n            subdomain = CASE WHEN $10 THEN $11 ELSE subdomain END,\n            updated_at = now()\n          WHERE id = $1 AND deleted_at IS NULL\n          RETURNING id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "slug",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "slug"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "city",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "city"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "state",
+        "type_info": "Bpchar",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "state"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "timezone",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "timezone"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "modalities",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "modalities"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "trainer_label",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "trainer_label"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "subdomain",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "subdomain"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "created_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Bpchar",
+        "Text",
+        "TextArray",
+        "Text",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "2719bea141e1a56fc8d9387c0a756b833a7bad033c7c415ee31b90be15cb2300"
+}

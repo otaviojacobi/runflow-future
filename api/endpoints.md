@@ -66,7 +66,7 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 | GET | `/me/consents` · POST `/me/consents` `{club_id?, kind, text_version}` · DELETE `/me/consents/{id}` | Consents (grant / revoke) | A4, C1 |
 | GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first. Kinds: `workout_assigned` `workout_changed` `comment` `feedback` `class_reminder` (booked class in the next 12 h) `class_cancelled` `waitlist_promoted` `member_joined` `billing` `message` `announcement`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
 | GET | `/me/sessions` · DELETE `/me/sessions/{id}` · POST `/me/sessions/revoke-others` | Signed-in devices `{id, kind, user_agent, created_at, last_seen_at, current}` | C1 |
-| POST / DELETE | `/me/avatar` `{data_url, width, height}` | Upload (PNG/JPG/WebP ≤ 5 MB) or remove the profile photo → `/me` payload; `avatar_url` is an `/assets/{id}` path | C1 |
+| POST / DELETE | `/me/avatar` `{data_url, width, height}` | Upload (PNG/JPG/WebP ≤ 5 MB, no SVG) or remove the profile photo → `/me` payload; `avatar_url` is an `/assets/{id}` path | C1 |
 
 | GET / POST / DELETE | `/me/calendar-feed` | Personal calendar: POST (re)generates a secret URL → `{url, webcal_url}` (the old one stops working); GET → `{active, created_at}`; DELETE revokes | C1 |
 | GET | `/ics/{token}.ics` | Public, secret-token `text/calendar` feed (RFC 5545): planned workouts (all-day), booked classes (timed, with location), race entries; −30 to +120 days | — |
@@ -87,12 +87,12 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
 | POST | `/clubs` `{name, city, state, modalities}` | Create club → `{club, membership, branding, subscription}`. Caller becomes owner (free plan); a starter library for the chosen modalities are created | A5 |
-| GET / PATCH | `/clubs/{club_id}` | Club settings (name, city, timezone, modalities, trainer_label, subdomain) | O3 |
+| GET / PATCH | `/clubs/{club_id}` | Club settings (name, city, state, timezone, modalities, trainer_label, subdomain); PATCH is owner-only. `timezone` ∈ `America/Noronha` `America/Sao_Paulo` `America/Manaus` `America/Cuiaba` `America/Campo_Grande` `America/Porto_Velho` `America/Boa_Vista` `America/Rio_Branco`. `subdomain`: 3–32 of `a-z 0-9 -` (not at the ends), not reserved (`app api www mail email smtp imap pop autodiscover send status docs admin assets static cdn blog ajuda suporte dev runflow staging`), not taken; Free plan → `402 plan.required` | O3 |
 | DELETE | `/clubs/{club_id}` `{confirm_name}` | Close the club (owner): soft delete, subscription canceled, invites revoked, subdomain released. Members lose access; their own activities stay in their accounts | O3 |
 | GET | `/clubs/{club_id}/branding` | `{primary_color, secondary_color, logo_url, theme_rev, theme}` | O1 |
-| PUT | `/clubs/{club_id}/branding` `{primary_color?, secondary_color?, logo_asset_id?}` | Save; server derives the theme, bumps `theme_rev` | A5, O1 |
-| POST | `/clubs/{club_id}/assets` (multipart or `{data_url, kind, width, height}`) | Upload a logo (≤ 5 MB; PNG, JPG, WebP, SVG) → `{id, url}` | A5, O1 |
-| GET | `/assets/{id}` | The image (immutable, cache forever) | all |
+| PUT | `/clubs/{club_id}/branding` `{primary_color?, secondary_color?, logo_asset_id?}` | Owner. Colors as `#RRGGBB`; only a secondary is promoted to primary; `logo_asset_id` absent = keep, `null` = remove, else one of this club's logos. The server runs the color engine (golden fixtures) and stores `theme` + `theme_css`; `theme_rev` bumps on every save | A5, O1 |
+| POST | `/clubs/{club_id}/assets` `{data_url, width?, height?}` | Owner: upload a logo (≤ 5 MB; PNG, JPG, WebP, or SVG without scripts/handlers/external refs) → `201 {id, url}`. The declared type must match the file. `415 asset.unsupported`, `413 asset.too_large` | A5, O1 |
+| GET | `/assets/{id}` | The image, public: immutable cache, `ETag` (sha256), `Content-Security-Policy: … sandbox`, `nosniff` | all |
 | GET | `/public/clubs/{slug}` | Public name + theme (subdomain, invite pages) | A3 |
 | GET | `/public/invites/{token}` | Branded invite page data: `{club, branding, role, valid, reason, invited_by, name, email_hint (masked), expires_at, members, already_member, email_matches}` (reason: `expired` `revoked` `accepted` `club_full`; `email_matches` is null when signed out). Unknown or rotated token → 404 | A3 |
 | POST | `/invites/{token}/accept` | Join the club. Only the account whose e-mail is the invited one: otherwise `403 invite.email_mismatch`. Single use (`accepted_at`); joins the invite's groups | A3 |

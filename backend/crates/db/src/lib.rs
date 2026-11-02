@@ -5,6 +5,7 @@
 //! `tests/contract.rs` proves both produce the same database.
 
 pub mod auth;
+pub mod clubs;
 pub mod me;
 pub mod models;
 

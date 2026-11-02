@@ -1,9 +1,11 @@
 //! The HTTP API. Implements `api/endpoints.md` (the contract) route by route under `/v1`.
 
+pub mod access;
 pub mod body;
 pub mod problem;
 pub mod routes;
 pub mod session;
+pub mod uploads;
 
 use std::sync::Arc;
 use std::time::Duration;
@@ -15,6 +17,7 @@ use axum::response::{IntoResponse, Response};
 use runflow_db::Pool;
 use runflow_integrations::email::Mailer;
 use runflow_integrations::google::GoogleVerifier;
+use runflow_integrations::storage::Storage;
 use tower::ServiceBuilder;
 use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::compression::CompressionLayer;
@@ -72,6 +75,8 @@ pub struct AppState {
     pub mailer: Mailer,
     /// `None` when Google sign-in isn't configured (`GOOGLE_CLIENT_ID`).
     pub google: Option<Arc<GoogleVerifier>>,
+    /// Uploaded files (logos, avatars): disk or S3 (D-010).
+    pub storage: Storage,
 }
 
 impl AppState {
@@ -80,12 +85,14 @@ impl AppState {
         settings: ApiSettings,
         mailer: Mailer,
         google: Option<GoogleVerifier>,
+        storage: Storage,
     ) -> Self {
         Self {
             db,
             settings: Arc::new(settings),
             mailer,
             google: google.map(Arc::new),
+            storage,
         }
     }
 }

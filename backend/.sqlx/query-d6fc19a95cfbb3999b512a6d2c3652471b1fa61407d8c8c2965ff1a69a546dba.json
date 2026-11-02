@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT logo_asset_id FROM club_branding WHERE club_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "logo_asset_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "club_branding",
+            "name": "logo_asset_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "d6fc19a95cfbb3999b512a6d2c3652471b1fa61407d8c8c2965ff1a69a546dba"
+}

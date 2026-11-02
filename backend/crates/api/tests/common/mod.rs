@@ -9,6 +9,7 @@ use http_body_util::BodyExt;
 use runflow_api::{ApiSettings, AppState, AuthSettings, router};
 use runflow_integrations::email::{EmailSettings, Mailer, Provider};
 use runflow_integrations::google::GoogleVerifier;
+use runflow_integrations::storage::Storage;
 use serde_json::Value;
 use sqlx::PgPool;
 use tower::ServiceExt;
@@ -82,7 +83,16 @@ impl TestApp {
 
     pub fn with(db: PgPool, dev: bool, google: Option<GoogleVerifier>) -> Self {
         Self {
-            state: AppState::new(db, settings(dev), log_mailer(), google),
+            state: AppState::new(db, settings(dev), log_mailer(), google, Storage::memory()),
+        }
+    }
+
+    /// Like `new`, with a bigger request body limit (upload size checks).
+    pub fn with_body_limit(db: PgPool, limit: usize) -> Self {
+        let mut s = settings(true);
+        s.body_limit = limit;
+        Self {
+            state: AppState::new(db, s, log_mailer(), None, Storage::memory()),
         }
     }
 

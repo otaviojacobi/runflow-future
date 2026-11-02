@@ -1,0 +1,708 @@
+{
+ "run": [
+  {
+   "key": "easy6",
+   "sport": "run",
+   "name": "Rodagem leve 6 km",
+   "structure": {
+    "v": 1,
+    "blocks": [
+     {
+      "kind": "step",
+      "intent": "active",
+      "duration": {
+       "type": "distance",
+       "m": 6000
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 2
+      }
+     }
+    ]
+   },
+   "tags": [
+    "base"
+   ],
+   "est_duration_s": 2100,
+   "est_distance_m": 6000
+  },
+  {
+   "key": "regen5",
+   "sport": "run",
+   "name": "Regenerativo 5 km",
+   "structure": {
+    "v": 1,
+    "blocks": [
+     {
+      "kind": "step",
+      "intent": "active",
+      "duration": {
+       "type": "distance",
+       "m": 5000
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 1
+      },
+      "note": "Bem leve, conversando."
+     }
+    ]
+   },
+   "tags": [
+    "recuperação"
+   ],
+   "est_duration_s": 1980,
+   "est_distance_m": 5000
+  },
+  {
+   "key": "int6x1k",
+   "sport": "run",
+   "name": "Intervalado 6×1 km",
+   "structure": {
+    "v": 1,
+    "blocks": [
+     {
+      "kind": "step",
+      "intent": "warmup",
+      "duration": {
+       "type": "time",
+       "s": 600
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 2
+      }
+     },
+     {
+      "kind": "repeat",
+      "count": 6,
+      "steps": [
+       {
+        "kind": "step",
+        "intent": "active",
+        "duration": {
+         "type": "distance",
+         "m": 1000
+        },
+        "target": {
+         "type": "pace",
+         "min_s": 265,
+         "max_s": 275
+        }
+       },
+       {
+        "kind": "step",
+        "intent": "recovery",
+        "duration": {
+         "type": "time",
+         "s": 120
+        },
+        "target": {
+         "type": "open"
+        },
+        "note": "trote"
+       }
+      ]
+     },
+     {
+      "kind": "step",
+      "intent": "cooldown",
+      "duration": {
+       "type": "time",
+       "s": 600
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 1
+      }
+     }
+    ]
+   },
+   "tags": [
+    "intervalado",
+    "vo2"
+   ],
+   "est_duration_s": 3540,
+   "est_distance_m": 11500
+  },
+  {
+   "key": "int8x400",
+   "sport": "run",
+   "name": "Intervalado 8×400 m",
+   "structure": {
+    "v": 1,
+    "blocks": [
+     {
+      "kind": "step",
+      "intent": "warmup",
+      "duration": {
+       "type": "time",
+       "s": 900
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 2
+      }
+     },
+     {
+      "kind": "repeat",
+      "count": 8,
+      "steps": [
+       {
+        "kind": "step",
+        "intent": "active",
+        "duration": {
+         "type": "distance",
+         "m": 400
+        },
+        "target": {
+         "type": "pace",
+         "min_s": 235,
+         "max_s": 245
+        }
+       },
+       {
+        "kind": "step",
+        "intent": "recovery",
+        "duration": {
+         "type": "time",
+         "s": 90
+        },
+        "target": {
+         "type": "open"
+        },
+        "note": "trote"
+       }
+      ]
+     },
+     {
+      "kind": "step",
+      "intent": "cooldown",
+      "duration": {
+       "type": "time",
+       "s": 600
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 1
+      }
+     }
+    ]
+   },
+   "tags": [
+    "intervalado",
+    "velocidade"
+   ],
+   "est_duration_s": 3000,
+   "est_distance_m": 9500
+  },
+  {
+   "key": "fartlek",
+   "sport": "run",
+   "name": "Fartlek 40′",
+   "structure": {
+    "v": 1,
+    "blocks": [
+     {
+      "kind": "step",
+      "intent": "warmup",
+      "duration": {
+       "type": "time",
+       "s": 600
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 2
+      }
+     },
+     {
+      "kind": "repeat",
+      "count": 8,
+      "steps": [
+       {
+        "kind": "step",
+        "intent": "active",
+        "duration": {
+         "type": "time",
+         "s": 60
+        },
+        "target": {
+         "type": "zone",
+         "metric": "pace",
+         "zone": 5
+        }
+       },
+       {
+        "kind": "step",
+        "intent": "recovery",
+        "duration": {
+         "type": "time",
+         "s": 120
+        },
+        "target": {
+         "type": "zone",
+         "metric": "pace",
+         "zone": 2
+        }
+       }
+      ]
+     },
+     {
+      "kind": "step",
+      "intent": "cooldown",
+      "duration": {
+       "type": "time",
+       "s": 360
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 1
+      }
+     }
+    ]
+   },
+   "tags": [
+    "fartlek"
+   ],
+   "est_duration_s": 2400,
+   "est_distance_m": 7300
+  },
+  {
+   "key": "tempo",
+   "sport": "run",
+   "name": "Tempo run 30′",
+   "structure": {
+    "v": 1,
+    "blocks": [
+     {
+      "kind": "step",
+      "intent": "warmup",
+      "duration": {
+       "type": "time",
+       "s": 600
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 2
+      }
+     },
+     {
+      "kind": "step",
+      "intent": "active",
+      "duration": {
+       "type": "time",
+       "s": 1800
+      },
+      "target": {
+       "type": "pace",
+       "min_s": 280,
+       "max_s": 290
+      }
+     },
+     {
+      "kind": "step",
+      "intent": "cooldown",
+      "duration": {
+       "type": "time",
+       "s": 600
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 1
+      }
+     }
+    ]
+   },
+   "tags": [
+    "limiar"
+   ],
+   "est_duration_s": 3000,
+   "est_distance_m": 9600
+  },
+  {
+   "key": "long",
+   "sport": "run",
+   "name": "Longão 18 km",
+   "structure": {
+    "v": 1,
+    "blocks": [
+     {
+      "kind": "step",
+      "intent": "active",
+      "duration": {
+       "type": "distance",
+       "m": 18000
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 2
+      },
+      "note": "Hidratação a cada 5 km."
+     }
+    ]
+   },
+   "tags": [
+    "longão"
+   ],
+   "est_duration_s": 6180,
+   "est_distance_m": 18000
+  },
+  {
+   "key": "prog10",
+   "sport": "run",
+   "name": "Progressivo 10 km",
+   "structure": {
+    "v": 1,
+    "blocks": [
+     {
+      "kind": "step",
+      "intent": "active",
+      "duration": {
+       "type": "distance",
+       "m": 4000
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 2
+      }
+     },
+     {
+      "kind": "step",
+      "intent": "active",
+      "duration": {
+       "type": "distance",
+       "m": 3000
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 3
+      }
+     },
+     {
+      "kind": "step",
+      "intent": "active",
+      "duration": {
+       "type": "distance",
+       "m": 3000
+      },
+      "target": {
+       "type": "zone",
+       "metric": "pace",
+       "zone": 4
+      }
+     }
+    ]
+   },
+   "tags": [
+    "progressivo"
+   ],
+   "est_duration_s": 3180,
+   "est_distance_m": 10000
+  }
+ ],
+ "strength": [
+  {
+   "key": "forcaA",
+   "sport": "strength",
+   "name": "Força A: inferiores",
+   "structure": {
+    "v": 1,
+    "blocks": [
+     {
+      "kind": "exercise",
+      "name": "Agachamento livre",
+      "sets": 4,
+      "reps": "8",
+      "load": {
+       "type": "pct_1rm",
+       "value": 70
+      },
+      "rest_s": 90
+     },
+     {
+      "kind": "exercise",
+      "name": "Levantamento terra romeno",
+      "sets": 3,
+      "reps": "10",
+      "load": {
+       "type": "kg",
+       "value": 40
+      },
+      "rest_s": 90
+     },
+     {
+      "kind": "exercise",
+      "name": "Afundo alternado",
+      "sets": 3,
+      "reps": "12",
+      "load": {
+       "type": "bodyweight"
+      },
+      "rest_s": 60
+     },
+     {
+      "kind": "exercise",
+      "name": "Panturrilha em pé",
+      "sets": 4,
+      "reps": "15",
+      "load": {
+       "type": "bodyweight"
+      },
+      "rest_s": 45
+     }
+    ]
+   },
+   "tags": [
+    "força"
+   ],
+   "est_duration_s": 1620,
+   "est_distance_m": null
+  },
+  {
+   "key": "forcaB",
+   "sport": "strength",
+   "name": "Força B: superiores e core",
+   "structure": {
+    "v": 1,
+    "blocks": [
+     {
+      "kind": "exercise",
+      "name": "Supino com halteres",
+      "sets": 4,
+      "reps": "8-10",
+      "load": {
+       "type": "kg",
+       "value": 14
+      },
+      "rest_s": 90
+     },
+     {
+      "kind": "exercise",
+      "name": "Remada curvada",
+      "sets": 4,
+      "reps": "10",
+      "load": {
+       "type": "kg",
+       "value": 30
+      },
+      "rest_s": 90
+     },
+     {
+      "kind": "exercise",
+      "name": "Prancha",
+      "sets": 3,
+      "reps": "45 s",
+      "load": {
+       "type": "bodyweight"
+      },
+      "rest_s": 45
+     },
+     {
+      "kind": "exercise",
+      "name": "Elevação pélvica",
+      "sets": 3,
+      "reps": "12",
+      "load": {
+       "type": "kg",
+       "value": 40
+      },
+      "rest_s": 60
+     }
+    ]
+   },
+   "tags": [
+    "força",
+    "core"
+   ],
+   "est_duration_s": 1680,
+   "est_distance_m": null
+  }
+ ],
+ "mobility": [
+  {
+   "key": "mob",
+   "sport": "mobility",
+   "name": "Mobilidade 20′",
+   "structure": {
+    "v": 1,
+    "blocks": [
+     {
+      "kind": "step",
+      "intent": "other",
+      "duration": {
+       "type": "time",
+       "s": 1200
+      },
+      "target": {
+       "type": "open"
+      },
+      "note": "Quadril, tornozelo e coluna torácica."
+     }
+    ]
+   },
+   "tags": [
+    "mobilidade"
+   ],
+   "est_duration_s": 1200,
+   "est_distance_m": null
+  }
+ ],
+ "swim": [
+  {
+   "key": "swimTech",
+   "sport": "swim",
+   "name": "Técnica de crawl 2.000 m",
+   "structure": {
+    "v": 1,
+    "blocks": [
+     {
+      "kind": "step",
+      "intent": "warmup",
+      "duration": {
+       "type": "distance",
+       "m": 300
+      },
+      "target": {
+       "type": "open"
+      },
+      "stroke": "free"
+     },
+     {
+      "kind": "repeat",
+      "count": 8,
+      "steps": [
+       {
+        "kind": "step",
+        "intent": "active",
+        "duration": {
+         "type": "distance",
+         "m": 50
+        },
+        "target": {
+         "type": "open"
+        },
+        "stroke": "drill",
+        "note": "Educativo: polegar na coxa"
+       }
+      ]
+     },
+     {
+      "kind": "repeat",
+      "count": 6,
+      "steps": [
+       {
+        "kind": "step",
+        "intent": "active",
+        "duration": {
+         "type": "distance",
+         "m": 100
+        },
+        "target": {
+         "type": "zone",
+         "metric": "pace",
+         "zone": 2
+        },
+        "stroke": "free",
+        "send_off_s": 120
+       }
+      ]
+     },
+     {
+      "kind": "step",
+      "intent": "cooldown",
+      "duration": {
+       "type": "distance",
+       "m": 200
+      },
+      "target": {
+       "type": "open"
+      },
+      "stroke": "choice"
+     }
+    ]
+   },
+   "tags": [
+    "técnica"
+   ],
+   "est_duration_s": 1860,
+   "est_distance_m": 1500
+  },
+  {
+   "key": "swim10x100",
+   "sport": "swim",
+   "name": "Séries 10×100 m",
+   "structure": {
+    "v": 1,
+    "blocks": [
+     {
+      "kind": "step",
+      "intent": "warmup",
+      "duration": {
+       "type": "distance",
+       "m": 400
+      },
+      "target": {
+       "type": "open"
+      },
+      "stroke": "free"
+     },
+     {
+      "kind": "repeat",
+      "count": 10,
+      "steps": [
+       {
+        "kind": "step",
+        "intent": "active",
+        "duration": {
+         "type": "distance",
+         "m": 100
+        },
+        "target": {
+         "type": "pace",
+         "min_s": 95,
+         "max_s": 100
+        },
+        "stroke": "free",
+        "send_off_s": 120,
+        "equipment": [
+         "paddles"
+        ]
+       }
+      ]
+     },
+     {
+      "kind": "step",
+      "intent": "cooldown",
+      "duration": {
+       "type": "distance",
+       "m": 200
+      },
+      "target": {
+       "type": "open"
+      },
+      "stroke": "back"
+     }
+    ]
+   },
+   "tags": [
+    "séries"
+   ],
+   "est_duration_s": 1740,
+   "est_distance_m": 1600
+  }
+ ]
+}

@@ -29,7 +29,7 @@ crates/
   integrations/  email (Resend + log with a dev outbox, token-based layout), google (ID-token verification);
                  later Strava, Stripe
 migrations/      0001_contract.sql = api/schema.sql at S1; one new file per contract change
-assets/design/   synced copies of design/dist/tokens.json and color-fixtures.json (scripts/sync-design.sh)
+assets/          synced copies: design/dist/tokens.json + color-fixtures.json, api/starter-library.json (scripts/sync-assets.sh)
 ```
 `domain` holds pure rules with no I/O: `color.rs` is the Rust port of `design/src/color.js`, proven by
 `tests/color_fixtures.rs` against the synced golden fixtures (change both together). Workout structure, tags and
@@ -42,7 +42,7 @@ estimates join it when needed. `jobs` (Postgres queue, `worker` subcommand) arri
 - **Errors** are `Problem` (pt-BR for people, stable English `code`). Logs are English and never contain secrets or personal data beyond ids.
 - **Tests** use `#[sqlx::test]` (a fresh, migrated database per test). No database mocks (§8). External APIs are tested against local fakes (see `integrations/tests/resend.rs`).
 - **Config** only from the environment (`config.rs`). A new variable goes into `../.env.example` in the same commit. Secrets use `Secret`/redacted `Debug`.
-- **Tokens only.** E-mail HTML takes colors, type, spacing and radii from `assets/design/tokens.json` through `email::layout`/`paragraph`. Run `scripts/sync-design.sh` after design changes.
+- **Tokens only.** E-mail HTML takes colors, type, spacing and radii from `assets/design/tokens.json` through `email::layout`/`paragraph`. Run `scripts/sync-assets.sh` after design changes.
 - **Queries** use `sqlx::query!`/`query_as!` (checked against the real schema at compile time) and live in `db/` modules; handlers never write SQL. The offline data in `.sqlx/` is committed (`scripts/prepare.sh`), and `check.sh`, CI and Docker build with `SQLX_OFFLINE=true`, so a stale `.sqlx` fails the check. Tests may use runtime `sqlx::query` for fixtures.
 - **Auth:** handlers take `Auth` (401 `auth.required`) or `MaybeAuth`; club-scoped routes will add a membership/role extractor (S3). Secrets, tokens and codes are only stored hashed (`session.rs`).
 - **Areas stay splittable.** Never import another area's source; the backend reads `api/schema.sql` (contract test) and synced design artifacts only.

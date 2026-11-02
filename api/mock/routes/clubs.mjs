@@ -1,13 +1,14 @@
 /** Clubs, branding (Club Studio), assets, invites (create / public / accept). */
-import { LIB, estimate } from "../seed.mjs";
+import { starterLibrary } from "../seed.mjs";
 
 const UF = new Set("AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" "));
 const SPORTS = ["run", "swim", "bike", "strength", "mobility", "other"];
 const HEX = /^#[0-9A-F]{6}$/;
-/** Starter library per modality (copied into every new club). */
-const STARTER = { run: ["easy6", "regen5", "int6x1k", "int8x400", "fartlek", "tempo", "long", "prog10"], strength: ["forcaA", "forcaB"], mobility: ["mob"], swim: ["swimTech", "swim10x100"] };
+const STARTER = starterLibrary();
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const TIMEZONES = ["America/Noronha", "America/Sao_Paulo", "America/Manaus", "America/Cuiaba", "America/Campo_Grande", "America/Porto_Velho", "America/Boa_Vista", "America/Rio_Branco"];
+const RESERVED = new Set("app api www mail email smtp imap pop autodiscover send status docs admin assets static cdn blog ajuda suporte dev runflow staging".split(" "));
 
 export default function register(h) {
   const slugify = (name) => {
@@ -49,9 +50,8 @@ export default function register(h) {
     h.db.memberships.push(m);
     setBranding(c.id, null, null, null);
     h.db.club_subscriptions.push({ club_id: c.id, plan: "free", status: "active", student_limit: 10, stripe_customer_id: null, stripe_subscription_id: null, current_period_end: null, cancel_at_period_end: false, updated_at: now });
-    for (const key of modalities.flatMap((s) => STARTER[s] || [])) {
-      const [sport, tname, structure, tags] = LIB[key];
-      h.db.workout_templates.push({ id: h.uuid("tpl"), club_id: c.id, author_membership_id: m.id, sport, name: tname, description: null, structure, ...estimate(sport, structure), tags, created_at: now, updated_at: now, archived_at: null });
+    for (const t of modalities.flatMap((s) => STARTER[s] || [])) {
+      h.db.workout_templates.push({ id: h.uuid("tpl"), club_id: c.id, author_membership_id: m.id, sport: t.sport, name: t.name, description: null, structure: t.structure, est_duration_s: t.est_duration_s, est_distance_m: t.est_distance_m, tags: t.tags, created_at: now, updated_at: now, archived_at: null });
     }
     h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: c.id, actor_user_id: u.id, action: "club.created", target_type: "club", target_id: c.id, data: null, created_at: now });
     return { __status: 201, data: { club: c, membership: m, branding: h.branding(c.id), subscription: h.subscription(c.id) } };
@@ -65,9 +65,11 @@ export default function register(h) {
     if ("state" in b && b.state && !UF.has(String(b.state).toUpperCase())) errors.push({ field: "state", message: "Escolha um estado." });
     if ("modalities" in b && (!Array.isArray(b.modalities) || !b.modalities.filter((m) => SPORTS.includes(m)).length)) errors.push({ field: "modalities", message: "Escolha pelo menos uma modalidade." });
     if ("trainer_label" in b && !["treinador", "professor"].includes(b.trainer_label)) errors.push({ field: "trainer_label", message: "Opção inválida." });
+    if ("timezone" in b && !TIMEZONES.includes(b.timezone)) errors.push({ field: "timezone", message: "Escolha um fuso horário." });
     if ("subdomain" in b && b.subdomain) {
       const sub = String(b.subdomain).toLowerCase();
       if (!/^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/.test(sub)) errors.push({ field: "subdomain", message: "Use de 3 a 32 letras, números ou hífens." });
+      else if (RESERVED.has(sub)) errors.push({ field: "subdomain", message: "Este endereço é reservado. Escolha outro." });
       else if (h.db.clubs.some((x) => x.subdomain === sub && x.id !== c.id)) errors.push({ field: "subdomain", message: "Este endereço já está em uso." });
       else if (h.subscription(c.id).plan === "free") h.fail(402, "plan.required", "Disponível no plano Pro", "O endereço próprio (seuclube.runflow.club) faz parte do plano Pro.");
     }

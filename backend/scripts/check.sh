@@ -8,11 +8,11 @@ backend="$(cd "$(dirname "$0")/.." && pwd)"
 root="$(cd "$backend/.." && pwd)"
 cd "$backend"
 
-echo "› design assets in sync with design/dist"
+echo "› assets in sync with design/dist and api/"
 if [ -d "$root/design/dist" ]; then
-  for f in tokens.json color-fixtures.json; do
-    if ! cmp -s "$root/design/dist/$f" "assets/design/$f"; then
-      echo "  assets/design/$f is stale: run backend/scripts/sync-design.sh"; exit 1
+  for pair in "design/dist/tokens.json:assets/design/tokens.json" "design/dist/color-fixtures.json:assets/design/color-fixtures.json" "api/starter-library.json:assets/starter-library.json"; do
+    if ! cmp -s "$root/${pair%%:*}" "${pair##*:}"; then
+      echo "  ${pair##*:} is stale: run backend/scripts/sync-assets.sh"; exit 1
     fi
   done
 fi

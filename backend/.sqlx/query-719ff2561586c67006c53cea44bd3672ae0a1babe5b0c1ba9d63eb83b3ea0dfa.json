@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO club_subscriptions (club_id) VALUES ($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "719ff2561586c67006c53cea44bd3672ae0a1babe5b0c1ba9d63eb83b3ea0dfa"
+}

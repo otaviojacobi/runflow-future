@@ -106,6 +106,12 @@ export const LIB = {
   swim10x100: ["swim", "Séries 10×100 m", S([step("warmup", dist(400), open, { stroke: "free" }), rep(10, [step("active", dist(100), pace(95, 100), { stroke: "free", send_off_s: 120, equipment: ["paddles"] })]), step("cooldown", dist(200), open, { stroke: "back" })]), ["séries"]],
 };
 
+/** Starter library per modality: copied into every new club (POST /clubs). */
+export const STARTER = { run: ["easy6", "regen5", "int6x1k", "int8x400", "fartlek", "tempo", "long", "prog10"], strength: ["forcaA", "forcaB"], mobility: ["mob"], swim: ["swimTech", "swim10x100"] };
+/** Contract artifact `api/starter-library.json` (the backend reads a synced copy): templates per modality, estimates included. */
+export const starterLibrary = () =>
+  Object.fromEntries(Object.entries(STARTER).map(([mod, keys]) => [mod, keys.map((k) => { const [sport, name, structure, tags] = LIB[k]; return { key: k, sport, name, structure, tags, ...estimate(sport, structure) }; })]));
+
 // ---------------------------------------------------------------- generate
 export function generate(anchor) {
   const rand = prng(20261103);
@@ -520,6 +526,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const db = generate(anchor);
   const out = join(dirname(fileURLToPath(import.meta.url)), "db.json");
   writeFileSync(out, JSON.stringify(db, null, 1) + "\n");
+  writeFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "starter-library.json"), JSON.stringify(starterLibrary(), null, 1) + "\n");
   const counts = Object.entries(db).filter(([k]) => k !== "meta").map(([k, v]) => `${k}=${v.length}`).join(" ");
   console.log(`✓ wrote ${out} (anchor ${anchor})\n  ${counts}`);
 }

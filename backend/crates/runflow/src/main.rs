@@ -14,6 +14,7 @@ use runflow_integrations::email::{
     Action, Email, Mailer, Provider, escape_html, layout, paragraph,
 };
 use runflow_integrations::google::{GOOGLE_JWKS_URL, GoogleVerifier};
+use runflow_integrations::storage::{Storage, StorageSettings};
 use tracing_subscriber::EnvFilter;
 
 use crate::config::{Config, LogFormat, RunEnv};
@@ -156,11 +157,25 @@ async fn run(config: Config, with_migrations: bool) -> anyhow::Result<()> {
         .google
         .as_ref()
         .map(|g| GoogleVerifier::new(GOOGLE_JWKS_URL, g.audiences()));
+    let storage = Storage::from_settings(&match &config.storage {
+        config::Storage::Disk { dir } => StorageSettings::Disk { dir: dir.clone() },
+        config::Storage::S3 {
+            bucket,
+            region,
+            endpoint,
+        } => StorageSettings::S3 {
+            bucket: bucket.clone(),
+            region: region.clone(),
+            endpoint: endpoint.clone(),
+        },
+    })
+    .context("file storage (STORAGE_*)")?;
     let app = runflow_api::router(AppState::new(
         pool.clone(),
         settings,
         mailer.clone(),
         google,
+        storage,
     ));
     let listener = tokio::net::TcpListener::bind(config.http.bind)
         .await
