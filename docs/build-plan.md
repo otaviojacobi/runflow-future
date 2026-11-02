@@ -59,9 +59,10 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 | S6 | Scheduling | [ ] |
 | S6b | Community and analysis: messages + mural, challenges + rankings + badges, races, assessments + zones from tests, reports, assistant (rules engine, same contract; LLM later per §11.4) | [ ] |
 | S7 | Billing (Stripe Checkout, portal, webhooks), notifications, push | [ ] |
+| S8a | QA on the Pi pulled forward (D-028): arm64 images to GHCR on every push (`images.yml`), `frontend/Dockerfile` (static app + Caddy proxying `/api`), `ops/qa/` compose with the tunnel, 5-minute auto-update and nightly backup timers | [x] |
 | S8 | `ops/`: Pi deployment with deploy on push (recommended: Raspberry Pi OS + Docker + Tailscale + GitHub Actions; alternative: balena), DNS on Cloudflare keeping the GoDaddy mailboxes, tunnel hostnames incl. `*.runflow.club`, arm64 images to GHCR, backups, restore drill. Checklist: `docs/hosting.md` | [ ] |
 | S9 | Switch the web app to the real backend: Google Identity Services button (`VITE_GOOGLE_CLIENT_ID`), cookie sessions, the Playwright suite against the backend, mock-only paths out of production builds | [ ] |
-| S10 | `TODO.md` at the repo root: the founder's setup guide, step by step, for everything that needs his accounts (`.env` values, Resend domain, Google OAuth client, Cloudflare DNS move + tunnel, the Pi, GitHub secrets for deploys, Strava app, Stripe test keys) | [ ] |
+| S10 | `setup-todo.md`: the founder's setup guide (DNS move keeping the mailboxes, redirect, tunnel, Resend, Google, Strava, GHCR, the Pi, timers, backups) | [x] |
 
 ## Phase 3: mobile app (`mobile/`) on the real API
 

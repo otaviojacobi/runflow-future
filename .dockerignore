@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+!design/dist
+**/target
+.git
+.env
+.env.*
+frontend/test-results
+frontend/playwright-report
+api/mock/.data

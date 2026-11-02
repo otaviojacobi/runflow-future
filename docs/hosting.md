@@ -1,6 +1,6 @@
 # Hosting: one Raspberry Pi 5 + Cloudflare Tunnel, deploy on push (S8 plan)
 
-This file is the checklist; decisions go to root.md §9 when the founder makes them.
+This file is the background; the step-by-step for QA is `setup-todo.md` (D-028: QA at `qa.runflow.club`, `runflow.club` redirects there).
 **Recommended:** Raspberry Pi OS + Docker + the root `docker-compose.yaml` + `cloudflared`, deployed by GitHub Actions over
 Tailscale (§3). **Alternative:** balenaCloud (§4). DNS (§1) and the tunnel (§2) are the same either way.
 

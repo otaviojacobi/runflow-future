@@ -1,0 +1,65 @@
+# Runflow QA (Raspberry Pi 5): everything behind one Cloudflare Tunnel, nothing exposed on the network.
+#   qa.runflow.club → web (static app + /api proxy) → api (+ worker) → postgres
+# Images are built for arm64 by GitHub Actions (.github/workflows/images.yml) and pulled from GHCR.
+# Setup: setup-todo.md at the repo root. Settings: ops/qa/.env (from ops/qa/.env.example).
+
+name: runflow-qa
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-runflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in ops/qa/.env}
+      POSTGRES_DB: ${POSTGRES_DB:-runflow}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    image: ghcr.io/otaviojacobi/runflow-api:${RUNFLOW_TAG:-qa}
+    restart: unless-stopped
+    # migrate, then serve the API and run the background worker (e-mails, Strava)
+    command: ["all"]
+    env_file: [.env]
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-runflow}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-runflow}
+      HOST: 0.0.0.0
+      PORT: "3000"
+      STORAGE_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/runflow", "healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  web:
+    image: ghcr.io/otaviojacobi/runflow-web:${RUNFLOW_TAG:-qa}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in ops/qa/.env (Cloudflare Zero Trust → Tunnels)}
+    depends_on:
+      - web
+
+volumes:
+  pgdata:
+  uploads:

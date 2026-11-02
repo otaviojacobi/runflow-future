@@ -1,0 +1,9 @@
+[Unit]
+Description=Runflow QA: pull new images and restart
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=runflow
+ExecStart=/home/runflow/runflow/ops/qa/update.sh
