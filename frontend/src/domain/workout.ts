@@ -18,7 +18,7 @@ export type Equipment = "pullbuoy" | "kickboard" | "fins" | "paddles" | "snorkel
 export interface Step { kind: "step"; intent: Intent; duration: Duration; target: Target; note?: string; stroke?: Stroke; equipment?: Equipment[]; send_off_s?: number }
 export interface Repeat { kind: "repeat"; count: number; steps: Step[] }
 export interface Load { type: "kg" | "pct_1rm" | "bodyweight" | "rpe"; value?: number }
-export interface Exercise { kind: "exercise"; name: string; sets: number; reps: string; load?: Load; rest_s?: number; tempo?: string; note?: string }
+export interface Exercise { kind: "exercise"; name: string; sets: number; reps: string; load?: Load; rest_s?: number; tempo?: string; note?: string; exercise_id?: string }
 export type Block = Step | Repeat | Exercise;
 export interface Structure { v: 1; blocks: Block[] }
 

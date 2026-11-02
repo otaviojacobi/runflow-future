@@ -84,6 +84,7 @@ const staffRoutes = [
   r(S, "/library", LibraryScreen),
   r(S, "/library/new", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
   r(S, "/library/$id", lazyRouteComponent(() => import("./screens/staff/Builder"), "BuilderScreen")),
+  r(S, "/exercises", lazyRouteComponent(() => import("./screens/staff/Exercises"), "ExercisesScreen")),
   r(S, "/plans", lazyRouteComponent(() => import("./screens/staff/plans/Plans"), "PlansScreen")),
   r(S, "/plans/$id", lazyRouteComponent(() => import("./screens/staff/plans/PlanEditor"), "PlanEditorScreen")),
   r(S, "/feedback", lazyRouteComponent(() => import("./screens/staff/Feedback"), "FeedbackScreen")),

@@ -189,6 +189,23 @@ CREATE INDEX zones_member_idx ON zones (membership_id, kind, valid_from DESC);
 
 -- =========================================================================== workouts
 -- `structure` (jsonb) is the typed, versioned workout tree (see api/endpoints.md § Workout structure).
+-- Exercise library (F28). club_id null = Runflow's global catalog; a club exercise with the same name
+-- shadows the global one (that is how a club adds its own video). Strength blocks may carry exercise_id.
+CREATE TABLE exercises (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id      uuid REFERENCES clubs (id) ON DELETE CASCADE,
+  name         text NOT NULL,
+  category     text NOT NULL CHECK (category IN ('strength', 'core', 'mobility', 'stretch', 'plyometrics', 'drill')),
+  muscles      text[] NOT NULL DEFAULT '{}',
+  equipment    text[] NOT NULL DEFAULT '{}',
+  cues         text,                         -- pt-BR coaching cues
+  video_url    text,                         -- YouTube or Vimeo link (embedded privacy-enhanced)
+  created_by   uuid REFERENCES memberships (id) ON DELETE SET NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  archived_at  timestamptz
+);
+CREATE INDEX exercises_club_idx ON exercises (club_id, name);
+
 CREATE TABLE workout_templates (
   id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   club_id               uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,

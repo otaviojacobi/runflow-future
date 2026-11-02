@@ -34,7 +34,7 @@ Screen IDs (A*, M*, W*, O*, C*) refer to `docs/build-plan.md`.
 | `duration` | `{type:"time",s}` · `{type:"distance",m}` · `{type:"open"}` (lap button) |
 | `target` | `{type:"open"}` · `{type:"zone",metric:"hr"\|"pace"\|"power",zone:1-5}` · `{type:"pace",min_s,max_s}` (s/km; swim s/100 m) · `{type:"hr",min,max}` · `{type:"power",min,max}` · `{type:"rpe",value:1-10}` |
 | swim extras (on a step) | `stroke`: `free` `back` `breast` `fly` `im` `choice` `kick` `drill` · `equipment`: [`pullbuoy` `kickboard` `fins` `paddles` `snorkel`] · `send_off_s` |
-| strength block | `{kind:"exercise", name, sets, reps:"8-10", load:{type:"kg"\|"pct_1rm"\|"bodyweight"\|"rpe", value}, rest_s, tempo?, note?}` |
+| strength block | `{kind:"exercise", name, sets, reps:"8-10", load:{type:"kg"\|"pct_1rm"\|"bodyweight"\|"rpe", value}, rest_s, tempo?, note?, exercise_id?}`. Without `exercise_id`, apps match the library by name (case-insensitive) |
 
 Blocks can carry `note`. The quick-text parser (frontend) produces this structure; Garmin/FIT export maps from it.
 
@@ -135,6 +135,13 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | DELETE | `/clubs/{club_id}/bookings/{id}` | Cancel; the first in the waitlist is promoted and notified | M6, W9 |
 | PATCH | `/clubs/{club_id}/bookings/{id}` `{status: attended \| no_show \| booked}` | Attendance (staff) | W9 |
 | POST | `/clubs/{club_id}/class-sessions/{id}/check-in` `{checkin_code}` | Student check-in (45 min before → end); creates a booking if there is room | M6 |
+
+### Exercise library
+| Method | Path | Purpose | Screens |
+|---|---|---|---|
+| GET | `/clubs/{club_id}/exercises?q&category` | Club exercises plus Runflow's global catalog (a club exercise shadows a global one with the same name); each has `scope: club \| global`. Members can read (students watch the videos) | W18, W5, M2 |
+| POST | `/clubs/{club_id}/exercises` `{name, category, muscles?, equipment?, cues?, video_url?}` | Create (staff). `category`: `strength core mobility stretch plyometrics drill`. `video_url`: YouTube or Vimeo link | W18 |
+| PATCH / DELETE | `/clubs/{club_id}/exercises/{id}` | Club exercises only; global ones → `403 exercise.global` (create a club version instead) | W18 |
 
 ### Assistant (AI)
 Staff only. Responses carry `source` (`rules` in the mock; the backend's model name). Limits: `429 ai.rate_limited` (20/min per user in the mock; the backend adds a monthly cap per plan). Provider, model and budget: root.md §11.

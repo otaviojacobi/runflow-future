@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-02T06:20:52.744Z",
+  "generated_at": "2026-11-02T06:31:57.529Z",
   "version": 1
  },
  "users": [
@@ -1217,6 +1217,402 @@
    "period_end": "2026-10-22T03:00:00.000Z",
    "hosted_url": null,
    "created_at": "2026-09-22T12:00:00.000Z"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "ffd57963-38eb-4290-aee0-e9c3a73cd6f3",
+   "club_id": null,
+   "name": "Agachamento livre",
+   "category": "strength",
+   "muscles": [
+    "quadríceps",
+    "glúteos"
+   ],
+   "equipment": [
+    "barra"
+   ],
+   "cues": "Pés na largura dos ombros, joelhos acompanham a ponta dos pés, desça até a coxa paralela mantendo o tronco firme.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "475f3e30-62e3-47e8-ac55-85ec71a254fd",
+   "club_id": null,
+   "name": "Levantamento terra romeno",
+   "category": "strength",
+   "muscles": [
+    "posteriores",
+    "glúteos"
+   ],
+   "equipment": [
+    "barra",
+    "halteres"
+   ],
+   "cues": "Joelhos levemente flexionados, quadril vai para trás, barra rente às pernas, coluna neutra.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "e0978edb-8eb5-4187-a382-c9f1dd77bbb2",
+   "club_id": null,
+   "name": "Afundo alternado",
+   "category": "strength",
+   "muscles": [
+    "quadríceps",
+    "glúteos"
+   ],
+   "equipment": [],
+   "cues": "Passo longo, joelho de trás quase toca o chão, tronco reto.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "3b4a051d-e663-4039-ae73-dd2831a5fd91",
+   "club_id": null,
+   "name": "Panturrilha em pé",
+   "category": "strength",
+   "muscles": [
+    "panturrilha"
+   ],
+   "equipment": [
+    "degrau"
+   ],
+   "cues": "Suba na ponta dos pés devagar e desça abaixo da linha do degrau.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "2d3653fb-9494-40d6-a566-cd7ef4308876",
+   "club_id": null,
+   "name": "Supino com halteres",
+   "category": "strength",
+   "muscles": [
+    "peitoral",
+    "tríceps"
+   ],
+   "equipment": [
+    "halteres",
+    "banco"
+   ],
+   "cues": "Escápulas encaixadas, desça os halteres até a linha do peito e empurre em linha reta.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "b992f99c-99e5-4917-a184-e258d3559f78",
+   "club_id": null,
+   "name": "Remada curvada",
+   "category": "strength",
+   "muscles": [
+    "costas",
+    "bíceps"
+   ],
+   "equipment": [
+    "barra",
+    "halteres"
+   ],
+   "cues": "Tronco inclinado a 45°, puxe em direção ao umbigo aproximando as escápulas.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "ffe14b87-889e-4df5-a9bc-88b18788aefe",
+   "club_id": null,
+   "name": "Elevação pélvica",
+   "category": "strength",
+   "muscles": [
+    "glúteos",
+    "posteriores"
+   ],
+   "equipment": [
+    "banco",
+    "barra"
+   ],
+   "cues": "Costas apoiadas no banco, empurre pelos calcanhares e contraia o glúteo no alto.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "8a88ced5-2034-4039-a6f4-0bcccf15ee7a",
+   "club_id": null,
+   "name": "Agachamento búlgaro",
+   "category": "strength",
+   "muscles": [
+    "quadríceps",
+    "glúteos"
+   ],
+   "equipment": [
+    "banco",
+    "halteres"
+   ],
+   "cues": "Pé de trás no banco, desça na vertical; o joelho da frente não passa muito da ponta do pé.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "f0b55aba-c7b2-4bc7-a302-60957160256f",
+   "club_id": null,
+   "name": "Step-up",
+   "category": "strength",
+   "muscles": [
+    "quadríceps",
+    "glúteos"
+   ],
+   "equipment": [
+    "caixa"
+   ],
+   "cues": "Suba empurrando pela perna de cima, sem impulso da de baixo.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "2e88e326-0021-402b-a675-048901abd7e6",
+   "club_id": null,
+   "name": "Ponte unilateral",
+   "category": "strength",
+   "muscles": [
+    "glúteos"
+   ],
+   "equipment": [],
+   "cues": "Uma perna estendida, quadril alinhado durante toda a subida.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "0a30ea3e-ee5c-4059-a7d9-d32f2bdb3d99",
+   "club_id": null,
+   "name": "Prancha",
+   "category": "core",
+   "muscles": [
+    "abdômen"
+   ],
+   "equipment": [],
+   "cues": "Cotovelos sob os ombros, corpo em linha reta, sem deixar o quadril cair.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "d30e9a4a-bc2e-42cd-addd-059cab5a02c1",
+   "club_id": null,
+   "name": "Prancha lateral",
+   "category": "core",
+   "muscles": [
+    "oblíquos"
+   ],
+   "equipment": [],
+   "cues": "Quadril alto, corpo alinhado da cabeça aos pés.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "0893d5c7-2db9-42d3-a207-e823e9429a30",
+   "club_id": null,
+   "name": "Dead bug",
+   "category": "core",
+   "muscles": [
+    "abdômen"
+   ],
+   "equipment": [],
+   "cues": "Lombar colada no chão; estenda braço e perna opostos devagar.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "715272ed-58e1-4f27-a443-dde467cb5da7",
+   "club_id": null,
+   "name": "Bird dog",
+   "category": "core",
+   "muscles": [
+    "lombar",
+    "abdômen"
+   ],
+   "equipment": [],
+   "cues": "Quatro apoios, estenda braço e perna opostos sem girar o quadril.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "44999796-450f-4ab2-a627-d28ff28da7ef",
+   "club_id": null,
+   "name": "Mobilidade de quadril 90/90",
+   "category": "mobility",
+   "muscles": [
+    "quadril"
+   ],
+   "equipment": [],
+   "cues": "Sentado com as pernas a 90°, gire o quadril de um lado para o outro sem usar as mãos.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "15549163-2066-4dd9-aca2-db7ee47f0730",
+   "club_id": null,
+   "name": "Mobilidade de tornozelo na parede",
+   "category": "mobility",
+   "muscles": [
+    "tornozelo"
+   ],
+   "equipment": [],
+   "cues": "Joelho vai em direção à parede sem tirar o calcanhar do chão.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "0460088c-cff3-48c8-a47d-6a68f6a30daf",
+   "club_id": null,
+   "name": "Rotação torácica",
+   "category": "mobility",
+   "muscles": [
+    "coluna torácica"
+   ],
+   "equipment": [],
+   "cues": "Em quatro apoios, mão na nuca, gire abrindo o cotovelo para o teto.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "4d79bfdd-2bfe-4d27-af6a-8016c5f0e449",
+   "club_id": null,
+   "name": "Alongamento de flexores do quadril",
+   "category": "stretch",
+   "muscles": [
+    "flexores do quadril"
+   ],
+   "equipment": [],
+   "cues": "Em afundo com joelho no chão, contraia o glúteo e leve o quadril à frente. 30 s cada lado.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "2e33a15d-c5b8-47dc-a0f5-507dd2f44dbf",
+   "club_id": null,
+   "name": "Alongamento de posteriores",
+   "category": "stretch",
+   "muscles": [
+    "posteriores"
+   ],
+   "equipment": [],
+   "cues": "Perna estendida, incline o tronco com a coluna longa. 30 s cada lado.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "5f033f68-8596-43c0-a997-1dde08cc3586",
+   "club_id": null,
+   "name": "Skipping alto",
+   "category": "drill",
+   "muscles": [
+    "corrida"
+   ],
+   "equipment": [],
+   "cues": "Joelhos à altura do quadril, apoio no antepé, braços coordenados.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "2a7de04b-8c5b-4514-add1-e947e930a750",
+   "club_id": null,
+   "name": "Anfersen",
+   "category": "drill",
+   "muscles": [
+    "corrida"
+   ],
+   "equipment": [],
+   "cues": "Calcanhar em direção ao glúteo, passada curta e rápida.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "7fc0633e-067d-438a-add3-dc3892ecf960",
+   "club_id": null,
+   "name": "Corrida com elevação de joelhos",
+   "category": "drill",
+   "muscles": [
+    "corrida"
+   ],
+   "equipment": [],
+   "cues": "Postura alta, contato curto com o chão.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "30c054f8-a91f-4feb-a07a-104fdbc1b37f",
+   "club_id": null,
+   "name": "Saltos no caixote",
+   "category": "plyometrics",
+   "muscles": [
+    "quadríceps",
+    "glúteos"
+   ],
+   "equipment": [
+    "caixa"
+   ],
+   "cues": "Aterrisse suave com os joelhos semiflexionados; desça do caixote sem saltar.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
+  },
+  {
+   "id": "49bec494-7f6a-49ba-a089-e17ef688ac12",
+   "club_id": null,
+   "name": "Saltos laterais",
+   "category": "plyometrics",
+   "muscles": [
+    "glúteos",
+    "tornozelo"
+   ],
+   "equipment": [],
+   "cues": "Saltos de um pé para o outro, aterrissagem estável.",
+   "video_url": null,
+   "created_by": null,
+   "created_at": "2026-08-24T13:00:00.000Z",
+   "archived_at": null
   }
  ],
  "memberships": [

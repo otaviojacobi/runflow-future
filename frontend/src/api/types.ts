@@ -226,3 +226,7 @@ export interface FinanceSummary {
   students_with_fee: number; overdue_total_cents: number; overdue_students: number; account: "not_connected" | "pending" | "active" | "restricted"; generated: boolean;
 }
 export interface Receipt { charge: Charge; club: { id: ID; name: string; city: string | null; state: string | null }; branding: Branding | null }
+
+// ---- exercise library (F28)
+export type ExerciseCategory = "strength" | "core" | "mobility" | "stretch" | "plyometrics" | "drill";
+export interface LibraryExercise { id: ID; club_id: ID | null; scope: "club" | "global"; name: string; category: ExerciseCategory; muscles: string[]; equipment: string[]; cues: string | null; video_url: string | null; created_at: ISOTime; archived_at: ISOTime | null }

@@ -1,8 +1,11 @@
 /** Structured editor for a workout: steps, repeats (séries) and exercises. Controlled: blocks + onChange. */
+import { useId } from "react";
 import { ArrowDown, ArrowUp, Copy, Plus, Repeat as RepeatIcon, Trash2 } from "lucide-react";
 import type { Sport } from "@/api/types";
 import { EQUIPMENT_LABEL, INTENT_LABEL, STROKE_LABEL, type Block, type Duration, type Equipment, type Exercise, type Intent, type Load, type Repeat, type Step, type Stroke, type Target, type ZoneN } from "@/domain/workout";
+import { useExercises } from "@/api/exercises";
 import { t } from "@/i18n";
+import { useClub } from "@/lib/club";
 import { pace as fmtPace } from "@/lib/format";
 import { IconButton, cn } from "@/ui";
 import { zoneBg } from "@/components/workout";
@@ -120,10 +123,16 @@ function StepRow({ step, sport, onChange, actions, nested }: { step: Step; sport
 
 function ExerciseRow({ ex, onChange, actions }: { ex: Exercise; onChange: (e: Exercise) => void; actions: React.ReactNode }) {
   const load = ex.load ?? { type: "bodyweight" };
+  const { club } = useClub();
+  const lib = useExercises(club?.id);
+  const listId = useId();
+  // Picking a library name links the block to it (video and cues for the student).
+  const rename = (name: string) => { const hit = lib.data?.find((x) => x.name.toLowerCase() === name.trim().toLowerCase()); const { exercise_id: _drop, ...rest } = ex; void _drop; onChange(hit ? { ...rest, name, exercise_id: hit.id } : { ...rest, name }); };
   return (
     <div className="group grid gap-2 rounded-md border border-line bg-surface p-2.5">
       <div className="flex flex-wrap items-center gap-1.5">
-        <input aria-label={t("Exercício")} placeholder={t("Exercício, ex.: Agachamento")} className={cn(field, "min-w-48 flex-1 font-semibold")} value={ex.name} onChange={(e) => onChange({ ...ex, name: e.target.value })} />
+        <input aria-label={t("Exercício")} placeholder={t("Exercício, ex.: Agachamento")} className={cn(field, "min-w-48 flex-1 font-semibold")} value={ex.name} list={listId} onChange={(e) => rename(e.target.value)} />
+        <datalist id={listId}>{(lib.data ?? []).map((x) => <option key={x.id} value={x.name} />)}</datalist>
         <label className="flex items-center gap-1 text-xs text-fg-muted"><input aria-label={t("Séries")} type="number" min={1} className={cn(field, "w-14")} value={ex.sets} onChange={(e) => onChange({ ...ex, sets: Math.max(1, Number(e.target.value)) })} />×</label>
         <input aria-label={t("Repetições")} className={cn(field, "w-16")} value={ex.reps} onChange={(e) => onChange({ ...ex, reps: e.target.value })} />
         <select aria-label={t("Carga")} className={sel} value={load.type} onChange={(e) => onChange({ ...ex, load: { type: e.target.value as Load["type"], value: e.target.value === "bodyweight" ? undefined : load.value ?? 10 } })}>
