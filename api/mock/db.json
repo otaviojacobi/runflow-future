@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-02T06:36:59.096Z",
+  "generated_at": "2026-11-02T07:07:09.245Z",
   "version": 1
  },
  "users": [
@@ -24257,9 +24257,9 @@
  ],
  "bookings": [
   {
-   "id": "b93ff111-d2a3-4e4c-ade2-d2336eb46965",
+   "id": "8f1c7b05-d72c-4e6d-af07-072c552fc64a",
    "session_id": "ae088567-c112-4f0d-a1e7-5a3c3e3f38ad",
-   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
+   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
    "status": "attended",
    "waitlist_position": null,
    "checked_in_at": "2026-10-27T09:30:00.000Z",
@@ -24267,50 +24267,30 @@
    "updated_at": "2026-10-25T15:00:00.000Z"
   },
   {
-   "id": "1cad2baa-cdf5-494e-aa2c-3b16b436155b",
+   "id": "59c7bf70-4478-4a29-a12d-1615e8edc7ab",
    "session_id": "ae088567-c112-4f0d-a1e7-5a3c3e3f38ad",
-   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-10-27T09:30:00.000Z",
-   "created_at": "2026-10-25T15:00:00.000Z",
-   "updated_at": "2026-10-25T15:00:00.000Z"
-  },
-  {
-   "id": "0bb1ae1a-95e4-49a4-a660-2ae3f2d08968",
-   "session_id": "ae088567-c112-4f0d-a1e7-5a3c3e3f38ad",
-   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-10-27T09:30:00.000Z",
-   "created_at": "2026-10-25T15:00:00.000Z",
-   "updated_at": "2026-10-25T15:00:00.000Z"
-  },
-  {
-   "id": "d48c9af7-bd67-4c49-ad74-32e57961dce4",
-   "session_id": "0a3009bd-af77-46f8-a50c-1f351eadfb5b",
-   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-10-29T09:30:00.000Z",
-   "created_at": "2026-10-27T15:00:00.000Z",
-   "updated_at": "2026-10-27T15:00:00.000Z"
-  },
-  {
-   "id": "eaf60640-8dd7-4a42-a1b4-b4ac0692294d",
-   "session_id": "0a3009bd-af77-46f8-a50c-1f351eadfb5b",
-   "membership_id": "55354e5d-3b51-4ff4-a4d8-40acd1dee3ce",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-10-29T09:30:00.000Z",
-   "created_at": "2026-10-27T15:00:00.000Z",
-   "updated_at": "2026-10-27T15:00:00.000Z"
-  },
-  {
-   "id": "0fd60288-4fa3-4d4b-aa00-187bf4a4381e",
-   "session_id": "0a3009bd-af77-46f8-a50c-1f351eadfb5b",
-   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
+   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
    "status": "no_show",
+   "waitlist_position": null,
+   "checked_in_at": "2026-10-27T09:30:00.000Z",
+   "created_at": "2026-10-25T15:00:00.000Z",
+   "updated_at": "2026-10-25T15:00:00.000Z"
+  },
+  {
+   "id": "47ab89fc-ac3b-4ff7-aa9b-e7e81797aa95",
+   "session_id": "ae088567-c112-4f0d-a1e7-5a3c3e3f38ad",
+   "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
+   "status": "no_show",
+   "waitlist_position": null,
+   "checked_in_at": "2026-10-27T09:30:00.000Z",
+   "created_at": "2026-10-25T15:00:00.000Z",
+   "updated_at": "2026-10-25T15:00:00.000Z"
+  },
+  {
+   "id": "93021020-a9bc-4fbf-a7e5-5ecd1a38fc26",
+   "session_id": "0a3009bd-af77-46f8-a50c-1f351eadfb5b",
+   "membership_id": "bd220e4e-63e3-4c08-a9d3-3294d21e3a8b",
+   "status": "attended",
    "waitlist_position": null,
    "checked_in_at": "2026-10-29T09:30:00.000Z",
    "created_at": "2026-10-27T15:00:00.000Z",
@@ -24327,40 +24307,20 @@
    "updated_at": "2026-10-27T15:00:00.000Z"
   },
   {
-   "id": "84e5a165-5e86-48fa-a30d-62d6d6315b77",
-   "session_id": "0a3009bd-af77-46f8-a50c-1f351eadfb5b",
-   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-10-29T09:30:00.000Z",
-   "created_at": "2026-10-27T15:00:00.000Z",
-   "updated_at": "2026-10-27T15:00:00.000Z"
-  },
-  {
-   "id": "93021020-a9bc-4fbf-a7e5-5ecd1a38fc26",
-   "session_id": "0a3009bd-af77-46f8-a50c-1f351eadfb5b",
-   "membership_id": "bd220e4e-63e3-4c08-a9d3-3294d21e3a8b",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-10-29T09:30:00.000Z",
-   "created_at": "2026-10-27T15:00:00.000Z",
-   "updated_at": "2026-10-27T15:00:00.000Z"
-  },
-  {
-   "id": "4f6198e3-b1e9-4977-a58a-7758377c24b4",
-   "session_id": "0a3009bd-af77-46f8-a50c-1f351eadfb5b",
-   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-10-29T09:30:00.000Z",
-   "created_at": "2026-10-27T15:00:00.000Z",
-   "updated_at": "2026-10-27T15:00:00.000Z"
-  },
-  {
-   "id": "ce5c4761-5442-45f2-ac6b-d3061f60cf03",
+   "id": "40c3dffd-caa5-4d79-ad7a-f4c73b7f4627",
    "session_id": "2fd16f69-6bbd-448f-a393-1cc1cdf96693",
-   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
    "status": "attended",
+   "waitlist_position": null,
+   "checked_in_at": "2026-10-26T22:00:00.000Z",
+   "created_at": "2026-10-24T15:00:00.000Z",
+   "updated_at": "2026-10-24T15:00:00.000Z"
+  },
+  {
+   "id": "dfb95fb6-4db4-4253-ad6f-f3e1f3829231",
+   "session_id": "2fd16f69-6bbd-448f-a393-1cc1cdf96693",
+   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
+   "status": "no_show",
    "waitlist_position": null,
    "checked_in_at": "2026-10-26T22:00:00.000Z",
    "created_at": "2026-10-24T15:00:00.000Z",
@@ -24370,16 +24330,6 @@
    "id": "0d86ed33-e498-45fa-adfe-c9cc42cf2850",
    "session_id": "2fd16f69-6bbd-448f-a393-1cc1cdf96693",
    "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-10-26T22:00:00.000Z",
-   "created_at": "2026-10-24T15:00:00.000Z",
-   "updated_at": "2026-10-24T15:00:00.000Z"
-  },
-  {
-   "id": "d899a8aa-cc71-4e43-a876-49945b5833da",
-   "session_id": "2fd16f69-6bbd-448f-a393-1cc1cdf96693",
-   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
    "status": "attended",
    "waitlist_position": null,
    "checked_in_at": "2026-10-26T22:00:00.000Z",
@@ -24397,9 +24347,19 @@
    "updated_at": "2026-10-24T15:00:00.000Z"
   },
   {
-   "id": "dfb95fb6-4db4-4253-ad6f-f3e1f3829231",
+   "id": "f177f3e8-87f3-41cc-aa38-e1686f300055",
    "session_id": "2fd16f69-6bbd-448f-a393-1cc1cdf96693",
-   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
+   "membership_id": "55354e5d-3b51-4ff4-a4d8-40acd1dee3ce",
+   "status": "attended",
+   "waitlist_position": null,
+   "checked_in_at": "2026-10-26T22:00:00.000Z",
+   "created_at": "2026-10-24T15:00:00.000Z",
+   "updated_at": "2026-10-24T15:00:00.000Z"
+  },
+  {
+   "id": "42c0214e-91a6-4f5c-a99e-897ce5fdf710",
+   "session_id": "2fd16f69-6bbd-448f-a393-1cc1cdf96693",
+   "membership_id": "bd220e4e-63e3-4c08-a9d3-3294d21e3a8b",
    "status": "attended",
    "waitlist_position": null,
    "checked_in_at": "2026-10-26T22:00:00.000Z",
@@ -24417,9 +24377,29 @@
    "updated_at": "2026-10-24T15:00:00.000Z"
   },
   {
-   "id": "06a75db2-56e7-4ac2-a0b9-296c7fd74854",
+   "id": "4508d772-6c6f-4b21-af07-2d5ddb231a64",
    "session_id": "e1da435a-03f4-42ca-aca6-b7746700046b",
-   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
+   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "status": "attended",
+   "waitlist_position": null,
+   "checked_in_at": "2026-10-28T22:00:00.000Z",
+   "created_at": "2026-10-26T15:00:00.000Z",
+   "updated_at": "2026-10-26T15:00:00.000Z"
+  },
+  {
+   "id": "1a8bea62-bd92-4f54-acc2-65624a1652cb",
+   "session_id": "e1da435a-03f4-42ca-aca6-b7746700046b",
+   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
+   "status": "attended",
+   "waitlist_position": null,
+   "checked_in_at": "2026-10-28T22:00:00.000Z",
+   "created_at": "2026-10-26T15:00:00.000Z",
+   "updated_at": "2026-10-26T15:00:00.000Z"
+  },
+  {
+   "id": "8a3aaebf-89e8-48ce-a936-9cf35c32436c",
+   "session_id": "e1da435a-03f4-42ca-aca6-b7746700046b",
+   "membership_id": "bd220e4e-63e3-4c08-a9d3-3294d21e3a8b",
    "status": "attended",
    "waitlist_position": null,
    "checked_in_at": "2026-10-28T22:00:00.000Z",
@@ -24437,6 +24417,16 @@
    "updated_at": "2026-10-26T15:00:00.000Z"
   },
   {
+   "id": "ce46a291-d534-4b63-a340-df3623877c17",
+   "session_id": "e1da435a-03f4-42ca-aca6-b7746700046b",
+   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
+   "status": "attended",
+   "waitlist_position": null,
+   "checked_in_at": "2026-10-28T22:00:00.000Z",
+   "created_at": "2026-10-26T15:00:00.000Z",
+   "updated_at": "2026-10-26T15:00:00.000Z"
+  },
+  {
    "id": "c9ac8f1b-347c-4c75-a147-5e2eb85457f3",
    "session_id": "e1da435a-03f4-42ca-aca6-b7746700046b",
    "membership_id": "55354e5d-3b51-4ff4-a4d8-40acd1dee3ce",
@@ -24445,16 +24435,6 @@
    "checked_in_at": "2026-10-28T22:00:00.000Z",
    "created_at": "2026-10-26T15:00:00.000Z",
    "updated_at": "2026-10-26T15:00:00.000Z"
-  },
-  {
-   "id": "1d27f56f-261b-4fb4-a7aa-8f647a1399fb",
-   "session_id": "3f1c7475-b872-4673-a3fc-3d0937fc46c8",
-   "membership_id": "31d2d3dd-9c91-47ee-a337-04286ebc0dae",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-10-26T10:00:00.000Z",
-   "created_at": "2026-10-24T15:00:00.000Z",
-   "updated_at": "2026-10-24T15:00:00.000Z"
   },
   {
    "id": "0f40423d-82ca-4931-aa0a-74a47547babc",
@@ -24467,9 +24447,19 @@
    "updated_at": "2026-10-24T15:00:00.000Z"
   },
   {
-   "id": "708644b7-7cf3-4492-a054-4712d592235d",
+   "id": "fb0aad86-6011-4c51-a70c-4524fcd34f2c",
+   "session_id": "3f1c7475-b872-4673-a3fc-3d0937fc46c8",
+   "membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
+   "status": "attended",
+   "waitlist_position": null,
+   "checked_in_at": "2026-10-26T10:00:00.000Z",
+   "created_at": "2026-10-24T15:00:00.000Z",
+   "updated_at": "2026-10-24T15:00:00.000Z"
+  },
+  {
+   "id": "2b350b03-91af-4934-a2ec-ba105d6e5926",
    "session_id": "76f248e6-e70b-4247-aee1-52afd0cdcfb8",
-   "membership_id": "4afae9fb-a0e5-4865-a5d7-fdf42275c4a3",
+   "membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
    "status": "attended",
    "waitlist_position": null,
    "checked_in_at": "2026-10-28T10:00:00.000Z",
@@ -24477,24 +24467,14 @@
    "updated_at": "2026-10-26T15:00:00.000Z"
   },
   {
-   "id": "251099f4-fbf5-484b-ab4a-8a5f57551c64",
+   "id": "ba68864d-77f6-4f27-a136-edc330b823f9",
    "session_id": "76f248e6-e70b-4247-aee1-52afd0cdcfb8",
-   "membership_id": "29cb433b-c2a8-438b-a931-6847f9b63f24",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-10-28T10:00:00.000Z",
-   "created_at": "2026-10-26T15:00:00.000Z",
-   "updated_at": "2026-10-26T15:00:00.000Z"
-  },
-  {
-   "id": "e2d7173a-11c2-47a6-a771-7a1132394126",
-   "session_id": "b918aa70-c871-4389-a319-c04aa2643ed2",
    "membership_id": "31d2d3dd-9c91-47ee-a337-04286ebc0dae",
    "status": "attended",
    "waitlist_position": null,
-   "checked_in_at": "2026-10-27T22:30:00.000Z",
-   "created_at": "2026-10-25T15:00:00.000Z",
-   "updated_at": "2026-10-25T15:00:00.000Z"
+   "checked_in_at": "2026-10-28T10:00:00.000Z",
+   "created_at": "2026-10-26T15:00:00.000Z",
+   "updated_at": "2026-10-26T15:00:00.000Z"
   },
   {
    "id": "14a18257-40d0-48ae-af9b-ad9310fb65c7",
@@ -24517,6 +24497,16 @@
    "updated_at": "2026-10-25T15:00:00.000Z"
   },
   {
+   "id": "d362edba-7c5c-4b76-a8bf-5fe93444b953",
+   "session_id": "b918aa70-c871-4389-a319-c04aa2643ed2",
+   "membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
+   "status": "attended",
+   "waitlist_position": null,
+   "checked_in_at": "2026-10-27T22:30:00.000Z",
+   "created_at": "2026-10-25T15:00:00.000Z",
+   "updated_at": "2026-10-25T15:00:00.000Z"
+  },
+  {
    "id": "289782af-8411-44be-a1d2-1f3621ed4de3",
    "session_id": "dde739b2-fe00-4200-a511-aa549bb3b02e",
    "membership_id": "c16e3553-4fef-4eb8-a1c7-12d23739d9f8",
@@ -24527,9 +24517,9 @@
    "updated_at": "2026-10-27T15:00:00.000Z"
   },
   {
-   "id": "2148dd11-0124-424b-a7ed-aaaafcdcc6a1",
+   "id": "2c825f61-ba03-4646-a2be-6c537c35a1e6",
    "session_id": "dde739b2-fe00-4200-a511-aa549bb3b02e",
-   "membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
+   "membership_id": "3d7e10ff-b1da-4909-a60d-8d941a81ea99",
    "status": "attended",
    "waitlist_position": null,
    "checked_in_at": "2026-10-29T22:30:00.000Z",
@@ -24537,29 +24527,9 @@
    "updated_at": "2026-10-27T15:00:00.000Z"
   },
   {
-   "id": "b8a79512-0a98-4adf-a82c-a263916590ae",
-   "session_id": "dde739b2-fe00-4200-a511-aa549bb3b02e",
-   "membership_id": "31d2d3dd-9c91-47ee-a337-04286ebc0dae",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-10-29T22:30:00.000Z",
-   "created_at": "2026-10-27T15:00:00.000Z",
-   "updated_at": "2026-10-27T15:00:00.000Z"
-  },
-  {
-   "id": "80e20605-d35d-4681-a0f2-0b4635b65a6f",
-   "session_id": "dde739b2-fe00-4200-a511-aa549bb3b02e",
-   "membership_id": "29cb433b-c2a8-438b-a931-6847f9b63f24",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-10-29T22:30:00.000Z",
-   "created_at": "2026-10-27T15:00:00.000Z",
-   "updated_at": "2026-10-27T15:00:00.000Z"
-  },
-  {
-   "id": "2a0a1a41-986c-47a2-afa8-965b0c2005cf",
+   "id": "5bc674be-d366-484f-a524-6403cb98c4be",
    "session_id": "e67fe680-bc89-487a-af2c-58c9991390fc",
-   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -24577,9 +24547,19 @@
    "updated_at": "2026-11-01T15:00:00.000Z"
   },
   {
-   "id": "b61e8653-3dcd-4b5e-afea-8844e26003af",
+   "id": "fdcabe91-248e-4594-a360-283d03aa4108",
    "session_id": "e67fe680-bc89-487a-af2c-58c9991390fc",
-   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
+   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-01T15:00:00.000Z",
+   "updated_at": "2026-11-01T15:00:00.000Z"
+  },
+  {
+   "id": "931f21f9-69b4-445a-a032-5a0948bea336",
+   "session_id": "e67fe680-bc89-487a-af2c-58c9991390fc",
+   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -24597,9 +24577,19 @@
    "updated_at": "2026-11-01T15:00:00.000Z"
   },
   {
-   "id": "00d6ecf3-bbab-4acb-a253-898be6d32e6a",
+   "id": "98e1d31a-90c4-4040-aa21-a0f15b845eb2",
+   "session_id": "e67fe680-bc89-487a-af2c-58c9991390fc",
+   "membership_id": "bd220e4e-63e3-4c08-a9d3-3294d21e3a8b",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-01T15:00:00.000Z",
+   "updated_at": "2026-11-01T15:00:00.000Z"
+  },
+  {
+   "id": "6b390ac6-df94-41f0-a753-c59bf10a5bd4",
    "session_id": "037c4071-5972-47df-a265-8b169eb24667",
-   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
+   "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -24607,80 +24597,20 @@
    "updated_at": "2026-11-03T15:00:00.000Z"
   },
   {
-   "id": "cf9e7360-a641-45cd-a489-1ba1a24fb250",
+   "id": "2e4a420e-5652-4500-a205-8df20b7913dc",
    "session_id": "037c4071-5972-47df-a265-8b169eb24667",
-   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
+   "membership_id": "bd220e4e-63e3-4c08-a9d3-3294d21e3a8b",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
    "created_at": "2026-11-03T15:00:00.000Z",
    "updated_at": "2026-11-03T15:00:00.000Z"
-  },
-  {
-   "id": "c5e03ab8-cd0b-4da8-a67b-aa229cb1084b",
-   "session_id": "037c4071-5972-47df-a265-8b169eb24667",
-   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-03T15:00:00.000Z",
-   "updated_at": "2026-11-03T15:00:00.000Z"
-  },
-  {
-   "id": "82659383-97a4-405d-ab92-bf28a172a9d8",
-   "session_id": "037c4071-5972-47df-a265-8b169eb24667",
-   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-03T15:00:00.000Z",
-   "updated_at": "2026-11-03T15:00:00.000Z"
-  },
-  {
-   "id": "c6160c97-2b15-4ee0-ad3f-9edea4e80cda",
-   "session_id": "7f26b17b-735a-4c57-a6b3-c8a0c44b021f",
-   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-11-02T22:00:00.000Z",
-   "created_at": "2026-10-31T15:00:00.000Z",
-   "updated_at": "2026-10-31T15:00:00.000Z"
   },
   {
    "id": "03b67298-fa4f-4e0b-af73-7c255c38150b",
    "session_id": "7f26b17b-735a-4c57-a6b3-c8a0c44b021f",
    "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
    "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-11-02T22:00:00.000Z",
-   "created_at": "2026-10-31T15:00:00.000Z",
-   "updated_at": "2026-10-31T15:00:00.000Z"
-  },
-  {
-   "id": "0f98eef0-bd28-42ce-a3d6-291e0f28932b",
-   "session_id": "7f26b17b-735a-4c57-a6b3-c8a0c44b021f",
-   "membership_id": "bd220e4e-63e3-4c08-a9d3-3294d21e3a8b",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-11-02T22:00:00.000Z",
-   "created_at": "2026-10-31T15:00:00.000Z",
-   "updated_at": "2026-10-31T15:00:00.000Z"
-  },
-  {
-   "id": "980a4598-bd4c-4d51-a485-d3a7811ccfb7",
-   "session_id": "7f26b17b-735a-4c57-a6b3-c8a0c44b021f",
-   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
-   "status": "attended",
-   "waitlist_position": null,
-   "checked_in_at": "2026-11-02T22:00:00.000Z",
-   "created_at": "2026-10-31T15:00:00.000Z",
-   "updated_at": "2026-10-31T15:00:00.000Z"
-  },
-  {
-   "id": "328a8a76-1b32-4034-a860-40ec0c226e32",
-   "session_id": "7f26b17b-735a-4c57-a6b3-c8a0c44b021f",
-   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
-   "status": "no_show",
    "waitlist_position": null,
    "checked_in_at": "2026-11-02T22:00:00.000Z",
    "created_at": "2026-10-31T15:00:00.000Z",
@@ -24697,36 +24627,6 @@
    "updated_at": "2026-10-31T15:00:00.000Z"
   },
   {
-   "id": "9db05197-a21a-4744-a4dc-43036f8da114",
-   "session_id": "28abc825-9eb3-4368-a3ea-74f52e12dffe",
-   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-02T15:00:00.000Z",
-   "updated_at": "2026-11-02T15:00:00.000Z"
-  },
-  {
-   "id": "f28a051b-e36c-4750-a583-d787ce331cda",
-   "session_id": "28abc825-9eb3-4368-a3ea-74f52e12dffe",
-   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-02T15:00:00.000Z",
-   "updated_at": "2026-11-02T15:00:00.000Z"
-  },
-  {
-   "id": "80f0111f-9d9c-4ec4-a423-97d2dc5bd1a0",
-   "session_id": "28abc825-9eb3-4368-a3ea-74f52e12dffe",
-   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-02T15:00:00.000Z",
-   "updated_at": "2026-11-02T15:00:00.000Z"
-  },
-  {
    "id": "b7963aa3-93e1-4071-a7d8-1de4aea129fa",
    "session_id": "28abc825-9eb3-4368-a3ea-74f52e12dffe",
    "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
@@ -24737,9 +24637,29 @@
    "updated_at": "2026-11-02T15:00:00.000Z"
   },
   {
-   "id": "11272369-3780-4f46-a5a6-4e7e3d037eef",
+   "id": "91202b8d-12ce-4a14-ad7b-fb37b0c3c2f4",
+   "session_id": "28abc825-9eb3-4368-a3ea-74f52e12dffe",
+   "membership_id": "55354e5d-3b51-4ff4-a4d8-40acd1dee3ce",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-02T15:00:00.000Z",
+   "updated_at": "2026-11-02T15:00:00.000Z"
+  },
+  {
+   "id": "29a7f540-7d9f-42eb-a100-9770fe8bdcf2",
+   "session_id": "28abc825-9eb3-4368-a3ea-74f52e12dffe",
+   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-02T15:00:00.000Z",
+   "updated_at": "2026-11-02T15:00:00.000Z"
+  },
+  {
+   "id": "7c8c78af-d49e-4059-a8c3-27f272a8cb5f",
    "session_id": "8aef2c88-6087-4ee6-acfc-0a6d2b2819cd",
-   "membership_id": "29cb433b-c2a8-438b-a931-6847f9b63f24",
+   "membership_id": "31d2d3dd-9c91-47ee-a337-04286ebc0dae",
    "status": "attended",
    "waitlist_position": null,
    "checked_in_at": "2026-11-02T10:00:00.000Z",
@@ -24817,19 +24737,9 @@
    "updated_at": "2026-11-02T15:00:00.000Z"
   },
   {
-   "id": "0b9e6940-0245-4fe6-adce-973156e49f90",
+   "id": "0ac352a3-2e6c-4916-a056-404d771b4e60",
    "session_id": "e788e72a-fbbf-4ba0-a34a-153c93f061b5",
-   "membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-01T15:00:00.000Z",
-   "updated_at": "2026-11-01T15:00:00.000Z"
-  },
-  {
-   "id": "95f590f4-292d-46c3-a45c-6ec5ab914617",
-   "session_id": "e788e72a-fbbf-4ba0-a34a-153c93f061b5",
-   "membership_id": "3d7e10ff-b1da-4909-a60d-8d941a81ea99",
+   "membership_id": "4afae9fb-a0e5-4865-a5d7-fdf42275c4a3",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -24847,6 +24757,26 @@
    "updated_at": "2026-11-01T15:00:00.000Z"
   },
   {
+   "id": "95f590f4-292d-46c3-a45c-6ec5ab914617",
+   "session_id": "e788e72a-fbbf-4ba0-a34a-153c93f061b5",
+   "membership_id": "3d7e10ff-b1da-4909-a60d-8d941a81ea99",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-01T15:00:00.000Z",
+   "updated_at": "2026-11-01T15:00:00.000Z"
+  },
+  {
+   "id": "119d963c-6851-468d-a163-3fb1adc8ade0",
+   "session_id": "4c940d12-30fa-4fad-aab8-bbc37fc8539c",
+   "membership_id": "29cb433b-c2a8-438b-a931-6847f9b63f24",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-03T15:00:00.000Z",
+   "updated_at": "2026-11-03T15:00:00.000Z"
+  },
+  {
    "id": "5269a2b6-3b89-4f75-aeec-b9c5dded1c7a",
    "session_id": "4c940d12-30fa-4fad-aab8-bbc37fc8539c",
    "membership_id": "c16e3553-4fef-4eb8-a1c7-12d23739d9f8",
@@ -24857,19 +24787,9 @@
    "updated_at": "2026-11-03T15:00:00.000Z"
   },
   {
-   "id": "33b2e8ee-b299-4e91-ac6a-c358b55dda7e",
+   "id": "dd4a951a-27a3-4b40-a147-5101db06892c",
    "session_id": "4c940d12-30fa-4fad-aab8-bbc37fc8539c",
-   "membership_id": "4afae9fb-a0e5-4865-a5d7-fdf42275c4a3",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-03T15:00:00.000Z",
-   "updated_at": "2026-11-03T15:00:00.000Z"
-  },
-  {
-   "id": "119d963c-6851-468d-a163-3fb1adc8ade0",
-   "session_id": "4c940d12-30fa-4fad-aab8-bbc37fc8539c",
-   "membership_id": "29cb433b-c2a8-438b-a931-6847f9b63f24",
+   "membership_id": "31d2d3dd-9c91-47ee-a337-04286ebc0dae",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -24887,9 +24807,9 @@
    "updated_at": "2026-11-08T15:00:00.000Z"
   },
   {
-   "id": "6657cb0e-e59d-4a9a-a064-7226c544123c",
+   "id": "589666d8-6551-4882-afaa-3e2768e9bdca",
    "session_id": "845a71ac-9a41-48eb-a293-07fdb6be5d20",
-   "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
+   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -24907,29 +24827,29 @@
    "updated_at": "2026-11-08T15:00:00.000Z"
   },
   {
-   "id": "816fd707-d3df-4932-a485-60c4bed964ea",
-   "session_id": "887891f2-4756-46f4-a761-00322d959940",
-   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-10T15:00:00.000Z",
-   "updated_at": "2026-11-10T15:00:00.000Z"
-  },
-  {
-   "id": "03da040d-6324-4914-ad79-48bd9a47c126",
-   "session_id": "887891f2-4756-46f4-a761-00322d959940",
-   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-10T15:00:00.000Z",
-   "updated_at": "2026-11-10T15:00:00.000Z"
-  },
-  {
-   "id": "7eba74f7-e064-4de4-a100-7cf23de7b561",
-   "session_id": "887891f2-4756-46f4-a761-00322d959940",
+   "id": "6657cb0e-e59d-4a9a-a064-7226c544123c",
+   "session_id": "845a71ac-9a41-48eb-a293-07fdb6be5d20",
    "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-08T15:00:00.000Z",
+   "updated_at": "2026-11-08T15:00:00.000Z"
+  },
+  {
+   "id": "f3e611fe-6d58-4da2-a926-325663b50f0b",
+   "session_id": "845a71ac-9a41-48eb-a293-07fdb6be5d20",
+   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-08T15:00:00.000Z",
+   "updated_at": "2026-11-08T15:00:00.000Z"
+  },
+  {
+   "id": "966d4102-b4f4-47f8-a1d8-19358ffe526e",
+   "session_id": "887891f2-4756-46f4-a761-00322d959940",
+   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -24947,9 +24867,9 @@
    "updated_at": "2026-11-10T15:00:00.000Z"
   },
   {
-   "id": "58d105ca-9c6d-43a9-ae7b-b1102d2625f4",
+   "id": "816fd707-d3df-4932-a485-60c4bed964ea",
    "session_id": "887891f2-4756-46f4-a761-00322d959940",
-   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
+   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -24957,9 +24877,9 @@
    "updated_at": "2026-11-10T15:00:00.000Z"
   },
   {
-   "id": "a7b05142-3540-4668-acce-9f850c9e7174",
+   "id": "7eba74f7-e064-4de4-a100-7cf23de7b561",
    "session_id": "887891f2-4756-46f4-a761-00322d959940",
-   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
+   "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -24967,9 +24887,19 @@
    "updated_at": "2026-11-10T15:00:00.000Z"
   },
   {
-   "id": "2200c5de-a752-4e0f-a1d3-d91881969802",
+   "id": "ecee4d1e-5d6a-425a-aedb-9a9c37f0cfb5",
    "session_id": "be83a02b-1d12-4455-ab72-2623a541c678",
-   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-07T15:00:00.000Z",
+   "updated_at": "2026-11-07T15:00:00.000Z"
+  },
+  {
+   "id": "5ceda70c-3b1c-4b10-a4b3-f61cb3a7e88c",
+   "session_id": "be83a02b-1d12-4455-ab72-2623a541c678",
+   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -24987,16 +24917,6 @@
    "updated_at": "2026-11-07T15:00:00.000Z"
   },
   {
-   "id": "ecee4d1e-5d6a-425a-aedb-9a9c37f0cfb5",
-   "session_id": "be83a02b-1d12-4455-ab72-2623a541c678",
-   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-07T15:00:00.000Z",
-   "updated_at": "2026-11-07T15:00:00.000Z"
-  },
-  {
    "id": "3e5f41a4-7d15-4689-a927-0265a6ad15d4",
    "session_id": "be83a02b-1d12-4455-ab72-2623a541c678",
    "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
@@ -25007,14 +24927,24 @@
    "updated_at": "2026-11-07T15:00:00.000Z"
   },
   {
-   "id": "a8dda499-2997-4709-a747-6fee1f73c15b",
-   "session_id": "fb0d3de8-c5e3-42f6-ab80-19a2f3f3d548",
-   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
+   "id": "20d7a25a-662e-432f-a081-966cb3e6c9fc",
+   "session_id": "be83a02b-1d12-4455-ab72-2623a541c678",
+   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
-   "created_at": "2026-11-09T15:00:00.000Z",
-   "updated_at": "2026-11-09T15:00:00.000Z"
+   "created_at": "2026-11-07T15:00:00.000Z",
+   "updated_at": "2026-11-07T15:00:00.000Z"
+  },
+  {
+   "id": "7a80d801-d77b-49a5-aef5-c02ff1c135fc",
+   "session_id": "be83a02b-1d12-4455-ab72-2623a541c678",
+   "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-07T15:00:00.000Z",
+   "updated_at": "2026-11-07T15:00:00.000Z"
   },
   {
    "id": "80252f34-9492-4073-a838-1a7616b1a629",
@@ -25027,9 +24957,9 @@
    "updated_at": "2026-11-09T15:00:00.000Z"
   },
   {
-   "id": "6075c4cd-e3b1-4ccd-a7f2-e7c45d2dbab6",
+   "id": "14d51c41-3e64-4986-a193-843acc9fc604",
    "session_id": "fb0d3de8-c5e3-42f6-ab80-19a2f3f3d548",
-   "membership_id": "55354e5d-3b51-4ff4-a4d8-40acd1dee3ce",
+   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25037,9 +24967,9 @@
    "updated_at": "2026-11-09T15:00:00.000Z"
   },
   {
-   "id": "842eba53-c07f-4d9d-accf-98e5ba972a76",
+   "id": "98fa3591-12a7-4880-a934-bb59ec8fa1e3",
    "session_id": "fb0d3de8-c5e3-42f6-ab80-19a2f3f3d548",
-   "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
+   "membership_id": "bd220e4e-63e3-4c08-a9d3-3294d21e3a8b",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25047,9 +24977,9 @@
    "updated_at": "2026-11-09T15:00:00.000Z"
   },
   {
-   "id": "34874d7c-06e3-4e69-addc-2e434598d936",
+   "id": "d4a9a9c3-5434-4039-aa1e-ab26b1cda391",
    "session_id": "fb0d3de8-c5e3-42f6-ab80-19a2f3f3d548",
-   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
+   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25057,9 +24987,9 @@
    "updated_at": "2026-11-09T15:00:00.000Z"
   },
   {
-   "id": "4db4d86a-ce06-44d6-ad1c-e8be0c36d714",
+   "id": "35c13e2d-fcc1-4f99-a72b-1909b96e45dd",
    "session_id": "6a2ef35b-2f25-4114-a81b-e4719f675d32",
-   "membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
+   "membership_id": "c16e3553-4fef-4eb8-a1c7-12d23739d9f8",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25077,14 +25007,24 @@
    "updated_at": "2026-11-07T15:00:00.000Z"
   },
   {
-   "id": "0bd15056-4765-4d82-a8a5-dff6345b4137",
+   "id": "4db4d86a-ce06-44d6-ad1c-e8be0c36d714",
    "session_id": "6a2ef35b-2f25-4114-a81b-e4719f675d32",
-   "membership_id": "4afae9fb-a0e5-4865-a5d7-fdf42275c4a3",
+   "membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
    "created_at": "2026-11-07T15:00:00.000Z",
    "updated_at": "2026-11-07T15:00:00.000Z"
+  },
+  {
+   "id": "f1e35f34-41e8-412f-a803-0ca4c970a6ed",
+   "session_id": "dd2b7220-2069-4cda-a41d-c3b74d2479b6",
+   "membership_id": "29cb433b-c2a8-438b-a931-6847f9b63f24",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-09T15:00:00.000Z",
+   "updated_at": "2026-11-09T15:00:00.000Z"
   },
   {
    "id": "603a4711-3307-46e3-ad48-cea4cda1cb6a",
@@ -25097,24 +25037,14 @@
    "updated_at": "2026-11-09T15:00:00.000Z"
   },
   {
-   "id": "7eb0b378-077c-4f85-aca2-2e758a1ec016",
+   "id": "46c48aec-3710-4907-a1e0-b95edb73f7b2",
    "session_id": "dd2b7220-2069-4cda-a41d-c3b74d2479b6",
-   "membership_id": "c16e3553-4fef-4eb8-a1c7-12d23739d9f8",
+   "membership_id": "4afae9fb-a0e5-4865-a5d7-fdf42275c4a3",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
    "created_at": "2026-11-09T15:00:00.000Z",
    "updated_at": "2026-11-09T15:00:00.000Z"
-  },
-  {
-   "id": "333ed36c-261e-4f20-a69e-f21bf55046d4",
-   "session_id": "2fc8c898-5f89-4ed0-a0fc-ff90454dc6ad",
-   "membership_id": "31d2d3dd-9c91-47ee-a337-04286ebc0dae",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-08T15:00:00.000Z",
-   "updated_at": "2026-11-08T15:00:00.000Z"
   },
   {
    "id": "7631558d-7d46-4b45-a71f-73fd0ff35ef8",
@@ -25127,14 +25057,44 @@
    "updated_at": "2026-11-08T15:00:00.000Z"
   },
   {
-   "id": "434ee98f-c049-418a-a4de-b9b1cf59941e",
+   "id": "6f8fe736-f68a-4c37-a4f0-1c81dcffc01b",
    "session_id": "2fc8c898-5f89-4ed0-a0fc-ff90454dc6ad",
-   "membership_id": "4afae9fb-a0e5-4865-a5d7-fdf42275c4a3",
+   "membership_id": "c16e3553-4fef-4eb8-a1c7-12d23739d9f8",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
    "created_at": "2026-11-08T15:00:00.000Z",
    "updated_at": "2026-11-08T15:00:00.000Z"
+  },
+  {
+   "id": "740542c3-87fc-4619-afed-85a6edb87bd5",
+   "session_id": "c72967ec-39d6-41dd-a899-95eb30c80237",
+   "membership_id": "29cb433b-c2a8-438b-a931-6847f9b63f24",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-10T15:00:00.000Z",
+   "updated_at": "2026-11-10T15:00:00.000Z"
+  },
+  {
+   "id": "886aa6bb-f241-461c-a07b-3dfc734f0d5f",
+   "session_id": "c72967ec-39d6-41dd-a899-95eb30c80237",
+   "membership_id": "31d2d3dd-9c91-47ee-a337-04286ebc0dae",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-10T15:00:00.000Z",
+   "updated_at": "2026-11-10T15:00:00.000Z"
+  },
+  {
+   "id": "ae628938-d7c5-4754-a12b-04ff5ee73507",
+   "session_id": "c72967ec-39d6-41dd-a899-95eb30c80237",
+   "membership_id": "c16e3553-4fef-4eb8-a1c7-12d23739d9f8",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-10T15:00:00.000Z",
+   "updated_at": "2026-11-10T15:00:00.000Z"
   },
   {
    "id": "6a4ae612-5240-4b83-a987-a94a5b051c5c",
@@ -25147,39 +25107,9 @@
    "updated_at": "2026-11-10T15:00:00.000Z"
   },
   {
-   "id": "4a55b6a9-ed17-436b-a58c-9f2331573475",
-   "session_id": "c72967ec-39d6-41dd-a899-95eb30c80237",
-   "membership_id": "4afae9fb-a0e5-4865-a5d7-fdf42275c4a3",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-10T15:00:00.000Z",
-   "updated_at": "2026-11-10T15:00:00.000Z"
-  },
-  {
-   "id": "70d25f5d-44a5-47ea-a1c6-67153b2602cb",
+   "id": "c9cdf9a4-f8d3-436c-abbc-c6ed48d5ebe9",
    "session_id": "7ab1c4a4-9bc6-44f6-a697-ebc11fd7dd38",
-   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-15T15:00:00.000Z",
-   "updated_at": "2026-11-15T15:00:00.000Z"
-  },
-  {
-   "id": "db8dcf4f-f87b-4f8b-a773-5aaec3b7eb49",
-   "session_id": "7ab1c4a4-9bc6-44f6-a697-ebc11fd7dd38",
-   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-15T15:00:00.000Z",
-   "updated_at": "2026-11-15T15:00:00.000Z"
-  },
-  {
-   "id": "c908520f-21fd-4379-a724-f67466650d24",
-   "session_id": "7ab1c4a4-9bc6-44f6-a697-ebc11fd7dd38",
-   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25197,29 +25127,29 @@
    "updated_at": "2026-11-15T15:00:00.000Z"
   },
   {
-   "id": "c9cdf9a4-f8d3-436c-abbc-c6ed48d5ebe9",
+   "id": "c908520f-21fd-4379-a724-f67466650d24",
    "session_id": "7ab1c4a4-9bc6-44f6-a697-ebc11fd7dd38",
-   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-15T15:00:00.000Z",
-   "updated_at": "2026-11-15T15:00:00.000Z"
-  },
-  {
-   "id": "d6ca221b-fba7-45cf-aed4-949819f3327b",
-   "session_id": "7ab1c4a4-9bc6-44f6-a697-ebc11fd7dd38",
-   "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-15T15:00:00.000Z",
-   "updated_at": "2026-11-15T15:00:00.000Z"
-  },
-  {
-   "id": "668d2336-e420-4a33-a383-92255cc0b902",
-   "session_id": "9ab170f8-aba5-4cbb-a7d4-529db3229caf",
    "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-15T15:00:00.000Z",
+   "updated_at": "2026-11-15T15:00:00.000Z"
+  },
+  {
+   "id": "c3410b96-f74a-4bee-af5d-373a364d1a03",
+   "session_id": "7ab1c4a4-9bc6-44f6-a697-ebc11fd7dd38",
+   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-15T15:00:00.000Z",
+   "updated_at": "2026-11-15T15:00:00.000Z"
+  },
+  {
+   "id": "e54a6e0c-0557-42ea-a8fa-e6d8df7b0cc9",
+   "session_id": "9ab170f8-aba5-4cbb-a7d4-529db3229caf",
+   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25227,9 +25157,39 @@
    "updated_at": "2026-11-17T15:00:00.000Z"
   },
   {
-   "id": "e54a6e0c-0557-42ea-a8fa-e6d8df7b0cc9",
+   "id": "22556360-222d-41f2-aa54-10dc887e01ef",
    "session_id": "9ab170f8-aba5-4cbb-a7d4-529db3229caf",
-   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
+   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-17T15:00:00.000Z",
+   "updated_at": "2026-11-17T15:00:00.000Z"
+  },
+  {
+   "id": "d4e18449-fedd-4c68-a086-2e56289e527f",
+   "session_id": "9ab170f8-aba5-4cbb-a7d4-529db3229caf",
+   "membership_id": "bd220e4e-63e3-4c08-a9d3-3294d21e3a8b",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-17T15:00:00.000Z",
+   "updated_at": "2026-11-17T15:00:00.000Z"
+  },
+  {
+   "id": "924e4759-1851-48bd-a899-ca695c133b23",
+   "session_id": "9ab170f8-aba5-4cbb-a7d4-529db3229caf",
+   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-17T15:00:00.000Z",
+   "updated_at": "2026-11-17T15:00:00.000Z"
+  },
+  {
+   "id": "668d2336-e420-4a33-a383-92255cc0b902",
+   "session_id": "9ab170f8-aba5-4cbb-a7d4-529db3229caf",
+   "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25247,16 +25207,6 @@
    "updated_at": "2026-11-17T15:00:00.000Z"
   },
   {
-   "id": "28def5e8-d341-46ec-a98b-8b0f3e77bb40",
-   "session_id": "28b64fc6-f102-414e-a082-fa28d1e12441",
-   "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-14T15:00:00.000Z",
-   "updated_at": "2026-11-14T15:00:00.000Z"
-  },
-  {
    "id": "73d385ea-b0d6-45e1-a65f-5a689ef7d6c2",
    "session_id": "28b64fc6-f102-414e-a082-fa28d1e12441",
    "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
@@ -25267,9 +25217,9 @@
    "updated_at": "2026-11-14T15:00:00.000Z"
   },
   {
-   "id": "b963fe0b-728b-457d-a1c3-27d148163ca3",
+   "id": "2888a8d1-e634-46f4-acb4-5e9ac2fcdfb3",
    "session_id": "28b64fc6-f102-414e-a082-fa28d1e12441",
-   "membership_id": "55354e5d-3b51-4ff4-a4d8-40acd1dee3ce",
+   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25277,19 +25227,49 @@
    "updated_at": "2026-11-14T15:00:00.000Z"
   },
   {
-   "id": "fea77f90-257a-4d39-a64e-4c56e6238589",
-   "session_id": "9786be4f-e855-448a-aa8c-5406859c6bca",
+   "id": "fd482bed-ae4f-4535-a0f0-cb0a6abd9881",
+   "session_id": "28b64fc6-f102-414e-a082-fa28d1e12441",
    "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
-   "created_at": "2026-11-16T15:00:00.000Z",
-   "updated_at": "2026-11-16T15:00:00.000Z"
+   "created_at": "2026-11-14T15:00:00.000Z",
+   "updated_at": "2026-11-14T15:00:00.000Z"
   },
   {
-   "id": "1e2c6b93-4498-412a-ad53-bd0fdccce46d",
+   "id": "28def5e8-d341-46ec-a98b-8b0f3e77bb40",
+   "session_id": "28b64fc6-f102-414e-a082-fa28d1e12441",
+   "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-14T15:00:00.000Z",
+   "updated_at": "2026-11-14T15:00:00.000Z"
+  },
+  {
+   "id": "210d7fec-aa25-4bf8-a02f-213fc47ddbf5",
+   "session_id": "28b64fc6-f102-414e-a082-fa28d1e12441",
+   "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-14T15:00:00.000Z",
+   "updated_at": "2026-11-14T15:00:00.000Z"
+  },
+  {
+   "id": "65ee11bc-c125-4af7-a2a5-79f087864e03",
+   "session_id": "28b64fc6-f102-414e-a082-fa28d1e12441",
+   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-14T15:00:00.000Z",
+   "updated_at": "2026-11-14T15:00:00.000Z"
+  },
+  {
+   "id": "f7deea16-89a4-4a58-a544-aa85427de5f8",
    "session_id": "9786be4f-e855-448a-aa8c-5406859c6bca",
-   "membership_id": "bea9cc5c-1829-4fae-ab31-5554c639a6c6",
+   "membership_id": "0609a71d-1110-4f92-a7e0-7b3e0ac5828e",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25297,9 +25277,19 @@
    "updated_at": "2026-11-16T15:00:00.000Z"
   },
   {
-   "id": "e683e733-ac57-4f46-a2d0-05988a5870c9",
+   "id": "0e855854-8e30-42f3-a714-672539716449",
    "session_id": "9786be4f-e855-448a-aa8c-5406859c6bca",
-   "membership_id": "55354e5d-3b51-4ff4-a4d8-40acd1dee3ce",
+   "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-16T15:00:00.000Z",
+   "updated_at": "2026-11-16T15:00:00.000Z"
+  },
+  {
+   "id": "a8ee4a29-7dd0-4646-a8a3-95dd58bb445d",
+   "session_id": "9786be4f-e855-448a-aa8c-5406859c6bca",
+   "membership_id": "0eb1a9fa-164a-461a-a101-26a3b34548b6",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25317,9 +25307,19 @@
    "updated_at": "2026-11-16T15:00:00.000Z"
   },
   {
-   "id": "c33cba79-89f0-4f71-a1d1-a4b9a7c344df",
+   "id": "6efaafda-9034-4453-a10f-4a247de168d0",
+   "session_id": "9786be4f-e855-448a-aa8c-5406859c6bca",
+   "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-16T15:00:00.000Z",
+   "updated_at": "2026-11-16T15:00:00.000Z"
+  },
+  {
+   "id": "1b3eb153-234a-458a-a7c7-6297126aaae2",
    "session_id": "193b94eb-fc96-4c51-ab0f-1a11fa2e396c",
-   "membership_id": "3d7e10ff-b1da-4909-a60d-8d941a81ea99",
+   "membership_id": "c16e3553-4fef-4eb8-a1c7-12d23739d9f8",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25337,6 +25337,26 @@
    "updated_at": "2026-11-14T15:00:00.000Z"
   },
   {
+   "id": "b9411c6b-14ad-471a-ad67-b941b6c568a1",
+   "session_id": "193b94eb-fc96-4c51-ab0f-1a11fa2e396c",
+   "membership_id": "29cb433b-c2a8-438b-a931-6847f9b63f24",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-14T15:00:00.000Z",
+   "updated_at": "2026-11-14T15:00:00.000Z"
+  },
+  {
+   "id": "ba11ebed-dc5c-4021-af0f-641ec4f17c12",
+   "session_id": "8c30aeb5-4bb6-45ed-aadc-e28635fb5431",
+   "membership_id": "c16e3553-4fef-4eb8-a1c7-12d23739d9f8",
+   "status": "booked",
+   "waitlist_position": null,
+   "checked_in_at": null,
+   "created_at": "2026-11-16T15:00:00.000Z",
+   "updated_at": "2026-11-16T15:00:00.000Z"
+  },
+  {
    "id": "b9f66c14-2e61-4b1b-a3ef-5f010267d619",
    "session_id": "8c30aeb5-4bb6-45ed-aadc-e28635fb5431",
    "membership_id": "29cb433b-c2a8-438b-a931-6847f9b63f24",
@@ -25347,9 +25367,9 @@
    "updated_at": "2026-11-16T15:00:00.000Z"
   },
   {
-   "id": "a95fedfc-befe-4570-a904-eaee0d6dc16d",
+   "id": "a5262428-d69e-450b-a330-de9a88afe4fc",
    "session_id": "8c30aeb5-4bb6-45ed-aadc-e28635fb5431",
-   "membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
+   "membership_id": "4afae9fb-a0e5-4865-a5d7-fdf42275c4a3",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25357,19 +25377,9 @@
    "updated_at": "2026-11-16T15:00:00.000Z"
   },
   {
-   "id": "7c990f30-db5e-4e79-a6ff-5bd21f8006a2",
-   "session_id": "8c30aeb5-4bb6-45ed-aadc-e28635fb5431",
-   "membership_id": "31d2d3dd-9c91-47ee-a337-04286ebc0dae",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-16T15:00:00.000Z",
-   "updated_at": "2026-11-16T15:00:00.000Z"
-  },
-  {
-   "id": "16558f23-655f-4159-ac1d-eaad876608e9",
+   "id": "252e6375-1862-47e7-a154-76042939224e",
    "session_id": "281231cb-e158-43b4-a41d-b08f892c623c",
-   "membership_id": "31d2d3dd-9c91-47ee-a337-04286ebc0dae",
+   "membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25377,9 +25387,9 @@
    "updated_at": "2026-11-15T15:00:00.000Z"
   },
   {
-   "id": "ef995152-9c51-439c-a983-d92bf851fe25",
+   "id": "c6ad5a35-15dc-46c8-a03e-f933c190749a",
    "session_id": "281231cb-e158-43b4-a41d-b08f892c623c",
-   "membership_id": "29cb433b-c2a8-438b-a931-6847f9b63f24",
+   "membership_id": "4afae9fb-a0e5-4865-a5d7-fdf42275c4a3",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25397,9 +25407,9 @@
    "updated_at": "2026-11-15T15:00:00.000Z"
   },
   {
-   "id": "07992bc0-6eed-4a40-a3f5-c8d549fdc2b0",
+   "id": "421ed49b-d698-4da9-a541-7d9f808efba8",
    "session_id": "6d2bb0cf-8896-45d6-abe7-6c8b3ceb62c5",
-   "membership_id": "29cb433b-c2a8-438b-a931-6847f9b63f24",
+   "membership_id": "4afae9fb-a0e5-4865-a5d7-fdf42275c4a3",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -25407,19 +25417,9 @@
    "updated_at": "2026-11-17T15:00:00.000Z"
   },
   {
-   "id": "5580d3a2-4370-4c5c-ae60-c429cd83e958",
+   "id": "c4127066-2baa-46cd-ab2e-8ce237b36457",
    "session_id": "6d2bb0cf-8896-45d6-abe7-6c8b3ceb62c5",
-   "membership_id": "3d7e10ff-b1da-4909-a60d-8d941a81ea99",
-   "status": "booked",
-   "waitlist_position": null,
-   "checked_in_at": null,
-   "created_at": "2026-11-17T15:00:00.000Z",
-   "updated_at": "2026-11-17T15:00:00.000Z"
-  },
-  {
-   "id": "30f50c12-8b79-43b0-a2eb-c73d635d177d",
-   "session_id": "6d2bb0cf-8896-45d6-abe7-6c8b3ceb62c5",
-   "membership_id": "31d2d3dd-9c91-47ee-a337-04286ebc0dae",
+   "membership_id": "d2d91b4d-01d9-48ca-a935-6c23440af10e",
    "status": "booked",
    "waitlist_position": null,
    "checked_in_at": null,
@@ -26585,11 +26585,11 @@
    "race_id": "d88037ca-2649-4363-a363-ec68c7bcbd67",
    "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
    "distance_m": 10000,
-   "goal_time_s": 2800,
+   "goal_time_s": 2730,
    "is_goal": false,
    "status": "finished",
-   "result_time_s": 2775,
-   "result_position": 53,
+   "result_time_s": 2704,
+   "result_position": 48,
    "created_at": "2026-10-14T15:00:00.000Z",
    "updated_at": "2026-10-14T15:00:00.000Z"
   },
@@ -26598,11 +26598,11 @@
    "race_id": "d88037ca-2649-4363-a363-ec68c7bcbd67",
    "membership_id": "ce11450b-e8d1-4515-a44e-43b2548e4c6d",
    "distance_m": 10000,
-   "goal_time_s": 3010,
+   "goal_time_s": 3020,
    "is_goal": false,
    "status": "finished",
-   "result_time_s": 2980,
-   "result_position": 83,
+   "result_time_s": 2993,
+   "result_position": 84,
    "created_at": "2026-10-14T15:00:00.000Z",
    "updated_at": "2026-10-14T15:00:00.000Z"
   },
@@ -26614,8 +26614,8 @@
    "goal_time_s": 2840,
    "is_goal": false,
    "status": "finished",
-   "result_time_s": 2808,
-   "result_position": 126,
+   "result_time_s": 2811,
+   "result_position": 124,
    "created_at": "2026-10-14T15:00:00.000Z",
    "updated_at": "2026-10-14T15:00:00.000Z"
   },
@@ -26624,11 +26624,11 @@
    "race_id": "d88037ca-2649-4363-a363-ec68c7bcbd67",
    "membership_id": "f3b052c4-0975-412a-a968-a6bb03be40a7",
    "distance_m": 10000,
-   "goal_time_s": 3170,
+   "goal_time_s": 3110,
    "is_goal": false,
    "status": "finished",
-   "result_time_s": 3136,
-   "result_position": 157,
+   "result_time_s": 3077,
+   "result_position": 153,
    "created_at": "2026-10-14T15:00:00.000Z",
    "updated_at": "2026-10-14T15:00:00.000Z"
   },
@@ -26637,11 +26637,11 @@
    "race_id": "d88037ca-2649-4363-a363-ec68c7bcbd67",
    "membership_id": "ab972df7-d942-4e43-a091-fb2e486b1199",
    "distance_m": 5000,
-   "goal_time_s": 1620,
+   "goal_time_s": 1630,
    "is_goal": false,
    "status": "finished",
-   "result_time_s": 1607,
-   "result_position": 189,
+   "result_time_s": 1615,
+   "result_position": 188,
    "created_at": "2026-10-14T15:00:00.000Z",
    "updated_at": "2026-10-14T15:00:00.000Z"
   },
@@ -26650,11 +26650,11 @@
    "race_id": "d88037ca-2649-4363-a363-ec68c7bcbd67",
    "membership_id": "bd220e4e-63e3-4c08-a9d3-3294d21e3a8b",
    "distance_m": 5000,
-   "goal_time_s": 1790,
+   "goal_time_s": 1820,
    "is_goal": false,
    "status": "finished",
-   "result_time_s": 1770,
-   "result_position": 233,
+   "result_time_s": 1806,
+   "result_position": 247,
    "created_at": "2026-10-14T15:00:00.000Z",
    "updated_at": "2026-10-14T15:00:00.000Z"
   },

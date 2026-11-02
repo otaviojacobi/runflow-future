@@ -109,6 +109,8 @@ export const LIB = {
 // ---------------------------------------------------------------- generate
 export function generate(anchor) {
   const rand = prng(20261103);
+  /** Fisher–Yates with the seeded PRNG: same result on every JS engine (a random sort comparator is not). */
+  const shuffle = (xs) => { const a = xs.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const r = (a, b) => a + Math.floor(rand() * (b - a + 1));
   const pick = (arr) => arr[Math.floor(rand() * arr.length)];
   const W0 = mondayOf(anchor);
@@ -389,7 +391,7 @@ export function generate(anchor) {
     const pool = sc.club_id === PF.id ? pfStudents : mareStudents;
     const full = sc.id === uuid("cs:mare-ini-qua") && date > anchor && w === 0;
     const n = full ? pool.length : Math.min(pool.length, r(2, Math.max(3, pool.length - 2)));
-    const chosen = full ? pool : pool.slice().sort(() => rand() - 0.5).slice(0, n);
+    const chosen = full ? pool : shuffle(pool).slice(0, n);
     chosen.forEach((mk, i) => {
       const past = date < anchor;
       const waitlisted = !past && i >= s.capacity;
