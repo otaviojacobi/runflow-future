@@ -192,17 +192,15 @@ Strava (backend done; the web return page arrives in S9).
 | Classes and scheduling (aulas, bookings, check-in) | S6 |
 | Messages and mural, challenges, races, assessments, reports, assistant | S6b |
 | Billing (Stripe test mode), push notifications | S7 |
-| Club subdomains `<club>.qa.runflow.club` | see below |
+| Club subdomains `<club>-qa.runflow.club` | S9 (see below) |
 
-### Club subdomains (`myclub.qa.runflow.club`)
+### Club subdomains (`myclub-qa.runflow.club`, D-029)
 
-Not implemented end to end yet. Clubs can save a subdomain, but nothing serves `<club>.qa.runflow.club` with the
-club's theme yet (that's the server-side "web shell", part of S9 or later). When it lands it needs two more things:
-
-1. A certificate for `*.qa.runflow.club`. Cloudflare's free certificate covers only one level (`*.runflow.club`), so
-   two levels need **Advanced Certificate Manager (US$10/month)**. The free alternative is a one-level QA scheme such as
-   `myclub-qa.runflow.club`, your call when we get there.
-2. A tunnel public hostname `*.qa.runflow.club` → `web:80`, a proxied DNS record `*.qa` → the tunnel, and `COOKIE_DOMAIN=.qa.runflow.club`.
+Not implemented end to end yet: clubs can save a subdomain, but nothing serves the club's site at its address
+(the server-side "web shell", S9). In QA the address is **one level**, `<club>-qa.runflow.club`, so Cloudflare's free
+certificate (`*.runflow.club`) covers it and there's nothing to pay. Production never accepts subdomains ending in `-qa`.
+When it lands you'll add, in the tunnel, a public hostname `*.runflow.club` → `web:80` and a proxied `*` DNS record
+(explicit records like `qa`, `www` and the mail ones still win).
 
 ---
 
