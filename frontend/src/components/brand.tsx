@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Color from "@runflow/design/color";
 import { tokens } from "@runflow/design/tokens";
 import type { Branding, Club } from "@/api/types";
@@ -14,10 +15,10 @@ export function RunflowMark({ size = 32, className }: { size?: number; className
     </svg>
   );
 }
-export function RunflowWordmark({ className }: { className?: string }) {
+export function RunflowWordmark({ className, mark }: { className?: string; mark?: ReactNode }) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <RunflowMark size={28} />
+      {mark ?? <RunflowMark size={28} />}
       <span className="font-display text-[22px] font-extrabold leading-none tracking-[-0.035em] [font-stretch:115%]">runflow</span>
     </span>
   );

@@ -44,6 +44,7 @@ const signIn = createRoute({
 });
 const invite = createRoute({ getParentRoute: () => root, path: "/invite/$token", component: lazyRouteComponent(() => import("./screens/onboarding/Invite"), "InviteScreen") });
 const devComponents = createRoute({ getParentRoute: () => root, path: "/dev/components", component: lazyRouteComponent(() => import("./screens/dev/Components"), "ComponentsScreen") });
+const devLogo = createRoute({ getParentRoute: () => root, path: "/dev/logo", component: lazyRouteComponent(() => import("./screens/dev/Logo"), "LogoScreen") });
 const devStatus = createRoute({ getParentRoute: () => root, path: "/dev/status", component: lazyRouteComponent(() => import("./screens/dev/Status"), "StatusScreen") });
 const devOutbox = createRoute({ getParentRoute: () => root, path: "/dev/outbox", component: lazyRouteComponent(() => import("./screens/dev/Outbox"), "OutboxScreen") });
 const devStripe = createRoute({ getParentRoute: () => root, path: "/dev/stripe/$kind", component: lazyRouteComponent(() => import("./screens/dev/StripeMock"), "StripeMockScreen") });
@@ -118,7 +119,7 @@ const commonRoutes = [
 ];
 
 const routeTree = root.addChildren([
-  index, appHome, signIn, invite, devComponents, devStatus, devStripe, devOutbox,
+  index, appHome, signIn, invite, devComponents, devStatus, devLogo, devStripe, devOutbox,
   authed.addChildren([
     clubs, createClub, welcome,
     shell.addChildren([staff.addChildren(staffRoutes), owner.addChildren(ownerRoutes), student.addChildren(studentRoutes), ...commonRoutes]),

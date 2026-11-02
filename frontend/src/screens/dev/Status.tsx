@@ -1,6 +1,6 @@
 /** /dev/status: live view of docs/build-plan.md (what's done, what's next, how to try it). Dev/mock only. */
 import { Link } from "@tanstack/react-router";
-import { CircleCheck, CircleDashed, LoaderCircle, LogIn, Palette } from "lucide-react";
+import { CircleCheck, CircleDashed, LoaderCircle, LogIn, Palette, Shapes } from "lucide-react";
 import plan from "../../../../docs/build-plan.md?raw";
 import { RunflowWordmark } from "@/components/brand";
 import { t } from "@/i18n";
@@ -21,7 +21,7 @@ function parse(md: string) {
     if (line.startsWith("## ")) current = null;
     if (!line.startsWith("|")) continue;
     const c = cells(line);
-    if (current && /^[FXS]\d+$/.test(c[0] ?? "")) {
+    if (current && /^(?:[FXS]\d+[a-z]?|B\d+)$/.test(c[0] ?? "")) {
       const status = c[c.length - 1] ?? "";
       current.steps.push({ id: c[0]!, scope: strip(c[1] ?? ""), screens: c.length === 4 ? (c[2] ?? "").split(/,\s*/).filter((x) => x && x !== "—") : [], done: status.includes("[x]") });
     } else if (/^(A|M|W|O|C|DS)\d+$/.test(c[0] ?? "")) {
@@ -45,7 +45,7 @@ export function StatusScreen() {
     <div className="mx-auto grid max-w-4xl gap-8 px-5 py-8">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <RunflowWordmark />
-        <div className="flex gap-2"><ButtonLink to="/dev/components" variant="secondary" size="sm" icon={<Palette />}>{t("Componentes")}</ButtonLink><ButtonLink to="/login" size="sm" icon={<LogIn />}>{t("Entrar no app")}</ButtonLink></div>
+        <div className="flex flex-wrap gap-2"><ButtonLink to="/dev/logo" variant="secondary" size="sm" icon={<Shapes />}>{t("Logo")}</ButtonLink><ButtonLink to="/dev/components" variant="secondary" size="sm" icon={<Palette />}>{t("Componentes")}</ButtonLink><ButtonLink to="/login" size="sm" icon={<LogIn />}>{t("Entrar no app")}</ButtonLink></div>
       </header>
       <div className="grid gap-2">
         <h1 className="rf-text-display-sm">{t("Status do desenvolvimento")}</h1>

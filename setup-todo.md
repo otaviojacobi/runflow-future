@@ -45,7 +45,7 @@ QA is live at **https://qa.runflow.club**:
   data is disposable (D-030).
 - [ ] **Strava app review** with the coaching use case: students consent to share with their club's trainers. Keep the
   written reply on file (`root.md` §11.2).
-- [ ] **Terms and privacy policy (LGPD)** naming the processors: Cloudflare, Resend, Strava, Google, and Sentry once O1 lands.
+- [ ] **Terms and privacy policy (LGPD)** naming the processors: Cloudflare, Resend, Strava, Google, and Sentry once S12 lands.
 
 ## When these steps land (I'll ping you)
 
@@ -54,8 +54,8 @@ QA is live at **https://qa.runflow.club**:
 | B1 Logo | Pick one of the concepts (or redirect) |
 | S9 Web on the real backend | Tunnel → Routes → add `*.runflow.club` → `http://web:80` and a proxied DNS record `*` (club sites `<club>-qa.runflow.club`, D-029); add the Google client id as GitHub repo variable `VITE_GOOGLE_CLIENT_ID` |
 | S11 Smoke tests | One random secret, `openssl rand -hex 32`, saved twice: as GitHub secret `SMOKE_KEY` and as `SMOKE_KEY=` in the Pi's `.env` |
-| O1 Sentry | sentry.io → org → two projects (Rust: `runflow-api`, React: `runflow-web`) → their DSNs: `SENTRY_DSN` in the Pi's `.env`, GitHub variable `VITE_SENTRY_DSN` |
-| O2 Grafana | Choose between Grafana Cloud's free tier (nothing to run) and the stack on the Pi (no account, uses ~1 GB RAM) |
+| S12 Sentry | sentry.io → org → two projects (Rust: `runflow-api`, React: `runflow-web`) → their DSNs: `SENTRY_DSN` in the Pi's `.env`, GitHub variable `VITE_SENTRY_DSN` |
+| S13 Grafana | Choose between Grafana Cloud's free tier (nothing to run) and the stack on the Pi (no account, uses ~1 GB RAM) |
 
 ## Handy (on the Pi, in `~/runflow/ops/qa`)
 
