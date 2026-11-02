@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO thread_reads (membership_id, planned_workout_id, last_read_at)\n         SELECT $1, w, now() FROM unnest($2::uuid[]) AS w\n         ON CONFLICT (membership_id, planned_workout_id) DO UPDATE SET last_read_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c5654d1bbde32da8d2f8fde834c16785f89d9308dd3123bac6679448cfdddae2"
+}

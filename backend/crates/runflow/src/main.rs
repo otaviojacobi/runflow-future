@@ -157,6 +157,7 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
         request_timeout: Duration::from_secs(30),
         body_limit: 12 * 1024 * 1024,
         public_app_url: config.http.public_app_url.clone(),
+        public_api_url: config.http.public_api_url.clone(),
         auth: AuthSettings {
             secret,
             session_ttl: chrono::Duration::days(60),

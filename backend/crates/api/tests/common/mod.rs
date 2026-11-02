@@ -54,6 +54,7 @@ pub fn settings(dev: bool) -> ApiSettings {
         request_timeout: Duration::from_secs(10),
         body_limit: 64 * 1024,
         public_app_url: "http://localhost:8080".into(),
+        public_api_url: "http://localhost:3000".into(),
         auth: AuthSettings {
             secret: b"test-secret-test-secret-test-secret".to_vec(),
             session_ttl: chrono::Duration::days(60),

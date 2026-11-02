@@ -1,0 +1,137 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO workout_completions (planned_workout_id, activity_id, status, compliance_pct, rpe, feeling, comment)\n           VALUES ($1, $2, $3, $4, $5, $6, $7)\n           ON CONFLICT (planned_workout_id) DO UPDATE SET activity_id = $2, status = $3, compliance_pct = $4, rpe = $5,\n                  feeling = $6, comment = $7, updated_at = now()\n           RETURNING planned_workout_id, activity_id, status, compliance_pct, rpe, feeling, comment, completed_at, updated_at,\n                     (xmax = 0) AS \"fresh!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "planned_workout_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "planned_workout_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "activity_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "activity_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "compliance_pct",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "compliance_pct"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "rpe",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "rpe"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "feeling",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "feeling"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "comment",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "comment"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "completed_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "completed_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "fresh!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int4",
+        "Int4",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "66423095c2c32778300288ff658d1dfe0d3d6148c728f0709e3984ef2ec66e78"
+}

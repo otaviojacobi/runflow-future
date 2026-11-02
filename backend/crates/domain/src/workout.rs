@@ -195,6 +195,49 @@ pub fn validate(value: &Value) -> Result<Structure, StructureError> {
     Ok(s)
 }
 
+/// Add `resolved` ranges to zone targets from the athlete's zones (`kind` → `[{zone, min, max}]`):
+/// `{min_s, max_s}` for pace zones (s/km), `{min, max}` bpm for HR zones. Same as the mock.
+pub fn resolve_targets(structure: &Value, zones: &[(String, Value)]) -> Value {
+    let table = |kind: &str| zones.iter().find(|(k, _)| k == kind).map(|(_, b)| b);
+    let fix = |step: &Value| -> Value {
+        let mut step = step.clone();
+        let target = &step["target"];
+        if target["type"] != "zone" {
+            return step;
+        }
+        let hr = target["metric"] == "hr";
+        let zone = target["zone"].as_i64();
+        let bound = table(if hr { "hr" } else { "pace" })
+            .and_then(Value::as_array)
+            .and_then(|b| b.iter().find(|x| x["zone"].as_i64() == zone).cloned());
+        if let Some(b) = bound {
+            step["target"]["resolved"] = if hr {
+                serde_json::json!({ "min": b["min"], "max": b["max"] })
+            } else {
+                serde_json::json!({ "min_s": b["min"], "max_s": b["max"] })
+            };
+        }
+        step
+    };
+    let mut out = structure.clone();
+    if let Some(blocks) = out["blocks"].as_array_mut() {
+        for b in blocks.iter_mut() {
+            match b["kind"].as_str() {
+                Some("step") => *b = fix(b),
+                Some("repeat") => {
+                    if let Some(steps) = b["steps"].as_array_mut() {
+                        for st in steps.iter_mut() {
+                            *st = fix(st);
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    out
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;

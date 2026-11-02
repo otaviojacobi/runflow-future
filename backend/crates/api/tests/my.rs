@@ -1,0 +1,491 @@
+//! S4: the student side (/my/*), workout threads, the trainer's feedback inbox, the calendar feed.
+
+mod common;
+
+use axum::http::{Method, header};
+use chrono::{Datelike, Duration, Utc};
+use common::TestApp;
+use serde_json::{Value, json};
+use sqlx::PgPool;
+
+struct Club {
+    id: String,
+    owner: String,
+    ana: (String, String),
+    bia: (String, String),
+}
+
+fn token_of(url: &str) -> String {
+    url.rsplit('/').next().unwrap().to_string()
+}
+
+async fn student(
+    app: &TestApp,
+    club: &str,
+    owner: &str,
+    email: &str,
+    name: &str,
+) -> (String, String) {
+    let i = app
+        .post(
+            &format!("/v1/clubs/{club}/invites"),
+            Some(owner),
+            json!({ "email": email }),
+        )
+        .await;
+    let t = app.sign_in(email).await;
+    app.patch("/v1/me", Some(&t), json!({ "name": name }))
+        .await
+        .ok();
+    let m = app
+        .post(
+            &format!(
+                "/v1/invites/{}/accept",
+                token_of(i.body["url"].as_str().unwrap())
+            ),
+            Some(&t),
+            json!({}),
+        )
+        .await;
+    (t, m.body["membership"]["id"].as_str().unwrap().to_string())
+}
+
+async fn setup(app: &TestApp) -> Club {
+    let owner = app.sign_in("marcos@email.com").await;
+    let id = app
+        .post(
+            "/v1/clubs",
+            Some(&owner),
+            json!({ "name": "Pace Forte", "modalities": ["run"] }),
+        )
+        .await
+        .body["club"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let ana = student(app, &id, &owner, "ana@email.com", "Ana Souza").await;
+    let bia = student(app, &id, &owner, "bia@email.com", "Bia Lima").await;
+    Club {
+        id,
+        owner,
+        ana,
+        bia,
+    }
+}
+
+/// Today in the club's timezone (São Paulo), as the API sees it.
+fn today() -> chrono::NaiveDate {
+    Utc::now()
+        .with_timezone(&chrono_tz::America::Sao_Paulo)
+        .date_naive()
+}
+
+fn day(offset: i64) -> String {
+    (today() + Duration::days(offset))
+        .format("%Y-%m-%d")
+        .to_string()
+}
+
+async fn assign(app: &TestApp, c: &Club, athlete: &str, date: &str, title: &str) -> String {
+    let structure = json!({ "v": 1, "blocks": [
+        { "kind": "step", "intent": "warmup", "duration": { "type": "time", "s": 600 }, "target": { "type": "zone", "metric": "pace", "zone": 2 } },
+        { "kind": "step", "intent": "active", "duration": { "type": "distance", "m": 8000 }, "target": { "type": "zone", "metric": "hr", "zone": 3 } }
+    ] });
+    let res = app
+        .post(&format!("/v1/clubs/{}/planned-workouts", c.id), Some(&c.owner), json!({ "athlete_ids": [athlete], "dates": [date], "sport": "run", "title": title, "structure": structure, "est_distance_m": 10000, "est_duration_s": 3600 }))
+        .await;
+    res.body["items"][0]["id"].as_str().unwrap().to_string()
+}
+
+async fn activity(app: &TestApp, email: &str, date: &str, sport: &str, distance: i32) -> String {
+    let id = uuid::Uuid::now_v7();
+    sqlx::query("INSERT INTO activities (id, user_id, source, sport, name, started_at, duration_s, distance_m) SELECT $1, id, 'manual', $3, 'Corrida da manhã', ($4::date + time '09:00') AT TIME ZONE 'America/Sao_Paulo', 3000, $5 FROM users WHERE email = $2")
+        .bind(id)
+        .bind(email)
+        .bind(sport)
+        .bind(date)
+        .bind(distance)
+        .execute(app.db())
+        .await
+        .unwrap();
+    id.to_string()
+}
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn the_student_sees_their_workouts_with_personal_targets_and_gives_feedback(db: PgPool) {
+    let app = TestApp::new(db);
+    let c = setup(&app).await;
+    let w = assign(&app, &c, &c.ana.1, &day(0), "Rodagem 10 km").await;
+    assign(&app, &c, &c.bia.1, &day(0), "Treino da Bia").await;
+    let my = format!("/v1/clubs/{}/my/workouts", c.id);
+
+    app.get(
+        &format!("{my}?from={}&to={}", day(0), day(0)),
+        Some(&c.owner),
+    )
+    .await
+    .problem(403, "auth.forbidden");
+    app.get(&my, Some(&c.ana.0))
+        .await
+        .problem(422, "validation.failed");
+    let list = app
+        .get(
+            &format!("{my}?from={}&to={}", day(-7), day(7)),
+            Some(&c.ana.0),
+        )
+        .await;
+    assert_eq!(
+        list.ok()["items"].as_array().unwrap().len(),
+        1,
+        "only her own"
+    );
+    let bias = app
+        .get(
+            &format!(
+                "/v1/clubs/{}/planned-workouts?from={}&to={}&athlete_id={}",
+                c.id,
+                day(0),
+                day(0),
+                c.bia.1
+            ),
+            Some(&c.owner),
+        )
+        .await
+        .body["items"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    app.get(&format!("{my}/{bias}"), Some(&c.ana.0))
+        .await
+        .problem(404, "workout.not_found");
+
+    // Personal targets from her zones; activities around the day; the coach.
+    sqlx::query("INSERT INTO zones (membership_id, kind, source, bounds, valid_from) VALUES ($1::uuid, 'hr', 'test', '[{\"zone\":3,\"min\":150,\"max\":162}]', current_date), ($1::uuid, 'pace', 'race', '[{\"zone\":2,\"min\":330,\"max\":350}]', current_date)")
+        .bind(&c.ana.1)
+        .execute(app.db())
+        .await
+        .unwrap();
+    let run = activity(&app, "ana@email.com", &day(0), "run", 9000).await;
+    activity(&app, "ana@email.com", &day(-1), "bike", 30000).await;
+    let detail = app.get(&format!("{my}/{w}"), Some(&c.ana.0)).await;
+    let d = detail.ok();
+    assert_eq!(
+        d["structure"]["blocks"][0]["target"]["resolved"],
+        json!({ "min_s": 330, "max_s": 350 })
+    );
+    assert_eq!(
+        d["structure"]["blocks"][1]["target"]["resolved"],
+        json!({ "min": 150, "max": 162 })
+    );
+    assert_eq!(d["candidate_activities"].as_array().unwrap().len(), 2);
+    assert_eq!(d["coach"]["email"], "marcos@email.com");
+
+    // Feedback: validation, then a completion matched to the same-day run (9 of 10 km = 90%).
+    let done = format!("{my}/{w}/completion");
+    let bad = app
+        .call(
+            Method::PUT,
+            &done,
+            Some(&c.ana.0),
+            Some(json!({ "rpe": 11, "feeling": "sleepy" })),
+            &[],
+        )
+        .await;
+    assert_eq!(
+        bad.problem(422, "validation.failed")["errors"]
+            .as_array()
+            .unwrap()
+            .len(),
+        3
+    );
+    let res = app.call(Method::PUT, &done, Some(&c.ana.0), Some(json!({ "status": "completed", "rpe": 7, "feeling": "good", "comment": "Pernas pesadas no fim" })), &[]).await;
+    let comp = &res.ok()["completion"];
+    assert_eq!(
+        (
+            comp["activity_id"].as_str(),
+            comp["compliance_pct"].as_i64(),
+            comp["rpe"].as_i64()
+        ),
+        (Some(run.as_str()), Some(90), Some(7))
+    );
+    let n = app.get("/v1/me/notifications", Some(&c.owner)).await;
+    assert_eq!(
+        (
+            n.ok()["items"][0]["title"].as_str(),
+            n.body["items"][0]["body"].as_str()
+        ),
+        (
+            Some("Ana Souza registrou o treino"),
+            Some("Pernas pesadas no fim")
+        )
+    );
+    app.call(
+        Method::PUT,
+        &done,
+        Some(&c.ana.0),
+        Some(json!({ "status": "partial" })),
+        &[],
+    )
+    .await
+    .ok();
+    let feedback_notes = app.get("/v1/me/notifications", Some(&c.owner)).await.body["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|n| n["kind"] == "feedback")
+        .count();
+    assert_eq!(feedback_notes, 1, "only the first completion notifies");
+    let foreign = activity(&app, "bia@email.com", &day(0), "run", 5000).await;
+    app.call(
+        Method::PUT,
+        &done,
+        Some(&c.ana.0),
+        Some(json!({ "status": "completed", "activity_id": foreign })),
+        &[],
+    )
+    .await
+    .problem(422, "validation.failed");
+}
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn todays_summary_counts_the_week_and_the_streak(db: PgPool) {
+    let app = TestApp::new(db);
+    let c = setup(&app).await;
+    let monday = today() - Duration::days(today().weekday().num_days_from_monday() as i64);
+    let d = |n: i64| (monday + Duration::days(n)).format("%Y-%m-%d").to_string();
+    let this_week = assign(&app, &c, &c.ana.1, &d(0), "Esta semana").await;
+    assign(&app, &c, &c.ana.1, &d(2), "Esta semana 2").await;
+    for back in [7, 14] {
+        let w = assign(&app, &c, &c.ana.1, &d(-back), "Passado").await;
+        sqlx::query("INSERT INTO workout_completions (planned_workout_id, status) VALUES ($1::uuid, 'completed')").bind(&w).execute(app.db()).await.unwrap();
+    }
+    assign(&app, &c, &c.ana.1, &d(-21), "Sem feito").await;
+    sqlx::query(
+        "INSERT INTO workout_completions (planned_workout_id, status) VALUES ($1::uuid, 'partial')",
+    )
+    .bind(&this_week)
+    .execute(app.db())
+    .await
+    .unwrap();
+    activity(&app, "ana@email.com", &day(0), "run", 5000).await;
+
+    let s = app
+        .get(&format!("/v1/clubs/{}/my/summary", c.id), Some(&c.ana.0))
+        .await;
+    let s = s.ok();
+    assert_eq!(
+        (
+            s["week"]["planned"].as_i64(),
+            s["week"]["done"].as_i64(),
+            s["week"]["distance_m"].as_i64()
+        ),
+        (Some(2), Some(1), Some(20000))
+    );
+    assert_eq!(
+        s["streak_weeks"], 2,
+        "two past weeks done, then a week without"
+    );
+    assert_eq!(
+        (
+            s["shares_data"].as_bool(),
+            s["last_activity"]["distance_m"].as_i64(),
+            &s["next_class"]
+        ),
+        (Some(false), Some(5000), &Value::Null)
+    );
+}
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn threads_notify_the_other_side_and_feed_the_inbox(db: PgPool) {
+    let app = TestApp::new(db);
+    let c = setup(&app).await;
+    let w = assign(&app, &c, &c.ana.1, &day(-1), "Tiros").await;
+    let flagged = assign(&app, &c, &c.bia.1, &day(-2), "Longão").await;
+    let thread = format!("/v1/clubs/{}/planned-workouts/{w}/comments", c.id);
+
+    app.post(&thread, Some(&c.bia.0), json!({ "body": "oi" }))
+        .await
+        .problem(404, "workout.not_found");
+    app.post(&thread, Some(&c.ana.0), json!({ "body": "  " }))
+        .await
+        .problem(422, "validation.failed");
+    let posted = app
+        .post(
+            &thread,
+            Some(&c.ana.0),
+            json!({ "body": "Posso trocar para amanhã?" }),
+        )
+        .await;
+    assert_eq!(
+        (
+            posted.status.as_u16(),
+            posted.body["author"]["role"].as_str()
+        ),
+        (201, Some("student"))
+    );
+    let n = app.get("/v1/me/notifications", Some(&c.owner)).await;
+    assert_eq!(
+        (
+            n.ok()["items"][0]["kind"].as_str(),
+            n.body["items"][0]["title"].as_str(),
+            n.body["items"][0]["link"].as_str()
+        ),
+        (
+            Some("comment"),
+            Some("Ana Souza comentou no treino"),
+            Some("/feedback")
+        )
+    );
+
+    // Bia felt awful: flagged without any comment.
+    sqlx::query("INSERT INTO workout_completions (planned_workout_id, status, rpe, feeling) VALUES ($1::uuid, 'completed', 9, 'awful')").bind(&flagged).execute(app.db()).await.unwrap();
+    let inbox = format!("/v1/clubs/{}/feedback", c.id);
+    let first = app.get(&inbox, Some(&c.owner)).await;
+    assert_eq!(
+        first.ok()["counts"],
+        json!({ "needs_reply": 1, "unread": 1, "flagged": 1, "all": 2 })
+    );
+    assert_eq!(first.body["items"][0]["workout"]["id"], w);
+    assert_eq!(
+        first.body["items"][0]["last_comment"]["body"],
+        "Posso trocar para amanhã?"
+    );
+    assert_eq!(
+        app.get(&format!("{inbox}?filter=flagged"), Some(&c.owner))
+            .await
+            .ok()["items"][0]["athlete"]["user"]["name"],
+        "Bia Lima"
+    );
+    app.get(&inbox, Some(&c.ana.0))
+        .await
+        .problem(403, "auth.forbidden");
+
+    // The trainer reads and replies: no longer waiting; Ana is notified.
+    let read = app.get(&thread, Some(&c.owner)).await;
+    assert_eq!(read.ok()["items"].as_array().unwrap().len(), 1);
+    app.post(&thread, Some(&c.owner), json!({ "body": "Pode sim!" }))
+        .await
+        .ok();
+    assert_eq!(
+        app.get("/v1/me/notifications", Some(&c.ana.0)).await.ok()["items"][0]["link"],
+        format!("/workouts/{w}")
+    );
+    let after = app.get(&inbox, Some(&c.owner)).await;
+    assert_eq!(
+        after.ok()["counts"],
+        json!({ "needs_reply": 0, "unread": 0, "flagged": 1, "all": 2 })
+    );
+
+    // Ana has an unread reply until she opens the thread.
+    let mine = app
+        .get(
+            &format!(
+                "/v1/clubs/{}/my/workouts?from={}&to={}",
+                c.id,
+                day(-1),
+                day(-1)
+            ),
+            Some(&c.ana.0),
+        )
+        .await;
+    assert_eq!(
+        (
+            mine.ok()["items"][0]["comments_count"].as_i64(),
+            mine.body["items"][0]["unread_count"].as_i64()
+        ),
+        (Some(2), Some(1))
+    );
+    app.get(&thread, Some(&c.ana.0)).await.ok();
+    let mine = app
+        .get(
+            &format!(
+                "/v1/clubs/{}/my/workouts?from={}&to={}",
+                c.id,
+                day(-1),
+                day(-1)
+            ),
+            Some(&c.ana.0),
+        )
+        .await;
+    assert_eq!(mine.ok()["items"][0]["unread_count"], 0);
+
+    assert_eq!(
+        app.post(&format!("{inbox}/read"), Some(&c.owner), json!({}))
+            .await
+            .status,
+        204
+    );
+}
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn the_calendar_feed_is_a_secret_ics_url(db: PgPool) {
+    let app = TestApp::new(db);
+    let c = setup(&app).await;
+    assign(&app, &c, &c.ana.1, &day(1), "Tiros, ritmo; forte").await;
+    assert_eq!(
+        app.get("/v1/me/calendar-feed", Some(&c.ana.0)).await.ok()["active"],
+        false
+    );
+
+    let feed = app
+        .post("/v1/me/calendar-feed", Some(&c.ana.0), json!({}))
+        .await;
+    assert_eq!(feed.status, 201);
+    let url = feed.body["url"].as_str().unwrap().to_string();
+    assert!(url.starts_with("http://localhost:3000/v1/ics/") && url.ends_with(".ics"));
+    assert!(
+        feed.body["webcal_url"]
+            .as_str()
+            .unwrap()
+            .starts_with("webcal://localhost:3000/")
+    );
+    let path = url.trim_start_matches("http://localhost:3000").to_string();
+
+    let ics = app.call(Method::GET, &path, None, None, &[]).await;
+    assert_eq!(ics.status, 200);
+    assert!(
+        ics.headers[header::CONTENT_TYPE]
+            .to_str()
+            .unwrap()
+            .starts_with("text/calendar")
+    );
+    let raw = axum::body::to_bytes(
+        tower::ServiceExt::oneshot(
+            runflow_api::router(app.state.clone()),
+            axum::http::Request::get(&path)
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap()
+        .into_body(),
+        1 << 20,
+    )
+    .await
+    .unwrap();
+    let text = String::from_utf8(raw.to_vec()).unwrap();
+    assert!(text.starts_with("BEGIN:VCALENDAR\r\n") && text.ends_with("END:VCALENDAR\r\n"));
+    assert!(text.contains("SUMMARY:Tiros\\, ritmo\\; forte"));
+    assert!(text.contains(&format!("DTSTART;VALUE=DATE:{}", day(1).replace('-', ""))));
+
+    // A new link replaces the old one; revoking kills it.
+    let again = app
+        .post("/v1/me/calendar-feed", Some(&c.ana.0), json!({}))
+        .await
+        .body["url"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    app.get(&path, None)
+        .await
+        .problem(404, "calendar.not_found");
+    assert_eq!(
+        app.delete("/v1/me/calendar-feed", Some(&c.ana.0))
+            .await
+            .status,
+        204
+    );
+    app.get(again.trim_start_matches("http://localhost:3000"), None)
+        .await
+        .problem(404, "calendar.not_found");
+}

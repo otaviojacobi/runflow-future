@@ -1,6 +1,7 @@
 //! Routes, one module per section of `api/endpoints.md`.
 
 pub mod auth;
+pub mod calendar;
 pub mod clubs;
 pub mod dev;
 pub mod health;
@@ -8,7 +9,9 @@ pub mod invites;
 pub mod library;
 pub mod me;
 pub mod members;
+pub mod my;
 pub mod plans;
+pub mod threads;
 pub mod workouts;
 
 use axum::Router;
@@ -26,6 +29,9 @@ pub fn v1() -> Router<AppState> {
         .merge(members::routes())
         .merge(workouts::routes())
         .merge(plans::routes())
+        .merge(my::routes())
+        .merge(threads::routes())
+        .merge(calendar::routes())
         .merge(me::routes())
         .merge(dev::routes())
 }

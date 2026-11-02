@@ -41,6 +41,8 @@ pub struct ApiSettings {
     pub body_limit: usize,
     /// Where people open the web app (links in e-mails).
     pub public_app_url: String,
+    /// Where the API is reachable from outside (calendar feed URLs).
+    pub public_api_url: String,
     pub auth: AuthSettings,
 }
 

@@ -1,0 +1,39 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT date_trunc('week', p.date)::date AS \"week!\", count(*) AS \"planned!\",\n                  count(*) FILTER (WHERE c.status IN ('completed', 'partial')) AS \"done!\"\n             FROM planned_workouts p LEFT JOIN workout_completions c ON c.planned_workout_id = p.id\n            WHERE p.athlete_membership_id = $1 AND p.date BETWEEN $2 AND $3\n            GROUP BY 1 ORDER BY 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "week!",
+        "type_info": "Date",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "planned!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "done!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "e9c8e09c7d9be6d433e183a2d4fc77173ce595742abb2e76bb3bb130ce252303"
+}

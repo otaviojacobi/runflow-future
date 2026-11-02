@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT ON (kind) kind, bounds FROM zones WHERE membership_id = $1 ORDER BY kind, valid_from DESC, created_at DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "bounds",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "zones",
+            "name": "bounds"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "b930bee70d60bd76388892b1572f57ea10c9c5e6a3f44e51d8bf963c50fe4e98"
+}
