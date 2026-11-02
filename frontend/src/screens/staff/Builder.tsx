@@ -4,6 +4,7 @@ import { ArrowLeft, Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSaveTemplate, useTemplate } from "@/api/library";
 import type { Sport } from "@/api/types";
+import { AiDescribe } from "@/components/AiAssist";
 import { SportPicker, WorkoutBuilder } from "@/components/builder/WorkoutBuilder";
 import { estimate, type Structure } from "@/domain/workout";
 import { t } from "@/i18n";
@@ -55,6 +56,7 @@ export function BuilderScreen() {
         </div>
         {err?.fieldError("structure") && <p className="rf-text-body-sm text-danger-text">{err.fieldError("structure")}</p>}
       </div>
+      {club && <AiDescribe clubId={club.id} sport={sport} onResult={(w) => { setStructure(w.structure); if (!name.trim()) setName(w.name); }} />}
       <WorkoutBuilder sport={sport} structure={structure} onChange={setStructure} />
       <Field label={t("Descrição para o aluno")} optional hint={t("Aparece no app do aluno junto do treino.")}>
         {(id, d) => <Textarea id={id} aria-describedby={d} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("Ex.: foco em manter o pace constante nos tiros.")} />}

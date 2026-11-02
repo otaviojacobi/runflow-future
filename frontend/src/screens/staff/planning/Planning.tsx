@@ -1,9 +1,9 @@
 /** W4 · Planejamento: students × week grid. Route: /planning */
-import { Check, ChevronLeft, ChevronRight, Copy, Flag, MessageSquare, Minus, Plus, Search, Star, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Copy, Flag, MessageSquare, Minus, Plus, Search, Sparkles, Star, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAthletes, useGroups } from "@/api/members";
 import { useRaces } from "@/api/races";
-import type { PlannedWorkout } from "@/api/types";
+import type { AthleteSummary, PlannedWorkout } from "@/api/types";
 import { usePlanned, useUpdatePlanned } from "@/api/workouts";
 import { distanceLabel } from "@/components/races";
 import { sportBar, sportSoft } from "@/components/sport";
@@ -12,6 +12,7 @@ import { useClub } from "@/lib/club";
 import { addDays, dayMonth, duration, mondayOf, today as todayFn, weekdayShort } from "@/lib/format";
 import { Avatar, Button, Card, EmptyState, IconButton, Input, PageHeader, Skeleton, cn, toast } from "@/ui";
 import { AssignDialog, type AssignPrefill } from "./AssignDialog";
+import { SuggestWeekDialog } from "./SuggestWeekDialog";
 import { CopyWeekDialog, DetailDialog, EditDialog } from "./WorkoutDialogs";
 
 function Chip({ w, onOpen, today }: { w: PlannedWorkout; onOpen: () => void; today: string }) {
@@ -42,6 +43,7 @@ export function PlanningScreen() {
   const [edit, setEdit] = useState<string | null>(null);
   const [copyOpen, setCopyOpen] = useState(false);
   const [over, setOver] = useState<string | null>(null);
+  const [suggest, setSuggest] = useState<AthleteSummary | null>(null);
   const sunday = addDays(monday, 6);
   const days = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
   const groups = useGroups(club?.id);
@@ -110,8 +112,9 @@ export function PlanningScreen() {
               const mine = (planned.data ?? []).filter((w) => w.athlete_membership_id === a.membership.id);
               const mins = mine.reduce((s, w) => s + (w.est_duration_s ?? 0), 0);
               return [
-                <div key={a.membership.id} className="sticky left-0 z-10 flex items-center gap-2.5 border-b border-line-subtle bg-surface px-3 py-2">
+                <div key={a.membership.id} className="group/row sticky left-0 z-10 flex items-center gap-2.5 border-b border-line-subtle bg-surface px-3 py-2">
                   <Avatar name={a.user.name} src={a.user.avatar_url} size={30} />
+                  <IconButton size="sm" label={t("Sugerir semana para {name}", { name: a.user.name })} onClick={() => setSuggest(a)} className="order-last ml-auto opacity-0 focus-visible:opacity-100 group-hover/row:opacity-100"><Sparkles /></IconButton>
                   <div className="min-w-0"><div className="truncate text-sm font-semibold">{a.user.name}</div><div className="text-[11px] text-fg-muted tabular-nums">{mine.length ? `${tn(mine.length, "{n} treino", "{n} treinos")} · ${duration(mins)}` : t("Sem treinos")}</div></div>
                 </div>,
                 ...days.map((d) => {
@@ -143,6 +146,7 @@ export function PlanningScreen() {
       <AssignDialog club={club} monday={monday} open={!!assign} onOpenChange={(v) => !v && setAssign(null)} prefill={assign ?? undefined} />
       <DetailDialog club={club} id={detail} onClose={() => setDetail(null)} onEdit={(id) => { setDetail(null); setEdit(id); }} />
       <EditDialog club={club} id={edit} onClose={() => setEdit(null)} />
+      <SuggestWeekDialog club={club} athlete={suggest} monday={monday} onClose={() => setSuggest(null)} />
       <CopyWeekDialog club={club} monday={monday} athleteIds={rows.map((a) => a.membership.id)} open={copyOpen} onOpenChange={setCopyOpen} />
     </div>
   );

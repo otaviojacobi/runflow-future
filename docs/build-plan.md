@@ -36,7 +36,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F24 | Challenges and rankings: monthly km, streaks, club leaderboard (opt-in), badges (accent color) | W15, M11 | [x] |
 | F25 | Reports and exports: compliance and volume per student/group, attendance for classes, CSV/PDF export | W16 | [x] |
 | F26 | Club finances: student monthly fees (Stripe/Pix), status per student, reminders, receipts | O6, M12 | [x] |
-| F27 | AI assistant: "describe the workout" → structure, weekly plan suggestions from goal and history, feedback summaries | W17 | [ ] |
+| F27 | AI assistant: "describe the workout" → structure, weekly plan suggestions from goal and history, feedback summaries | W17 | [x] |
 | F28 | Exercise library with videos for strength/mobility, linked from exercises | W18 | [ ] |
 | F29 | Import/export: students via CSV, workouts via pasted text, `.FIT` workout export, `.ics` calendar feed for students | — | [ ] |
 | F30 | Power features: command palette (⌘K), keyboard shortcuts in planning, PWA install, offline today, print-friendly week | — | [ ] |

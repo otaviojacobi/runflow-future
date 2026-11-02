@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useFeedback, useMarkAllRead } from "@/api/feedback";
 import type { FeedbackFilter, FeedbackItem } from "@/api/types";
 import { usePlannedDetail } from "@/api/workouts";
+import { AiFeedbackSummaryCard } from "@/components/AiAssist";
 import { SportChip } from "@/components/sport";
 import { Thread } from "@/components/Thread";
 import { IntensityProfile, Stat, StatusBadge } from "@/components/workout";
@@ -60,6 +61,7 @@ export function FeedbackScreen() {
   return (
     <div className="mx-auto grid max-w-6xl gap-5">
       <PageHeader title={t("Feedbacks")} subtitle={t("Como os alunos estão se sentindo nos últimos 30 dias.")} actions={<Button variant="secondary" icon={<CheckCheck />} loading={readAll.isPending} onClick={() => readAll.mutate(undefined, { onSuccess: () => toast.success(t("Tudo marcado como lido")) })}>{t("Marcar tudo como lido")}</Button>} />
+      {club && <AiFeedbackSummaryCard clubId={club.id} />}
       <div className="flex flex-wrap gap-1.5" role="tablist" aria-label={t("Filtro")}>
         {tabs.map((x) => (
           <button key={x.v} role="tab" aria-selected={filter === x.v} onClick={() => { setFilter(x.v); setSel(null); }} className={cn("inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-sm font-semibold", filter === x.v ? "border-brand-ring bg-brand-soft text-on-brand-soft" : "border-line bg-surface text-fg-muted hover:bg-soft")}>

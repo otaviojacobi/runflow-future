@@ -461,6 +461,8 @@ flowchart LR
 1. **Max plan.** Student cap, price, and per-student fee.
 2. **Strava written confirmation.** In Strava's app review, describe the coaching use case (students consent to share with their club's trainers) and keep the reply on file. Do this before inviting real clubs.
 3. **Brand.** Approve or redirect the palette and type in §6 (validated in D1).
+4. **AI provider and budget (F27).** The assistant's contract is provider-agnostic and the mock is a rules engine. Before the backend (S-phase) pick the LLM (e.g. Claude via the Anthropic API), the per-club monthly cap per plan, and what student data may be sent (LGPD: only the club's own data, never health notes without consent).
+5. **Take rate on club fees (F26).** Runflow's cut when clubs collect student fees through the app (§4.6 "future revenue"); the UI shows no fee until decided.
 
 **Deferred by the founder (2026-11-01)**
 - Apple Developer Program: blocks Sign in with Apple and the iOS App Store release.

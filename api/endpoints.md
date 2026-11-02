@@ -136,6 +136,15 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | PATCH | `/clubs/{club_id}/bookings/{id}` `{status: attended \| no_show \| booked}` | Attendance (staff) | W9 |
 | POST | `/clubs/{club_id}/class-sessions/{id}/check-in` `{checkin_code}` | Student check-in (45 min before → end); creates a booking if there is room | M6 |
 
+### Assistant (AI)
+Staff only. Responses carry `source` (`rules` in the mock; the backend's model name). Limits: `429 ai.rate_limited` (20/min per user in the mock; the backend adds a monthly cap per plan). Provider, model and budget: root.md §11.
+
+| Method | Path | Purpose | Screens |
+|---|---|---|---|
+| POST | `/clubs/{club_id}/ai/workout` `{text, sport}` | Natural pt-BR description → `{name, sport, structure, est_duration_s, est_distance_m, notes}`. `422 ai.not_understood` with an example in `detail` | W5, W17 |
+| POST | `/clubs/{club_id}/ai/week-plan` `{membership_id, week_start}` | Suggested week from the profile (goal, level, sessions/week), the last 14 days' compliance and the goal-race date (taper) → `{rationale[], items[] {date, sport, title, structure, est_duration_s, est_distance_m, reason}}`; skips days that already have workouts. Nothing is saved: the app assigns the chosen items | W4, W17 |
+| POST | `/clubs/{club_id}/ai/feedback-summary` `{from?, to?, group_id?}` | Period summary of completions, PSE and comments → `{summary[], highlights[] {membership_id, planned_workout_id, kind: pain \| fatigue \| life \| sick \| rpe \| missed, severity, text}}` | W8, W17 |
+
 ### Reports
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
