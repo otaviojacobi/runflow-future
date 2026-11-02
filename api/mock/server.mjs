@@ -39,6 +39,9 @@ function load() {
       console.log(`· saved demo data is ${age} days old, reseeding relative to today`);
       db = generate(today());
     }
+    // Tables added to the schema after this data was saved come from the seed (same anchor, same ids).
+    const fresh = generate(db.meta.anchor_date);
+    for (const k of Object.keys(fresh)) if (!(k in db)) { db[k] = fresh[k]; console.log(`· added table ${k} from the seed`); }
   } else db = generate(today());
   persist(true);
 }

@@ -15,7 +15,7 @@ const SOLID: Record<Tone, string> = {
 export function Badge({ tone = "neutral", solid, icon, children, className }: { tone?: Tone; solid?: boolean; icon?: ReactNode; children: ReactNode; className?: string }) {
   return <span className={cn("inline-flex h-[22px] items-center gap-1 whitespace-nowrap rounded-sm px-2 text-xs font-bold [&_svg]:size-3.5", solid ? SOLID[tone] : SOFT[tone], className)}>{icon}{children}</span>;
 }
-const CARD_TONE = { brand: "border-brand-line bg-brand-soft text-on-brand-soft", danger: "border-danger-line bg-danger-soft text-on-danger-soft", warning: "border-warning-line bg-warning-soft text-on-warning-soft" } as const;
+const CARD_TONE = { brand: "border-brand-line bg-brand-soft text-on-brand-soft", accent: "border-accent-line bg-accent-soft text-on-accent-soft", danger: "border-danger-line bg-danger-soft text-on-danger-soft", warning: "border-warning-line bg-warning-soft text-on-warning-soft" } as const;
 const CARD_EDGE = { brand: "border-brand-line", danger: "border-danger-line", warning: "border-warning-line" } as const;
 /** `tone` tints the whole card; `edge` only colors the border (cn does not merge conflicting utilities, so use these props). */
 export function Card({ className, tone, edge, ...p }: ComponentProps<"div"> & { tone?: keyof typeof CARD_TONE; edge?: keyof typeof CARD_EDGE }) {

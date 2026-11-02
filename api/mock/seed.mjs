@@ -373,6 +373,26 @@ export function generate(anchor) {
     bs.forEach((b, i) => { b.status = i < s.capacity ? "booked" : "waitlisted"; b.waitlist_position = i < s.capacity ? null : i - s.capacity + 1; });
   }
 
+  // ---- races (F21)
+  const race = (key, clubRow, row) => { const x = { id: uuid("race:" + key), club_id: clubRow.id, sport: "run", start_time: "07:00", city: null, state: null, url: null, notes: null, created_by: null, created_at: createdLongAgo, archived_at: null, ...row }; t("races").push(x); return x; };
+  const RIEGEL = (thr, m) => Math.round(thr * 10 * Math.pow(m / 10000, 1.06));
+  const entry = (raceRow, mk, distance_m, extra = {}) => t("race_entries").push({ id: uuid(`re:${raceRow.id}:${mk}`), race_id: raceRow.id, membership_id: M[mk].id, distance_m, goal_time_s: null, is_goal: false, status: "registered", result_time_s: null, result_position: null, created_at: at(addDays(anchor, -20), "12:00"), updated_at: at(addDays(anchor, -20), "12:00"), ...extra });
+  const thrOf = Object.fromEntries(PF_STUDENTS.map((s) => [s[0], s[6]]));
+  const primavera = race("pf-primavera", PF, { name: "Corrida da Primavera", date: addDays(W0, -29), city: "São Paulo", state: "SP", distances_m: [5000, 10000], created_by: M["paceforte:marcos"].id });
+  [["ana", 10000], ["bruno", 10000], ["diego", 10000], ["henrique", 10000], ["carla", 5000], ["gabriela", 5000], ["elisa", 5000]].forEach(([k, d], i) => {
+    const time = Math.round(RIEGEL(thrOf[k], d) * (0.98 + rand() * 0.05));
+    entry(primavera, "paceforte:" + k, d, k === "elisa" ? { status: "dns" } : { status: "finished", result_time_s: time, result_position: 40 + i * 37 + r(0, 30), goal_time_s: Math.round(time * 1.01 / 10) * 10 });
+  });
+  const parques = race("pf-parques", PF, { name: "Circuito Parques SP · Ibirapuera", date: addDays(W0, 13), city: "São Paulo", state: "SP", distances_m: [5000, 10000], notes: "Concentração da equipe às 6h15 no portão 3.", created_by: M["paceforte:julia"].id });
+  [["ana", 10000], ["bruno", 10000], ["carla", 10000, true], ["gabriela", 5000, true], ["felipe", 5000], ["isabela", 5000]].forEach(([k, d, goal]) => entry(parques, "paceforte:" + k, d, { goal_time_s: Math.round(RIEGEL(thrOf[k], d) * 0.98 / 30) * 30, is_goal: !!goal }));
+  const santos = race("pf-meia-santos", PF, { name: "Meia Maratona de Santos", date: addDays(W0, 41), city: "Santos", state: "SP", distances_m: [5000, 21097], start_time: "06:30", created_by: M["paceforte:marcos"].id });
+  [["bruno", 21097, true], ["henrique", 21097, true], ["diego", 21097]].forEach(([k, d, goal]) => entry(santos, "paceforte:" + k, d, { goal_time_s: Math.round(RIEGEL(thrOf[k], d) / 60) * 60, is_goal: !!goal }));
+  const maratona = race("pf-maratona", PF, { name: "Maratona de Inverno", date: "2027-06-06", city: "São Paulo", state: "SP", distances_m: [10000, 21097, 42195], start_time: "06:00", created_by: M["paceforte:marcos"].id });
+  [["ana", 42195], ["diego", 42195]].forEach(([k, d]) => entry(maratona, "paceforte:" + k, d, { goal_time_s: Math.round(RIEGEL(thrOf[k], d) / 60) * 60, is_goal: true }));
+  const travessia = race("mare-travessia", MARE, { name: "Travessia Ponta da Praia", sport: "swim", date: addDays(W0, 27), city: "Santos", state: "SP", distances_m: [1500, 3000], start_time: "08:00", notes: "Touca da equipe obrigatória.", created_by: M["equipemare:renata"].id });
+  entry(travessia, "equipemare:ana", 1500, { goal_time_s: 1800 });
+  ["lucas", "marina", "sofia"].forEach((k, i) => entry(travessia, "equipemare:" + k, i === 1 ? 3000 : 1500));
+
   // ---- notifications
   const note = (ukey, clubRow, kind, title, body, link, when, read = false) => t("notifications").push({ id: uuid(`n:${ukey}:${kind}:${when}`), user_id: U[ukey].id, club_id: clubRow ? clubRow.id : null, kind, title, body, link, read_at: read ? when : null, created_at: when });
   note("ana", PF, "workout_assigned", "Novo treino para hoje", "Intervalado 6×1 km", `/workouts/${PW["ana:" + today].id}`, at(addDays(today, -1), "20:00"));

@@ -136,6 +136,15 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | PATCH | `/clubs/{club_id}/bookings/{id}` `{status: attended \| no_show \| booked}` | Attendance (staff) | W9 |
 | POST | `/clubs/{club_id}/class-sessions/{id}/check-in` `{checkin_code}` | Student check-in (45 min before → end); creates a booking if there is room | M6 |
 
+### Races and events
+| Method | Path | Purpose | Screens |
+|---|---|---|---|
+| GET | `/clubs/{club_id}/races?from&to` | Club race calendar, by date. Each race has `entries_count`, `my_entry`; staff also get `entries[]` with `athlete` | W12, M9, W4 |
+| POST | `/clubs/{club_id}/races` `{name, date, distances_m[], sport?, start_time?, city?, state?, url?, notes?}` | Add a race (staff) | W12 |
+| GET / PATCH / DELETE | `/clubs/{club_id}/races/{id}` | Detail / edit / remove (archive). Removing a distance with entries → `409 race.distance_in_use` | W12, M9 |
+| POST | `/clubs/{club_id}/races/{id}/entries` `{distance_m, goal_time_s?, is_goal?, membership_id?}` | Sign up (student: self; staff: `membership_id`). Upsert | M9, W12 |
+| PATCH / DELETE | `/clubs/{club_id}/race-entries/{id}` `{distance_m?, goal_time_s?, is_goal?, status?, result_time_s?, result_position?}` | Edit, record a result, or cancel. `is_goal` makes it the student's single "A race": profile `goal` and `goal_date` follow it. A finished run result becomes the profile's `recent_race` | M9, W12 |
+
 ### Billing (Stripe)
 | Method | Path | Purpose | Screens |
 |---|---|---|---|

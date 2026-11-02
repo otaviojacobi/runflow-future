@@ -30,7 +30,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F16 | Club Studio (full) + club settings (data, modalities, terminology, timezone, subdomain, venues) | O1, O3 | [x] |
 | F17 | Plan and billing: plans, usage, Stripe checkout (mock), billing portal (mock), invoices, student limit enforcement | O4, O5 | [x] |
 | F18 | My account + profile: personal data, zones, connections, notifications, privacy (export, delete account), leave club; notification center (incl. `class_reminder` before booked classes, and a "today's class" card on M1 Hoje) | C1, M7, W11 | [x] |
-| F21 | Races and events: club race calendar, students sign up, goal races feed periodization, results | W12, M9 | [ ] |
+| F21 | Races and events: club race calendar, students sign up, goal races feed periodization, results | W12, M9 | [x] |
 | F22 | Messages: trainer ⇄ student direct chat and club announcements (mural) with read receipts | W13, M10 | [ ] |
 | F23 | Assessments and tests: physical assessments, performance tests (Cooper, 3 km, CSS, FTP, 1RM) that update zones | W14 | [ ] |
 | F24 | Challenges and rankings: monthly km, streaks, club leaderboard (opt-in), badges (accent color) | W15, M11 | [ ] |

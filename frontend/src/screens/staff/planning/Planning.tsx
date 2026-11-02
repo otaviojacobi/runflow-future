@@ -1,9 +1,11 @@
 /** W4 · Planejamento: students × week grid. Route: /planning */
-import { Check, ChevronLeft, ChevronRight, Copy, MessageSquare, Minus, Plus, Search, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Copy, Flag, MessageSquare, Minus, Plus, Search, Star, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAthletes, useGroups } from "@/api/members";
+import { useRaces } from "@/api/races";
 import type { PlannedWorkout } from "@/api/types";
 import { usePlanned, useUpdatePlanned } from "@/api/workouts";
+import { distanceLabel } from "@/components/races";
 import { sportBar, sportSoft } from "@/components/sport";
 import { t, tn } from "@/i18n";
 import { useClub } from "@/lib/club";
@@ -46,6 +48,12 @@ export function PlanningScreen() {
   const athletes = useAthletes(club?.id, { group_id: group === "all" ? undefined : group });
   const planned = usePlanned(club?.id, { from: monday, to: sunday, group_id: group === "all" ? undefined : group });
   const update = useUpdatePlanned(club?.id ?? "");
+  const races = useRaces(club?.id, { from: monday, to: sunday });
+  const raceByCell = useMemo(() => {
+    const m = new Map<string, { name: string; label: string; goal: boolean }>();
+    for (const r of races.data ?? []) for (const e of r.entries ?? []) m.set(`${e.membership_id}|${r.date}`, { name: r.name, label: distanceLabel(e.distance_m, r.sport), goal: e.is_goal });
+    return m;
+  }, [races.data]);
   const rows = useMemo(() => (athletes.data ?? []).filter((a) => !q || a.user.name.toLowerCase().includes(q.toLowerCase())), [athletes.data, q]);
   const byCell = useMemo(() => {
     const m = new Map<string, PlannedWorkout[]>();
@@ -112,6 +120,11 @@ export function PlanningScreen() {
                   return (
                     <div key={key} onDragOver={(e) => { e.preventDefault(); setOver(key); }} onDragLeave={() => setOver((o) => (o === key ? null : o))} onDrop={onDrop(a.membership.id, d)}
                       className={cn("group/cell relative flex min-h-[60px] flex-col gap-1 border-b border-l border-line-subtle p-1.5", d === today && "bg-brand-soft/40", over === key && "bg-brand-soft ring-2 ring-inset ring-brand-ring")}>
+                      {raceByCell.get(key) && (() => { const rc = raceByCell.get(key)!; return (
+                        <span title={rc.name} className="flex items-center gap-1 rounded-[8px] bg-accent-soft px-2 py-1 text-[11px] font-bold leading-tight text-on-accent-soft ring-1 ring-inset ring-accent-line">
+                          {rc.goal ? <Star className="size-3 shrink-0 fill-current" aria-label={t("Prova principal")} /> : <Flag className="size-3 shrink-0" aria-hidden />}<span className="truncate">{t("Prova")} · {rc.label}</span>
+                        </span>
+                      ); })()}
                       {items.map((w) => <Chip key={w.id} w={w} today={today} onOpen={() => setDetail(w.id)} />)}
                       <button type="button" onClick={() => setAssign({ athleteIds: [a.membership.id], dates: [d] })} aria-label={t("Adicionar treino para {name} em {d}", { name: a.user.name, d: dayMonth(d) })}
                         className={cn("grid h-7 w-full place-items-center rounded-md text-fg-subtle opacity-0 transition-opacity hover:bg-soft hover:text-fg focus-visible:opacity-100 group-hover/cell:opacity-100", items.length === 0 && "flex-1")}>

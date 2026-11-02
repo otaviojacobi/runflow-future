@@ -154,3 +154,15 @@ export interface ClassSession {
 }
 export interface RosterEntry extends Booking { athlete: { membership_id: ID; user: User } }
 export interface ClassSessionDetail extends ClassSession { roster?: RosterEntry[] }
+
+// ---- races and events (F21)
+export type RaceSport = "run" | "trail" | "swim" | "bike" | "triathlon" | "other";
+export interface RaceEntry {
+  id: ID; race_id: ID; membership_id: ID; distance_m: number; goal_time_s: number | null; is_goal: boolean;
+  status: "registered" | "finished" | "dns" | "dnf"; result_time_s: number | null; result_position: number | null; created_at: ISOTime; updated_at: ISOTime;
+}
+export interface Race {
+  id: ID; club_id: ID; name: string; sport: RaceSport; date: ISODate; start_time: string | null; city: string | null; state: string | null; url: string | null;
+  distances_m: number[]; notes: string | null; created_by: ID | null; created_at: ISOTime; archived_at: ISOTime | null;
+  entries_count: number; my_entry: RaceEntry | null; entries?: (RaceEntry & { athlete: { membership_id: ID; user: User } })[];
+}

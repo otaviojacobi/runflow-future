@@ -419,6 +419,42 @@ CREATE TABLE bookings (
   UNIQUE (session_id, membership_id)
 );
 
+-- =========================================================================== races and events (F21)
+-- The club's race calendar. Students sign up for a distance; an entry marked is_goal is their "A race":
+-- it sets the profile goal and goal_date, which planning and plans use for periodization.
+CREATE TABLE races (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id      uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+  name         text NOT NULL,
+  sport        text NOT NULL DEFAULT 'run' CHECK (sport IN ('run', 'trail', 'swim', 'bike', 'triathlon', 'other')),
+  date         date NOT NULL,
+  start_time   time,                               -- club-local
+  city         text,
+  state        char(2),
+  url          text,
+  distances_m  int[] NOT NULL CHECK (cardinality(distances_m) > 0),
+  notes        text,
+  created_by   uuid REFERENCES memberships (id) ON DELETE SET NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  archived_at  timestamptz
+);
+CREATE INDEX races_club_date_idx ON races (club_id, date);
+CREATE TABLE race_entries (
+  id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  race_id          uuid NOT NULL REFERENCES races (id) ON DELETE CASCADE,
+  membership_id    uuid NOT NULL REFERENCES memberships (id) ON DELETE CASCADE,
+  distance_m       int NOT NULL CHECK (distance_m > 0),
+  goal_time_s      int CHECK (goal_time_s > 0),
+  is_goal          boolean NOT NULL DEFAULT false,
+  status           text NOT NULL DEFAULT 'registered' CHECK (status IN ('registered', 'finished', 'dns', 'dnf')),
+  result_time_s    int CHECK (result_time_s > 0),
+  result_position  int CHECK (result_position > 0),
+  created_at       timestamptz NOT NULL DEFAULT now(),
+  updated_at       timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (race_id, membership_id),
+  CHECK (status <> 'finished' OR result_time_s IS NOT NULL)
+);
+
 -- =========================================================================== billing (Stripe, D-016)
 CREATE TABLE club_subscriptions (
   club_id                 uuid PRIMARY KEY REFERENCES clubs (id) ON DELETE CASCADE,
