@@ -18,7 +18,9 @@ use axum::response::{IntoResponse, Response};
 use runflow_db::Pool;
 use runflow_integrations::email::Mailer;
 use runflow_integrations::google::GoogleVerifier;
+use runflow_integrations::secrets::TokenCipher;
 use runflow_integrations::storage::Storage;
+use runflow_integrations::strava::StravaClient;
 use tower::ServiceBuilder;
 use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::compression::CompressionLayer;
@@ -43,6 +45,8 @@ pub struct ApiSettings {
     pub public_app_url: String,
     /// Where the API is reachable from outside (calendar feed URLs).
     pub public_api_url: String,
+    /// Strava webhook subscription check (`STRAVA_WEBHOOK_VERIFY_TOKEN`).
+    pub strava_verify_token: Option<String>,
     pub auth: AuthSettings,
 }
 
@@ -80,6 +84,10 @@ pub struct AppState {
     pub google: Option<Arc<GoogleVerifier>>,
     /// Uploaded files (logos, avatars): disk or S3 (D-010).
     pub storage: Storage,
+    /// `None` when Strava isn't configured (`STRAVA_CLIENT_ID`/`SECRET`).
+    pub strava: Option<Arc<StravaClient>>,
+    /// Encrypts provider tokens at rest (`ENCRYPTION_KEY`).
+    pub cipher: TokenCipher,
 }
 
 impl AppState {
@@ -89,6 +97,7 @@ impl AppState {
         mailer: Mailer,
         google: Option<GoogleVerifier>,
         storage: Storage,
+        cipher: TokenCipher,
     ) -> Self {
         Self {
             db,
@@ -96,7 +105,14 @@ impl AppState {
             mailer,
             google: google.map(Arc::new),
             storage,
+            strava: None,
+            cipher,
         }
+    }
+
+    pub fn with_strava(mut self, client: StravaClient) -> Self {
+        self.strava = Some(Arc::new(client));
+        self
     }
 }
 

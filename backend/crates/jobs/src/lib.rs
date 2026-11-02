@@ -3,6 +3,7 @@
 //! `runflow worker`.
 
 mod invite_email;
+mod strava_jobs;
 
 use std::time::Duration;
 
@@ -10,9 +11,12 @@ use chrono::Utc;
 use runflow_db::Pool;
 use runflow_db::jobs::{self, Job};
 use runflow_integrations::email::Mailer;
+use runflow_integrations::secrets::TokenCipher;
+use runflow_integrations::strava::StravaClient;
 use serde_json::Value;
 
 pub use invite_email::INVITE_EMAIL;
+pub use strava_jobs::{STRAVA_EVENT, STRAVA_SYNC};
 
 const MAX_ATTEMPTS: i32 = 8;
 
@@ -51,6 +55,13 @@ pub struct Worker {
     /// Links in e-mails point here (`PUBLIC_APP_URL`).
     public_app_url: String,
     id: String,
+    strava: Option<StravaCtx>,
+}
+
+#[derive(Clone)]
+pub(crate) struct StravaCtx {
+    pub client: StravaClient,
+    pub cipher: TokenCipher,
 }
 
 /// Enqueue helper for the API: `jobs::enqueue(&db, kind, payload)` with the kinds defined here.
@@ -74,7 +85,14 @@ impl Worker {
             mailer,
             public_app_url: public_app_url.into().trim_end_matches('/').to_string(),
             id,
+            strava: None,
         }
+    }
+
+    /// Enable the Strava jobs.
+    pub fn with_strava(mut self, client: StravaClient, cipher: TokenCipher) -> Self {
+        self.strava = Some(StravaCtx { client, cipher });
+        self
     }
 
     /// Run every due job (up to `limit`); returns how many ran.
@@ -123,6 +141,8 @@ impl Worker {
     async fn handle(&self, job: &Job) -> Result<(), JobError> {
         match job.kind.as_str() {
             INVITE_EMAIL => invite_email::run(self, &job.payload).await,
+            STRAVA_SYNC => strava_jobs::sync(self, &job.payload).await,
+            STRAVA_EVENT => strava_jobs::event(self, &job.payload).await,
             other => Err(JobError::permanent(format!("unknown job kind {other}"))),
         }
     }

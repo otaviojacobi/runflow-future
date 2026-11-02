@@ -15,6 +15,7 @@ pub mod members;
 pub mod models;
 pub mod my;
 pub mod plans;
+pub mod providers;
 pub mod workouts;
 
 use std::time::{Duration, Instant};

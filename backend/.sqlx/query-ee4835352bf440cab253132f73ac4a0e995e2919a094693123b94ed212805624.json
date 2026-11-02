@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE provider_connections SET last_sync_at = CASE WHEN $2 THEN now() ELSE last_sync_at END,\n                status = CASE WHEN $2 THEN 'active' ELSE 'error' END WHERE id = $1 AND status <> 'revoked'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ee4835352bf440cab253132f73ac4a0e995e2919a094693123b94ed212805624"
+}

@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE provider_connections SET access_token_enc = $2, refresh_token_enc = $3, token_expires_at = $4 WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bytea",
+        "Bytea",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "668b552d32fa7492e15efd435c639d3a32f6fea94adc3baa0f8bd828daaed297"
+}

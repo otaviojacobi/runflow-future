@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE provider_connections SET status = 'revoked', access_token_enc = NULL, refresh_token_enc = NULL WHERE user_id = $1 AND provider = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6ea5cebfc609725c8ace87e016e9b11a6d2a3ba861ab7868e91e16480293105a"
+}

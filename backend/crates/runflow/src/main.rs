@@ -14,7 +14,9 @@ use runflow_integrations::email::{
     Action, Email, Mailer, Provider, escape_html, layout, paragraph,
 };
 use runflow_integrations::google::{GOOGLE_JWKS_URL, GoogleVerifier};
+use runflow_integrations::secrets::TokenCipher;
 use runflow_integrations::storage::{Storage, StorageSettings};
+use runflow_integrations::strava::{STRAVA_BASE, StravaClient};
 use tracing_subscriber::EnvFilter;
 
 use crate::config::{Config, LogFormat, RunEnv};
@@ -127,9 +129,18 @@ async fn migrate(config: &Config) -> anyhow::Result<()> {
 async fn worker(config: Config) -> anyhow::Result<()> {
     let pool = connect(&config).await?;
     let mailer = Mailer::from_settings(&config.email).context("e-mail settings")?;
-    runflow_jobs::Worker::new(pool.clone(), mailer, config.http.public_app_url.clone())
-        .run(shutdown())
-        .await;
+    let mut w = runflow_jobs::Worker::new(pool.clone(), mailer, config.http.public_app_url.clone());
+    if let Some(st) = &config.strava {
+        w = w.with_strava(
+            StravaClient::new(
+                STRAVA_BASE,
+                st.client_id.clone(),
+                st.client_secret.expose().to_string(),
+            ),
+            token_cipher(&config)?,
+        );
+    }
+    w.run(shutdown()).await;
     pool.close().await;
     Ok(())
 }
@@ -158,6 +169,11 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
         body_limit: 12 * 1024 * 1024,
         public_app_url: config.http.public_app_url.clone(),
         public_api_url: config.http.public_api_url.clone(),
+        strava_verify_token: config
+            .strava
+            .as_ref()
+            .and_then(|s| s.webhook_verify_token.as_ref())
+            .map(|t| t.expose().to_string()),
         auth: AuthSettings {
             secret,
             session_ttl: chrono::Duration::days(60),
@@ -167,6 +183,14 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
                 && mailer.provider() == Provider::Log,
         },
     };
+    let cipher = token_cipher(&config)?;
+    let strava = config.strava.as_ref().map(|st| {
+        StravaClient::new(
+            STRAVA_BASE,
+            st.client_id.clone(),
+            st.client_secret.expose().to_string(),
+        )
+    });
     let google = config
         .google
         .as_ref()
@@ -184,13 +208,18 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
         },
     })
     .context("file storage (STORAGE_*)")?;
-    let app = runflow_api::router(AppState::new(
+    let mut state = AppState::new(
         pool.clone(),
         settings,
         mailer.clone(),
         google,
         storage,
-    ));
+        cipher.clone(),
+    );
+    if let Some(client) = strava.clone() {
+        state = state.with_strava(client);
+    }
+    let app = runflow_api::router(state);
     let listener = tokio::net::TcpListener::bind(config.http.bind)
         .await
         .with_context(|| format!("binding {}", config.http.bind))?;
@@ -207,11 +236,14 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
     // One signal stops both the server and the in-process worker.
     let (stop_tx, stop_rx) = tokio::sync::watch::channel(false);
     let worker = with_worker.then(|| {
-        let w = runflow_jobs::Worker::new(
+        let mut w = runflow_jobs::Worker::new(
             pool.clone(),
             mailer.clone(),
             config.http.public_app_url.clone(),
         );
+        if let Some(client) = strava.clone() {
+            w = w.with_strava(client, cipher.clone());
+        }
         let mut rx = stop_rx.clone();
         tokio::spawn(async move {
             w.run(async move {
@@ -236,6 +268,25 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
     pool.close().await;
     tracing::info!("bye");
     Ok(())
+}
+
+/// `ENCRYPTION_KEY` (base64 of 32 bytes); development falls back to a fixed, insecure key.
+fn token_cipher(config: &Config) -> anyhow::Result<TokenCipher> {
+    use base64::Engine;
+    match &config.secrets.encryption_key {
+        Some(k) => {
+            let raw = base64::engine::general_purpose::STANDARD
+                .decode(k.expose().trim())
+                .context("ENCRYPTION_KEY must be base64 (openssl rand -base64 32)")?;
+            Ok(TokenCipher::new(&raw)?)
+        }
+        None => {
+            tracing::warn!(
+                "ENCRYPTION_KEY is not set: provider tokens use an insecure development key"
+            );
+            Ok(TokenCipher::new(b"runflow-development-only-key-32b")?)
+        }
+    }
 }
 
 async fn shutdown() {

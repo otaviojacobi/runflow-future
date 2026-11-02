@@ -17,6 +17,7 @@ runflow-integrations.workspace = true
 runflow-jobs.workspace = true
 anyhow.workspace = true
 axum.workspace = true
+base64.workspace = true
 chrono.workspace = true
 clap.workspace = true
 dotenvy.workspace = true

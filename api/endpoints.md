@@ -52,6 +52,7 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 | Method | Path | What | Screens |
 |---|---|---|---|
 | GET | `/health` | `{ok, version, database: {ok, latency_ms}}`; `503 health.database_unavailable` when the database is down. The mock adds `anchor_date` and `routes` | — |
+| GET / POST | `/webhooks/strava` | Strava webhook: GET answers the subscription handshake (`hub.verify_token` = `STRAVA_WEBHOOK_VERIFY_TOKEN`); POST events are recorded once and applied by the worker (activity create/update fetched from Strava, delete, athlete deauthorization = disconnect). Backend only | — |
 
 ### Auth and account
 | Method | Path | Purpose | Screens |
@@ -77,8 +78,8 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
 | GET | `/me/connections` | `{items: [{provider, available, connection}]}` (Garmin: `available: false` until the program is approved) | A4, C1 |
-| POST | `/me/connections/strava/start` | → `{authorize_url}` (mock: in-app fake consent page) | A4, C1 |
-| POST | `/me/connections/strava/callback` `{code}` | Finish OAuth; mock imports sample activities | A4, C1 |
+| POST | `/me/connections/strava/start` | → `{authorize_url, state}`; Strava sends the person back to `{app}/connect/strava?code&state&scope` (mock: in-app fake consent page). `503 strava.unavailable` when not configured | A4, C1 |
+| POST | `/me/connections/strava/callback` `{code, state, scope}` | Finish OAuth (state is signed, per person, 15 min): tokens stored encrypted, the last 30 days are imported in the background. `400 strava.denied` / `strava.state_invalid` / `strava.scope` (activities not granted), `409 strava.taken` (that Strava account is linked to another person). Mock: imports sample activities | A4, C1 |
 | DELETE | `/me/connections/{provider}` | Disconnect and delete that provider's data (§5) | C1 |
 | GET | `/me/activities?from&to&cursor` | My activities, newest first; each has `matched_workout` (id, title, date, compliance) or null | M4 |
 | GET | `/me/activities/{id}` | Activity detail with laps + `matched_workout` | M4 |

@@ -3,4 +3,6 @@
 
 pub mod email;
 pub mod google;
+pub mod secrets;
 pub mod storage;
+pub mod strava;

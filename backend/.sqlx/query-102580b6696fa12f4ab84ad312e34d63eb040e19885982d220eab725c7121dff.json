@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO provider_connections (id, user_id, provider, external_user_id, athlete_name, access_token_enc, refresh_token_enc, scopes, token_expires_at, status)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'active')\n         ON CONFLICT (user_id, provider) DO UPDATE SET external_user_id = $4, athlete_name = $5, access_token_enc = $6, refresh_token_enc = $7,\n                scopes = $8, token_expires_at = $9, status = 'active', connected_at = now()\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Bytea",
+        "Bytea",
+        "TextArray",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "102580b6696fa12f4ab84ad312e34d63eb040e19885982d220eab725c7121dff"
+}

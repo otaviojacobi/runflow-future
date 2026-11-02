@@ -1731,6 +1731,7 @@ dependencies = [
  "rustls-platform-verifier",
  "serde",
  "serde_json",
+ "serde_urlencoded",
  "sync_wrapper",
  "tokio",
  "tokio-rustls",
@@ -1765,6 +1766,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "axum",
+ "base64 0.22.1",
  "chrono",
  "clap",
  "dotenvy",
@@ -1830,6 +1832,7 @@ dependencies = [
 name = "runflow-integrations"
 version = "0.1.0"
 dependencies = [
+ "aws-lc-rs",
  "axum",
  "chrono",
  "jsonwebtoken",

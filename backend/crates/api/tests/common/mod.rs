@@ -9,6 +9,7 @@ use http_body_util::BodyExt;
 use runflow_api::{ApiSettings, AppState, AuthSettings, router};
 use runflow_integrations::email::{EmailSettings, Mailer, Provider};
 use runflow_integrations::google::GoogleVerifier;
+use runflow_integrations::secrets::TokenCipher;
 use runflow_integrations::storage::Storage;
 use serde_json::Value;
 use sqlx::PgPool;
@@ -55,6 +56,7 @@ pub fn settings(dev: bool) -> ApiSettings {
         body_limit: 64 * 1024,
         public_app_url: "http://localhost:8080".into(),
         public_api_url: "http://localhost:3000".into(),
+        strava_verify_token: Some("verify-me".into()),
         auth: AuthSettings {
             secret: b"test-secret-test-secret-test-secret".to_vec(),
             session_ttl: chrono::Duration::days(60),
@@ -63,6 +65,10 @@ pub fn settings(dev: bool) -> ApiSettings {
             dev_affordances: dev,
         },
     }
+}
+
+pub fn cipher() -> TokenCipher {
+    TokenCipher::new(&[42u8; 32]).unwrap()
 }
 
 fn log_mailer() -> Mailer {
@@ -89,7 +95,14 @@ impl TestApp {
             .with_env_filter("warn,runflow=info")
             .try_init();
         Self {
-            state: AppState::new(db, settings(dev), log_mailer(), google, Storage::memory()),
+            state: AppState::new(
+                db,
+                settings(dev),
+                log_mailer(),
+                google,
+                Storage::memory(),
+                cipher(),
+            ),
         }
     }
 
@@ -98,20 +111,33 @@ impl TestApp {
         let mut s = settings(true);
         s.body_limit = limit;
         Self {
-            state: AppState::new(db, s, log_mailer(), None, Storage::memory()),
+            state: AppState::new(db, s, log_mailer(), None, Storage::memory(), cipher()),
         }
     }
 
     /// Run every due background job now (what the worker does in production).
     pub async fn run_jobs(&self) -> usize {
-        runflow_jobs::Worker::new(
+        let mut w = runflow_jobs::Worker::new(
             self.state.db.clone(),
             self.state.mailer.clone(),
             self.state.settings.public_app_url.clone(),
-        )
-        .run_once(500)
-        .await
-        .unwrap()
+        );
+        if let Some(s) = &self.state.strava {
+            w = w.with_strava((**s).clone(), self.state.cipher.clone());
+        }
+        w.run_once(500).await.unwrap()
+    }
+
+    /// Strava pointed at a fake server (`base`).
+    pub fn with_strava(mut self, base: &str) -> Self {
+        self.state = self
+            .state
+            .with_strava(runflow_integrations::strava::StravaClient::new(
+                base,
+                "123".into(),
+                "secret".into(),
+            ));
+        self
     }
 
     pub fn db(&self) -> &PgPool {

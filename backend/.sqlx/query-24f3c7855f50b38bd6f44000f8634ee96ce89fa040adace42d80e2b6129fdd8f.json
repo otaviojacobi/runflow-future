@@ -1,0 +1,160 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, user_id, provider, external_user_id, athlete_name, access_token_enc, refresh_token_enc, scopes, token_expires_at, status, connected_at, last_sync_at\n           FROM provider_connections WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "user_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "provider",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "provider"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "external_user_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "external_user_id"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "athlete_name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "athlete_name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "access_token_enc",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "access_token_enc"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "refresh_token_enc",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "refresh_token_enc"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "scopes",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "scopes"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "token_expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "token_expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "connected_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "connected_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "last_sync_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "last_sync_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "24f3c7855f50b38bd6f44000f8634ee96ce89fa040adace42d80e2b6129fdd8f"
+}

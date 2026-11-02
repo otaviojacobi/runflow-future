@@ -270,6 +270,17 @@ impl Config {
                 _ => {}
             }
         }
+        if let Some(k) = &secrets.encryption_key {
+            use base64::Engine;
+            let ok = base64::engine::general_purpose::STANDARD
+                .decode(k.expose().trim())
+                .is_ok_and(|b| b.len() == 32);
+            if !ok {
+                e.errors.push(
+                    "ENCRYPTION_KEY must be base64 of 32 bytes: `openssl rand -base64 32`".into(),
+                );
+            }
+        }
 
         let provider = match e
             // Unset: Resend as soon as a key is there (or always in production), else the log.
