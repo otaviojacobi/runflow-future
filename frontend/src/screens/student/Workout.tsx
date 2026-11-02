@@ -1,9 +1,10 @@
 /** M2 · Treino (student): personal targets, notes, feedback, thread. Route: /workouts/$id */
 import { useParams } from "@tanstack/react-router";
-import { ArrowLeft, CircleCheck, Watch } from "lucide-react";
+import { ArrowLeft, CircleCheck } from "lucide-react";
 import { useState } from "react";
 import { useMyWorkout } from "@/api/my";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
+import { FitButton } from "@/components/FitExport";
 import { SportChip } from "@/components/sport";
 import { Thread } from "@/components/Thread";
 import { IntensityProfile, Stat, StatusBadge } from "@/components/workout";
@@ -11,7 +12,7 @@ import { WorkoutSteps } from "@/components/WorkoutSteps";
 import { t } from "@/i18n";
 import { useClub } from "@/lib/club";
 import { distance, duration, km, longDate, pace } from "@/lib/format";
-import { Avatar, Badge, Button, ButtonLink, Card, Skeleton } from "@/ui";
+import { Avatar, Button, ButtonLink, Card, Skeleton } from "@/ui";
 import { FEELING } from "../staff/planning/WorkoutDialogs";
 
 export function WorkoutScreen() {
@@ -43,7 +44,7 @@ export function WorkoutScreen() {
       )}
       <div className="grid gap-2 sm:grid-cols-2">
         <Button size="lg" icon={<CircleCheck />} onClick={() => setFb(true)}>{c ? t("Editar feedback") : t("Concluir treino")}</Button>
-        <Button size="lg" variant="secondary" icon={<Watch />} disabled title={t("Em breve, com a integração Garmin")}>{t("Enviar para o relógio")} <Badge className="ml-1">{t("em breve")}</Badge></Button>
+        <FitButton size="lg" name={w.title} sport={w.sport} structure={w.structure} />
       </div>
       {c && (c.feeling || c.comment || c.rpe) && (
         <Card className="grid gap-2 p-4"><h2 className="rf-text-title-sm">{t("Seu feedback")}</h2><div className="flex flex-wrap gap-6">{c.rpe && <Stat value={String(c.rpe)} unit="/10" label={t("Esforço (PSE)")} size="sm" />}{c.feeling && <Stat value={t(FEELING[c.feeling])} label={t("Sensação")} size="sm" />}{c.compliance_pct != null && <Stat value={`${c.compliance_pct}%`} label={t("Cumprido")} size="sm" />}</div>{c.comment && <p className="text-fg-muted">“{c.comment}”</p>}</Card>

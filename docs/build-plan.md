@@ -38,7 +38,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F26 | Club finances: student monthly fees (Stripe/Pix), status per student, reminders, receipts | O6, M12 | [x] |
 | F27 | AI assistant: "describe the workout" → structure, weekly plan suggestions from goal and history, feedback summaries | W17 | [x] |
 | F28 | Exercise library with videos for strength/mobility, linked from exercises | W18 | [x] |
-| F29 | Import/export: students via CSV, workouts via pasted text, `.FIT` workout export, `.ics` calendar feed for students | — | [ ] |
+| F29 | Import/export: students via CSV, workouts via pasted text, `.FIT` workout export, `.ics` calendar feed for students | — | [x] |
 | F30 | Power features: command palette (⌘K), keyboard shortcuts in planning, PWA install, offline today, print-friendly week | — | [ ] |
 | F20 | Hardening: 404 and error pages, empty states audit, accessibility pass, responsive pass, performance budget (§7.7), Playwright e2e suite in CI | — | [ ] |
 

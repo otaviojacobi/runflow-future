@@ -21,7 +21,7 @@ const ORDER = [
   "groups", "group_members", "consents", "athlete_profiles", "zones", "exercises", "workout_templates", "training_plans", "training_plan_items",
   "plan_assignments", "planned_workouts", "activities", "workout_completions", "comments", "thread_reads", "provider_connections",
   "webhook_events", "locations", "class_types", "class_schedules", "class_sessions", "bookings", "assessments", "conversations", "messages", "conversation_reads", "announcements", "announcement_reads", "challenges", "challenge_participants", "ranking_opt_ins", "badges", "races", "race_entries", "club_payout_accounts", "fee_plans", "student_fees", "charges", "club_subscriptions", "invoices",
-  "notifications", "notification_prefs", "push_tokens", "audit_log", "jobs",
+  "notifications", "calendar_feeds", "notification_prefs", "push_tokens", "audit_log", "jobs",
 ];
 
 const db = new PGlite();

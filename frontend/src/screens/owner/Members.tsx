@@ -1,11 +1,12 @@
 /** O2 · Membros e convites: trainers, students (suspend/remove), invite links. Route: /club/members */
 import { Link } from "@tanstack/react-router";
-import { Ban, Copy, MessageCircle, MoreHorizontal, Plus, RotateCcw, Ticket, Trash2, UserMinus } from "lucide-react";
+import { Ban, Copy, FileSpreadsheet, MessageCircle, MoreHorizontal, Plus, RotateCcw, Ticket, Trash2, UserMinus } from "lucide-react";
 import { useState } from "react";
 import { useCreateInvite, useInvites, useRevokeInvite } from "@/api/clubs";
 import { useMembers, useRemoveMember, useUpdateMember } from "@/api/members";
 import type { Member } from "@/api/types";
 import { whatsappLink } from "@/components/club/InviteShare";
+import { ImportStudentsDialog } from "@/components/ImportDialogs";
 import { t, tn } from "@/i18n";
 import { useClub } from "@/lib/club";
 import { ago } from "@/lib/format";
@@ -23,6 +24,7 @@ export function MembersScreen() {
   const create = useCreateInvite(club?.id ?? "");
   const [confirm, setConfirm] = useState<Member | null>(null);
   const [newInvite, setNewInvite] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [role, setRole] = useState<"student" | "trainer">("student");
   const [maxUses, setMaxUses] = useState("");
   if (!club || !ctx) return null;
@@ -51,7 +53,8 @@ export function MembersScreen() {
 
   return (
     <div className="mx-auto grid max-w-4xl gap-6">
-      <PageHeader title={t("Membros e convites")} subtitle={t("Quem participa do {club} e os links para entrar.", { club: club.name })} actions={<Button icon={<Plus />} onClick={() => setNewInvite(true)}>{t("Novo link de convite")}</Button>} />
+      <PageHeader title={t("Membros e convites")} subtitle={t("Quem participa do {club} e os links para entrar.", { club: club.name })} actions={<><Button variant="secondary" icon={<FileSpreadsheet />} onClick={() => setImporting(true)}>{t("Importar planilha")}</Button><Button icon={<Plus />} onClick={() => setNewInvite(true)}>{t("Novo link de convite")}</Button></>} />
+      <ImportStudentsDialog club={club} open={importing} onOpenChange={setImporting} />
       {sub && (
         <Card className="flex flex-wrap items-center gap-4 p-4">
           <div className="min-w-48 flex-1"><div className="flex items-baseline justify-between text-sm"><span className="font-semibold">{t("{n} de {limit} alunos", { n: sub.active_students, limit: sub.student_limit })}</span><span className="text-fg-muted">{t("Plano {plan}", { plan: sub.plan === "free" ? "Free" : sub.plan === "pro" ? "Pro" : "Max" })}</span></div><ProgressBar className="mt-2" value={sub.active_students} max={sub.student_limit} tone={sub.active_students >= sub.student_limit ? "danger" : sub.active_students / sub.student_limit >= 0.8 ? "warning" : "brand"} label={t("Alunos no plano")} /></div>

@@ -7,6 +7,8 @@ const HEX = /^#[0-9A-F]{6}$/;
 /** Starter library per modality (copied into every new club). */
 const STARTER = { run: ["easy6", "regen5", "int6x1k", "int8x400", "fartlek", "tempo", "long", "prog10"], strength: ["forcaA", "forcaB"], mobility: ["mob"], swim: ["swimTech", "swim10x100"] };
 
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 export default function register(h) {
   const slugify = (name) => {
     const base = name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 36) || "clube";
@@ -142,9 +144,32 @@ export default function register(h) {
     const role = ctx.body.role === "trainer" ? "trainer" : "student";
     if (role === "trainer" && m.role !== "owner") h.fail(403, "auth.forbidden", "Sem permissão", "Só o gestor convida treinadores.");
     const max = ctx.body.max_uses ? Number(ctx.body.max_uses) : null;
-    const row = { id: h.uuid("inv"), club_id: ctx.params.club_id, role, token: inviteToken(), email: ctx.body.email || null, created_by: m.id, max_uses: max, uses: 0, expires_at: ctx.body.expires_at || null, revoked_at: null, created_at: h.nowIso() };
+    const row = { id: h.uuid("inv"), club_id: ctx.params.club_id, role, token: inviteToken(), email: ctx.body.email || null, group_ids: [], created_by: m.id, max_uses: max, uses: 0, expires_at: ctx.body.expires_at || null, revoked_at: null, created_at: h.nowIso() };
     h.db.invitations.push(row);
     return { __status: 201, data: inviteOut(row) };
+  });
+  /** CSV import: one personal invite per row (max 1 use, 30 days), optionally joining groups on accept. */
+  h.post("/v1/clubs/:club_id/invites/bulk", (ctx) => {
+    const m = ctx.staff(ctx.params.club_id);
+    const rows = Array.isArray(ctx.body.rows) ? ctx.body.rows.slice(0, 500) : [];
+    if (!rows.length) h.invalid([{ field: "rows", message: "Envie pelo menos um aluno." }]);
+    const groups = h.db.groups.filter((g) => g.club_id === m.club_id);
+    const seen = new Set(), items = [], skipped = [];
+    for (const [i, r] of rows.entries()) {
+      const email = String(r.email || "").trim().toLowerCase();
+      if (!EMAIL.test(email)) { skipped.push({ row: i + 1, email, reason: "invalid_email" }); continue; }
+      if (seen.has(email)) { skipped.push({ row: i + 1, email, reason: "duplicate" }); continue; }
+      seen.add(email);
+      const u = h.db.users.find((x) => x.email.toLowerCase() === email && !x.deleted_at);
+      if (u && h.db.memberships.some((x) => x.user_id === u.id && x.club_id === m.club_id && x.status === "active")) { skipped.push({ row: i + 1, email, reason: "already_member" }); continue; }
+      if (h.db.invitations.some((x) => x.club_id === m.club_id && x.email === email && !x.revoked_at && x.uses < (x.max_uses ?? Infinity) && (!x.expires_at || x.expires_at > h.nowIso()))) { skipped.push({ row: i + 1, email, reason: "already_invited" }); continue; }
+      const gids = String(r.groups || "").split(/[,|]/).map((g) => g.trim().toLowerCase()).filter(Boolean).map((n) => groups.find((g) => g.name.toLowerCase() === n)?.id).filter(Boolean);
+      const row = { id: h.uuid("inv"), club_id: m.club_id, role: "student", token: inviteToken(), email, group_ids: gids, created_by: m.id, max_uses: 1, uses: 0, expires_at: new Date(Date.now() + 30 * 86400000).toISOString(), revoked_at: null, created_at: h.nowIso() };
+      h.db.invitations.push(row);
+      items.push({ ...inviteOut(row), name: r.name || null });
+    }
+    const s = h.subscription(m.club_id);
+    return { __status: 201, data: { created: items.length, items, skipped, over_limit: Math.max(0, s.active_students + items.length - s.student_limit) } };
   });
   h.delete("/v1/clubs/:club_id/invites/:id", (ctx) => {
     ctx.staff(ctx.params.club_id);
@@ -191,6 +216,7 @@ export default function register(h) {
     if (m) Object.assign(m, { status: "active", role: i.role, left_at: null, joined_at: now });
     else { m = { id: h.uuid("m"), club_id: c.id, user_id: u.id, role: i.role, status: "active", is_billing_owner: false, joined_at: now, left_at: null }; h.db.memberships.push(m); }
     i.uses++;
+    for (const g of i.group_ids || []) if (h.db.groups.some((x) => x.id === g) && !h.db.group_members.some((x) => x.group_id === g && x.membership_id === m.id)) h.db.group_members.push({ group_id: g, membership_id: m.id, added_at: now });
     for (const staff of h.db.memberships.filter((x) => x.club_id === c.id && x.role !== "student" && x.status === "active"))
       h.db.notifications.push({ id: h.uuid("n"), user_id: staff.user_id, club_id: c.id, kind: "member_joined", title: `${u.name} entrou no clube`, body: i.role === "trainer" ? "Novo treinador na equipe." : null, link: i.role === "trainer" ? "/club/members" : "/students", read_at: null, created_at: now });
     return { __status: 201, data: { membership: m, club: c, already_member: false } };

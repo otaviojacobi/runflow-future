@@ -220,7 +220,7 @@ export function generate(anchor) {
   group("forca", "Força e corrida", "Corrida + musculação.", ["bruno", "carla", "isabela"]);
 
   // ---- invitations
-  const inv = (key, clubRow, role, by, extra = {}) => t("invitations").push({ id: uuid("inv:" + key), club_id: clubRow.id, role, token: key, email: null, created_by: by, max_uses: null, uses: 0, expires_at: null, revoked_at: null, created_at: createdLongAgo, ...extra });
+  const inv = (key, clubRow, role, by, extra = {}) => t("invitations").push({ id: uuid("inv:" + key), club_id: clubRow.id, role, token: key, email: null, group_ids: [], created_by: by, max_uses: null, uses: 0, expires_at: null, revoked_at: null, created_at: createdLongAgo, ...extra });
   inv("pf-alunos", PF, "student", M["paceforte:marcos"].id, { uses: 9 });
   inv("pf-treinadores", PF, "trainer", M["paceforte:marcos"].id, { uses: 1, max_uses: 3 });
   inv("mare-alunos", MARE, "student", M["equipemare:renata"].id, { uses: 6 });
@@ -524,7 +524,7 @@ export function generate(anchor) {
   note("marcos", PF, "billing", "9 de 10 alunos no plano Free", "Faça upgrade para o Pro e tenha até 100 alunos.", "/club/billing", at(addDays(anchor, -2), "19:13"));
 
   // empty tables (present so the mock and the check know them)
-  for (const k of ["email_codes", "sessions", "assets", "plan_assignments", "webhook_events", "push_tokens", "audit_log", "jobs", "badges"]) t(k);
+  for (const k of ["email_codes", "sessions", "assets", "plan_assignments", "webhook_events", "push_tokens", "audit_log", "jobs", "badges", "calendar_feeds"]) t(k);
   return { meta: { anchor_date: anchor, generated_at: new Date().toISOString(), version: 1 }, ...T };
 }
 

@@ -1,11 +1,12 @@
 /** W6 · Biblioteca: workout templates by sport. Route: /library */
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Archive, Copy, Library as LibraryIcon, MoreHorizontal, Pencil, Plus, Search } from "lucide-react";
+import { Archive, ClipboardPaste, Copy, Library as LibraryIcon, MoreHorizontal, Pencil, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useArchiveTemplate, useSaveTemplate, useTemplates } from "@/api/library";
 import type { Sport, WorkoutTemplate } from "@/api/types";
 import { SPORT_LABEL, SportChip } from "@/components/sport";
 import { IntensityProfile } from "@/components/workout";
+import { ImportWorkoutsDialog } from "@/components/ImportDialogs";
 import { t, tn } from "@/i18n";
 import { useClub } from "@/lib/club";
 import { ago, distance, duration } from "@/lib/format";
@@ -15,6 +16,7 @@ export function LibraryScreen() {
   const { club } = useClub();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [importing, setImporting] = useState(false);
   const [sport, setSport] = useState<Sport | "">("");
   const all = useTemplates(club?.id);
   const save = useSaveTemplate(club?.id ?? "");
@@ -36,7 +38,8 @@ export function LibraryScreen() {
   return (
     <div className="mx-auto grid max-w-6xl gap-6">
       <PageHeader title={t("Biblioteca")} subtitle={all.data ? tn(all.data.length, "{n} treino pronto para usar", "{n} treinos prontos para usar") : " "}
-        actions={<ButtonLink to="/library/new" icon={<Plus />}>{t("Novo treino")}</ButtonLink>} />
+        actions={<><Button variant="secondary" icon={<ClipboardPaste />} onClick={() => setImporting(true)}>{t("Importar")}</Button><ButtonLink to="/library/new" icon={<Plus />}>{t("Novo treino")}</ButtonLink></>} />
+      {club && <ImportWorkoutsDialog club={club} open={importing} onOpenChange={setImporting} />}
       <div className="flex flex-wrap items-center gap-3">
         <div className="relative w-full sm:w-72"><Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-fg-subtle" /><Input aria-label={t("Buscar treino")} placeholder={t("Buscar por nome ou tag")} value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" /></div>
         <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("Filtrar por modalidade")}>

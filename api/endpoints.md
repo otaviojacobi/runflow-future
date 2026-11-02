@@ -57,6 +57,9 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | GET | `/me/sessions` · DELETE `/me/sessions/{id}` · POST `/me/sessions/revoke-others` | Signed-in devices `{id, kind, user_agent, created_at, last_seen_at, current}` | C1 |
 | POST / DELETE | `/me/avatar` `{data_url, width, height}` | Upload (PNG/JPG/WebP ≤ 5 MB) or remove the profile photo → `/me` payload; `avatar_url` is an `/assets/{id}` path | C1 |
 
+| GET / POST / DELETE | `/me/calendar-feed` | Personal calendar: POST (re)generates a secret URL → `{url, webcal_url}` (the old one stops working); GET → `{active, created_at}`; DELETE revokes | C1 |
+| GET | `/ics/{token}.ics` | Public, secret-token `text/calendar` feed (RFC 5545): planned workouts (all-day), booked classes (timed, with location), race entries; −30 to +120 days | — |
+
 ### Providers and activities (user-owned)
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
@@ -83,6 +86,7 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 | GET | `/public/invites/{token}` | `{club, branding, role, valid, reason, invited_by, members, already_member}` (reason: `expired` `revoked` `used_up` `club_full`) | A3 |
 | POST | `/invites/{token}/accept` | Join the club → membership | A3 |
 | GET / POST | `/clubs/{club_id}/invites` | List / create invite links (role, max_uses, expires_at); each has `url` | A5, O2 |
+| POST | `/clubs/{club_id}/invites/bulk` `{rows: [{name?, email, groups?}]}` | CSV import (≤ 500 rows): one personal invite per e-mail (1 use, 30 days; the backend e-mails the link), joining the named groups on accept → `{created, items[] (with url), skipped[] {row, email, reason: invalid_email \| duplicate \| already_member \| already_invited}, over_limit}` | O2 |
 | DELETE | `/clubs/{club_id}/invites/{id}` | Revoke | O2 |
 | GET | `/clubs/{club_id}/members?role&q&status` | `{membership, user, group_ids}` (role may be a list: `trainer,owner`) | O2 |
 | PATCH / DELETE | `/clubs/{club_id}/members/{membership_id}` | Change role or status / remove | O2 |

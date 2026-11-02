@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-02T06:31:57.529Z",
+  "generated_at": "2026-11-02T06:36:59.096Z",
   "version": 1
  },
  "users": [
@@ -1879,6 +1879,7 @@
    "role": "student",
    "token": "pf-alunos",
    "email": null,
+   "group_ids": [],
    "created_by": "ad896c19-0fab-4810-a0c7-c565db721527",
    "max_uses": null,
    "uses": 9,
@@ -1892,6 +1893,7 @@
    "role": "trainer",
    "token": "pf-treinadores",
    "email": null,
+   "group_ids": [],
    "created_by": "ad896c19-0fab-4810-a0c7-c565db721527",
    "max_uses": 3,
    "uses": 1,
@@ -1905,6 +1907,7 @@
    "role": "student",
    "token": "mare-alunos",
    "email": null,
+   "group_ids": [],
    "created_by": "de29c338-7e71-44c8-aaff-25c3fba47aa3",
    "max_uses": null,
    "uses": 6,
@@ -26940,5 +26943,6 @@
  "push_tokens": [],
  "audit_log": [],
  "jobs": [],
- "badges": []
+ "badges": [],
+ "calendar_feeds": []
 }

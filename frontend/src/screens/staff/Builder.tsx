@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useSaveTemplate, useTemplate } from "@/api/library";
 import type { Sport } from "@/api/types";
 import { AiDescribe } from "@/components/AiAssist";
+import { FitButton } from "@/components/FitExport";
 import { SportPicker, WorkoutBuilder } from "@/components/builder/WorkoutBuilder";
 import { estimate, type Structure } from "@/domain/workout";
 import { t } from "@/i18n";
@@ -45,7 +46,8 @@ export function BuilderScreen() {
     <div className="mx-auto grid max-w-6xl gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <ButtonLink to="/library" variant="ghost" size="sm" icon={<ArrowLeft />}>{t("Biblioteca")}</ButtonLink>
-        <Button icon={<Save />} loading={save.isPending} onClick={submit}>{isNew ? t("Salvar na biblioteca") : t("Salvar alterações")}</Button>
+        <div className="flex gap-2"><FitButton name={name} sport={sport} structure={structure} label={t(".FIT")} />
+        <Button icon={<Save />} loading={save.isPending} onClick={submit}>{isNew ? t("Salvar na biblioteca") : t("Salvar alterações")}</Button></div>
       </div>
       <div className="grid gap-4">
         <Field label={t("Nome do treino")} error={err?.fieldError("name")}>

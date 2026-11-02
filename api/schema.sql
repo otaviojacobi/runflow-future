@@ -121,6 +121,7 @@ CREATE TABLE invitations (
   role         text NOT NULL CHECK (role IN ('trainer', 'student')),
   token        text NOT NULL UNIQUE,     -- url-safe random, shared via WhatsApp / QR / link
   email        text,                     -- optional: personal invite
+  group_ids    uuid[] NOT NULL DEFAULT '{}',  -- groups to join on accept (CSV import)
   created_by   uuid NOT NULL REFERENCES memberships (id),
   max_uses     int,                      -- NULL = unlimited (club link)
   uses         int NOT NULL DEFAULT 0,
@@ -666,6 +667,13 @@ CREATE TABLE notifications (
 );
 CREATE INDEX notifications_user_idx ON notifications (user_id, created_at DESC);
 
+-- Personal calendar feed (F29): a secret URL per user, served as text/calendar (planned workouts, booked
+-- classes, races). Only the token's hash is stored; regenerating revokes the old URL.
+CREATE TABLE calendar_feeds (
+  user_id     uuid PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
+  token_hash  text NOT NULL UNIQUE,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
 CREATE TABLE notification_prefs (
   user_id         uuid PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
   push_workouts   boolean NOT NULL DEFAULT true,
