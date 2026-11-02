@@ -134,7 +134,7 @@ Auth is **Sign in with Google** or an **email one-time code**. There are no pass
 1. **Owner creates a club** (target: under 5 minutes).
    - Landing page → "Criar meu clube grátis" → Google or email code → club name, modalities (icon multi-select), city.
    - **Studio quick step:** upload a logo, then pick or accept the suggested color, with a live preview.
-   - **Invite step:** type the students' e-mails; each one gets a personal invite (can be skipped).
+   - **Invite step:** invite one person at a time (e-mail plus optional name); the form clears for the next and lists who was invited. Many at once is the spreadsheet import later (can be skipped).
    - **First workout:** pick from ready templates ("Rodagem leve 5 km", "Intervalado 6×1 km"…).
    - Dashboard with an onboarding checklist.
 2. **Trainer invited by the owner:** e-mail invite → sign in with that e-mail → accept → lands on the student list.

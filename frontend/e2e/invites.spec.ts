@@ -8,10 +8,14 @@ test("owner invites by e-mail and only that account can join", async ({ page, br
   await page.goto("/club/members");
   await page.getByRole("button", { name: "Convidar por e-mail" }).first().click();
   const d = page.getByRole("dialog");
-  await d.getByLabel("E-mails").fill(email);
+  await d.getByLabel("E-mail", { exact: true }).fill(email);
   await d.getByLabel("Nome").fill("Helena");
   await d.getByRole("button", { name: "Enviar convite" }).click();
-  await expect(page.getByText("Convite enviado por e-mail")).toBeVisible();
+  await expect(page.getByText(`Convite enviado para ${email}`)).toBeVisible();
+  // One person at a time: the form clears for the next invite and lists who was invited.
+  await expect(d.getByLabel("E-mail", { exact: true })).toHaveValue("");
+  await expect(d.getByText(`Helena · ${email}`)).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.getByRole("tab", { name: /Convites/ }).click();
   await expect(page.getByText(`Helena · ${email}`)).toBeVisible();
 

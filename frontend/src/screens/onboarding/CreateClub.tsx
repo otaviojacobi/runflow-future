@@ -206,7 +206,7 @@ function StepInvite({ club, onDone }: { club: Club; onDone: () => void }) {
       <div><h1 className="rf-text-display-sm">{t("Convide seus alunos")}</h1><p className="mt-1 text-fg-muted">{t("Cada aluno recebe um convite pessoal por e-mail e entra com a conta Google ou um código, em segundos. Só entra no clube quem você convidar.")}</p></div>
       <Card className="grid gap-4 p-5 sm:p-6">
         <div className="flex items-center gap-2"><Mail className="size-5 text-brand-text" /><h2 className="rf-text-title-md">{t("Convites por e-mail")}</h2></div>
-        <InviteForm club={club} onDone={(n) => setSent((x) => x + n)} />
+        <InviteForm club={club} onSent={() => setSent((x) => x + 1)} />
         <p className="rf-text-caption text-fg-muted">{t("No plano Free, até 10 alunos. Treinadores não contam. Tem uma planilha? Importe depois em Membros e convites.")}</p>
       </Card>
       <div className="flex justify-between gap-2">
