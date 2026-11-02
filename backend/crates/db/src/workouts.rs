@@ -14,9 +14,11 @@ pub struct Filter {
     pub athlete: Option<Uuid>,
     pub group: Option<Uuid>,
     pub only: Option<Uuid>,
+    /// Include drafts (staff); students only ever get what was released to them (D-031).
+    pub drafts: bool,
 }
 
-/// Workouts with completion and thread counters for `viewer` (a membership id).
+/// Workouts with completion and thread counters for `viewer` (a membership id) and whether the student sees them.
 pub async fn list(
     db: impl PgExecutor<'_>,
     club_id: Uuid,
@@ -32,12 +34,14 @@ pub async fn list(
                   (SELECT count(*) FROM comments x
                      LEFT JOIN thread_reads r ON r.membership_id = $2 AND r.planned_workout_id = p.id
                     WHERE x.planned_workout_id = p.id AND x.deleted_at IS NULL AND x.author_membership_id <> $2
-                      AND (r.last_read_at IS NULL OR x.created_at > r.last_read_at)) AS "unread_count!"
+                      AND (r.last_read_at IS NULL OR x.created_at > r.last_read_at)) AS "unread_count!",
+                  coalesce(workout_released(p.club_id, p.athlete_membership_id, p.date), false) AS "visible!"
              FROM planned_workouts p LEFT JOIN workout_completions c ON c.planned_workout_id = p.id
             WHERE p.club_id = $1 AND p.date BETWEEN $3 AND $4
               AND ($5::uuid IS NULL OR p.athlete_membership_id = $5)
               AND ($6::uuid IS NULL OR p.athlete_membership_id IN (SELECT membership_id FROM group_members WHERE group_id = $6))
               AND ($7::uuid IS NULL OR p.id = $7)
+              AND ($8 OR coalesce(workout_released(p.club_id, p.athlete_membership_id, p.date), false))
             ORDER BY p.date, p.position, p.created_at"#,
         club_id,
         viewer,
@@ -45,7 +49,8 @@ pub async fn list(
         f.to,
         f.athlete,
         f.group,
-        f.only
+        f.only,
+        f.drafts
     )
     .fetch_all(db)
     .await?;
@@ -81,6 +86,7 @@ pub async fn list(
             updated_at: r.updated_at,
             comments_count: r.comments_count,
             unread_count: r.unread_count,
+            visible: r.visible,
         })
         .collect())
 }
@@ -107,6 +113,7 @@ pub async fn one(
             athlete: None,
             group: None,
             only: Some(id),
+            drafts: true,
         },
     )
     .await?
@@ -305,6 +312,23 @@ pub async fn activity(db: impl PgExecutor<'_>, id: Uuid) -> sqlx::Result<Option<
         id
     )
     .fetch_optional(db)
+    .await
+}
+
+/// Whether the athlete can already see a workout on that day (D-031: drafts stay silent).
+pub async fn released(
+    db: impl PgExecutor<'_>,
+    club_id: Uuid,
+    athlete: Uuid,
+    date: NaiveDate,
+) -> sqlx::Result<bool> {
+    sqlx::query_scalar!(
+        r#"SELECT coalesce(workout_released($1, $2, $3), false) AS "x!""#,
+        club_id,
+        athlete,
+        date
+    )
+    .fetch_one(db)
     .await
 }
 

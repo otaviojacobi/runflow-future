@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO week_releases (club_id, week_start, athlete_membership_id, released_by)\n             SELECT $1, $2, a, $4 FROM unnest($3::uuid[]) AS a ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "UuidArray",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "328779564605b3ce743b88de7185e348adc3195d4fd61f771c56dc025b3f805f"
+}

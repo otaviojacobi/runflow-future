@@ -31,6 +31,10 @@ pub struct Club {
     pub trainer_label: String,
     pub subdomain: Option<String>,
     pub created_at: DateTime<Utc>,
+    /// Week release (D-031): `immediate` or `weekly`; the automatic release (ISO weekday, `"HH:MM"`), both or neither.
+    pub release_mode: String,
+    pub auto_release_weekday: Option<i16>,
+    pub auto_release_time: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -241,6 +245,8 @@ pub struct Workout {
     pub completion: Option<Completion>,
     pub comments_count: i64,
     pub unread_count: i64,
+    /// The student can see it now (D-031); false = a draft.
+    pub visible: bool,
 }
 
 #[derive(Debug, Clone, Serialize)]

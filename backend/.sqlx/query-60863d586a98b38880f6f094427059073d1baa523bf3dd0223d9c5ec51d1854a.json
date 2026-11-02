@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE clubs SET\n            name = coalesce($2, name),\n            city = CASE WHEN $3 THEN $4 ELSE city END,\n            state = CASE WHEN $5 THEN $6 ELSE state END,\n            timezone = coalesce($7, timezone),\n            modalities = coalesce($8, modalities),\n            trainer_label = coalesce($9, trainer_label),\n            subdomain = CASE WHEN $10 THEN $11 ELSE subdomain END,\n            updated_at = now()\n          WHERE id = $1 AND deleted_at IS NULL\n          RETURNING id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at",
+  "query": "SELECT id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at,\n                release_mode, auto_release_weekday, to_char(auto_release_time, 'HH24:MI') AS auto_release_time\n           FROM clubs WHERE id = $1 AND deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -112,21 +112,39 @@
             "name": "created_at"
           }
         }
+      },
+      {
+        "ordinal": 10,
+        "name": "release_mode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "release_mode"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "auto_release_weekday",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "auto_release_weekday"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "auto_release_time",
+        "type_info": "Text",
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid",
-        "Text",
-        "Bool",
-        "Text",
-        "Bool",
-        "Bpchar",
-        "Text",
-        "TextArray",
-        "Text",
-        "Bool",
-        "Text"
+        "Uuid"
       ]
     },
     "nullable": [
@@ -139,8 +157,11 @@
       false,
       false,
       true,
-      false
+      false,
+      false,
+      true,
+      null
     ]
   },
-  "hash": "2719bea141e1a56fc8d9387c0a756b833a7bad033c7c415ee31b90be15cb2300"
+  "hash": "60863d586a98b38880f6f094427059073d1baa523bf3dd0223d9c5ec51d1854a"
 }

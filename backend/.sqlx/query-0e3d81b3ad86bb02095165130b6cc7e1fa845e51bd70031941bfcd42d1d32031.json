@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT DISTINCT week_start FROM week_releases\n          WHERE club_id = $1 AND week_start = ANY($3) AND (athlete_membership_id IS NULL OR athlete_membership_id = $2)",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "week_start",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "week_releases",
+            "name": "week_start"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "DateArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0e3d81b3ad86bb02095165130b6cc7e1fa845e51bd70031941bfcd42d1d32031"
+}

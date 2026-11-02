@@ -20,7 +20,8 @@ pub async fn memberships(
     let rows = sqlx::query!(
         "SELECT m.id, m.club_id, m.user_id, m.role, m.status, m.is_billing_owner, m.joined_at, m.left_at,
                 c.slug, c.name, c.city, c.state, c.timezone, c.modalities, c.trainer_label, c.subdomain,
-                c.created_at AS club_created_at
+                c.created_at AS club_created_at, c.release_mode, c.auto_release_weekday,
+                to_char(c.auto_release_time, 'HH24:MI') AS auto_release_time
            FROM memberships m JOIN clubs c ON c.id = m.club_id
           WHERE m.user_id = $1 AND m.status = 'active' AND c.deleted_at IS NULL
           ORDER BY m.joined_at",
@@ -96,6 +97,9 @@ pub async fn memberships(
                 trainer_label: r.trainer_label,
                 subdomain: r.subdomain,
                 created_at: r.club_created_at,
+                release_mode: r.release_mode,
+                auto_release_weekday: r.auto_release_weekday,
+                auto_release_time: r.auto_release_time,
             },
             membership: Membership {
                 id: r.id,
@@ -268,7 +272,8 @@ pub async fn export(db: impl PgExecutor<'_>, user_id: Uuid) -> sqlx::Result<Valu
              'consents', (SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.granted_at), '[]') FROM consents c WHERE c.user_id = $1),
              'connections', (SELECT coalesce(jsonb_agg(to_jsonb(p) - 'access_token_enc' - 'refresh_token_enc'), '[]') FROM provider_connections p WHERE p.user_id = $1),
              'activities', (SELECT coalesce(jsonb_agg(to_jsonb(x) ORDER BY x.started_at), '[]') FROM activities x WHERE x.user_id = $1),
-             'planned_workouts', (SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.date), '[]') FROM planned_workouts p WHERE p.athlete_membership_id IN (SELECT id FROM mine)),
+             'planned_workouts', (SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.date), '[]') FROM planned_workouts p WHERE p.athlete_membership_id IN (SELECT id FROM mine)
+                AND coalesce(workout_released(p.club_id, p.athlete_membership_id, p.date), false)),
              'completions', (SELECT coalesce(jsonb_agg(to_jsonb(c)), '[]') FROM workout_completions c
                               JOIN planned_workouts p ON p.id = c.planned_workout_id WHERE p.athlete_membership_id IN (SELECT id FROM mine)),
              'comments', (SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.created_at), '[]') FROM comments c WHERE c.author_membership_id IN (SELECT id FROM mine)),

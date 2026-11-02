@@ -83,7 +83,14 @@ CREATE TABLE clubs (
   subdomain      text UNIQUE,                       -- Pro: <subdomain>.runflow.club
   created_at     timestamptz NOT NULL DEFAULT now(),
   updated_at     timestamptz NOT NULL DEFAULT now(),
-  deleted_at     timestamptz
+  deleted_at     timestamptz,
+  -- Week release (D-031): 'immediate' = students see a workout as soon as it's saved; 'weekly' = future weeks stay
+  -- drafts until released by hand or automatically at auto_release_weekday (ISO 1 = Monday … 7 = Sunday) +
+  -- auto_release_time, club time, for the week that follows. Both NULL = no automatic release.
+  release_mode          text NOT NULL DEFAULT 'weekly' CHECK (release_mode IN ('immediate', 'weekly')),
+  auto_release_weekday  smallint DEFAULT 7 CHECK (auto_release_weekday BETWEEN 1 AND 7),
+  auto_release_time     time DEFAULT '18:00',
+  CHECK ((auto_release_weekday IS NULL) = (auto_release_time IS NULL))
 );
 ALTER TABLE assets ADD CONSTRAINT assets_club_fk FOREIGN KEY (club_id) REFERENCES clubs (id);
 
@@ -288,6 +295,30 @@ CREATE TABLE planned_workouts (
 );
 CREATE INDEX planned_workouts_athlete_date_idx ON planned_workouts (athlete_membership_id, date);
 CREATE INDEX planned_workouts_club_date_idx ON planned_workouts (club_id, date);
+
+-- Week release (D-031): a week (Monday) released to the club's students. athlete_membership_id NULL = everyone;
+-- released_by NULL = the automatic release.
+CREATE TABLE week_releases (
+  id                     uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  club_id                uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
+  week_start             date NOT NULL CHECK (extract(isodow FROM week_start) = 1),
+  athlete_membership_id  uuid REFERENCES memberships (id) ON DELETE CASCADE,
+  released_by            uuid REFERENCES memberships (id) ON DELETE SET NULL,
+  released_at            timestamptz NOT NULL DEFAULT now(),
+  UNIQUE NULLS NOT DISTINCT (club_id, week_start, athlete_membership_id)
+);
+
+-- May the athlete see a workout planned for p_day yet (D-031)? Weeks start on Monday; a week that has started in
+-- the club's time zone is always visible. Every student-facing read goes through this.
+CREATE FUNCTION workout_released(p_club uuid, p_athlete uuid, p_day date) RETURNS boolean
+LANGUAGE sql STABLE AS $$
+  SELECT c.release_mode = 'immediate'
+      OR date_trunc('week', p_day::timestamp)::date <= date_trunc('week', now() AT TIME ZONE c.timezone)::date
+      OR EXISTS (SELECT 1 FROM week_releases r
+                  WHERE r.club_id = c.id AND r.week_start = date_trunc('week', p_day::timestamp)::date
+                    AND (r.athlete_membership_id IS NULL OR r.athlete_membership_id = p_athlete))
+    FROM clubs c WHERE c.id = p_club
+$$;
 
 -- Synced or logged sessions. Belong to the USER (not a club): visibility per club follows consents.
 CREATE TABLE activities (
@@ -614,7 +645,7 @@ CREATE TABLE notifications (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   club_id     uuid REFERENCES clubs (id) ON DELETE CASCADE,
-  kind        text NOT NULL CHECK (kind IN ('workout_assigned', 'workout_changed', 'comment', 'feedback', 'class_reminder', 'class_cancelled', 'waitlist_promoted', 'member_joined', 'billing', 'message', 'announcement')),
+  kind        text NOT NULL CHECK (kind IN ('workout_assigned', 'workout_changed', 'comment', 'feedback', 'class_reminder', 'class_cancelled', 'waitlist_promoted', 'member_joined', 'billing', 'message', 'announcement', 'week_released')),
   title       text NOT NULL,             -- pt-BR, rendered at creation time
   body        text,
   link        text,                      -- in-app path, e.g. /treinos/<id>

@@ -408,16 +408,30 @@ async fn planilhas_grid_apply_and_unassign(db: PgPool) {
         ),
         (201, Some(2), Some(8))
     );
+    // Next week is still a draft (D-031): nothing announced until the trainer releases it.
+    let quiet = app.get("/v1/me/notifications", Some(&c.bia.0)).await;
+    assert_eq!(quiet.ok()["items"], json!([]));
+    app.post(
+        &format!(
+            "/v1/clubs/{}/weeks/{}/release",
+            c.id,
+            monday.format("%Y-%m-%d")
+        ),
+        Some(&c.owner),
+        json!({}),
+    )
+    .await
+    .ok();
     let note = app.get("/v1/me/notifications", Some(&c.bia.0)).await;
     assert_eq!(
         note.ok()["items"][0]["title"],
-        "Nova planilha: Base 3 semanas"
+        "Sua semana de treinos está liberada"
     );
     assert!(
         note.body["items"][0]["body"]
             .as_str()
             .unwrap()
-            .starts_with("3 semanas a partir de ")
+            .starts_with("2 treinos de ")
     );
 
     let detail = app.get(&format!("{plans}/{pid}"), Some(&c.owner)).await;

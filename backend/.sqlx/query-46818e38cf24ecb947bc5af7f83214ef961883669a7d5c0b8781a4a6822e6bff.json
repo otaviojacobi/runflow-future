@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at\n           FROM clubs WHERE (slug = $1 OR subdomain = $1) AND deleted_at IS NULL",
+  "query": "INSERT INTO clubs (id, slug, name, city, state, modalities, trainer_label) VALUES ($1, $2, $3, $4, $5, $6, $7)\n         RETURNING id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at,\n                   release_mode, auto_release_weekday, to_char(auto_release_time, 'HH24:MI') AS auto_release_time",
   "describe": {
     "columns": [
       {
@@ -112,10 +112,44 @@
             "name": "created_at"
           }
         }
+      },
+      {
+        "ordinal": 10,
+        "name": "release_mode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "release_mode"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "auto_release_weekday",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "auto_release_weekday"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "auto_release_time",
+        "type_info": "Text",
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Bpchar",
+        "TextArray",
         "Text"
       ]
     },
@@ -129,8 +163,11 @@
       false,
       false,
       true,
-      false
+      false,
+      false,
+      true,
+      null
     ]
   },
-  "hash": "5f2ec3449a7717f31304180d998648f8e426c3bb2e4c57c0a1421b4798739c6f"
+  "hash": "46818e38cf24ecb947bc5af7f83214ef961883669a7d5c0b8781a4a6822e6bff"
 }

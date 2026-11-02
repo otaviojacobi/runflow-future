@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT p.id, p.date, p.title, c.name AS club FROM planned_workouts p\n           JOIN memberships m ON m.id = p.athlete_membership_id JOIN clubs c ON c.id = m.club_id\n          WHERE m.user_id = $1 AND m.status = 'active' AND m.role = 'student' AND c.deleted_at IS NULL AND p.date BETWEEN $2 AND $3\n          ORDER BY p.date, p.position",
+  "query": "SELECT p.id, p.date, p.title, c.name AS club FROM planned_workouts p\n           JOIN memberships m ON m.id = p.athlete_membership_id JOIN clubs c ON c.id = m.club_id\n          WHERE m.user_id = $1 AND m.status = 'active' AND m.role = 'student' AND c.deleted_at IS NULL AND p.date BETWEEN $2 AND $3\n            AND coalesce(workout_released(p.club_id, p.athlete_membership_id, p.date), false)\n          ORDER BY p.date, p.position",
   "describe": {
     "columns": [
       {
@@ -62,5 +62,5 @@
       false
     ]
   },
-  "hash": "502d197669a55c076719cc949bdc2eca12cd746620b12ff837c9ee17ecea4533"
+  "hash": "c9cca560d8930699af510fab288c3bc1bd3cd3cafbc5f0eb5df31cd9bc86bfb3"
 }

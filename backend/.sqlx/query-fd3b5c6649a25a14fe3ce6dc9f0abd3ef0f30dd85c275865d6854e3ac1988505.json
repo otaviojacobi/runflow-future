@@ -1,0 +1,36 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.athlete_membership_id, count(*) AS \"n!\"\n             FROM planned_workouts p\n            WHERE p.club_id = $1 AND p.date BETWEEN $2 AND $2 + 6\n              AND NOT coalesce(workout_released(p.club_id, p.athlete_membership_id, p.date), false)\n            GROUP BY 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "athlete_membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "planned_workouts",
+            "name": "athlete_membership_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "fd3b5c6649a25a14fe3ce6dc9f0abd3ef0f30dd85c275865d6854e3ac1988505"
+}

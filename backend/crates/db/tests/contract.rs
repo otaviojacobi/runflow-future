@@ -1,5 +1,5 @@
 //! The migrations must build exactly the database described by the contract (`api/schema.sql`, D-020).
-//! Compares tables, columns, defaults, constraints and indexes of both, in two scratch databases.
+//! Compares tables, columns, defaults, constraints, indexes and functions of both, in two scratch databases.
 
 use std::collections::BTreeSet;
 
@@ -19,6 +19,10 @@ UNION ALL
 SELECT 'index ' || indexdef
   FROM pg_indexes
  WHERE schemaname = 'public' AND tablename <> '_sqlx_migrations'
+UNION ALL
+SELECT 'function ' || p.proname || '(' || pg_get_function_identity_arguments(p.oid) || ') ' || md5(p.prosrc)
+  FROM pg_proc p
+ WHERE p.pronamespace = 'public'::regnamespace
 "#;
 
 async fn catalog(pool: &PgPool) -> BTreeSet<String> {

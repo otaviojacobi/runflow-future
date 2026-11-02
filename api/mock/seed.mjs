@@ -187,7 +187,7 @@ export function generate(anchor) {
 
   // ---- clubs, branding, subscriptions
   const club = (key, row, colors, sub) => {
-    const c = { id: uuid("club:" + key), timezone: "America/Sao_Paulo", created_at: createdLongAgo, updated_at: createdLongAgo, deleted_at: null, ...row };
+    const c = { id: uuid("club:" + key), timezone: "America/Sao_Paulo", created_at: createdLongAgo, updated_at: createdLongAgo, deleted_at: null, release_mode: "weekly", auto_release_weekday: 7, auto_release_time: "18:00", ...row };
     t("clubs").push(c);
     const th = themeFor(colors[0], colors[1]);
     t("club_branding").push({ club_id: c.id, primary_color: colors[0], secondary_color: colors[1], logo_asset_id: null, theme_rev: 3, engine_version: 1, ...th, updated_at: createdLongAgo });
@@ -195,7 +195,7 @@ export function generate(anchor) {
     return c;
   };
   const PF = club("paceforte", { slug: "paceforte", name: "Pace Forte Assessoria", city: "São Paulo", state: "SP", modalities: ["run", "strength", "mobility"], trainer_label: "treinador", subdomain: null }, ["#D62828", "#FFB703"], { plan: "free", status: "active", student_limit: 10 });
-  const MARE = club("mare", { slug: "equipemare", name: "Equipe Maré Natação", city: "Santos", state: "SP", modalities: ["swim"], trainer_label: "professor", subdomain: "equipemare" }, ["#0096C7", null], { plan: "pro", status: "active", student_limit: 100, stripe_customer_id: "cus_mock_mare", stripe_subscription_id: "sub_mock_mare", current_period_end: at(addDays(anchor, 18), "00:00") });
+  const MARE = club("mare", { slug: "equipemare", name: "Equipe Maré Natação", city: "Santos", state: "SP", modalities: ["swim"], trainer_label: "professor", subdomain: "equipemare", release_mode: "immediate", auto_release_weekday: null, auto_release_time: null }, ["#0096C7", null], { plan: "pro", status: "active", student_limit: 100, stripe_customer_id: "cus_mock_mare", stripe_subscription_id: "sub_mock_mare", current_period_end: at(addDays(anchor, 18), "00:00") });
   for (let i = 3; i >= 1; i--) {
     const start = addDays(anchor, 18 - 30 * (i + 1)), end = addDays(anchor, 18 - 30 * i);
     t("invoices").push({ id: uuid("inv:mare:" + i), club_id: MARE.id, stripe_invoice_id: "in_mock_mare_" + i, amount_cents: 2000, currency: "BRL", status: "paid", period_start: at(start, "00:00"), period_end: at(end, "00:00"), hosted_url: null, created_at: at(start, "09:00") });
@@ -359,6 +359,9 @@ export function generate(anchor) {
     const { row } = addPlanned(MARE, "equipemare:ana", "ana", date, key, M["equipemare:renata"].id);
     if (date < anchor) complete(row, "ana", "completed", { hhmm: "07:05" });
   }
+
+  // Week release (D-031): Pace Forte plans next week in private (released Sunday 18:00); Maré shows workouts at once.
+  t("week_releases");
 
   // ---- threads
   const comment = (pw, mkey, body, when) => t("comments").push({ id: uuid(`c:${pw.id}:${when}`), planned_workout_id: pw.id, author_membership_id: M[mkey].id, body, created_at: when, edited_at: null, deleted_at: null });

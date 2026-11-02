@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO clubs (id, slug, name, city, state, modalities, trainer_label) VALUES ($1, $2, $3, $4, $5, $6, $7)\n         RETURNING id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at",
+  "query": "UPDATE clubs SET\n            name = coalesce($2, name),\n            city = CASE WHEN $3 THEN $4 ELSE city END,\n            state = CASE WHEN $5 THEN $6 ELSE state END,\n            timezone = coalesce($7, timezone),\n            modalities = coalesce($8, modalities),\n            trainer_label = coalesce($9, trainer_label),\n            subdomain = CASE WHEN $10 THEN $11 ELSE subdomain END,\n            release_mode = coalesce($12, release_mode),\n            auto_release_weekday = CASE WHEN $13 THEN $14 ELSE auto_release_weekday END,\n            auto_release_time = CASE WHEN $13 THEN $15 ELSE auto_release_time END,\n            updated_at = now()\n          WHERE id = $1 AND deleted_at IS NULL\n          RETURNING id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at,\n                   release_mode, auto_release_weekday, to_char(auto_release_time, 'HH24:MI') AS auto_release_time",
   "describe": {
     "columns": [
       {
@@ -112,17 +112,53 @@
             "name": "created_at"
           }
         }
+      },
+      {
+        "ordinal": 10,
+        "name": "release_mode",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "release_mode"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "auto_release_weekday",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "auto_release_weekday"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "auto_release_time",
+        "type_info": "Text",
+        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
         "Uuid",
         "Text",
+        "Bool",
         "Text",
-        "Text",
+        "Bool",
         "Bpchar",
+        "Text",
         "TextArray",
-        "Text"
+        "Text",
+        "Bool",
+        "Text",
+        "Text",
+        "Bool",
+        "Int2",
+        "Time"
       ]
     },
     "nullable": [
@@ -135,8 +171,11 @@
       false,
       false,
       true,
-      false
+      false,
+      false,
+      true,
+      null
     ]
   },
-  "hash": "48fb11be9a8f6c13ec7b70ea63b9041fc016285e7bedc860a354304aa4395524"
+  "hash": "6257d94e1564440abf23d45143133a30efc05690af39bd546b11182a7296db94"
 }

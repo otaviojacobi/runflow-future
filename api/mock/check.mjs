@@ -19,7 +19,7 @@ const fail = (msg) => { console.error("✗ " + msg); process.exit(1); };
 const ORDER = [
   "users", "auth_identities", "email_codes", "sessions", "clubs", "assets", "club_branding", "memberships", "invitations",
   "groups", "group_members", "consents", "athlete_profiles", "zones", "exercises", "workout_templates", "training_plans", "training_plan_items",
-  "plan_assignments", "planned_workouts", "activities", "workout_completions", "comments", "thread_reads", "provider_connections",
+  "plan_assignments", "planned_workouts", "week_releases", "activities", "workout_completions", "comments", "thread_reads", "provider_connections",
   "webhook_events", "locations", "class_types", "class_schedules", "class_sessions", "bookings", "assessments", "conversations", "messages", "conversation_reads", "announcements", "announcement_reads", "challenges", "challenge_participants", "ranking_opt_ins", "badges", "races", "race_entries", "club_subscriptions", "invoices",
   "notifications", "calendar_feeds", "notification_prefs", "push_tokens", "audit_log", "jobs",
 ];

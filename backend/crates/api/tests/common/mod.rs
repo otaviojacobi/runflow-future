@@ -128,6 +128,18 @@ impl TestApp {
         w.run_once(500).await.unwrap()
     }
 
+    /// The worker's minute tick at `now` (automatic week releases).
+    pub async fn tick(&self, now: chrono::DateTime<chrono::Utc>) -> usize {
+        runflow_jobs::Worker::new(
+            self.state.db.clone(),
+            self.state.mailer.clone(),
+            self.state.settings.public_app_url.clone(),
+        )
+        .tick(now)
+        .await
+        .unwrap()
+    }
+
     /// Strava pointed at a fake server (`base`).
     pub fn with_strava(mut self, base: &str) -> Self {
         self.state = self

@@ -1824,6 +1824,8 @@ dependencies = [
 name = "runflow-domain"
 version = "0.1.0"
 dependencies = [
+ "chrono",
+ "chrono-tz",
  "serde",
  "serde_json",
 ]
@@ -1852,6 +1854,7 @@ dependencies = [
  "chrono",
  "chrono-tz",
  "runflow-db",
+ "runflow-domain",
  "runflow-integrations",
  "serde_json",
  "sqlx",

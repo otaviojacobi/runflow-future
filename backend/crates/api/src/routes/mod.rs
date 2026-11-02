@@ -14,6 +14,7 @@ pub mod my;
 pub mod plans;
 pub mod providers;
 pub mod threads;
+pub mod weeks;
 pub mod workouts;
 
 use axum::Router;
@@ -30,6 +31,7 @@ pub fn v1() -> Router<AppState> {
         .merge(library::routes())
         .merge(members::routes())
         .merge(workouts::routes())
+        .merge(weeks::routes())
         .merge(plans::routes())
         .merge(my::routes())
         .merge(threads::routes())

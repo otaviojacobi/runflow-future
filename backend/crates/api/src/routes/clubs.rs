@@ -10,6 +10,7 @@ use axum::{Json, Router};
 use runflow_db::clubs as db;
 use runflow_db::models::Club;
 use runflow_domain::color::{Defaults, Envs, club_theme, from_tokens, normalize_hex};
+use runflow_domain::week;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -379,12 +380,51 @@ async fn update(
             }
         }
     }
+    // Week release (D-031).
+    if body.has("release_mode") {
+        match body.str("release_mode") {
+            Some(r) if r == "immediate" || r == "weekly" => p.release_mode = Some(r),
+            _ => errors.push(fail(
+                "release_mode",
+                "Escolha quando os alunos veem os treinos.",
+            )),
+        }
+    }
+    if body.has("auto_release_weekday") || body.has("auto_release_time") {
+        let weekday = body
+            .get("auto_release_weekday")
+            .and_then(Value::as_i64)
+            .filter(|d| (1..=7).contains(d));
+        let time = body
+            .str("auto_release_time")
+            .as_deref()
+            .and_then(week::parse_hhmm);
+        let off = body.get("auto_release_weekday").is_none_or(Value::is_null)
+            && body.get("auto_release_time").is_none_or(Value::is_null);
+        match (weekday, time) {
+            (Some(d), Some(t)) => p.auto_release = Some(Some((d as i16, t))),
+            _ if off => p.auto_release = Some(None),
+            _ => errors.push(fail(
+                "auto_release_time",
+                "Informe o dia e o horário da liberação automática.",
+            )),
+        }
+    }
     if !errors.is_empty() {
         return Err(Problem::invalid(errors));
     }
-    let club = db::update_club(&state.db, m.club_id, p)
+    let before = db::club(&state.db, m.club_id)
         .await?
         .ok_or_else(not_found)?;
+    let mut tx = state.db.begin().await?;
+    let club = db::update_club(&mut *tx, m.club_id, p)
+        .await?
+        .ok_or_else(not_found)?;
+    // Going weekly must not hide what students already saw: release every future week with workouts.
+    if before.release_mode == "immediate" && club.release_mode == "weekly" {
+        runflow_db::weeks::release_planned_future(&mut *tx, club.id).await?;
+    }
+    tx.commit().await?;
     db::audit(
         &state.db,
         Some(club.id),

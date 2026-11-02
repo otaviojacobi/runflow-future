@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-02T16:25:48.920Z",
+  "generated_at": "2026-11-02T21:39:01.272Z",
   "version": 1
  },
  "users": [
@@ -980,6 +980,9 @@
    "created_at": "2026-08-24T13:00:00.000Z",
    "updated_at": "2026-08-24T13:00:00.000Z",
    "deleted_at": null,
+   "release_mode": "weekly",
+   "auto_release_weekday": 7,
+   "auto_release_time": "18:00",
    "slug": "paceforte",
    "name": "Pace Forte Assessoria",
    "city": "São Paulo",
@@ -998,6 +1001,9 @@
    "created_at": "2026-08-24T13:00:00.000Z",
    "updated_at": "2026-08-24T13:00:00.000Z",
    "deleted_at": null,
+   "release_mode": "immediate",
+   "auto_release_weekday": null,
+   "auto_release_time": null,
    "slug": "equipemare",
    "name": "Equipe Maré Natação",
    "city": "Santos",
@@ -23583,6 +23589,7 @@
    "updated_at": "2026-11-02T10:05:00.000Z"
   }
  ],
+ "week_releases": [],
  "comments": [
   {
    "id": "f41cf7e9-ab37-4892-a72c-b44da211c5ca",

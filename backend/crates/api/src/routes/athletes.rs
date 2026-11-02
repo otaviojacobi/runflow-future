@@ -588,6 +588,7 @@ async fn dashboard(
             athlete: None,
             group: None,
             only: None,
+            drafts: true,
         },
     )
     .await?

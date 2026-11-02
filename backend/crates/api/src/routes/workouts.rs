@@ -51,7 +51,7 @@ pub fn not_found() -> Problem {
     )
 }
 
-fn uuids(body: &Body, key: &str) -> Vec<Uuid> {
+pub(crate) fn uuids(body: &Body, key: &str) -> Vec<Uuid> {
     body.get(key)
         .and_then(Value::as_array)
         .into_iter()
@@ -96,6 +96,7 @@ async fn list(
             athlete: parse(&q.athlete_id),
             group: parse(&q.group_id),
             only: None,
+            drafts: true,
         },
     )
     .await?;
@@ -249,14 +250,25 @@ async fn assign(
             ));
         }
     }
+    // Only what the student can already see (D-031): drafts are announced by the week's release.
     for athlete in &athletes {
-        let first = created
-            .iter()
-            .find(|(a, _)| a == athlete)
-            .map(|(_, id)| *id)
-            .unwrap_or_default();
-        let title = if dates.len() > 1 {
-            format!("{} novos treinos na sua agenda", dates.len())
+        let mut seen = Vec::new();
+        for (i, date) in dates.iter().enumerate() {
+            if db::released(&mut *tx, m.club_id, *athlete, *date).await? {
+                seen.push(i);
+            }
+        }
+        let Some(first) = seen.first().and_then(|i| {
+            created
+                .iter()
+                .filter(|(a, _)| a == athlete)
+                .nth(*i)
+                .map(|(_, id)| *id)
+        }) else {
+            continue;
+        };
+        let title = if seen.len() > 1 {
+            format!("{} novos treinos na sua agenda", seen.len())
         } else {
             "Novo treino na sua agenda".to_string()
         };
@@ -369,8 +381,12 @@ async fn update(
     let moved = p.date.is_some_and(|d| d != w.date);
     let restructured = p.structure.is_some();
     let title = p.title.clone().unwrap_or_else(|| w.title.clone());
+    let date = p.date.unwrap_or(w.date);
     db::update(&state.db, w.id, p).await?;
-    if moved || restructured {
+    // A draft changes in silence (D-031).
+    if (moved || restructured)
+        && db::released(&state.db, m.club_id, w.athlete_membership_id, date).await?
+    {
         let what = if moved {
             "Um treino mudou de dia"
         } else {

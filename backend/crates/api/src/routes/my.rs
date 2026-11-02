@@ -3,9 +3,10 @@
 use axum::extract::{Path, Query, State};
 use axum::routing::{get, put};
 use axum::{Json, Router};
-use chrono::Duration;
-use runflow_db::models::Workout;
+use chrono::{Duration, NaiveDate, Utc};
+use runflow_db::models::{Club, Workout};
 use runflow_db::{my as db, workouts};
+use runflow_domain::week;
 use runflow_domain::workout::resolve_targets;
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -13,6 +14,7 @@ use uuid::Uuid;
 
 use crate::access::{Member, member};
 use crate::body::Body;
+use crate::routes::weeks::auto_release_at;
 use crate::routes::workouts::not_found;
 use crate::session::Auth;
 use crate::time::{club_today, monday_of, parse_date};
@@ -38,12 +40,12 @@ async fn club_tz(state: &AppState, club_id: Uuid) -> Result<String, Problem> {
         .timezone)
 }
 
-/// One of the caller's own workouts (another student's → 404).
+/// One of the caller's own released workouts (another student's, or a draft → 404).
 async fn mine(state: &AppState, m: &Member, id: &str) -> Result<Workout, Problem> {
     let id = Uuid::parse_str(id).map_err(|_| not_found())?;
     workouts::one(&state.db, m.club_id, m.membership_id, id)
         .await?
-        .filter(|w| w.athlete_membership_id == m.membership_id)
+        .filter(|w| w.athlete_membership_id == m.membership_id && w.visible)
         .ok_or_else(not_found)
 }
 
@@ -76,10 +78,45 @@ async fn list(
             athlete: Some(m.membership_id),
             group: None,
             only: None,
+            drafts: false,
         },
     )
     .await?;
-    Ok(Json(json!({ "items": items, "next_cursor": null })))
+    let club = runflow_db::clubs::club(&state.db, m.club_id)
+        .await?
+        .ok_or_else(Problem::club_not_found)?;
+    let unreleased = unreleased_weeks(&state, &club, m.membership_id, from, to).await?;
+    Ok(Json(
+        json!({ "items": items, "unreleased_weeks": unreleased, "next_cursor": null }),
+    ))
+}
+
+/// Future weeks in the range the trainer hasn't released to this student yet (D-031), whether or not anything is
+/// planned in them: `[{week_start, auto_release_at}]`.
+async fn unreleased_weeks(
+    state: &AppState,
+    club: &Club,
+    athlete: Uuid,
+    from: NaiveDate,
+    to: NaiveDate,
+) -> Result<Vec<Value>, Problem> {
+    if club.release_mode != "weekly" {
+        return Ok(Vec::new());
+    }
+    let first_future = week::this_monday(Utc::now(), &club.timezone) + Duration::days(7);
+    let weeks: Vec<NaiveDate> = (0..60)
+        .map(|i| week::monday_of(from).max(first_future) + Duration::days(7 * i))
+        .take_while(|w| *w <= to)
+        .collect();
+    if weeks.is_empty() {
+        return Ok(Vec::new());
+    }
+    let released = runflow_db::weeks::released_for(&state.db, club.id, athlete, &weeks).await?;
+    Ok(weeks
+        .into_iter()
+        .filter(|w| !released.contains(w))
+        .map(|w| json!({ "week_start": w, "auto_release_at": auto_release_at(club, w) }))
+        .collect())
 }
 
 async fn one(
@@ -255,6 +292,7 @@ async fn summary(
             athlete: Some(m.membership_id),
             group: None,
             only: None,
+            drafts: false,
         },
     )
     .await?;

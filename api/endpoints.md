@@ -45,6 +45,16 @@ The backend validates every stored structure against these types (unknown extra 
 Templates carry `tags: text[]`, shown as `#tag`. Every implementation normalizes on write, so stored tags are always clean:
 strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letters (accents included), digits, `-` and `_`, collapse repeated `-`, trim `-`, cut at 30 chars; drop empties and duplicates (order kept). **At most 8** per template (`422`, field `tags`, "Use até 8 tags."). Quick text and import lines may carry `#tags` anywhere; the apps pull them out before parsing steps.
 
+## Week release (D-031)
+
+Trainers plan ahead in private and release a week (Monday–Sunday) when it's ready.
+- `release_mode`: `immediate` (students see a workout as soon as it's saved) or `weekly` (default for new clubs).
+- In `weekly` mode a workout is **visible** to its student when its week has started (club time), when the week was released to everyone, or when it was released to that student. Otherwise it's a **draft**.
+- Drafts never reach the student. They are left out of `/my/*` (including summary and badges), the `.ics` feed and notifications, and auto-matching skips them. The student's own detail, completion and comment routes answer `404 workout.not_found`.
+- **Automatic release.** `auto_release_weekday` (1 = Monday … 7 = Sunday) + `auto_release_time` (`"HH:MM"`, club time) releases the *following* week to everyone. The default is Sunday 18:00; both `null` turns it off. Setting one without the other → `422`.
+- **Notifications.** A release sends one `week_released` notification to each newly released student who has workouts that week. Workouts added to a visible week notify as usual (`workout_assigned`).
+- **Switching modes.** Going from `immediate` to `weekly` releases every future week that already has workouts, so nothing students saw disappears.
+
 ## Endpoints
 
 ### Operations
@@ -67,12 +77,12 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 | GET | `/me/export` | All my data as JSON (LGPD portability) | C1 |
 | GET / PATCH | `/me/prefs` | Notification preferences | C1 |
 | GET | `/me/consents` · POST `/me/consents` `{club_id?, kind, text_version}` · DELETE `/me/consents/{id}` | Consents (grant / revoke) | A4, C1 |
-| GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first. Kinds: `workout_assigned` `workout_changed` `comment` `feedback` `class_reminder` (booked class in the next 12 h) `class_cancelled` `waitlist_promoted` `member_joined` `billing` `message` `announcement`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
+| GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first. Kinds: `workout_assigned` `workout_changed` `week_released` `comment` `feedback` `class_reminder` (booked class in the next 12 h) `class_cancelled` `waitlist_promoted` `member_joined` `billing` `message` `announcement`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
 | GET | `/me/sessions` · DELETE `/me/sessions/{id}` · POST `/me/sessions/revoke-others` | Signed-in devices `{id, kind, user_agent, created_at, last_seen_at, current}` | C1 |
 | POST / DELETE | `/me/avatar` `{data_url, width, height}` | Upload (PNG/JPG/WebP ≤ 5 MB, no SVG) or remove the profile photo → `/me` payload; `avatar_url` is an `/assets/{id}` path | C1 |
 
 | GET / POST / DELETE | `/me/calendar-feed` | Personal calendar: POST (re)generates a secret URL → `{url, webcal_url}` (the old one stops working); GET → `{active, created_at}`; DELETE revokes | C1 |
-| GET | `/ics/{token}.ics` | Public, secret-token `text/calendar` feed (RFC 5545): planned workouts (all-day), booked classes (timed, with location), race entries; −30 to +120 days | — |
+| GET | `/ics/{token}.ics` | Public, secret-token `text/calendar` feed (RFC 5545): released planned workouts (all-day), booked classes (timed, with location), race entries; −30 to +120 days | — |
 
 ### Providers and activities (user-owned)
 | Method | Path | Purpose | Screens |
@@ -90,7 +100,7 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
 | POST | `/clubs` `{name, city, state, modalities}` | Create club → `{club, membership, branding, subscription}`. Caller becomes owner (free plan); a starter library for the chosen modalities are created | A5 |
-| GET / PATCH | `/clubs/{club_id}` | Club settings (name, city, state, timezone, modalities, trainer_label, subdomain); PATCH is owner-only. `timezone` ∈ `America/Noronha` `America/Sao_Paulo` `America/Manaus` `America/Cuiaba` `America/Campo_Grande` `America/Porto_Velho` `America/Boa_Vista` `America/Rio_Branco`. `subdomain`: 3–32 of `a-z 0-9 -` (not at the ends), not reserved (`app api www mail email smtp imap pop autodiscover send status docs admin assets static cdn blog ajuda suporte dev runflow staging`), not taken; Free plan → `402 plan.required` | O3 |
+| GET / PATCH | `/clubs/{club_id}` | Club settings (name, city, state, timezone, modalities, trainer_label, subdomain, `release_mode`, `auto_release_weekday`, `auto_release_time`); PATCH is owner-only. Week release fields: § Week release. `timezone` ∈ `America/Noronha` `America/Sao_Paulo` `America/Manaus` `America/Cuiaba` `America/Campo_Grande` `America/Porto_Velho` `America/Boa_Vista` `America/Rio_Branco`. `subdomain`: 3–32 of `a-z 0-9 -` (not at the ends), not reserved (`app api www mail email smtp imap pop autodiscover send status docs admin assets static cdn blog ajuda suporte dev runflow staging`), not taken; Free plan → `402 plan.required` | O3 |
 | DELETE | `/clubs/{club_id}` `{confirm_name}` | Close the club (owner): soft delete, subscription canceled, invites revoked, subdomain released. Members lose access; their own activities stay in their accounts | O3 |
 | GET | `/clubs/{club_id}/branding` | `{primary_color, secondary_color, logo_url, theme_rev, theme}` | O1 |
 | PUT | `/clubs/{club_id}/branding` `{primary_color?, secondary_color?, logo_asset_id?}` | Owner. Colors as `#RRGGBB`; only a secondary is promoted to primary; `logo_asset_id` absent = keep, `null` = remove, else one of this club's logos. The server runs the color engine (golden fixtures) and stores `theme` + `theme_css`; `theme_rev` bumps on every save | A5, O1 |
@@ -125,16 +135,19 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 |---|---|---|---|
 | GET / POST | `/clubs/{club_id}/templates?sport&q&tag` | Library. `q` matches name or tag (`#limiar` matches tags only); `tag` filters by one exact tag. Body `tags` is normalized (§ Tags); more than 8 → `422` | W6, W5 |
 | GET / PATCH / DELETE | `/clubs/{club_id}/templates/{id}` | Template CRUD (delete = archive) | W5, W6 |
-| GET | `/clubs/{club_id}/planned-workouts?from&to&athlete_id&group_id` | Calendar data: rows + `completion` + `comments_count` + `unread_count` (for the caller) | W4, W3 |
-| POST | `/clubs/{club_id}/planned-workouts` `{athlete_ids \| group_id, dates[], template_id? \| {sport,title,structure,notes}}` | Assign (bulk) | W4, W5, A5 |
-| GET / PATCH / DELETE | `/clubs/{club_id}/planned-workouts/{id}` | GET adds `athlete` and the linked `activity` (only with consent). PATCH edits or moves (date); the student is notified | W4 |
+| GET | `/clubs/{club_id}/planned-workouts?from&to&athlete_id&group_id` | Calendar data: rows + `completion` + `comments_count` + `unread_count` (for the caller) + `visible` (the student can see it now, § Week release) | W4, W3 |
+| POST | `/clubs/{club_id}/planned-workouts` `{athlete_ids \| group_id, dates[], template_id? \| {sport,title,structure,notes}}` | Assign (bulk). Students are notified (`workout_assigned`) only about workouts they can already see | W4, W5, A5 |
+| GET / PATCH / DELETE | `/clubs/{club_id}/planned-workouts/{id}` | GET adds `athlete` and the linked `activity` (only with consent). PATCH edits or moves (date); the student is notified (`workout_changed`) if they can see it | W4 |
 | POST | `/clubs/{club_id}/planned-workouts/copy-week` `{from_monday, to_monday, athlete_ids?}` | Copy a week (all students if no ids) → `{copied}` | W4 |
+| GET | `/clubs/{club_id}/weeks/{week_start}` | Release state of a week (staff): `{week_start, release_mode, started, released_at, released_athlete_ids, auto_release_at, drafts}`. `released_at`: released to everyone (else null); `released_athlete_ids`: released to some students only; `auto_release_at`: when it will be released automatically (null if off, released or started); `drafts`: workouts students can't see yet. `week_start` must be a Monday (`400 week.invalid`) | W4 |
+| POST | `/clubs/{club_id}/weeks/{week_start}/release` `{athlete_ids? \| group_id?, notify?}` | Release the week (staff): to everyone without ids, or to some students. `notify` (default true): one `week_released` notification per newly released student with workouts that week. → the week state. `409 week.started` (already visible), `409 week.release_off` (club in `immediate` mode) | W4 |
+| DELETE | `/clubs/{club_id}/weeks/{week_start}/release` | Undo every release of a week that hasn't started (staff) → the week state. `409 week.started` | W4 |
 | GET / POST | `/clubs/{club_id}/plans` · GET / PATCH / DELETE `/plans/{id}` | Planilhas; list items carry `items_count`, `weekly_duration_s[]`, `active_assignments`; GET one adds `items` and `assignments` (athlete, workouts, done) | W7 |
 | PUT | `/clubs/{club_id}/plans/{id}/items` `{items}` | Replace the plan grid (week, weekday 1–7, sport, title, structure, est_*, notes, template_id?) | W7 |
-| POST | `/clubs/{club_id}/plans/{id}/assign` `{athlete_ids \| group_id, start_date (Monday)}` | Apply → plan_assignments + planned_workouts; students notified → `{assignments, workouts}` | W7 |
+| POST | `/clubs/{club_id}/plans/{id}/assign` `{athlete_ids \| group_id, start_date (Monday)}` | Apply → plan_assignments + planned_workouts; students notified when the first week is already visible to them → `{assignments, workouts}` | W7 |
 | DELETE | `/clubs/{club_id}/plans/{id}/assignments/{aid}` | Unassign: removes future, not-done workouts → `{removed_workouts}` | W7 |
-| GET | `/clubs/{club_id}/my/workouts?from&to` | Student calendar (own) | M1, M3 |
-| GET | `/clubs/{club_id}/my/workouts/{id}` | Detail: zone targets get `resolved` ranges from the student's zones (`{min_s,max_s}` or `{min,max}` bpm); `activity`, `candidate_activities` (±1 day), `coach` | M2 |
+| GET | `/clubs/{club_id}/my/workouts?from&to` | Student calendar (own, released workouts only) + `unreleased_weeks: [{week_start, auto_release_at}]`: the weeks in the range the trainer hasn't released yet (said whether or not anything is planned) | M1, M3 |
+| GET | `/clubs/{club_id}/my/workouts/{id}` | Detail (a draft is `404 workout.not_found`, like the completion and comment routes): zone targets get `resolved` ranges from the student's zones (`{min_s,max_s}` or `{min,max}` bpm); `activity`, `candidate_activities` (±1 day), `coach` | M2 |
 | GET | `/clubs/{club_id}/my/summary` | Today: `{shares_data, streak_weeks, week: {planned, done, duration_s, distance_m}, last_activity, next_class}` | M1 |
 | PUT | `/clubs/{club_id}/my/workouts/{id}/completion` `{status, rpe, feeling, comment, activity_id?}` | Feedback. Without `activity_id`, a same-day activity of the same sport is matched; compliance = actual ÷ planned distance (or time); the trainer is notified | M5 |
 | GET / POST | `/clubs/{club_id}/planned-workouts/{id}/comments` | Thread (student ⇄ trainers); items carry `author {membership_id, role, user}`; GET marks as read; POST notifies the other side | M2, W8 |

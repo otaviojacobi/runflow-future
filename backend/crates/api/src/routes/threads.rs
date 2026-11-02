@@ -57,7 +57,7 @@ async fn thread(
     let w = workouts::one(&state.db, m.club_id, m.membership_id, id)
         .await?
         .ok_or_else(missing)?;
-    if m.role == "student" && w.athlete_membership_id != m.membership_id {
+    if m.role == "student" && (w.athlete_membership_id != m.membership_id || !w.visible) {
         return Err(missing());
     }
     Ok((m, w))
@@ -156,6 +156,7 @@ async fn inbox(
             athlete: None,
             group: None,
             only: None,
+            drafts: true,
         },
     )
     .await?;

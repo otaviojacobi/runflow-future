@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM week_releases WHERE club_id = $1 AND week_start = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0d884f6ebf3cedbf817f14d484473db4a8322481f16d4fa22c7589f7615fe01a"
+}

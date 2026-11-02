@@ -325,6 +325,7 @@ pub async fn feed_events(
         "SELECT p.id, p.date, p.title, c.name AS club FROM planned_workouts p
            JOIN memberships m ON m.id = p.athlete_membership_id JOIN clubs c ON c.id = m.club_id
           WHERE m.user_id = $1 AND m.status = 'active' AND m.role = 'student' AND c.deleted_at IS NULL AND p.date BETWEEN $2 AND $3
+            AND coalesce(workout_released(p.club_id, p.athlete_membership_id, p.date), false)
           ORDER BY p.date, p.position",
         user_id,
         from,

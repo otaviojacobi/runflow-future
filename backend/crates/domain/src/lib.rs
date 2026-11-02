@@ -3,4 +3,5 @@
 
 pub mod color;
 pub mod tags;
+pub mod week;
 pub mod workout;

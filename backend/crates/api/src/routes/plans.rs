@@ -310,6 +310,10 @@ async fn assign(
             .await?;
             workouts += 1;
         }
+        // Announced now only if the first week is already visible; otherwise its release does it (D-031).
+        if !runflow_db::workouts::released(&mut *tx, m.club_id, *athlete, start).await? {
+            continue;
+        }
         let body = format!("{} semanas a partir de {}", p.weeks, dd_mm(start));
         runflow_db::workouts::notify_member(
             &mut *tx,

@@ -4,10 +4,11 @@
 
 mod invite_email;
 mod strava_jobs;
+mod week_release;
 
 use std::time::Duration;
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use runflow_db::Pool;
 use runflow_db::jobs::{self, Job};
 use runflow_integrations::email::Mailer;
@@ -117,10 +118,22 @@ impl Worker {
     }
 
     /// Poll until `shutdown` resolves (idle: once a second).
+    /// Time-based work, once a minute: automatic week releases (D-031).
+    pub async fn tick(&self, now: DateTime<Utc>) -> sqlx::Result<usize> {
+        week_release::run(self, now).await
+    }
+
     pub async fn run(&self, shutdown: impl std::future::Future<Output = ()>) {
         tracing::info!(worker = %self.id, "worker started");
         tokio::pin!(shutdown);
+        let mut last_tick: Option<std::time::Instant> = None;
         loop {
+            if last_tick.is_none_or(|t| t.elapsed() >= Duration::from_secs(60)) {
+                last_tick = Some(std::time::Instant::now());
+                if let Err(e) = self.tick(Utc::now()).await {
+                    tracing::error!(error = %e, "worker: scheduled work failed");
+                }
+            }
             let ran = match self.run_once(10).await {
                 Ok(n) => n,
                 Err(e) => {
