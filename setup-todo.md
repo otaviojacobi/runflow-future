@@ -7,7 +7,7 @@ What's still open for the environments. The full guide for building QA from zero
 
 QA is live at **https://qa.runflow.club**:
 - **Domain and mail:** DNS is on Cloudflare with the mailboxes intact, and `runflow.club` redirects to QA. HTTP goes to HTTPS.
-- **Pi and tunnel:** the tunnel is connected (São Paulo), `doctor` is all green, and Debian updates were applied.
+- **Pi and tunnel:** the tunnel connects in São Paulo and `doctor` is all green. Debian updates are installed; the reboot to finish them is pending (see Now).
 - **E-mail:** Resend sends from `contato@`; sign-in codes arrive.
 - **Strava:** the webhook is subscribed (id 382315).
 - **Deploys:** each one arrives within 5 minutes of a push (`runflow-update` timer). The nightly database backup runs at 03:30.
@@ -15,6 +15,9 @@ QA is live at **https://qa.runflow.club**:
 
 ## Now
 
+- [ ] **Power-cycle the Pi** (unplug, wait 10 s, plug in). It didn't come back from the reboot after the 2026-11-02
+  kernel update. If it's still not on the network after 3 minutes, plug in HDMI + keyboard and tell me what the screen
+  shows. The containers and timers start on their own once it boots.
 - [ ] **Serve the whole web app from the edge** (`docs/ops/qa-pi.md` §6, 5 minutes). Cloudflare → runflow.club → Caching:
   - **Cache Rules** → rule `QA web app at the edge`, expression
     `(http.host eq "qa.runflow.club" and not starts_with(http.request.uri.path, "/api/"))` → Eligible for cache ·
