@@ -58,7 +58,7 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 | S5 | Activities + Strava (OAuth, webhooks, sync, consent-based visibility) | [ ] |
 | S6 | Scheduling | [ ] |
 | S7 | Billing (Stripe Checkout, portal, webhooks), notifications, push | [ ] |
-| S8 | `ops/`: Pi deployment (balenaOS variant of the compose: published arm64 image, variables instead of `.env`, `cloudflared`), DNS on Cloudflare keeping the GoDaddy mailboxes, tunnel hostnames incl. `*.runflow.club`, multi-arch images to GHCR, backups, restore drill. Checklist: `docs/hosting.md` | [ ] |
+| S8 | `ops/`: Pi deployment with deploy on push (recommended: Raspberry Pi OS + Docker + Tailscale + GitHub Actions; alternative: balena), DNS on Cloudflare keeping the GoDaddy mailboxes, tunnel hostnames incl. `*.runflow.club`, arm64 images to GHCR, backups, restore drill. Checklist: `docs/hosting.md` | [ ] |
 | S9 | Switch the web app to the real backend: Google Identity Services button (`VITE_GOOGLE_CLIENT_ID`), cookie sessions, the Playwright suite against the backend, mock-only paths out of production builds | [ ] |
 
 ## Phase 3: mobile app (`mobile/`) on the real API

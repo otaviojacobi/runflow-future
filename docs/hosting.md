@@ -1,7 +1,8 @@
-# Hosting: Pi 5 on balena + Cloudflare Tunnel (S8 plan)
+# Hosting: one Raspberry Pi 5 + Cloudflare Tunnel, deploy on push (S8 plan)
 
-Founder is considering balenaCloud to manage the Raspberry Pi 5, with `cloudflared` in the same compose.
-This file is the checklist; decisions go to root.md §9 when made.
+This file is the checklist; decisions go to root.md §9 when the founder makes them.
+**Recommended:** Raspberry Pi OS + Docker + the root `docker-compose.yaml` + `cloudflared`, deployed by GitHub Actions over
+Tailscale (§3). **Alternative:** balenaCloud (§4). DNS (§1) and the tunnel (§2) are the same either way.
 
 ## Current DNS (checked 2026-11-02)
 
@@ -37,7 +38,25 @@ Reserved subdomains (never a club's): `app api www mail email smtp imap pop auto
 A club's own domain (`treinos.clube.com.br`) = Cloudflare for SaaS custom hostnames: later.
 Note for LGPD: Cloudflare terminates TLS, so list it as a processor in the terms.
 
-## 3. balena
+## 3. Recommended: Raspberry Pi OS + Docker + deploy on push
+
+The repo is public, so: arm64 images build on GitHub's free native arm64 runners, and **no self-hosted runner on the Pi**
+(fork pull requests could run code on it).
+- **Pi:** Raspberry Pi OS Lite 64-bit booting from the NVMe SSD; Docker Engine + compose plugin; `unattended-upgrades` for
+  security patches; the repo's `docker-compose.yaml` + a `cloudflared` service (`TUNNEL_TOKEN`); `.env` only on the Pi.
+- **Admin access:** Tailscale (no open ports, works behind CGNAT). Tailscale SSH for the founder and for deploys.
+- **Pipeline** (on push to `main`, after `ci` and `backend` pass):
+  1. build `ghcr.io/otaviojacobi/runflow:<sha>` on `ubuntu-24.04-arm` (+ `:main`), push to GHCR (public image, no secrets inside);
+  2. deploy job (`environment: production`, push to `main` only, never on pull requests): join the tailnet with an
+     ephemeral OAuth key (`tailscale/github-action`), `ssh pi ops/pi/deploy.sh <sha>`;
+  3. `deploy.sh`: `git pull` (compose/ops changes), record the running tag, `RUNFLOW_TAG=<sha> docker compose pull && up -d`
+     (the API migrates at start), wait for `/v1/health`; on failure, start the previous tag again and exit non-zero.
+- **Rules this implies:** migrations stay compatible with the previous release (expand, then contract) so a rollback
+  never meets a schema it can't read; a deploy restarts the API (a few seconds of 502 through the tunnel; fine for the beta).
+- **Fallback without Tailscale:** a systemd timer on the Pi runs `deploy.sh` every minute when `:main` on GHCR has a new
+  digest (pull-based, zero inbound access, but no deploy logs in GitHub).
+
+## 4. Alternative: balena
 
 - balenaOS supports the Pi 5 (`raspberrypi5`). Boot from the NVMe SSD, not an SD card (§7.6): check the current balena docs for the Pi 5 NVMe setup.
 - balena reads compose **2.4**: no `env_file`, `depends_on` only as a list (no `service_healthy`), healthchecks OK. So `ops/balena/docker-compose.yml` (S8) differs from the root one:

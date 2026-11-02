@@ -482,7 +482,7 @@ flowchart LR
 - Garmin Connect Developer Program: blocks Garmin sync and send-to-watch. It costs nothing, but needs an application and approval.
 - Charging customers: Stripe goes live in Phase 5. NFS-e stays outside the product.
 - Guardian accounts for minors: not planned.
-- Pi management via balenaCloud (founder considering; compose differences and DNS move in `docs/hosting.md`).
+- Pi management and deploys (founder deciding): recommended Raspberry Pi OS + Docker + Tailscale + GitHub Actions deploy on push; alternative balenaCloud. Both, plus the DNS move, in `docs/hosting.md`.
 - Club fees through Runflow (D-027): removed from v1; decide Runflow's take rate before bringing it back (§4.6).
 - `.xlsx` / `.xls` import (students, workouts): CSV upload and paste from Excel / Google Sheets cover it for now (`docs/build-plan.md` § Later).
 
