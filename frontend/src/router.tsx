@@ -90,7 +90,7 @@ const staffRoutes = [
   r(S, "/plans", lazyRouteComponent(() => import("./screens/staff/plans/Plans"), "PlansScreen")),
   r(S, "/plans/$id", lazyRouteComponent(() => import("./screens/staff/plans/PlanEditor"), "PlanEditorScreen")),
   r(S, "/feedback", lazyRouteComponent(() => import("./screens/staff/Feedback"), "FeedbackScreen")),
-  r(S, "/classes/manage", todo("Gestão de aulas", "F15")),
+  r(S, "/classes/manage", lazyRouteComponent(() => import("./screens/staff/classes/ClassesManage"), "ClassesManageScreen")),
 ];
 const ownerRoutes = [
   r(O, "/club/studio", todo("Club Studio", "F16")),
@@ -104,7 +104,7 @@ const studentRoutes = [
   r(St, "/workouts/$id", lazyRouteComponent(() => import("./screens/student/Workout"), "WorkoutScreen")),
   r(St, "/activities", lazyRouteComponent(() => import("./screens/student/Activities"), "ActivitiesScreen")),
   r(St, "/activities/$id", lazyRouteComponent(() => import("./screens/student/ActivityDetail"), "ActivityDetailScreen")),
-  r(St, "/classes", todo("Aulas", "F15")),
+  r(St, "/classes", lazyRouteComponent(() => import("./screens/student/Classes"), "ClassesScreen")),
 ];
 const commonRoutes = [
   r(Sh, "/notifications", todo("Notificações", "F18")),

@@ -129,3 +129,22 @@ export interface TrainingPlan { id: ID; club_id: ID; author_membership_id: ID; n
 export interface PlanItem { id: ID; plan_id?: ID; week: number; weekday: number; template_id: ID | null; sport: Sport; title: string; structure: import("@/domain/workout").Structure; est_duration_s: number | null; est_distance_m: number | null; notes: string | null }
 export interface PlanAssignment { id: ID; plan_id: ID; athlete_membership_id: ID; start_date: ISODate; created_at: ISOTime; athlete: AthleteRef; workouts: number; done: number }
 export interface TrainingPlanDetail extends TrainingPlan { items: PlanItem[]; assignments: PlanAssignment[] }
+
+// ---- scheduling (aulas)
+export type VenueKind = "track" | "pool" | "gym" | "park" | "studio" | "other";
+export interface Venue { id: ID; club_id: ID; name: string; kind: VenueKind; address: string | null; lanes: number | null; created_at: ISOTime; archived_at: ISOTime | null }
+export interface ClassType { id: ID; club_id: ID; name: string; sport: Sport; description: string | null; default_capacity: number; duration_min: number; created_at: ISOTime; archived_at: ISOTime | null }
+export interface ClassSchedule {
+  id: ID; club_id: ID; class_type_id: ID; location_id: ID | null; instructor_membership_id: ID | null;
+  weekday: number; start_time: string; duration_min: number; capacity: number; valid_from: ISODate; valid_until: ISODate | null; created_at: ISOTime;
+  class_type: ClassType; location: Venue | null; instructor: User | null;
+}
+export type BookingStatus = "booked" | "waitlisted" | "cancelled" | "attended" | "no_show";
+export interface Booking { id: ID; session_id: ID; membership_id: ID; status: BookingStatus; waitlist_position: number | null; checked_in_at: ISOTime | null; created_at: ISOTime; updated_at: ISOTime }
+export interface ClassSession {
+  id: ID; club_id: ID; class_type_id: ID; schedule_id: ID | null; location_id: ID | null; instructor_membership_id: ID | null;
+  starts_at: ISOTime; ends_at: ISOTime; capacity: number; status: "scheduled" | "cancelled"; notes: string | null; checkin_code?: string; created_at: ISOTime;
+  class_type: ClassType; location: Venue | null; instructor: User | null; booked: number; waitlist: number; my_booking: Booking | null;
+}
+export interface RosterEntry extends Booking { athlete: { membership_id: ID; user: User } }
+export interface ClassSessionDetail extends ClassSession { roster?: RosterEntry[] }

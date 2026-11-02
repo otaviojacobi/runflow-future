@@ -121,16 +121,17 @@ Blocks can carry `note`. The quick-text parser (frontend) produces this structur
 ### Scheduling (aulas)
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
-| GET / POST | `/clubs/{club_id}/locations` · PATCH / DELETE `/locations/{id}` | Venues | O3, W9 |
-| GET / POST | `/clubs/{club_id}/class-types` · PATCH / DELETE `/class-types/{id}` | Class types | W9 |
-| GET / POST | `/clubs/{club_id}/class-schedules` · PATCH / DELETE `/class-schedules/{id}` | Recurring rules (materialize sessions 8 weeks ahead) | W9 |
-| GET | `/clubs/{club_id}/class-sessions?from&to` | Sessions with booked / waitlist counts and my booking | W9, M6 |
-| POST | `/clubs/{club_id}/class-sessions` | One-off session | W9 |
-| GET / PATCH | `/clubs/{club_id}/class-sessions/{id}` | Roster / cancel / edit | W9 |
-| POST | `/clubs/{club_id}/class-sessions/{id}/bookings` `{membership_id?}` | Book (self, or trainer adds); full → waitlist | M6, W9 |
-| DELETE | `/clubs/{club_id}/bookings/{id}` | Cancel (promotes the first in the waitlist) | M6, W9 |
-| PATCH | `/clubs/{club_id}/bookings/{id}` `{status: attended \| no_show}` | Attendance | W9 |
-| POST | `/clubs/{club_id}/class-sessions/{id}/check-in` `{checkin_code}` | Student QR check-in | M6 |
+| GET / POST | `/clubs/{club_id}/locations` · PATCH / DELETE `/locations/{id}` | Venues (kind: track, pool, gym, park, studio, other) | O3, W9 |
+| GET / POST | `/clubs/{club_id}/class-types` · PATCH / DELETE `/class-types/{id}` | Class types (sport, default capacity, duration) | W9 |
+| GET / POST | `/clubs/{club_id}/class-schedules` `{class_type_id, weekdays[], start_time, duration_min?, capacity?, location_id?, instructor_membership_id?, valid_from?}` | Recurring rules; POST creates one per weekday and materializes 8 weeks → `{items, sessions}` | W9 |
+| DELETE | `/clubs/{club_id}/class-schedules/{id}` | End a rule: future sessions cancelled, booked students notified | W9 |
+| GET | `/clubs/{club_id}/class-sessions?from&to` | Sessions with `class_type`, `location`, `instructor`, `booked`, `waitlist`, `my_booking` | W9, M6 |
+| POST | `/clubs/{club_id}/class-sessions` `{class_type_id, date, time, …}` | One-off session | W9 |
+| GET / PATCH | `/clubs/{club_id}/class-sessions/{id}` | Staff GET adds `roster` + `checkin_code`; PATCH `{status: cancelled, reason?}` notifies; `{capacity}` promotes the waitlist | W9 |
+| POST | `/clubs/{club_id}/class-sessions/{id}/bookings` `{membership_id?}` | Book (self, or staff adds); full → waitlisted with position | M6, W9 |
+| DELETE | `/clubs/{club_id}/bookings/{id}` | Cancel; the first in the waitlist is promoted and notified | M6, W9 |
+| PATCH | `/clubs/{club_id}/bookings/{id}` `{status: attended \| no_show \| booked}` | Attendance (staff) | W9 |
+| POST | `/clubs/{club_id}/class-sessions/{id}/check-in` `{checkin_code}` | Student check-in (45 min before → end); creates a booking if there is room | M6 |
 
 ### Billing (Stripe)
 | Method | Path | Purpose | Screens |

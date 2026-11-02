@@ -118,7 +118,7 @@ export function DashboardScreen() {
               </Card>
               {x.upcoming_classes.length > 0 && (
                 <Card className="grid gap-3 p-5">
-                  <h2 className="rf-text-title-md">{t("Próximas aulas")}</h2>
+                  <div className="flex items-center justify-between"><h2 className="rf-text-title-md">{t("Próximas aulas")}</h2><Link to="/classes/manage" className="text-sm font-semibold text-brand-text">{t("Ver aulas")}</Link></div>
                   <ul className="grid gap-2">{x.upcoming_classes.map((c) => (
                     <li key={c.session.id} className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-lg bg-brand-soft text-on-brand-soft"><CalendarClock className="size-4" /></span>
                       <div className="min-w-0 flex-1"><div className="truncate text-sm font-semibold">{c.class_type.name}</div><div className="text-xs text-fg-muted">{shortDate(c.session.starts_at.slice(0, 10))} · {timeOf(c.session.starts_at)} · {tn(c.booked, "{n} reserva", "{n} reservas")}{c.waitlist ? ` · ${tn(c.waitlist, "{n} na fila", "{n} na fila")}` : ""}</div></div></li>

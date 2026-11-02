@@ -26,10 +26,10 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F11 | Activities (list, detail with laps and match to plan, manual log) + student detail for trainers (calendar, metrics, zones, profile, notes) | M4, W3 | [x] |
 | F12 | Feedback inbox + comment threads (unread, flags, quick replies) | W8 | [x] |
 | F14 | Planilhas: multi-week editor + apply to students/groups with a start date | W7 | [x] |
-| F15 | Classes: management (venues, types, recurring schedules, sessions, roster, attendance, QR) + student booking, waitlist, check-in | W9, M6 | [ ] |
+| F15 | Classes: management (venues, types, recurring schedules, sessions, roster, attendance, QR) + student booking, waitlist, check-in | W9, M6 | [x] |
 | F16 | Club Studio (full) + club settings (data, modalities, terminology, timezone, subdomain, venues) | O1, O3 | [ ] |
 | F17 | Plan and billing: plans, usage, Stripe checkout (mock), billing portal (mock), invoices, student limit enforcement | O4, O5 | [ ] |
-| F18 | My account + profile: personal data, zones, connections, notifications, privacy (export, delete account), leave club; notification center | C1, M7, W11 | [ ] |
+| F18 | My account + profile: personal data, zones, connections, notifications, privacy (export, delete account), leave club; notification center (incl. `class_reminder` before booked classes, and a "today's class" card on M1 Hoje) | C1, M7, W11 | [ ] |
 | F21 | Races and events: club race calendar, students sign up, goal races feed periodization, results | W12, M9 | [ ] |
 | F22 | Messages: trainer ⇄ student direct chat and club announcements (mural) with read receipts | W13, M10 | [ ] |
 | F23 | Assessments and tests: physical assessments, performance tests (Cooper, 3 km, CSS, FTP, 1RM) that update zones | W14 | [ ] |
