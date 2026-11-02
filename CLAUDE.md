@@ -22,12 +22,15 @@ Runflow is a training platform for Brazilian clubs (running, gyms, swimming, hyb
 - **Areas stay splittable (§7.1).** An area never imports another area's source. Use package names and generated artifacts (OpenAPI) only.
 - **Runflow is the app; clubs only theme it (D-018).** No white-label app features.
 - **Keep `root.md` an index** (under ~600 lines). Move detail into `docs/<area>/` and link it.
+- **Secrets live only in `.env`** (git-ignored). Never commit it, print it, or copy values from it into code, docs or logs.
 - **Port 8080 always shows the current app.** Keep `npm run dev` running (mock API :8787 + web :8080) while you work; the founder checks progress there, and `/dev/status` renders `docs/build-plan.md` live. Never stop it or move it to another port.
 
 ## Layout
 
 ```
 root.md     intent, decisions, roadmap: start here
+.env.example  every backend setting, documented (copy to .env, git-ignored)
+docker-compose.yaml  Postgres + the real API (npm run up → :3000; npm run doctor)
 CLAUDE.md   this file
 docs/       build-plan.md: every screen, in order, with status
 design/     tokens, club-theme engine, foundations page   (node design/serve.mjs → :8081)

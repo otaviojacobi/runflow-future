@@ -16,11 +16,15 @@
     "dev:web": "npm run dev -w @runflow/frontend",
     "dev:design": "node design/serve.mjs",
     "seed": "node api/mock/seed.mjs",
-    "check": "npm run check:design && npm run check:api && npm run check -w @runflow/frontend && npm run check -w @runflow/mobile",
+    "check": "npm run check:web && npm run check:backend",
+    "check:web": "npm run check:design && npm run check:api && npm run check -w @runflow/frontend && npm run check -w @runflow/mobile",
+    "check:backend": "bash backend/scripts/check.sh",
     "check:design": "node design/build.mjs --check",
     "check:api": "node api/mock/check.mjs",
     "e2e": "npm run e2e -w @runflow/frontend",
-    "dev:mobile": "npm run web -w @runflow/mobile"
+    "dev:mobile": "npm run web -w @runflow/mobile",
+    "up": "docker compose up -d --build",
+    "doctor": "docker compose run --rm api doctor"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.14"

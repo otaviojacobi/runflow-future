@@ -1,0 +1,40 @@
+# backend/: CLAUDE.md
+
+The Runflow server: Rust (edition 2024) · axum · sqlx · PostgreSQL. It implements the contract (`../api/endpoints.md`, `../api/schema.sql`) so the apps switch from the mock with no UI changes.
+Read `../root.md` §7.2, §7.3, §7.6 and decisions D-020, D-025, D-026, then `../docs/build-plan.md` Phase 2. Future standalone repo: `runflow-backend`.
+
+## Commands
+
+| From the repo root | What |
+|---|---|
+| `npm run check:backend` | Design-asset sync, rustfmt, clippy `-D warnings`, every test on a real Postgres (starts the compose `postgres` with the `.env` credentials; CI sets `TEST_DATABASE_URL`). Part of `npm run check` |
+| `npm run up` (`docker compose up -d --build`) | Postgres (host :5433) + API (host :3000): migrate, then serve |
+| `npm run doctor` | What's configured and what's missing (secrets hidden), database, storage |
+| `docker compose run --rm api email-test --to you@email.com` | Send a test e-mail (Resend, or the log). `--preview out.html` writes the HTML instead |
+| `cd backend && cargo run -- serve` | Run on the host against the compose Postgres (reads `../.env`) |
+
+Settings: every variable is documented in `../.env.example`; the real values live in `../.env` (git-ignored).
+
+## Layout
+
+```
+crates/
+  runflow/       the binary: config.rs (env → typed config), doctor.rs, CLI (all | serve | migrate | doctor | email-test | healthcheck)
+  api/           axum router under /v1, problem.rs (pt-BR problem+json), one module per contract section
+  db/            pool, migrations (embedded), tests/contract.rs (migrations == api/schema.sql)
+  integrations/  email (Resend + log, token-based layout); later Google, Strava, Stripe
+migrations/      0001_contract.sql = api/schema.sql at S1; one new file per contract change
+assets/design/   synced copies of design/dist/tokens.json and color-fixtures.json (scripts/sync-design.sh)
+```
+`domain` (pure types and rules: workout structure, tags, estimates) and `jobs` (Postgres queue, `worker` subcommand) arrive with the first step that needs them (§7.2).
+
+## Rules
+
+- **Contract first (D-020).** A route exists in `api/endpoints.md` before it exists here, with the same JSON (snake_case), status codes, error `code`s and pt-BR `title`/`detail` as the mock. If the mock is wrong, fix the mock and the contract in the same step.
+- **Schema changes** go to `api/schema.sql` **and** a new `migrations/NNNN_name.sql` in the same commit; `db/tests/contract.rs` fails otherwise. Never edit an applied migration.
+- **Errors** are `Problem` (pt-BR for people, stable English `code`). Logs are English and never contain secrets or personal data beyond ids.
+- **Tests** use `#[sqlx::test]` (a fresh, migrated database per test). No database mocks (§8). External APIs are tested against local fakes (see `integrations/tests/resend.rs`).
+- **Config** only from the environment (`config.rs`). A new variable goes into `../.env.example` in the same commit. Secrets use `Secret`/redacted `Debug`.
+- **Tokens only.** E-mail HTML takes colors, type, spacing and radii from `assets/design/tokens.json` through `email::layout`/`paragraph`. Run `scripts/sync-design.sh` after design changes.
+- **Queries:** when `sqlx::query!` macros arrive, commit the offline data (`cargo sqlx prepare --workspace`, `.sqlx/`) so builds and Docker never need a database.
+- **Areas stay splittable.** Never import another area's source; the backend reads `api/schema.sql` (contract test) and synced design artifacts only.

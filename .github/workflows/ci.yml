@@ -20,7 +20,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm run check
+      - run: npm run check:web
 
   e2e:
     name: End-to-end (flows, accessibility, 360 px layouts)

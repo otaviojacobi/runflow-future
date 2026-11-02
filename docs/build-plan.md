@@ -50,7 +50,7 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 
 | Step | Scope | Status |
 |---|---|---|
-| S1 | Bootstrap: Cargo workspace, axum `/v1/health`, config from env (`.env.example` lists every variable), sqlx migrations from `api/schema.sql`, problem+json errors (pt-BR), e-mail via Resend (D-026, log fallback), Dockerfile (amd64/arm64), root `docker-compose.yaml` (Postgres + API), backend CI | [ ] |
+| S1 | Bootstrap: Cargo workspace, axum `/v1/health`, config from env (`.env.example` lists every variable), sqlx migrations from `api/schema.sql`, problem+json errors (pt-BR), e-mail via Resend (D-026, log fallback), Dockerfile (amd64/arm64), root `docker-compose.yaml` (Postgres + API), backend CI | [x] |
 | S2 | Auth (Google, email code), sessions, `/me` | [ ] |
 | S3 | Clubs, branding (Rust port of the color engine, golden fixtures), invites, members, groups | [ ] |
 | S4 | Workouts, templates, planilhas, completions, comments, feedback | [ ] |

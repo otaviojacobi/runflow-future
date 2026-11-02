@@ -243,6 +243,7 @@ The design system was approved after D1. The HTML-mock phase (D-015) was replace
 ```
 runflow-future/
 ├── root.md          ← this file: intent, decisions, roadmap
+├── docker-compose.yaml, .env.example ← run Postgres + the API locally (and on the Pi, S8)
 ├── docs/            ← cross-cutting detail; docs/build-plan.md = screen-by-screen plan and status
 ├── api/             → the CONTRACT: schema.sql (DB) · endpoints.md (API) · mock/ (db.json + mock server)
 ├── ops/             ← Pi deployment, backups, restore runbooks (S8)
@@ -300,7 +301,7 @@ flowchart LR
 ### 7.2 Backend (`backend/`)
 
 - **Rust, axum + tokio, sqlx + PostgreSQL.** Compile-time checked queries, with migrations managed by sqlx.
-- **Modular monolith.** A Cargo workspace splits code into `domain` (pure types and rules, no I/O), `db`, `api`, `integrations` and `jobs`. One binary has subcommands `serve | worker | migrate | all`; the Pi runs `all`.
+- **Modular monolith.** A Cargo workspace splits code into `domain` (pure types and rules, no I/O), `db`, `api`, `integrations` and `jobs`. One binary has subcommands `all | serve | migrate | doctor | email-test | healthcheck` (`worker` arrives with the job queue); Docker and the Pi run `all`. S1 ships `api`, `db`, `integrations` and the binary; `domain` and `jobs` come with the first step that needs them.
 - **Background jobs** run on a Postgres queue (`FOR UPDATE SKIP LOCKED`). There is **no Redis**.
 - **Object storage** goes through the `object_store` crate: local disk on the Pi, S3 in the cloud. Uploads are served from a separate host, images are resized server-side, and SVGs are sanitized or rasterized.
 - **API conventions.** REST + JSON under `/v1`. OpenAPI is generated from code (utoipa). Errors follow RFC 9457 (problem+json): `title` and `detail` are **pt-BR**, written for the person who reads them, plus a stable English `code` (e.g. `workout.not_found`) for the apps to branch on. Server logs stay in English. Pagination uses cursors. IDs are UUIDv7. Timestamps are `timestamptz` in UTC. Workouts are scheduled on a **local date** plus the club's timezone.
@@ -460,6 +461,7 @@ flowchart LR
 - 2026-11-02. **Phase 1 (web app on the mock API) complete: F0–F30 and F20 hardening.** Beyond the core screens it covers classes, races, messages and mural, assessments, challenges, reports, club finances, an assistant (provider-agnostic contract, rules engine in the mock; open question §11.4), the exercise library, imports/exports (CSV, .FIT, .ics), command palette and an installable PWA. Contract: 55 tables in `api/schema.sql`. Quality gates: `npm run check` (incl. a 200 KB initial-JS budget) and `npm run e2e` (flows, axe WCAG AA, 360 px layouts) in CI. Design change: `fg.subtle` now meets 4.5:1 (new neutral steps 450/550) because it carries meta text. Next: Phase 2 (mobile, X0).
 - 2026-11-02. Founder decisions: personal e-mail invites, 7 days, single use, bound to the invited e-mail (D-023, replaces the shareable link/QR/WhatsApp invites of §4.5); public pages always in Runflow's brand (D-024). Mobile X0 scaffold delivered (D-021, D-022).
 - 2026-11-02. Founder decisions: backend before mobile (D-025: Phase 2 is now the Rust backend, mobile is Phase 3 on the real API); e-mail via Resend (D-026); workout hashtags first-class (F32); `.xlsx`/`.xls` import recorded as a later TODO (CSV covers it now). The invite form now sends one person at a time.
+- 2026-11-02. **S1 backend bootstrap.** Cargo workspace (`runflow` binary + `api`, `db`, `integrations`), `/v1/health`, pt-BR problem+json, config from env with every variable in `.env.example` (local `.env` git-ignored), migrations starting from `api/schema.sql` with a test proving they build the same database, Resend e-mail with a log fallback (D-026) and a token-based layout, Dockerfile, root `docker-compose.yaml` (Postgres 18 :5433 + API :3000), backend CI. `npm run check` now covers the backend.
 - 2026-11-01. Founder decisions: design-first Phase 0 with the full UI mocked before implementation (D-015); Stripe, no charging during the beta, NFS-e outside the product (D-016); trainers see all students (D-017); Runflow is the app and clubs only theme it (D-018); Apple and Garmin developer programs deferred (D-007, D-011); no guardian accounts. Added the screen inventory (§6.1) and `CLAUDE.md`. Roadmap renumbered: Phase 0 is now design and validation, and **D1 is next**.
 
 ---

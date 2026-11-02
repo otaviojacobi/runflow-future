@@ -45,6 +45,12 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 
 ## Endpoints
 
+### Operations
+
+| Method | Path | What | Screens |
+|---|---|---|---|
+| GET | `/health` | `{ok, version, database: {ok, latency_ms}}`; `503 health.database_unavailable` when the database is down. The mock adds `anchor_date` and `routes` | — |
+
 ### Auth and account
 | Method | Path | Purpose | Screens |
 |---|---|---|---|

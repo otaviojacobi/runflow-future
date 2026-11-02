@@ -1,0 +1,469 @@
+//! Configuration from the environment (12-factor, Lambda-ready). `.env.example` at the repo root
+//! documents every variable; keep the two in sync. Problems are collected and reported together.
+
+use std::fmt;
+use std::net::{IpAddr, SocketAddr};
+use std::path::PathBuf;
+use std::str::FromStr;
+
+use runflow_db::DbSettings;
+use runflow_integrations::email::{EmailSettings, Provider};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RunEnv {
+    Development,
+    Production,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LogFormat {
+    Pretty,
+    Json,
+}
+
+/// A value that never shows up in logs or `Debug` output.
+#[derive(Clone)]
+pub struct Secret(String);
+
+impl Secret {
+    pub fn expose(&self) -> &str {
+        &self.0
+    }
+    /// `re_ab…` style hint for the doctor.
+    pub fn hint(&self) -> String {
+        let head: String = self.0.chars().take(5).collect();
+        format!("{head}… ({} chars)", self.0.chars().count())
+    }
+}
+
+impl fmt::Debug for Secret {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("Secret(***)")
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Http {
+    pub bind: SocketAddr,
+    /// Where people open the web app; links in e-mails point here.
+    pub public_app_url: String,
+    /// Where the API is reachable from outside (OAuth and webhook callbacks).
+    pub public_api_url: String,
+    pub cors_origins: Vec<String>,
+    /// `.runflow.club` in production (SSO across club subdomains, §7.3); `None` = host-only cookie.
+    pub cookie_domain: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Secrets {
+    /// HMAC key for session tokens and e-mail codes (S2).
+    pub session_secret: Option<Secret>,
+    /// Encrypts provider tokens at rest (S5).
+    pub encryption_key: Option<Secret>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Google {
+    pub client_id: String,
+    pub client_secret: Secret,
+    pub android_client_id: Option<String>,
+    pub ios_client_id: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Strava {
+    pub client_id: String,
+    pub client_secret: Secret,
+    pub webhook_verify_token: Option<Secret>,
+}
+
+#[derive(Debug, Clone)]
+pub struct Stripe {
+    pub secret_key: Secret,
+    pub webhook_secret: Option<Secret>,
+    pub price_pro_monthly: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub enum Storage {
+    Disk {
+        dir: PathBuf,
+    },
+    S3 {
+        bucket: String,
+        region: String,
+        endpoint: Option<String>,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub enum Assistant {
+    /// Deterministic rules, like the mock (no data leaves the server).
+    Rules,
+    Anthropic {
+        api_key: Secret,
+        model: String,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct Config {
+    pub env: RunEnv,
+    pub log_format: LogFormat,
+    pub http: Http,
+    pub db: DbSettings,
+    pub secrets: Secrets,
+    pub email: EmailSettings,
+    pub google: Option<Google>,
+    pub strava: Option<Strava>,
+    pub stripe: Option<Stripe>,
+    pub storage: Storage,
+    pub assistant: Assistant,
+    pub sentry_dsn: Option<String>,
+}
+
+/// Reads variables through a function so tests don't touch the process environment.
+pub struct Env<F: Fn(&str) -> Option<String>> {
+    get: F,
+    errors: Vec<String>,
+}
+
+impl<F: Fn(&str) -> Option<String>> Env<F> {
+    fn opt(&self, name: &str) -> Option<String> {
+        (self.get)(name)
+            .map(|v| v.trim().to_string())
+            .filter(|v| !v.is_empty())
+    }
+    fn or(&self, name: &str, default: &str) -> String {
+        self.opt(name).unwrap_or_else(|| default.to_string())
+    }
+    fn required(&mut self, name: &str, why: &str) -> String {
+        self.opt(name).unwrap_or_else(|| {
+            self.errors.push(format!("{name} is required ({why})"));
+            String::new()
+        })
+    }
+    fn parse<T: FromStr>(&mut self, name: &str, default: T) -> T {
+        match self.opt(name) {
+            None => default,
+            Some(v) => v.parse().unwrap_or_else(|_| {
+                self.errors.push(format!("{name}={v:?} is not valid"));
+                default
+            }),
+        }
+    }
+    fn secret(&self, name: &str) -> Option<Secret> {
+        self.opt(name).map(Secret)
+    }
+    /// Both or neither: `(a, b)` are only useful together.
+    fn pair(&mut self, a: &str, b: &str) -> Option<(String, String)> {
+        match (self.opt(a), self.opt(b)) {
+            (Some(x), Some(y)) => Some((x, y)),
+            (None, None) => None,
+            _ => {
+                self.errors
+                    .push(format!("{a} and {b} go together: set both or neither"));
+                None
+            }
+        }
+    }
+}
+
+impl Config {
+    pub fn from_env() -> Result<Self, Vec<String>> {
+        Self::from_fn(|k| std::env::var(k).ok())
+    }
+
+    pub fn from_fn(get: impl Fn(&str) -> Option<String>) -> Result<Self, Vec<String>> {
+        let mut e = Env {
+            get,
+            errors: Vec::new(),
+        };
+
+        let env = match e.or("RUNFLOW_ENV", "development").as_str() {
+            "development" | "dev" => RunEnv::Development,
+            "production" | "prod" => RunEnv::Production,
+            other => {
+                e.errors.push(format!(
+                    "RUNFLOW_ENV={other:?}: use development or production"
+                ));
+                RunEnv::Development
+            }
+        };
+        let prod = env == RunEnv::Production;
+        let log_format = match e
+            .or("LOG_FORMAT", if prod { "json" } else { "pretty" })
+            .as_str()
+        {
+            "json" => LogFormat::Json,
+            "pretty" | "text" => LogFormat::Pretty,
+            other => {
+                e.errors
+                    .push(format!("LOG_FORMAT={other:?}: use pretty or json"));
+                LogFormat::Pretty
+            }
+        };
+
+        let host: IpAddr = e.parse("HOST", IpAddr::from([0, 0, 0, 0]));
+        let port: u16 = e.parse("PORT", 3000);
+        let public_app_url = e
+            .or("PUBLIC_APP_URL", "http://localhost:8080")
+            .trim_end_matches('/')
+            .to_string();
+        let public_api_url = e
+            .or("PUBLIC_API_URL", "http://localhost:3000")
+            .trim_end_matches('/')
+            .to_string();
+        if prod && !public_app_url.starts_with("https://") {
+            e.errors
+                .push("PUBLIC_APP_URL must be https:// in production".into());
+        }
+        let cors_origins = e
+            .opt("CORS_ORIGINS")
+            .map(|v| {
+                v.split(',')
+                    .map(|o| o.trim().trim_end_matches('/').to_string())
+                    .filter(|o| !o.is_empty())
+                    .collect()
+            })
+            .unwrap_or_else(|| vec![public_app_url.clone()]);
+        let http = Http {
+            bind: SocketAddr::new(host, port),
+            public_app_url,
+            public_api_url,
+            cors_origins,
+            cookie_domain: e.opt("COOKIE_DOMAIN"),
+        };
+
+        let db = DbSettings {
+            url: e.required("DATABASE_URL", "postgres://user:password@host:5432/db"),
+            max_connections: e.parse("DATABASE_MAX_CONNECTIONS", 10),
+        };
+
+        let secrets = Secrets {
+            session_secret: e.secret("SESSION_SECRET"),
+            encryption_key: e.secret("ENCRYPTION_KEY"),
+        };
+        for (name, value) in [
+            ("SESSION_SECRET", &secrets.session_secret),
+            ("ENCRYPTION_KEY", &secrets.encryption_key),
+        ] {
+            match value {
+                Some(s) if s.expose().len() < 32 => e.errors.push(format!(
+                    "{name} is too short: use `openssl rand -base64 32`"
+                )),
+                None if prod => e.errors.push(format!(
+                    "{name} is required in production (`openssl rand -base64 32`)"
+                )),
+                _ => {}
+            }
+        }
+
+        let provider = match e
+            // Unset: Resend as soon as a key is there (or always in production), else the log.
+            .or(
+                "EMAIL_PROVIDER",
+                if prod || e.opt("RESEND_API_KEY").is_some() {
+                    "resend"
+                } else {
+                    "log"
+                },
+            )
+            .as_str()
+        {
+            "resend" => Provider::Resend,
+            "log" => Provider::Log,
+            other => {
+                e.errors
+                    .push(format!("EMAIL_PROVIDER={other:?}: use resend or log"));
+                Provider::Log
+            }
+        };
+        if prod && provider == Provider::Log {
+            e.errors.push(
+                "EMAIL_PROVIDER=log only works in development: set resend and RESEND_API_KEY"
+                    .into(),
+            );
+        }
+        let resend_api_key = e.opt("RESEND_API_KEY");
+        if provider == Provider::Resend && resend_api_key.is_none() {
+            e.errors
+                .push("EMAIL_PROVIDER=resend needs RESEND_API_KEY (resend.com/api-keys)".into());
+        }
+        let from = e.or("EMAIL_FROM", "Runflow <ola@runflow.club>");
+        if !from.contains('@') {
+            e.errors.push(format!(
+                "EMAIL_FROM={from:?} needs an e-mail address, e.g. Runflow <ola@runflow.club>"
+            ));
+        }
+        let email = EmailSettings {
+            provider,
+            resend_api_key,
+            resend_api_url: e.or("RESEND_API_URL", "https://api.resend.com"),
+            from,
+            reply_to: e.opt("EMAIL_REPLY_TO"),
+        };
+
+        let google = e
+            .pair("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET")
+            .map(|(id, secret)| Google {
+                client_id: id,
+                client_secret: Secret(secret),
+                android_client_id: e.opt("GOOGLE_ANDROID_CLIENT_ID"),
+                ios_client_id: e.opt("GOOGLE_IOS_CLIENT_ID"),
+            });
+        let strava = e
+            .pair("STRAVA_CLIENT_ID", "STRAVA_CLIENT_SECRET")
+            .map(|(id, secret)| Strava {
+                client_id: id,
+                client_secret: Secret(secret),
+                webhook_verify_token: e.secret("STRAVA_WEBHOOK_VERIFY_TOKEN"),
+            });
+        let stripe = e.secret("STRIPE_SECRET_KEY").map(|key| Stripe {
+            secret_key: key,
+            webhook_secret: e.secret("STRIPE_WEBHOOK_SECRET"),
+            price_pro_monthly: e.opt("STRIPE_PRICE_PRO_MONTHLY"),
+        });
+
+        let storage = match e.or("STORAGE_BACKEND", "disk").as_str() {
+            "disk" => Storage::Disk {
+                dir: PathBuf::from(e.or("STORAGE_DIR", "data/uploads")),
+            },
+            "s3" => Storage::S3 {
+                bucket: e.required("S3_BUCKET", "STORAGE_BACKEND=s3"),
+                region: e.or("S3_REGION", "sa-east-1"),
+                endpoint: e.opt("S3_ENDPOINT"),
+            },
+            other => {
+                e.errors
+                    .push(format!("STORAGE_BACKEND={other:?}: use disk or s3"));
+                Storage::Disk {
+                    dir: PathBuf::from("data/uploads"),
+                }
+            }
+        };
+
+        let assistant = match e.or("AI_PROVIDER", "rules").as_str() {
+            "rules" => Assistant::Rules,
+            "anthropic" => Assistant::Anthropic {
+                api_key: Secret(e.required("ANTHROPIC_API_KEY", "AI_PROVIDER=anthropic")),
+                model: e.required(
+                    "AI_MODEL",
+                    "AI_PROVIDER=anthropic; provider and budget are root.md §11.4",
+                ),
+            },
+            other => {
+                e.errors
+                    .push(format!("AI_PROVIDER={other:?}: use rules or anthropic"));
+                Assistant::Rules
+            }
+        };
+
+        let sentry_dsn = e.opt("SENTRY_DSN");
+        if e.errors.is_empty() {
+            Ok(Config {
+                env,
+                log_format,
+                http,
+                db,
+                secrets,
+                email,
+                google,
+                strava,
+                stripe,
+                storage,
+                assistant,
+                sentry_dsn,
+            })
+        } else {
+            Err(e.errors)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::HashMap;
+
+    use super::*;
+
+    fn cfg(pairs: &[(&str, &str)]) -> Result<Config, Vec<String>> {
+        let map: HashMap<String, String> = pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect();
+        Config::from_fn(move |k| map.get(k).cloned())
+    }
+
+    #[test]
+    fn development_defaults() {
+        let c = cfg(&[("DATABASE_URL", "postgres://x")]).unwrap();
+        assert_eq!(c.env, RunEnv::Development);
+        assert_eq!(c.email.provider, Provider::Log);
+        assert_eq!(c.http.bind.port(), 3000);
+        assert_eq!(c.http.cors_origins, vec!["http://localhost:8080"]);
+        assert!(c.google.is_none() && matches!(c.assistant, Assistant::Rules));
+    }
+
+    #[test]
+    fn resend_key_switches_the_provider() {
+        let c = cfg(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("RESEND_API_KEY", "re_abc"),
+        ])
+        .unwrap();
+        assert_eq!(c.email.provider, Provider::Resend);
+        let c = cfg(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("RESEND_API_KEY", "re_abc"),
+            ("EMAIL_PROVIDER", "log"),
+        ])
+        .unwrap();
+        assert_eq!(c.email.provider, Provider::Log);
+    }
+
+    #[test]
+    fn production_is_strict() {
+        let errs = cfg(&[
+            ("RUNFLOW_ENV", "production"),
+            ("DATABASE_URL", "postgres://x"),
+            ("PUBLIC_APP_URL", "http://app"),
+        ])
+        .unwrap_err();
+        let all = errs.join("\n");
+        for needle in [
+            "PUBLIC_APP_URL",
+            "SESSION_SECRET",
+            "ENCRYPTION_KEY",
+            "RESEND_API_KEY",
+        ] {
+            assert!(all.contains(needle), "missing {needle} in {all}");
+        }
+    }
+
+    #[test]
+    fn pairs_and_secrets() {
+        let errs = cfg(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("GOOGLE_CLIENT_ID", "id"),
+            ("SESSION_SECRET", "short"),
+        ])
+        .unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("GOOGLE_CLIENT_SECRET")));
+        assert!(
+            errs.iter()
+                .any(|e| e.contains("SESSION_SECRET is too short"))
+        );
+        let c = cfg(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("EMAIL_PROVIDER", "resend"),
+            ("RESEND_API_KEY", "re_123"),
+        ])
+        .unwrap();
+        assert_eq!(c.email.resend_api_key.as_deref(), Some("re_123"));
+        assert!(
+            !format!("{c:?}").contains("re_123"),
+            "secrets leak through Debug"
+        );
+    }
+}

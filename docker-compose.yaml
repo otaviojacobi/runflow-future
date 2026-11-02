@@ -1,0 +1,64 @@
+# Runflow: Postgres + the API, for local testing now and the Raspberry Pi later (root.md §7.6, S8).
+#   cp .env.example .env        # then fill it in (docker compose reads .env from this folder)
+#   docker compose up -d --build
+#   docker compose run --rm api doctor           # what's configured, what's missing
+#   docker compose run --rm api email-test --to voce@email.com
+#   curl localhost:3000/v1/health
+# The web app keeps running with `npm run dev` on :8080 (against the mock until the backend
+# implements the whole contract; see docs/build-plan.md Phase 2).
+
+name: runflow
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-runflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-runflow}
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      # Postgres 18 images keep data under /var/lib/postgresql/<major>/docker.
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build:
+      context: ./backend
+      args:
+        RUNFLOW_GIT_SHA: ${RUNFLOW_GIT_SHA:-}
+    image: ghcr.io/otaviojacobi/runflow:${RUNFLOW_TAG:-local}
+    restart: unless-stopped
+    # migrate, then serve
+    command: ["all"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-runflow}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-runflow}
+      HOST: 0.0.0.0
+      PORT: "3000"
+      STORAGE_DIR: /data/uploads
+    ports:
+      - "127.0.0.1:${API_HOST_PORT:-3000}:3000"
+    volumes:
+      - uploads:/data/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/runflow", "healthcheck"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  pgdata:
+  uploads:
