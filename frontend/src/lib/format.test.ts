@@ -26,3 +26,15 @@ describe("format (pt-BR)", () => {
     expect(ago(new Date(Date.now() - 5 * 60000).toISOString())).toBe("há 5 min");
   });
 });
+
+describe("money input", () => {
+  it("parses pt-BR amounts to centavos", async () => {
+    const { parseMoney, centsToInput } = await import("./format");
+    expect(parseMoney("180")).toBe(18000);
+    expect(parseMoney("180,50")).toBe(18050);
+    expect(parseMoney("1.250,5")).toBe(125050);
+    expect(parseMoney("0")).toBeNull();
+    expect(parseMoney("abc")).toBeNull();
+    expect(centsToInput(18050)).toBe("180,50");
+  });
+});

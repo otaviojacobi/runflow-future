@@ -1,6 +1,6 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { AlertTriangle, Bell, Check, ChevronsUpDown, LogOut, Menu as MenuIcon, Monitor, Moon, Plus, Sun, User } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DropdownMenu } from "radix-ui";
 import { signOut } from "@/api/auth";
 import type { MembershipContext, Subscription } from "@/api/types";
@@ -87,9 +87,11 @@ function NavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
   const isActive = useIsActive();
   const active = isActive(item.to);
   const I = item.icon;
+  const ref = useRef<HTMLAnchorElement>(null);
+  useEffect(() => { if (active) ref.current?.scrollIntoView({ block: "nearest" }); }, [active]);
   return (
-    <Link to={item.to} onClick={onClick} aria-current={active ? "page" : undefined}
-      className={cn("flex h-10 items-center gap-3 rounded-md px-3 text-[15px] font-medium transition-colors [&_svg]:size-[18px]", active ? "bg-brand-soft font-semibold text-on-brand-soft" : "text-fg-muted hover:bg-soft hover:text-fg")}>
+    <Link ref={ref} to={item.to} onClick={onClick} aria-current={active ? "page" : undefined}
+      className={cn("flex h-9 items-center gap-3 rounded-md px-3 text-[15px] font-medium transition-colors [&_svg]:size-[18px]", active ? "bg-brand-soft font-semibold text-on-brand-soft" : "text-fg-muted hover:bg-soft hover:text-fg")}>
       <I aria-hidden />{t(item.label)}
     </Link>
   );
@@ -137,7 +139,7 @@ export function AppShell() {
       {/* desktop sidebar */}
       <aside data-print="hide" className="sticky top-0 hidden h-dvh flex-col gap-4 border-r border-line bg-surface p-3 lg:flex">
         <ClubSwitcher />
-        <nav aria-label={t("Navegação principal")} className="flex flex-1 flex-col gap-5 overflow-y-auto">
+        <nav aria-label={t("Navegação principal")} className="flex flex-1 flex-col gap-3 overflow-y-auto">
           {groups.map((g, i) => (
             <div key={i} className="flex flex-col gap-0.5">
               {g.title && <div className="px-3 pb-1 rf-text-overline text-fg-subtle">{t(g.title)}</div>}

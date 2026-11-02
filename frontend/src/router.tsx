@@ -45,6 +45,7 @@ const signIn = createRoute({
 const invite = createRoute({ getParentRoute: () => root, path: "/invite/$token", component: InviteScreen });
 const devComponents = createRoute({ getParentRoute: () => root, path: "/dev/components", component: ComponentsScreen });
 const devStatus = createRoute({ getParentRoute: () => root, path: "/dev/status", component: StatusScreen });
+const devPay = createRoute({ getParentRoute: () => root, path: "/dev/pay/$id", component: lazyRouteComponent(() => import("./screens/dev/PayMock"), "PayMockScreen") });
 const devStripe = createRoute({ getParentRoute: () => root, path: "/dev/stripe/$kind", component: lazyRouteComponent(() => import("./screens/dev/StripeMock"), "StripeMockScreen") });
 
 // ---------------------------------------------------------------- signed in, outside the shell
@@ -96,6 +97,7 @@ const ownerRoutes = [
   r(O, "/club/studio", lazyRouteComponent(() => import("./screens/owner/Studio"), "StudioScreen")),
   r(O, "/club/members", MembersScreen),
   r(O, "/club/settings", lazyRouteComponent(() => import("./screens/owner/Settings"), "SettingsScreen")),
+  r(O, "/club/finances", lazyRouteComponent(() => import("./screens/owner/Finances"), "FinancesScreen")),
   r(O, "/club/billing", lazyRouteComponent(() => import("./screens/owner/Billing"), "BillingScreen")),
 ];
 const studentRoutes = [
@@ -106,17 +108,19 @@ const studentRoutes = [
   r(St, "/activities/$id", lazyRouteComponent(() => import("./screens/student/ActivityDetail"), "ActivityDetailScreen")),
   r(St, "/classes", lazyRouteComponent(() => import("./screens/student/Classes"), "ClassesScreen")),
   r(St, "/challenges", lazyRouteComponent(() => import("./screens/student/Challenges"), "ChallengesScreen")),
+  r(St, "/payments", lazyRouteComponent(() => import("./screens/student/Payments"), "PaymentsScreen")),
   r(St, "/races", lazyRouteComponent(() => import("./screens/student/Races"), "RacesScreen")),
   r(St, "/account/profile", lazyRouteComponent(() => import("./screens/student/Profile"), "ProfileScreen")),
 ];
 const commonRoutes = [
   r(Sh, "/messages", lazyRouteComponent(() => import("./screens/common/messages/Messages"), "MessagesScreen")),
+  r(Sh, "/receipts/$id", lazyRouteComponent(() => import("./screens/common/Receipt"), "ReceiptScreen")),
   r(Sh, "/notifications", lazyRouteComponent(() => import("./screens/common/Notifications"), "NotificationsScreen")),
   r(Sh, "/account", lazyRouteComponent(() => import("./screens/common/Account"), "AccountScreen")),
 ];
 
 const routeTree = root.addChildren([
-  index, appHome, signIn, invite, devComponents, devStatus, devStripe,
+  index, appHome, signIn, invite, devComponents, devStatus, devStripe, devPay,
   authed.addChildren([
     clubs, createClub, welcome,
     shell.addChildren([staff.addChildren(staffRoutes), owner.addChildren(ownerRoutes), student.addChildren(studentRoutes), ...commonRoutes]),

@@ -426,6 +426,29 @@ export function generate(anchor) {
   for (const k of ["ana", "bruno", "diego", "henrique"]) t("announcement_reads").push({ announcement_id: a3.id, membership_id: M["paceforte:" + k].id, read_at: at(addDays(anchor, -4), "07:00") });
   ann("mare-touca", MARE, "equipemare:renata", -4, "Touca obrigatória na piscina", "O Sesc passou a exigir touca em todas as raias. Sem touca, não entra. Temos toucas da equipe à venda por R$ 25.");
 
+  // ---- club finances (F26)
+  t("club_payout_accounts").push({ club_id: PF.id, stripe_account_id: "acct_mock_paceforte", status: "active", created_at: createdLongAgo, updated_at: createdLongAgo });
+  const feePlan = (key, clubRow, name, amount_cents, interval, description = null) => { const f = { id: uuid("fp:" + key), club_id: clubRow.id, name, description, amount_cents, interval, created_at: createdLongAgo, archived_at: null }; t("fee_plans").push(f); return f; };
+  const fpMensal = feePlan("pf-mensal", PF, "Mensalidade corrida", 18000, "month", "Planilha personalizada + treinos coletivos.");
+  const fpFunc = feePlan("pf-funcional", PF, "Corrida + funcional", 24000, "month", "Inclui as aulas de funcional no estúdio.");
+  feePlan("pf-tri", PF, "Trimestral corrida", 48000, "quarter");
+  const fees = { ana: [fpMensal, null, 5], bruno: [fpFunc, null, 10], carla: [fpFunc, 20000, 10], diego: [fpMensal, null, 5], elisa: [fpMensal, 15000, 15], felipe: [fpMensal, null, 15], henrique: [fpMensal, null, 10] };
+  let receipt = 1;
+  const ym = (d) => d.slice(0, 7);
+  const firstOf = (y, m) => new Date(Date.UTC(y, m - 1, 1)).toISOString().slice(0, 10);
+  const [ay, am] = [+anchor.slice(0, 4), +anchor.slice(5, 7)];
+  for (const [k, [plan, override, dueDay]] of Object.entries(fees)) {
+    const m = M["paceforte:" + k];
+    t("student_fees").push({ membership_id: m.id, club_id: PF.id, fee_plan_id: plan.id, amount_cents: override, due_day: dueDay, starts_on: firstOf(ay, am - 3), created_at: createdLongAgo });
+    for (const back of [2, 1, 0]) {
+      const start = firstOf(ay, am - back), due = addDays(start, dueDay - 1);
+      const late = k === "carla" && back === 1, unpaidNow = back === 0 && ["bruno", "elisa", "felipe"].includes(k);
+      const paid = !late && !unpaidNow && due <= addDays(anchor, 3);
+      const method = ["pix", "pix", "card", "pix", "cash"][(receipt + back) % 5];
+      t("charges").push({ id: uuid(`chg:${k}:${back}`), club_id: PF.id, membership_id: m.id, fee_plan_id: plan.id, period: ym(start), description: `${plan.name} · ${["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"][+start.slice(5, 7) - 1]}`, amount_cents: override ?? plan.amount_cents, due_date: due, status: paid ? "paid" : "open", paid_at: paid ? at(addDays(due, -2), "10:30") : null, method: paid ? method : null, external_ref: paid && method !== "cash" ? `pi_mock_${k}_${back}` : null, receipt_number: paid ? receipt++ : null, last_reminded_at: late ? at(addDays(due, 5), "09:00") : null, created_at: at(addDays(start, -5), "06:00") });
+    }
+  }
+
   // ---- challenges and rankings (F24)
   const monthStart = anchor.slice(0, 7) + "-01";
   const monthEnd = addDays(new Date(Date.UTC(+anchor.slice(0, 4), +anchor.slice(5, 7), 1)).toISOString().slice(0, 10), -1);

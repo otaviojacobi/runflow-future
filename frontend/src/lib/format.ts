@@ -77,3 +77,10 @@ export function ago(iso: string, now = Date.now()): string {
   return shortDate(localDate(iso));
 }
 export const initials = (name: string) => name.replace(/[^\p{L}\s]/gu, " ").split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");
+
+/** "180,00" | "180" | "1.250,50" → centavos; null when not a positive amount. */
+export function parseMoney(s: string): number | null {
+  const n = Number(s.trim().replace(/\./g, "").replace(",", "."));
+  return isFinite(n) && n > 0 ? Math.round(n * 100) : null;
+}
+export const centsToInput = (c: number | null | undefined) => (c == null ? "" : (c / 100).toFixed(2).replace(".", ","));
