@@ -168,7 +168,7 @@ async function handle(req, res) {
   const started = Date.now();
   const url = new URL(req.url, "http://mock");
   if (req.method === "OPTIONS") {
-    res.writeHead(204, { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS", "Access-Control-Allow-Headers": "Authorization,Content-Type,If-None-Match", "Access-Control-Max-Age": "600" });
+    res.writeHead(204, { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS", "Access-Control-Allow-Headers": "Authorization,Content-Type,If-None-Match,X-Client", "Access-Control-Max-Age": "600" });
     return res.end();
   }
   let status = 500;

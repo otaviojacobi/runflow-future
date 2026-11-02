@@ -1,0 +1,32 @@
+# mobile/: CLAUDE.md
+
+The Runflow app for Android and iOS: Expo SDK 58 (React Native 0.88, new architecture) + TypeScript + Expo Router. One app for every role (D-005). Read `../root.md` (§7.5, §7.8) and `../docs/build-plan.md` (Phase 2) first, and `AGENTS.md` (Expo's own guidance: check the versioned docs, never trust memory for Expo APIs). Future standalone repo: `runflow-mobile`.
+
+## Commands
+
+| From the repo root | What |
+|---|---|
+| `npm run dev:mobile` | Expo dev server with the web preview on **:8082** (`r` reload, `a` Android emulator, QR for Expo Go). Needs the mock API (`npm run dev`) |
+| `npm run check -w @runflow/mobile` | Typecheck (part of `npm run check`) |
+| `cd mobile && npx expo install <pkg>` | Add a dependency with the SDK-compatible version. Never plain `npm i` for Expo/RN packages |
+| `cd mobile && npx expo export --platform android` | Bundle check without a device |
+
+On a physical phone, point the app at your computer: `EXPO_PUBLIC_API_URL=http://<your-ip>:8787/v1 npm run dev:mobile`.
+
+## Layout
+
+```
+src/
+  app/        Expo Router routes only (_layout.tsx = splash + providers)
+  lib/        api (ApiError, session), storage (sync kv: native kv-store / web localStorage), secure (token)
+  theme/      theme.ts (tokens → RN theme, club roles via @runflow/design/color), ThemeProvider (cached club colors, color mode)
+  i18n.ts     t()/tn(), same contract as the web app
+```
+
+## Rules
+
+- Same product rules as the web app: pt-BR text through `t()`, tokens only (`useTheme().theme`), contract-first API (`api/endpoints.md`), no AI attribution.
+- **First frame is themed (§7.8):** the club colors are read synchronously from `storage` before render; the splash stays until the session token is loaded. Never fetch the theme before showing the first screen.
+- Platform splits use `.web.ts` files (the web preview only; the product is Android/iOS).
+- Native modules must exist in Expo Go until we move to development builds (X10: push, widgets, health data).
+- Accessibility: `accessibilityRole`/`accessibilityState` on touchables, 44 pt touch targets, visible text = accessible name.

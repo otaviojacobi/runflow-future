@@ -341,7 +341,7 @@ flowchart LR
   - It is fast with the new architecture and Hermes.
   - OTA updates let us ship fixes quickly.
   - Agents are very fluent in it.
-- **Open at bootstrap:** whether styling uses Unistyles or NativeWind.
+- **Styling (D-021):** React Native `StyleSheet` plus a typed theme built from `@runflow/design` tokens; club roles come from the same color engine at runtime. No NativeWind or Unistyles.
 
 ### 7.6 Infrastructure and hosting
 
@@ -378,7 +378,7 @@ flowchart LR
 4. **Revalidation.** After load the app checks the theme's ETag. If `rev` changed, it swaps the CSS variables in place, with no reload.
 
 **Mobile: the first frame is already themed.**
-1. The active club's theme (roles JSON and `rev`) is persisted in MMKV, which reads synchronously at startup. The logo stays in the image disk cache.
+1. The active club's theme (colors and `rev`) is persisted in a synchronous key-value store (`expo-sqlite/kv-store`, D-022), read before the first frame. The logo stays in the image disk cache.
 2. The native splash screen (Runflow's, since Runflow is the app) stays up until the session and the cached theme are loaded, which takes milliseconds. The first rendered frame has the club's colors.
 3. On launch and on returning to the foreground, the app revalidates with the ETag and applies a changed theme live, without a restart.
 4. A fresh login with no cache gets every theme inside `GET /v1/me` before the home screen renders.
@@ -421,6 +421,8 @@ flowchart LR
 | D-014 | Club theming takes 0, 1 or 2 colors (none: Runflow defaults; one: derived secondary; two: primary + secondary) and produces an accessible light/dark theme. Same engine in all areas (golden fixtures) | Most clubs have two colors; contrast and coherence are never left to chance | Accepted (founder) |
 | D-015 | Design first ("waterfall"): mock the whole UI as HTML before implementing | Validate look and flows cheaply | **Superseded by D-020** after D1 approval |
 | D-020 | Contract first: `api/schema.sql` + `api/endpoints.md` + a mock server over `api/mock/db.json`. Build the real web app on it screen by screen, then mobile, then the Rust backend implements the same contract | Real, testable UI early; the backend can't drift from what the screens need | Accepted (founder) |
+| D-021 | Mobile styling: `StyleSheet` + a typed theme generated from `@runflow/design` tokens (club roles via the shared color engine) | One token source with the web, no styling dependency, works in Expo Go | Accepted (engineering, 2026-11-02) |
+| D-022 | Mobile caches: club theme and preferences in `expo-sqlite/kv-store` (synchronous, in Expo Go); session token in `expo-secure-store`. Web preview uses `localStorage` | MMKV needs a custom dev build; the kv-store keeps the first frame themed without one | Accepted (engineering, 2026-11-02) |
 | D-016 | Payments via Stripe; no charging during the beta; NFS-e handled by the founder outside the product | Founder decision | Accepted (founder) |
 | D-017 | Trainers see all students in their club | Simple default; per-trainer assignment can come later if clubs ask | Accepted (founder) |
 | D-019 | Club themes: the DB stores the owner's choices plus the theme derived at save time. Web inlines it in the HTML; mobile caches it on the device; both revalidate by `rev`/ETag (§7.8) | The first paint is already in the club's colors; one engine run per save, not per request | Proposed |

@@ -4,13 +4,23 @@
   "private": true,
   "description": "Runflow design tokens, club-theme color engine and assets. Framework-agnostic; consumed by frontend/ and mobile/.",
   "type": "commonjs",
-  "engines": { "node": ">=20" },
-  "files": ["dist", "src", "assets", "tokens.json"],
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "src",
+    "assets",
+    "tokens.json"
+  ],
   "exports": {
     "./tokens.css": "./dist/tokens.css",
     "./tokens.json": "./dist/tokens.json",
     "./tokens": "./dist/tokens.ts",
-    "./color": "./src/color.js",
+    "./color": {
+      "types": "./src/color.d.ts",
+      "default": "./src/color.js"
+    },
     "./fonts.css": "./assets/fonts/fonts.css",
     "./color-fixtures.json": "./dist/color-fixtures.json"
   },

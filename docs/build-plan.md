@@ -46,7 +46,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 
 | Step | Scope | Status |
 |---|---|---|
-| X0 | Expo + TS scaffold in the workspace, tokens → RN theme, club theme cache (MMKV) behind the splash (§7.8), API client against the mock | [ ] |
+| X0 | Expo + TS scaffold in the workspace, tokens → RN theme, club theme cache (sync kv-store, D-022) behind the splash (§7.8), API client against the mock | [x] |
 | X1 | RN UI kit mirroring `frontend/src/ui` names and variants | [ ] |
 | X2 | Sign-in (Google, email code) + deep links for invites | [ ] |
 | X3 | Tabs per role + club switcher | [ ] |

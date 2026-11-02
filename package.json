@@ -4,7 +4,8 @@
   "description": "Runflow monorepo root. See root.md.",
   "workspaces": [
     "design",
-    "frontend"
+    "frontend",
+    "mobile"
   ],
   "engines": {
     "node": ">=20"
@@ -15,12 +16,17 @@
     "dev:web": "npm run dev -w @runflow/frontend",
     "dev:design": "node design/serve.mjs",
     "seed": "node api/mock/seed.mjs",
-    "check": "npm run check:design && npm run check:api && npm run check -w @runflow/frontend",
+    "check": "npm run check:design && npm run check:api && npm run check -w @runflow/frontend && npm run check -w @runflow/mobile",
     "check:design": "node design/build.mjs --check",
     "check:api": "node api/mock/check.mjs",
-    "e2e": "npm run e2e -w @runflow/frontend"
+    "e2e": "npm run e2e -w @runflow/frontend",
+    "dev:mobile": "npm run web -w @runflow/mobile"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.14"
+  },
+  "overrides": {
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   }
 }
