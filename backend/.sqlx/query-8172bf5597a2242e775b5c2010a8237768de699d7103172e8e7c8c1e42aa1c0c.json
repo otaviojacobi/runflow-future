@@ -1,0 +1,173 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, club_id, author_membership_id, sport, name, description, structure, est_duration_s, est_distance_m, tags, created_at, updated_at, archived_at\n           FROM workout_templates WHERE club_id = $1 AND id = $2 AND archived_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workout_templates",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "club_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workout_templates",
+            "name": "club_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "author_membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workout_templates",
+            "name": "author_membership_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "sport",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workout_templates",
+            "name": "sport"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workout_templates",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "description",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workout_templates",
+            "name": "description"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "structure",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "workout_templates",
+            "name": "structure"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "est_duration_s",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "workout_templates",
+            "name": "est_duration_s"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "est_distance_m",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "workout_templates",
+            "name": "est_distance_m"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "tags",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "workout_templates",
+            "name": "tags"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "workout_templates",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 11,
+        "name": "updated_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "workout_templates",
+            "name": "updated_at"
+          }
+        }
+      },
+      {
+        "ordinal": 12,
+        "name": "archived_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "workout_templates",
+            "name": "archived_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "8172bf5597a2242e775b5c2010a8237768de699d7103172e8e7c8c1e42aa1c0c"
+}

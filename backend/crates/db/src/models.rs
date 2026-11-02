@@ -173,3 +173,35 @@ pub struct Member {
     pub user: User,
     pub group_ids: Vec<Uuid>,
 }
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Template {
+    pub id: Uuid,
+    pub club_id: Uuid,
+    pub author_membership_id: Uuid,
+    pub sport: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub structure: Value,
+    pub est_duration_s: Option<i32>,
+    pub est_distance_m: Option<i32>,
+    pub tags: Vec<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub archived_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ExerciseRow {
+    pub id: Uuid,
+    pub club_id: Option<Uuid>,
+    pub name: String,
+    pub category: String,
+    pub muscles: Vec<String>,
+    pub equipment: Vec<String>,
+    pub cues: Option<String>,
+    pub video_url: Option<String>,
+    pub created_by: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub archived_at: Option<DateTime<Utc>>,
+}

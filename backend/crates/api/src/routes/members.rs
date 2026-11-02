@@ -36,7 +36,7 @@ pub fn routes() -> Router<AppState> {
 }
 
 /// pt-BR-ish sort key: lowercase, accents folded.
-fn sort_key(s: &str) -> String {
+pub fn sort_key(s: &str) -> String {
     s.to_lowercase()
         .chars()
         .map(|c| match c {

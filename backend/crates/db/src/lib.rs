@@ -8,6 +8,7 @@ pub mod auth;
 pub mod clubs;
 pub mod invites;
 pub mod jobs;
+pub mod library;
 pub mod me;
 pub mod members;
 pub mod models;
@@ -49,9 +50,14 @@ pub async fn connect(settings: &DbSettings, wait: Duration) -> Result<PgPool, sq
     }
 }
 
-/// Apply pending migrations. Safe to run on every start (sqlx takes an advisory lock).
+/// Apply pending migrations, then upsert reference data (Runflow's exercise catalog). Safe to run on every start
+/// (sqlx takes an advisory lock; the catalog upsert is idempotent).
 pub async fn migrate(pool: &PgPool) -> Result<(), sqlx::migrate::MigrateError> {
-    MIGRATOR.run(pool).await
+    MIGRATOR.run(pool).await?;
+    library::sync_exercise_catalog(pool)
+        .await
+        .map_err(sqlx::migrate::MigrateError::Execute)?;
+    Ok(())
 }
 
 /// Round-trip time of a trivial query.

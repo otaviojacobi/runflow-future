@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM exercises WHERE club_id = $1 AND archived_at IS NULL AND lower(trim(name)) = lower(trim($2))\n                           AND id IS DISTINCT FROM $3) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "07c39029e3af1069f0d99303a8152733ae703a6e1d4f8b229db96f50a65fb859"
+}

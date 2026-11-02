@@ -5,6 +5,7 @@ pub mod clubs;
 pub mod dev;
 pub mod health;
 pub mod invites;
+pub mod library;
 pub mod me;
 pub mod members;
 
@@ -19,6 +20,7 @@ pub fn v1() -> Router<AppState> {
         .merge(auth::routes())
         .merge(clubs::routes())
         .merge(invites::routes())
+        .merge(library::routes())
         .merge(members::routes())
         .merge(me::routes())
         .merge(dev::routes())

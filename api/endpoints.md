@@ -38,6 +38,8 @@ Screen IDs (A*, M*, W*, O*, C*) refer to `docs/build-plan.md`.
 
 Blocks can carry `note`. The quick-text parser (frontend) produces this structure; Garmin/FIT export maps from it.
 
+The backend validates every stored structure against these types (unknown extra fields are kept, wrong shapes or out-of-range values → `422`, field `structure`: "Não entendemos a estrutura do treino. Revise as etapas."; no blocks → "Adicione pelo menos uma etapa."). `est_duration_s` / `est_distance_m` come from the app (non-negative integers or null).
+
 ## Tags (workout hashtags)
 
 Templates carry `tags: text[]`, shown as `#tag`. Every implementation normalizes on write, so stored tags are always clean:

@@ -1,0 +1,148 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, club_id, name, category, muscles, equipment, cues, video_url, created_by, created_at, archived_at\n           FROM exercises WHERE id = $1 AND archived_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "exercises",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "club_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "exercises",
+            "name": "club_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "exercises",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "category",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "exercises",
+            "name": "category"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "muscles",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "exercises",
+            "name": "muscles"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "equipment",
+        "type_info": "TextArray",
+        "origin": {
+          "Table": {
+            "table": "exercises",
+            "name": "equipment"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "cues",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "exercises",
+            "name": "cues"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "video_url",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "exercises",
+            "name": "video_url"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "created_by",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "exercises",
+            "name": "created_by"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "exercises",
+            "name": "created_at"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "archived_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "exercises",
+            "name": "archived_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "355bf6d4b24ef4174bf4b3d8c7c49d9d813404ca167b13c80f98c7a5a94ae216"
+}

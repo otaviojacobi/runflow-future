@@ -112,6 +112,35 @@ export const STARTER = { run: ["easy6", "regen5", "int6x1k", "int8x400", "fartle
 export const starterLibrary = () =>
   Object.fromEntries(Object.entries(STARTER).map(([mod, keys]) => [mod, keys.map((k) => { const [sport, name, structure, tags] = LIB[k]; return { key: k, sport, name, structure, tags, ...estimate(sport, structure) }; })]));
 
+/** Runflow's global exercise catalog (contract artifact `api/exercise-catalog.json`; ids are stable). */
+export const EXERCISE_CATALOG = [
+  ["Agachamento livre", "strength", ["quadríceps", "glúteos"], ["barra"], "Pés na largura dos ombros, joelhos acompanham a ponta dos pés, desça até a coxa paralela mantendo o tronco firme."],
+  ["Levantamento terra romeno", "strength", ["posteriores", "glúteos"], ["barra", "halteres"], "Joelhos levemente flexionados, quadril vai para trás, barra rente às pernas, coluna neutra."],
+  ["Afundo alternado", "strength", ["quadríceps", "glúteos"], [], "Passo longo, joelho de trás quase toca o chão, tronco reto."],
+  ["Panturrilha em pé", "strength", ["panturrilha"], ["degrau"], "Suba na ponta dos pés devagar e desça abaixo da linha do degrau."],
+  ["Supino com halteres", "strength", ["peitoral", "tríceps"], ["halteres", "banco"], "Escápulas encaixadas, desça os halteres até a linha do peito e empurre em linha reta."],
+  ["Remada curvada", "strength", ["costas", "bíceps"], ["barra", "halteres"], "Tronco inclinado a 45°, puxe em direção ao umbigo aproximando as escápulas."],
+  ["Elevação pélvica", "strength", ["glúteos", "posteriores"], ["banco", "barra"], "Costas apoiadas no banco, empurre pelos calcanhares e contraia o glúteo no alto."],
+  ["Agachamento búlgaro", "strength", ["quadríceps", "glúteos"], ["banco", "halteres"], "Pé de trás no banco, desça na vertical; o joelho da frente não passa muito da ponta do pé."],
+  ["Step-up", "strength", ["quadríceps", "glúteos"], ["caixa"], "Suba empurrando pela perna de cima, sem impulso da de baixo."],
+  ["Ponte unilateral", "strength", ["glúteos"], [], "Uma perna estendida, quadril alinhado durante toda a subida."],
+  ["Prancha", "core", ["abdômen"], [], "Cotovelos sob os ombros, corpo em linha reta, sem deixar o quadril cair."],
+  ["Prancha lateral", "core", ["oblíquos"], [], "Quadril alto, corpo alinhado da cabeça aos pés."],
+  ["Dead bug", "core", ["abdômen"], [], "Lombar colada no chão; estenda braço e perna opostos devagar."],
+  ["Bird dog", "core", ["lombar", "abdômen"], [], "Quatro apoios, estenda braço e perna opostos sem girar o quadril."],
+  ["Mobilidade de quadril 90/90", "mobility", ["quadril"], [], "Sentado com as pernas a 90°, gire o quadril de um lado para o outro sem usar as mãos."],
+  ["Mobilidade de tornozelo na parede", "mobility", ["tornozelo"], [], "Joelho vai em direção à parede sem tirar o calcanhar do chão."],
+  ["Rotação torácica", "mobility", ["coluna torácica"], [], "Em quatro apoios, mão na nuca, gire abrindo o cotovelo para o teto."],
+  ["Alongamento de flexores do quadril", "stretch", ["flexores do quadril"], [], "Em afundo com joelho no chão, contraia o glúteo e leve o quadril à frente. 30 s cada lado."],
+  ["Alongamento de posteriores", "stretch", ["posteriores"], [], "Perna estendida, incline o tronco com a coluna longa. 30 s cada lado."],
+  ["Skipping alto", "drill", ["corrida"], [], "Joelhos à altura do quadril, apoio no antepé, braços coordenados."],
+  ["Anfersen", "drill", ["corrida"], [], "Calcanhar em direção ao glúteo, passada curta e rápida."],
+  ["Corrida com elevação de joelhos", "drill", ["corrida"], [], "Postura alta, contato curto com o chão."],
+  ["Saltos no caixote", "plyometrics", ["quadríceps", "glúteos"], ["caixa"], "Aterrisse suave com os joelhos semiflexionados; desça do caixote sem saltar."],
+  ["Saltos laterais", "plyometrics", ["glúteos", "tornozelo"], [], "Saltos de um pé para o outro, aterrissagem estável."],
+];
+export const exerciseCatalog = () => EXERCISE_CATALOG.map(([name, category, muscles, equipment, cues]) => ({ id: uuid("exercise:" + name), name, category, muscles, equipment, cues }));
+
 // ---------------------------------------------------------------- generate
 export function generate(anchor) {
   const rand = prng(20261103);
@@ -173,33 +202,7 @@ export function generate(anchor) {
   }
 
   // ---- exercise library (F28): Runflow's global catalog (no videos seeded: clubs add their own links)
-  const EX = [
-    ["Agachamento livre", "strength", ["quadríceps", "glúteos"], ["barra"], "Pés na largura dos ombros, joelhos acompanham a ponta dos pés, desça até a coxa paralela mantendo o tronco firme."],
-    ["Levantamento terra romeno", "strength", ["posteriores", "glúteos"], ["barra", "halteres"], "Joelhos levemente flexionados, quadril vai para trás, barra rente às pernas, coluna neutra."],
-    ["Afundo alternado", "strength", ["quadríceps", "glúteos"], [], "Passo longo, joelho de trás quase toca o chão, tronco reto."],
-    ["Panturrilha em pé", "strength", ["panturrilha"], ["degrau"], "Suba na ponta dos pés devagar e desça abaixo da linha do degrau."],
-    ["Supino com halteres", "strength", ["peitoral", "tríceps"], ["halteres", "banco"], "Escápulas encaixadas, desça os halteres até a linha do peito e empurre em linha reta."],
-    ["Remada curvada", "strength", ["costas", "bíceps"], ["barra", "halteres"], "Tronco inclinado a 45°, puxe em direção ao umbigo aproximando as escápulas."],
-    ["Elevação pélvica", "strength", ["glúteos", "posteriores"], ["banco", "barra"], "Costas apoiadas no banco, empurre pelos calcanhares e contraia o glúteo no alto."],
-    ["Agachamento búlgaro", "strength", ["quadríceps", "glúteos"], ["banco", "halteres"], "Pé de trás no banco, desça na vertical; o joelho da frente não passa muito da ponta do pé."],
-    ["Step-up", "strength", ["quadríceps", "glúteos"], ["caixa"], "Suba empurrando pela perna de cima, sem impulso da de baixo."],
-    ["Ponte unilateral", "strength", ["glúteos"], [], "Uma perna estendida, quadril alinhado durante toda a subida."],
-    ["Prancha", "core", ["abdômen"], [], "Cotovelos sob os ombros, corpo em linha reta, sem deixar o quadril cair."],
-    ["Prancha lateral", "core", ["oblíquos"], [], "Quadril alto, corpo alinhado da cabeça aos pés."],
-    ["Dead bug", "core", ["abdômen"], [], "Lombar colada no chão; estenda braço e perna opostos devagar."],
-    ["Bird dog", "core", ["lombar", "abdômen"], [], "Quatro apoios, estenda braço e perna opostos sem girar o quadril."],
-    ["Mobilidade de quadril 90/90", "mobility", ["quadril"], [], "Sentado com as pernas a 90°, gire o quadril de um lado para o outro sem usar as mãos."],
-    ["Mobilidade de tornozelo na parede", "mobility", ["tornozelo"], [], "Joelho vai em direção à parede sem tirar o calcanhar do chão."],
-    ["Rotação torácica", "mobility", ["coluna torácica"], [], "Em quatro apoios, mão na nuca, gire abrindo o cotovelo para o teto."],
-    ["Alongamento de flexores do quadril", "stretch", ["flexores do quadril"], [], "Em afundo com joelho no chão, contraia o glúteo e leve o quadril à frente. 30 s cada lado."],
-    ["Alongamento de posteriores", "stretch", ["posteriores"], [], "Perna estendida, incline o tronco com a coluna longa. 30 s cada lado."],
-    ["Skipping alto", "drill", ["corrida"], [], "Joelhos à altura do quadril, apoio no antepé, braços coordenados."],
-    ["Anfersen", "drill", ["corrida"], [], "Calcanhar em direção ao glúteo, passada curta e rápida."],
-    ["Corrida com elevação de joelhos", "drill", ["corrida"], [], "Postura alta, contato curto com o chão."],
-    ["Saltos no caixote", "plyometrics", ["quadríceps", "glúteos"], ["caixa"], "Aterrisse suave com os joelhos semiflexionados; desça do caixote sem saltar."],
-    ["Saltos laterais", "plyometrics", ["glúteos", "tornozelo"], [], "Saltos de um pé para o outro, aterrissagem estável."],
-  ];
-  for (const [name, category, muscles, equipment, cues] of EX) t("exercises").push({ id: uuid("exercise:" + name), club_id: null, name, category, muscles, equipment, cues, video_url: null, created_by: null, created_at: createdLongAgo, archived_at: null });
+  for (const e of exerciseCatalog()) t("exercises").push({ ...e, club_id: null, video_url: null, created_by: null, created_at: createdLongAgo, archived_at: null });
 
   // ---- memberships, consents, groups
   const M = {};
@@ -527,6 +530,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const out = join(dirname(fileURLToPath(import.meta.url)), "db.json");
   writeFileSync(out, JSON.stringify(db, null, 1) + "\n");
   writeFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "starter-library.json"), JSON.stringify(starterLibrary(), null, 1) + "\n");
+  writeFileSync(join(dirname(fileURLToPath(import.meta.url)), "..", "exercise-catalog.json"), JSON.stringify(exerciseCatalog(), null, 1) + "\n");
   const counts = Object.entries(db).filter(([k]) => k !== "meta").map(([k, v]) => `${k}=${v.length}`).join(" ");
   console.log(`✓ wrote ${out} (anchor ${anchor})\n  ${counts}`);
 }
