@@ -21,6 +21,26 @@ services:
       timeout: 3s
       retries: 30
 
+  # S3-compatible object storage (D-037): logos, avatars, activity files. One node; it creates the bucket and
+  # the API's key on first start (ops/garage/garage.toml).
+  garage:
+    image: dxflrs/garage:v2.5.0
+    restart: unless-stopped
+    command: ["/garage", "server", "--single-node", "--default-bucket"]
+    environment:
+      GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?set GARAGE_RPC_SECRET in ops/qa/.env (openssl rand -hex 32)}
+      GARAGE_DEFAULT_BUCKET: ${S3_BUCKET:-runflow}
+      GARAGE_DEFAULT_ACCESS_KEY: ${AWS_ACCESS_KEY_ID:?set AWS_ACCESS_KEY_ID in ops/qa/.env (GK + openssl rand -hex 16)}
+      GARAGE_DEFAULT_SECRET_KEY: ${AWS_SECRET_ACCESS_KEY:?set AWS_SECRET_ACCESS_KEY in ops/qa/.env (openssl rand -hex 32)}
+    volumes:
+      - ../garage/garage.toml:/etc/garage.toml:ro
+      - garage:/var/lib/garage
+    healthcheck:
+      test: ["CMD", "/garage", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
   api:
     image: ghcr.io/otaviojacobi/runflow-api:${RUNFLOW_TAG:-qa}
     restart: unless-stopped
@@ -31,11 +51,14 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-runflow}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-runflow}
       HOST: 0.0.0.0
       PORT: "3000"
-      STORAGE_DIR: /data/uploads
-    volumes:
-      - uploads:/data/uploads
+      STORAGE_BACKEND: s3
+      S3_ENDPOINT: http://garage:3900
+      S3_REGION: garage
+      S3_BUCKET: ${S3_BUCKET:-runflow}
     depends_on:
       postgres:
+        condition: service_healthy
+      garage:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "/usr/local/bin/runflow", "healthcheck"]
@@ -62,4 +85,4 @@ services:
 
 volumes:
   pgdata:
-  uploads:
+  garage:

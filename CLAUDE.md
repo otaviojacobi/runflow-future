@@ -30,7 +30,7 @@ Runflow is a training platform for Brazilian clubs (running, gyms, swimming, hyb
 ```
 root.md     intent, decisions, roadmap: start here
 .env.example  every backend setting, documented (copy to .env, git-ignored)
-docker-compose.yaml  Postgres + the real API for local dev (npm run up → :3000; npm run doctor)
+docker-compose.yaml  Postgres + Garage (S3) + the real API for local dev (npm run up → :3000; npm run doctor)
 setup-todo.md  the founder's open setup steps (full QA guide: docs/ops/qa-pi.md); ops/qa/ holds the Pi's compose, timers and scripts
 CLAUDE.md   this file
 docs/       build-plan.md: every screen, in order, with status

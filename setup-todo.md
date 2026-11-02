@@ -12,6 +12,7 @@ QA is live at **https://qa.runflow.club**:
 - **Strava:** the webhook is subscribed (id 382315).
 - **Deploys:** each one arrives within 5 minutes of a push (`runflow-update` timer). The nightly database backup runs at 03:30.
 - **Speed:** the API answers in about 1 ms on the Pi and about 30 ms more through the tunnel. Bundles are served by Cloudflare's edge.
+- **Storage:** uploads (logos, avatars) live in Garage, a self-hosted S3, next to the API. Production will point the same settings at any S3.
 
 ## Now
 

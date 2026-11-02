@@ -1,0 +1,17 @@
+# Garage (D-037): Runflow's S3-compatible object storage, one node, locally and on the QA Pi.
+# Started with `garage server --single-node --default-bucket`: Garage lays out the single node and creates the
+# bucket and key from GARAGE_DEFAULT_BUCKET / GARAGE_DEFAULT_ACCESS_KEY / GARAGE_DEFAULT_SECRET_KEY (the
+# same values the API reads as S3_BUCKET / AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY). The RPC secret comes
+# from GARAGE_RPC_SECRET. Nothing here is secret.
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "sqlite"
+replication_factor = 1
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+
+[s3_api]
+s3_region = "garage"
+api_bind_addr = "[::]:3900"
+root_domain = ".s3.garage.localhost"

@@ -40,6 +40,7 @@ Note for LGPD: Cloudflare terminates TLS, so list it as a processor in the terms
 **Edge cache (S8b):** the web app is served by Cloudflare, the origin only answers `/api`. The web image sets the TTLs
 (bundles: `immutable`, one year; app shell: `Cloudflare-CDN-Cache-Control: max-age=3600`, browsers `no-cache`); two cache
 rules make the shell eligible and bypass `/api`; the deploy purges the host (`ops/qa/purge-edge.sh`). Same setup in production.
+**Object storage (D-037):** Garage (S3 API) runs next to the API on the Pi and in local dev; production uses any S3 with the same settings (`S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, AWS keys).
 
 ## 3. Recommended: Raspberry Pi OS + Docker + deploy on push
 

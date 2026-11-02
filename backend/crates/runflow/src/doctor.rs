@@ -201,17 +201,36 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
             bucket,
             region,
             endpoint,
-        } => line(
-            "storage",
-            "s3",
-            format!(
+        } => {
+            // Write, read back and delete a small object: proves the bucket and the keys work.
+            let settings = runflow_integrations::storage::StorageSettings::S3 {
+                bucket: bucket.clone(),
+                region: region.clone(),
+                endpoint: endpoint.clone(),
+            };
+            let checked = match runflow_integrations::storage::Storage::from_settings(&settings) {
+                Ok(store) => store.check().await.map_err(|e| e.to_string()),
+                Err(e) => Err(e.to_string()),
+            };
+            if checked.is_err() {
+                ok = false;
+            }
+            let at = format!(
                 "{bucket} · {region}{}",
                 endpoint
                     .as_ref()
                     .map(|e| format!(" · {e}"))
                     .unwrap_or_default()
-            ),
-        ),
+            );
+            line(
+                "storage",
+                if checked.is_ok() { "s3" } else { "ERROR" },
+                match checked {
+                    Ok(()) => format!("{at} (writable)"),
+                    Err(e) => format!("{at}: {e}"),
+                },
+            );
+        }
     }
     match &c.assistant {
         Assistant::Rules => line(

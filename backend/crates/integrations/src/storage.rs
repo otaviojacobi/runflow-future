@@ -1,4 +1,5 @@
-//! Object storage (D-010): local disk on the Pi, S3 (or any S3-compatible store) in the cloud. Same API.
+//! Object storage (D-037): S3-compatible everywhere (Garage locally and on the Pi, any S3 in production);
+//! disk and memory for tests and quick local runs. Same API.
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -15,6 +16,7 @@ pub enum StorageSettings {
         dir: PathBuf,
     },
     /// Credentials come from the standard AWS variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`).
+    /// An `http://` endpoint (Garage on the compose network) is allowed; path-style requests.
     S3 {
         bucket: String,
         region: String,
@@ -60,7 +62,10 @@ impl Storage {
                     .with_bucket_name(bucket)
                     .with_region(region);
                 if let Some(e) = endpoint {
-                    b = b.with_endpoint(e).with_virtual_hosted_style_request(false);
+                    b = b
+                        .with_endpoint(e)
+                        .with_virtual_hosted_style_request(false)
+                        .with_allow_http(e.starts_with("http://"));
                 }
                 let s3 = b.build().map_err(|e| StorageError(e.to_string()))?;
                 Ok(Self {
@@ -85,6 +90,29 @@ impl Storage {
             .await
             .map(|_| ())
             .map_err(|e| StorageError(e.to_string()))
+    }
+
+    pub async fn delete(&self, key: &str) -> Result<(), StorageError> {
+        match self.store.delete(&Path::from(key)).await {
+            Ok(()) | Err(object_store::Error::NotFound { .. }) => Ok(()),
+            Err(e) => Err(StorageError(e.to_string())),
+        }
+    }
+
+    /// Write, read back and delete a small object (`doctor`): proves the store is reachable and writable.
+    pub async fn check(&self) -> Result<(), StorageError> {
+        let key = format!("_doctor/{}", uuid::Uuid::now_v7());
+        self.put(&key, b"ok".to_vec()).await?;
+        let back = self.get(&key).await?;
+        self.delete(&key).await?;
+        match back.as_deref() {
+            Some(b"ok") => Ok(()),
+            _ => Err(StorageError("read back a different object".into())),
+        }
+    }
+
+    pub fn describe(&self) -> &str {
+        &self.describe
     }
 
     /// `None` when the object doesn't exist.

@@ -16,6 +16,7 @@ browser ──https──▶ Cloudflare (TLS, edge cache, redirects)
                        │  Cloudflare Tunnel (outbound from the Pi: no open ports, works behind CGNAT)
                        ▼
 Raspberry Pi 5:  cloudflared ─▶ web (Caddy: the app + /api proxy) ─▶ api (+ worker) ─▶ postgres
+                                                                      └─▶ garage (S3: logos, avatars)
                                                                       │
                                                      Resend (e-mail), Strava, Google
 ```
@@ -152,6 +153,7 @@ sudo usermod -aG docker runflow && exit                 # log in again so the gr
 
 ### 7c. Runflow
 
+- Object storage is **Garage** (D-037), in the same compose: set `AWS_ACCESS_KEY_ID` (GK + `openssl rand -hex 16`), `AWS_SECRET_ACCESS_KEY` and `GARAGE_RPC_SECRET` (`openssl rand -hex 32` each) in `ops/qa/.env`; Garage creates the bucket and key on first start, and `doctor` writes a test object.
 ```sh
 git clone https://github.com/otaviojacobi/runflow-future.git ~/runflow
 cd ~/runflow/ops/qa
@@ -180,7 +182,7 @@ nano .env    # paste TUNNEL_TOKEN, RESEND_API_KEY, GOOGLE_CLIENT_ID, STRAVA_CLIE
 
 ## 8. Backups (the Pi is one card away from losing everything)
 
-- [ ] Nightly at 03:30: `~/runflow-backups/` gets a database dump + the uploads (14 days kept).
+- [ ] Nightly at 03:30: `~/runflow-backups/` gets a database dump + a copy of Garage's storage (14 days kept).
 - [ ] Copy them **off the Pi** at least weekly (to your laptop: `scp -r runflow@runflow-qa.local:runflow-backups ~/`; or rclone to a cloud drive).
 - [ ] Once a month, try a restore on your laptop: `gunzip -c runflow-YYYYMMDD-HHMM.sql.gz | docker compose exec -T postgres psql -U runflow -d runflow`
   (with the repo-root `docker-compose.yaml`, an empty database).
@@ -237,4 +239,4 @@ When it lands you'll add, in the tunnel, a public hostname `*.runflow.club` → 
 | Backup now | `./backup.sh` |
 
 After the beta: the same images run anywhere (cloud VM, ECS, k8s); move the database with a `pg_dump`/restore and the
-uploads folder, point the DNS and the tunnel (or a load balancer) at the new place, and change the redirect target.
+object storage (Garage → the cloud's S3: same S3 settings, new endpoint and keys), point the DNS and the tunnel (or a load balancer) at the new place, and change the redirect target.
