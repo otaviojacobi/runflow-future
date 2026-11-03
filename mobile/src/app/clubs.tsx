@@ -11,10 +11,9 @@ import { ClubLogo, RunflowWordmark } from "@/components/brand";
 import { t } from "@/i18n";
 import { ROLE_LABEL, homeFor, inviteTokenFrom, selectClub, useClub } from "@/lib/club";
 import { useSession } from "@/lib/session";
-import { hasWeb, openOnWeb } from "@/lib/web";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Badge, Button, Card, Divider, Field, IconButton, Input, Screen, Skeleton, Text } from "@/ui";
-import { ArrowLeft, ChevronRight, ExternalLink, LogOut, Ticket } from "@/ui/icons";
+import { ArrowLeft, ChevronRight, LogOut, Plus, Ticket } from "@/ui/icons";
 
 export default function ClubsScreen() {
   const { signedIn } = useSession();
@@ -94,11 +93,7 @@ function Clubs() {
           <Text variant="titleMd" accessibilityRole="header">{t("Criar um clube")}</Text>
           <Text variant="bodySm" tone="muted">{t("Para assessorias, academias e equipes de natação. Grátis até 10 alunos.")}</Text>
         </View>
-        {hasWeb ? (
-          <Button icon={ExternalLink} onPress={() => openOnWeb("/clubs/new")}>{t("Criar meu clube na web")}</Button>
-        ) : (
-          <Text variant="bodySm" tone="muted">{t("Por enquanto, o clube é criado no Runflow pelo computador.")}</Text>
-        )}
+        <Button icon={Plus} onPress={() => router.push("/clubs/new")}>{t("Criar meu clube")}</Button>
       </Card>
     </Screen>
   );

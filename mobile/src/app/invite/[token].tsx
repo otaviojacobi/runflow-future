@@ -44,8 +44,9 @@ export default function InviteScreen() {
         const m = me.memberships.find((x) => x.club.id === r.club.id) ?? null;
         selectClub(m);
         if (!r.already_member) toast.success(t("Você entrou no {club}!", { club: r.club.name }));
-        // The student's welcome (consent → profile → Strava) comes to the app with X9; until then, home.
-        router.replace(homeFor(m?.membership.role));
+        if (r.already_member) return router.replace(homeFor(m?.membership.role));
+        // A new student goes through the welcome (consent → profile → Strava, A4); staff land on the Painel.
+        router.replace(r.membership.role === "student" ? "/welcome" : homeFor(r.membership.role));
       },
       onError: toast.error,
     });

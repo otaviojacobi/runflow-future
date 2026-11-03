@@ -20,7 +20,8 @@ the API URL (the local mock :8787 → :8080; a same-origin `<web>/api/v1`), else
 ```
 src/
   app/        Expo Router routes only (_layout.tsx = splash + providers + the 401 handler): login (A2), invite/[token]
-              (A3), clubs (A6/A7) in Runflow's theme; connect/strava (Strava's answer as a link); +native-intent
+              (A3), clubs (A6/A7) and clubs/new (A5, the create-club wizard) in Runflow's theme; welcome (A4, the
+              student's first steps, in the club's colors); connect/strava (Strava's answer as a link); +native-intent
               (rewrites `runflow://<host>/connect/strava` to that route); (app)/ = the signed-in app: _layout guards (session + club),
               applies the club theme and declares the role's tabs (Tabs.Protected per role); one file per web path
               (today, schedule, messages, account, dashboard, students, planning, feedback, more, notifications…);
@@ -34,7 +35,8 @@ src/
               the workout sheet (detail, move, edit, remove, thread), assign, copy week, week release, groups;
               account/ = C1/M7 sections, confirm sheet, stepper, zones table, notification settings, pt-BR labels;
               messages/ = conversation rows, the chat thread and composer, announcement cards, the stack's top bar;
-              activity.tsx = an activity row; connections/StravaConnect = the "Conectar com Strava" hook + mock sheet);
+              activity.tsx = an activity row; connections/StravaConnect = the "Conectar com Strava" hook + mock sheet;
+              club/ = color picker, theme preview (a phone in a club's colors), the one-by-one invite form);
               shell/ = nav.ts (copy of the web's nav per role, `app` = has a screen here, the rest opens the web) and
               Shell.tsx (top bar with the club switcher and bell, back bar, bottom tab bar)
   lib/        api (ApiError, WEB_URL), session (token in the keychain + cached `/me` and active club in the sync store,
@@ -43,7 +45,8 @@ src/
               offline (the student's week saved on the device for the person signed in + the connection state),
               links (a notification's web path → the app's route when a screen matches), avatar (photo library →
               ≤ 512 px JPEG data URL), files (a text file through the share sheet; `.web.ts` downloads it),
-              strava (connect: auth session or the deep link, the callback posted once per code)
+              strava (connect: auth session or the deep link, the callback posted once per code), logo (photo
+              library → ≤ 512 px PNG data URL)
   theme/      theme.ts (tokens → RN theme, club roles via @runflow/design/color), ThemeProvider (Runflow's theme,
               color mode) + ThemeScope (re-theme a subtree: a club's colors, forced light/dark)
   ui/         the UI kit: same names/variants as frontend/src/ui (index.ts lists them); icons.ts = Lucide icons, one

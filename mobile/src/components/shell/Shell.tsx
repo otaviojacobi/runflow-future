@@ -12,7 +12,6 @@ import type { MembershipContext, Role, Sport } from "@/api/types";
 import { ClubLogo } from "@/components/brand";
 import { t } from "@/i18n";
 import { ROLE_LABEL, homeFor, selectClub, useClub } from "@/lib/club";
-import { openOnWeb } from "@/lib/web";
 import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Dialog, Divider, IconButton, ListItem, Text } from "@/ui";
@@ -59,7 +58,7 @@ function ClubSwitcher() {
           })}
           <Divider />
           <ListItem title={t("Tenho um convite")} icon={Ticket} accessibilityRole="menuitem" onPress={() => { setOpen(false); router.push("/clubs"); }} />
-          <ListItem title={t("Criar novo clube")} icon={Plus} accessibilityRole="menuitem" onPress={() => { setOpen(false); void openOnWeb("/clubs/new"); }} />
+          <ListItem title={t("Criar novo clube")} icon={Plus} accessibilityRole="menuitem" onPress={() => { setOpen(false); router.push("/clubs/new"); }} />
         </View>
       </Dialog>
     </>

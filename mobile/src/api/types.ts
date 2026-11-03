@@ -157,3 +157,11 @@ export interface AthleteDetail extends AthleteSummary {
 }
 export interface FeedbackItem { workout: PlannedWorkout; athlete: AthleteRef; last_comment: Omit<Comment, "author"> | null; needs_reply: boolean; flagged: boolean }
 export type FeedbackFilter = "needs_reply" | "unread" | "flagged" | "all";
+
+export type InviteStatus = "pending" | "expired" | "accepted";
+/** Personal invite (D-023): one e-mail, 7 days, single use. */
+export interface Invitation {
+  id: ID; club_id: ID; role: "trainer" | "student"; email: string; name: string | null; token: string; group_ids: ID[]; created_by: ID;
+  expires_at: ISOTime; sent_at: ISOTime | null; send_count: number; accepted_at: ISOTime | null; accepted_by: ID | null; revoked_at: ISOTime | null; created_at: ISOTime;
+  status: InviteStatus; url: string;
+}

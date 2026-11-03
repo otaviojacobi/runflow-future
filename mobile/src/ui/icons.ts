@@ -84,6 +84,7 @@ export { default as ShieldAlert } from "lucide-react-native/icons/shield-alert";
 export { default as ShieldCheck } from "lucide-react-native/icons/shield-check";
 export { default as ShieldOff } from "lucide-react-native/icons/shield-off";
 export { default as Smartphone } from "lucide-react-native/icons/smartphone";
+export { default as Sparkles } from "lucide-react-native/icons/sparkles";
 export { default as Star } from "lucide-react-native/icons/star";
 export { default as Sun } from "lucide-react-native/icons/sun";
 export { default as Ticket } from "lucide-react-native/icons/ticket";
