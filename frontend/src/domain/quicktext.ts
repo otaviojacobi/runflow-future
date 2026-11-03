@@ -134,7 +134,8 @@ function tokenize(text: string): Tok[] {
       let j = i;
       while (isDigit(cs[j])) j++;
       let digits = cs.slice(i, j).join("");
-      if (cs[j] === ":" && twoDigits(j + 1)) {
+      // "4:30", "1:23:45": a clock (minutes or hours up to two digits).
+      if (cs[j] === ":" && j - i <= 2 && twoDigits(j + 1)) {
         const a = Number(digits), b = Number(cs[j + 1]! + cs[j + 2]!);
         if (cs[j + 3] === ":" && twoDigits(j + 4)) push("clock", j + 6, a * 3600 + b * 60 + Number(cs[j + 4]! + cs[j + 5]!), false, 3);
         else push("clock", j + 3, a * 60 + b, false, 2);
@@ -413,7 +414,7 @@ function parseSteps(toks0: Tok[], sport: Sport, fallback: Intent, bare: Bare): S
     if (!P(at(j), "%")) continue;
     j++;
     while (W(at(j), "do", "de", "da")) j++;
-    if (!W(at(j), "ftp") || toks[i]!.v >= 1000 || b >= 1000) continue;
+    if (!W(at(j), "ftp") || toks[i]!.v < 1 || toks[i]!.v >= 1000 || b < 1 || b >= 1000) continue;
     claim(i, j + 1);
     ftp = { a: toks[i]!.v, b };
   }
@@ -466,7 +467,7 @@ function parseSteps(toks0: Tok[], sport: Sport, fallback: Intent, bare: Bare): S
     let k = j + 1;
     if (rangeConn(at(k)) && N(at(k + 1))) {
       const b = toks[k + 1]!.v;
-      if (b !== a && a <= 10 && b <= 10) extraNotes.push(`PSE ${fmtNum(a)}–${fmtNum(b)}`);
+      if (b !== a && a >= 1 && a <= 10 && b >= 1 && b <= 10) extraNotes.push(`PSE ${fmtNum(a)}–${fmtNum(b)}`);
       k += 2;
     }
     const ten = at(k + 1);
@@ -532,7 +533,7 @@ function parseSteps(toks0: Tok[], sport: Sport, fallback: Intent, bare: Bare): S
   for (let i = 0; i < n; i++) {
     const t = at(i);
     if (!N(t)) continue;
-    if (t.v >= 1000) continue;
+    if (t.v < 1 || t.v >= 1000) continue;
     if (W(at(i + 1), "km") && P(at(i + 2), "/") && W(at(i + 3), "h")) { claim(i, i + 4); extraNotes.push(`${fmtNum(t.v)} km/h`); }
     else if (W(at(i + 1), "rpm")) { claim(i, i + 2); if (W(at(i - 1), "de")) used[i - 1] = true; extraNotes.push(`${fmtNum(t.v)} rpm`); }
   }
@@ -555,7 +556,9 @@ function parseSteps(toks0: Tok[], sport: Sport, fallback: Intent, bare: Bare): S
     const hi = amountAt(toks, used, c + 1, sport, null);
     if (!hi || (lo && lo.dur.type !== hi.dur.type) || !(toks[c + 1]!.v > 0)) continue;
     const f = toks[i]!.v / toks[c + 1]!.v;
-    dur = lo ? lo.dur : hi.dur.type === "distance" ? { type: "distance", m: round(hi.dur.m * f) } : { type: "time", s: round(hi.dur.s * f) };
+    const low: Amount["dur"] = lo ? lo.dur : hi.dur.type === "distance" ? { type: "distance", m: round(hi.dur.m * f) } : { type: "time", s: round(hi.dur.s * f) };
+    if ((low.type === "distance" ? low.m : low.s) > MAX_AMOUNT) continue;
+    dur = low;
     extraNotes.push(textOf(toks.slice(i, hi.end)));
     claim(i, hi.end);
   }
@@ -835,11 +838,12 @@ function restAt(toks: Tok[], used: boolean[], i: number, bareOk: boolean): { s: 
     let s = t.v * 60, end = i + 2;
     const x = at(end);
     if (INT(x) && x.v < 60 && (!x.sp || P(at(end + 1), '"') || W(at(end + 1), ...SECONDS))) { s += x.v; end += P(at(end + 1), '"') || W(at(end + 1), ...SECONDS) ? 2 : 1; }
-    return { s: round(s), end };
+    return round(s) <= MAX_AMOUNT ? { s: round(s), end } : null;
   }
-  if (P(u, '"') || W(u, ...SECONDS)) return { s: round(t.v), end: i + 2 };
+  if (P(u, '"') || W(u, ...SECONDS)) return round(t.v) <= MAX_AMOUNT ? { s: round(t.v), end: i + 2 } : null;
   if (!bareOk) return null;
-  return { s: round(t.v <= 5 ? t.v * 60 : t.v), end: i + 1 };
+  const s = round(t.v <= 5 ? t.v * 60 : t.v);
+  return s <= MAX_AMOUNT ? { s, end: i + 1 } : null;
 }
 interface Attrs { load: Load | null; rest_s: number | null; tempo: string | null; notes: string[]; found: boolean; all: boolean; leftovers: string[] }
 /** Load, rest, tempo and notes of an exercise. `all`: nothing else in the tokens (a piece that only adds to the previous exercise). */
@@ -1048,7 +1052,7 @@ function nameOf(blocks: Block[], meta: Meta[], sport: Sport, hints: Hints): stri
   const m = main;
   // Several parts and none of them most of the work: the whole ("Progressivo 15 km" when each is harder).
   const sum = actives.reduce((x, a) => x + volume(a.duration), 0);
-  if (actives.length > 1 && volume(m.duration) * 5 <= sum * 3 && actives.every((a) => a.duration.type === m.duration.type)) {
+  if (actives.length > 1 && sum > 0 && volume(m.duration) * 5 <= sum * 3 && actives.every((a) => a.duration.type === m.duration.type)) {
     const total: Duration = m.duration.type === "distance" ? { type: "distance", m: sum } : { type: "time", s: sum / 3 };
     const t0 = actives[0]!.target, l0 = level(t0);
     const rising = l0 !== null && actives.every((a, i) => i === 0 || (a.target.type === t0.type && level(a.target)! > level(actives[i - 1]!.target)!));

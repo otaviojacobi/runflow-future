@@ -138,7 +138,8 @@ function tokenize(text) {
       let j = i;
       while (isDigit(cs[j])) j++;
       let digits = cs.slice(i, j).join("");
-      if (cs[j] === ":" && twoDigits(j + 1)) {
+      // "4:30", "1:23:45": a clock (minutes or hours up to two digits).
+      if (cs[j] === ":" && j - i <= 2 && twoDigits(j + 1)) {
         const a = Number(digits), b = Number(cs[j + 1] + cs[j + 2]);
         if (cs[j + 3] === ":" && twoDigits(j + 4)) push({ k: "clock", n: 3, v: a * 3600 + b * 60 + Number(cs[j + 4] + cs[j + 5]) }, j + 6);
         else push({ k: "clock", n: 2, v: a * 60 + b }, j + 3);
@@ -403,7 +404,7 @@ function parseSteps(toks0, sport, fallback, bare) {
     if (!P(at(j), "%")) continue;
     j++;
     while (W(at(j), "do", "de", "da")) j++;
-    if (!W(at(j), "ftp") || toks[i].v >= 1000 || b >= 1000) continue;
+    if (!W(at(j), "ftp") || toks[i].v < 1 || toks[i].v >= 1000 || b < 1 || b >= 1000) continue;
     claim(i, j + 1);
     ftp = { a: toks[i].v, b };
   }
@@ -453,7 +454,7 @@ function parseSteps(toks0, sport, fallback, bare) {
     if (!N(at(j))) continue;
     let k = j + 1;
     if (rangeConn(at(k)) && N(at(k + 1))) {
-      if (toks[k + 1].v !== toks[j].v && toks[j].v <= 10 && toks[k + 1].v <= 10) extraNotes.push(`PSE ${fmtNum(toks[j].v)}–${fmtNum(toks[k + 1].v)}`);
+      if (toks[k + 1].v !== toks[j].v && toks[j].v >= 1 && toks[j].v <= 10 && toks[k + 1].v >= 1 && toks[k + 1].v <= 10) extraNotes.push(`PSE ${fmtNum(toks[j].v)}–${fmtNum(toks[k + 1].v)}`);
       k += 2;
     }
     if (P(at(k), "/") && N(at(k + 1)) && toks[k + 1].v === 10) k += 2;
@@ -516,7 +517,7 @@ function parseSteps(toks0, sport, fallback, bare) {
   }
   for (let i = 0; i < n; i++) {
     if (!N(at(i))) continue;
-    if (toks[i].v >= 1000) continue;
+    if (toks[i].v < 1 || toks[i].v >= 1000) continue;
     if (W(at(i + 1), "km") && P(at(i + 2), "/") && W(at(i + 3), "h")) { claim(i, i + 4); extraNotes.push(`${fmtNum(toks[i].v)} km/h`); }
     else if (W(at(i + 1), "rpm")) { claim(i, i + 2); if (W(at(i - 1), "de")) used[i - 1] = true; extraNotes.push(`${fmtNum(toks[i].v)} rpm`); }
   }
@@ -538,7 +539,9 @@ function parseSteps(toks0, sport, fallback, bare) {
     const hi = amountAt(toks, used, c + 1, sport, null);
     if (!hi || (lo && lo.dur.type !== hi.dur.type) || !(toks[c + 1].v > 0)) continue;
     const f = toks[i].v / toks[c + 1].v;
-    dur = lo ? lo.dur : hi.dur.type === "distance" ? { type: "distance", m: round(hi.dur.m * f) } : { type: "time", s: round(hi.dur.s * f) };
+    const low = lo ? lo.dur : hi.dur.type === "distance" ? { type: "distance", m: round(hi.dur.m * f) } : { type: "time", s: round(hi.dur.s * f) };
+    if ((low.type === "distance" ? low.m : low.s) > MAX_AMOUNT) continue;
+    dur = low;
     extraNotes.push(textOf(toks.slice(i, hi.end)));
     claim(i, hi.end);
   }
@@ -815,11 +818,12 @@ function restAt(toks, used, i, bareOk) {
   if (P(u, "'") || W(u, ...MINUTES)) {
     let s = t.v * 60, end = i + 2;
     if (INT(at(end)) && at(end).v < 60 && (!at(end).sp || P(at(end + 1), '"') || W(at(end + 1), ...SECONDS))) { s += at(end).v; end += P(at(end + 1), '"') || W(at(end + 1), ...SECONDS) ? 2 : 1; }
-    return { s: round(s), end };
+    return round(s) <= MAX_AMOUNT ? { s: round(s), end } : null;
   }
-  if (P(u, '"') || W(u, ...SECONDS)) return { s: round(t.v), end: i + 2 };
+  if (P(u, '"') || W(u, ...SECONDS)) return round(t.v) <= MAX_AMOUNT ? { s: round(t.v), end: i + 2 } : null;
   if (!bareOk) return null;
-  return { s: round(t.v <= 5 ? t.v * 60 : t.v), end: i + 1 };
+  const s = round(t.v <= 5 ? t.v * 60 : t.v);
+  return s <= MAX_AMOUNT ? { s, end: i + 1 } : null;
 }
 /** Load, rest, tempo and notes of an exercise. `all`: nothing else in the tokens (a piece that only adds to the previous exercise). */
 function parseAttrs(toks0) {
@@ -1018,7 +1022,7 @@ function nameOf(blocks, meta, sport, hints) {
   }
   // Several parts and none of them most of the work: the whole ("Progressivo 15 km" when each is harder).
   const sum = actives.reduce((x, a) => x + volume(a.duration), 0);
-  if (actives.length > 1 && volume(main.duration) * 5 <= sum * 3 && actives.every((a) => a.duration.type === main.duration.type)) {
+  if (actives.length > 1 && sum > 0 && volume(main.duration) * 5 <= sum * 3 && actives.every((a) => a.duration.type === main.duration.type)) {
     const total = main.duration.type === "distance" ? { type: "distance", m: sum } : { type: "time", s: sum / 3 };
     const t0 = actives[0].target;
     const rising = level(t0) !== null && actives.every((a, i) => i === 0 || (a.target.type === t0.type && level(a.target) > level(actives[i - 1].target)));

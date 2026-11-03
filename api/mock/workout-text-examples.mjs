@@ -8,6 +8,10 @@
  *   node api/mock/workout-text-examples.mjs --fill        fill in examples that only have `text` + `sport` with what
  *                                                         the parser understands today (review the diff!)
  *   node api/mock/workout-text-examples.mjs run "6x1km @4:30 c/ 2' trote"   show what the parser understands
+ *   node api/mock/workout-text-examples.mjs --corpus /tmp/corpus.json [n]    n random texts (default 20000) with
+ *                                                         this parser's answers, to compare the ports beyond the
+ *                                                         examples: WORKOUT_TEXT_CORPUS=/tmp/corpus.json cargo test
+ *                                                         -p runflow-domain --test workout_text -- --ignored
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -67,9 +71,26 @@ export function fill(doc) {
   return n;
 }
 
+// ---------------------------------------------------------------- random texts (port parity beyond the examples)
+const PARTS = ["6x", "x", "(", ")", "+", ",", ".", "-", " / ", "/", "@", ":", "'", '"', "%", "e", "de", "com", "c/", "1", "10", "100", "400", "1,5", "1.500", "4:30", "1:35", "1:23:45", "km", "m", "min", "s", "h", "Z2", "Z5", "zona", "pse", "7", "fc", "150", "bpm", "w", "200", "ftp", "95%", "aquec", "desaq", "trote", "descanso", "entre", "séries", "tiros", "leve", "forte", "progressivo", "a", "até", "crawl", "palmar", "saída", "cada", "kg", "desc", "pc", "máx", "rpm", "km/h", "#tag", "\n", "seis", "meia", "hora", "mil", "vinte", "e meia", "1)", "×", "’", "—", "em", "ritmo", "pace", "0", "99999", "0:00", "acelerações", "por", "lado", "Agachamento", "3xmáx", "tempo", "3-1-1", "1RM", "peso do corpo", "fartlek", "longão", "potência", "FC até", "volta à calma", "entre os tiros", "20\"", "2'", "nadadeira", "pé de pato", "pull buoy", "educativo", "subida", "rodagem", "VO2", "\u00a0", "–"];
+export function corpus(n) {
+  let seed = 20261103;
+  const rnd = (k) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % k; };
+  return Array.from({ length: n }, () => {
+    let text = "";
+    for (let k = 1 + rnd(16); k > 0; k--) text += PARTS[rnd(PARTS.length)] + (rnd(3) ? " " : "");
+    const sport = SPORTS[rnd(SPORTS.length)];
+    return { text, sport, ...parseWorkoutText(text, sport) };
+  });
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const [arg, text] = process.argv.slice(2);
-  if (arg && SPORTS.includes(arg)) {
+  if (arg === "--corpus") {
+    const n = Number(process.argv[4]) || 20000;
+    writeFileSync(text, JSON.stringify(corpus(n)));
+    console.log(`wrote ${n} random texts with the mock parser's answers to ${text}`);
+  } else if (arg && SPORTS.includes(arg)) {
     console.log(JSON.stringify(parseWorkoutText(text ?? "", arg), null, 1));
   } else {
     const doc = JSON.parse(readFileSync(EXAMPLES_FILE, "utf8"));
