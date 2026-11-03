@@ -37,6 +37,22 @@ QA is live at **https://qa.runflow.club**:
   - Check: `curl -sI https://qa.runflow.club/ | grep cf-cache-status` says `HIT` (the first request after a purge says `MISS`).
 - [x] ~~**Change the Pi's password** / **keep a copy of the Pi's secrets**~~ Not needed (D-039): QA is disposable and its
   security can stay simple. If the Pi's `.env` is lost, write a new one and run `./reset-db.sh --yes`.
+- [ ] **Move QA to the Intel NUC** (D-046; replaces fixing the Pi's power supply). Your part, then I take over by SSH:
+  1. BIOS: set "power on after AC loss" (so it comes back after an outage); boot from USB.
+  2. Install **Debian 13 (amd64) netinst**: hostname `runflow-nuc` (the Pi keeps `runflow-qa` until it's off), user
+     **`runflow`**, no desktop; select only "SSH server" and "standard system utilities". Use the whole disk.
+  3. Log in on the NUC (or by SSH with the password) and install Docker, git and the `.local` name:
+     ```sh
+     sudo apt-get update && sudo apt-get install -y ca-certificates curl git avahi-daemon
+     sudo install -m 0755 -d /etc/apt/keyrings
+     sudo curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo $VERSION_CODENAME) stable" | sudo tee /etc/apt/sources.list.d/docker.list
+     sudo apt-get update && sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+     sudo usermod -aG docker runflow
+     ```
+  4. From this computer, give me access: `ssh-copy-id runflow@runflow-nuc.local` (in Claude Code: `! ssh-copy-id runflow@runflow-nuc.local`).
+  5. Tell me it's ready. I'll copy the Pi's `.env`, clone the repo, start the stack and the update timer, run the checks,
+     then stop the Pi (the tunnel follows the token, nothing to change in Cloudflare).
 - [ ] **The Pi's power supply** (urgent): the kernel logs repeated "Undervoltage detected" (40+ times on 2026-11-03), and
   writes to the SD card came out empty twice (the checkout and then git itself got corrupted; I re-cloned it, the old copy
   is in `~/runflow.broken-20261103`). Use the official Raspberry Pi 27 W USB-C supply (5.1 V / 5 A) and a short, good cable.

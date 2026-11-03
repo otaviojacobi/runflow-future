@@ -354,7 +354,7 @@
     {
       "id": 11,
       "type": "row",
-      "title": "Raspberry Pi",
+      "title": "Servidor",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -484,8 +484,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "max(node_thermal_zone_temp)",
-          "legendFormat": "SoC"
+          "expr": "max(node_thermal_zone_temp) or max(node_hwmon_temp_celsius)",
+          "legendFormat": "CPU"
         }
       ],
       "fieldConfig": {
