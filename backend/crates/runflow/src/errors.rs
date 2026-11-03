@@ -1,6 +1,6 @@
 //! Errors to Sentry (S12, D-033): panics, `error`-level logs (with the `info`/`warn` before them as breadcrumbs)
 //! and failed jobs, from the API and the worker. Off without `SENTRY_DSN`. Events carry the user id only: request
-//! headers, cookies, bodies and query strings are dropped, and token-like path segments (invites, calendar feeds)
+//! headers, cookies, bodies and query strings are dropped, and token-like path segments (invites, for example)
 //! are masked.
 
 use sentry::protocol::{Event, Request};
@@ -86,8 +86,8 @@ mod tests {
             "/v1/invites/[token]/accept"
         );
         assert_eq!(
-            mask_path("/v1/calendar/abcdefghijklmnopqrstuvwxyz012345.ics"),
-            "/v1/calendar/[token]"
+            mask_path("/download/abcdefghijklmnopqrstuvwxyz012345.csv"),
+            "/download/[token]"
         );
         assert_eq!(
             mask_path("/v1/clubs/0195f3a0-1111-7000-8000-000000000000/races"),

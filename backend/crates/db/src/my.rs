@@ -1,5 +1,4 @@
-//! The student side (M1–M5): zones, candidate activities, completions, Today's summary; workout threads;
-//! the personal calendar feed.
+//! The student side (M1–M5): zones, candidate activities, completions, Today's summary; workout threads.
 
 use chrono::{DateTime, NaiveDate, Utc};
 use serde_json::Value;
@@ -218,92 +217,4 @@ pub async fn staff_memberships(db: impl PgExecutor<'_>, club_id: Uuid) -> sqlx::
     )
     .fetch_all(db)
     .await
-}
-
-// ------------------------------------------------------------------------------------ calendar feed
-
-pub async fn feed(db: impl PgExecutor<'_>, user_id: Uuid) -> sqlx::Result<Option<DateTime<Utc>>> {
-    sqlx::query_scalar!(
-        "SELECT created_at FROM calendar_feeds WHERE user_id = $1",
-        user_id
-    )
-    .fetch_optional(db)
-    .await
-}
-
-/// New secret (the old URL stops working).
-pub async fn set_feed(
-    db: impl PgExecutor<'_>,
-    user_id: Uuid,
-    token_hash: &str,
-) -> sqlx::Result<DateTime<Utc>> {
-    sqlx::query_scalar!(
-        "INSERT INTO calendar_feeds (user_id, token_hash) VALUES ($1, $2)
-         ON CONFLICT (user_id) DO UPDATE SET token_hash = $2, created_at = now() RETURNING created_at",
-        user_id,
-        token_hash
-    )
-    .fetch_one(db)
-    .await
-}
-
-pub async fn delete_feed(db: impl PgExecutor<'_>, user_id: Uuid) -> sqlx::Result<()> {
-    sqlx::query!("DELETE FROM calendar_feeds WHERE user_id = $1", user_id)
-        .execute(db)
-        .await?;
-    Ok(())
-}
-
-pub async fn feed_owner(db: impl PgExecutor<'_>, token_hash: &str) -> sqlx::Result<Option<Uuid>> {
-    sqlx::query_scalar!("SELECT f.user_id FROM calendar_feeds f JOIN users u ON u.id = f.user_id WHERE f.token_hash = $1 AND u.deleted_at IS NULL", token_hash)
-        .fetch_optional(db)
-        .await
-}
-
-pub struct FeedWorkout {
-    pub id: Uuid,
-    pub date: NaiveDate,
-    pub title: String,
-    pub club: String,
-}
-
-pub struct FeedRace {
-    pub id: Uuid,
-    pub date: NaiveDate,
-    pub name: String,
-    pub place: Option<String>,
-}
-
-/// Everything in the feed of a person, as a student in any club, between two dates.
-pub async fn feed_events(
-    db: &mut PgConnection,
-    user_id: Uuid,
-    from: NaiveDate,
-    to: NaiveDate,
-) -> sqlx::Result<(Vec<FeedWorkout>, Vec<FeedRace>)> {
-    let workouts = sqlx::query_as!(
-        FeedWorkout,
-        "SELECT p.id, p.date, p.title, c.name AS club FROM planned_workouts p
-           JOIN memberships m ON m.id = p.athlete_membership_id JOIN clubs c ON c.id = m.club_id
-          WHERE m.user_id = $1 AND m.status = 'active' AND m.role = 'student' AND c.deleted_at IS NULL AND p.date BETWEEN $2 AND $3
-            AND coalesce(workout_released(p.club_id, p.athlete_membership_id, p.date), false)
-          ORDER BY p.date, p.position",
-        user_id,
-        from,
-        to
-    )
-    .fetch_all(&mut *db)
-    .await?;
-    let races = sqlx::query_as!(
-        FeedRace,
-        r#"SELECT e.id, r.date, r.name, CASE WHEN r.city IS NULL THEN NULL ELSE concat_ws(' · ', r.city, r.state) END AS place
-             FROM race_entries e JOIN races r ON r.id = e.race_id JOIN memberships m ON m.id = e.membership_id
-            WHERE m.user_id = $1 AND m.status = 'active' AND r.archived_at IS NULL AND r.date >= $2
-            ORDER BY r.date"#,
-        user_id,
-        from
-    )
-    .fetch_all(&mut *db)
-    .await?;
-    Ok((workouts, races))
 }

@@ -1,0 +1,42 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.kinds AS \"kinds?\", coalesce(p.paused, false) AS \"paused!\",\n                  EXISTS (SELECT 1 FROM push_tokens t WHERE t.user_id = $1) AS \"has_device!\"\n             FROM (SELECT 1) one LEFT JOIN notification_prefs p ON p.user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kinds?",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "kinds"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "paused!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "has_device!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "90b54206bbc2c4010f46400c09696469d0682e2bd522cbfdaf8ac33245c99f5e"
+}

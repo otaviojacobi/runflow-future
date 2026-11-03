@@ -5,7 +5,6 @@ pub mod assessments;
 pub mod athletes;
 pub mod auth;
 pub mod billing;
-pub mod calendar;
 pub mod clubs;
 pub mod dev;
 pub mod health;
@@ -49,7 +48,6 @@ pub fn v1() -> Router<AppState> {
         .merge(push::routes())
         .merge(my::routes())
         .merge(threads::routes())
-        .merge(calendar::routes())
         .merge(athletes::routes())
         .merge(providers::routes())
         .merge(me::routes())

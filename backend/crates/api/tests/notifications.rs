@@ -1,11 +1,12 @@
-//! F35 notification control (D-032): per-kind choices, the staff group filter, and the e-mails the worker sends.
+//! N1 notifications (D-045): everything lands in the app's center; people only switch push per kind (or pause it);
+//! no notification e-mails at all.
 
 mod common;
 
 use axum::http::Method;
 use chrono::Utc;
 use common::TestApp;
-use serde_json::{Value, json};
+use serde_json::json;
 use sqlx::PgPool;
 
 struct Club {
@@ -13,7 +14,6 @@ struct Club {
     owner: String,
     ana: (String, String),
     bia: (String, String),
-    group: String,
 }
 
 async fn student(app: &TestApp, club: &str, owner: &str, email: &str) -> (String, String) {
@@ -53,36 +53,16 @@ async fn setup(app: &TestApp) -> Club {
         .to_string();
     let ana = student(app, &id, &owner, "ana@email.com").await;
     let bia = student(app, &id, &owner, "bia@email.com").await;
-    let group = app
-        .post(
-            &format!("/v1/clubs/{id}/groups"),
-            Some(&owner),
-            json!({ "name": "Iniciantes" }),
-        )
-        .await
-        .body["id"]
-        .as_str()
-        .unwrap()
-        .to_string();
-    app.call(
-        Method::PUT,
-        &format!("/v1/clubs/{id}/groups/{group}/members"),
-        Some(&owner),
-        Some(json!({ "membership_ids": [bia.1] })),
-        &[],
-    )
-    .await
-    .ok();
     Club {
         id,
         owner,
         ana,
         bia,
-        group,
     }
 }
 
-/// A workout today for the student (visible), then the student's feedback: a `feedback` notice for the owner.
+/// A workout today for the student (visible, `workout_assigned`), then the student's feedback (`feedback` for the
+/// owner).
 async fn feedback(app: &TestApp, c: &Club, who: &(String, String)) {
     let today = Utc::now().date_naive().to_string();
     let w = app
@@ -114,50 +94,31 @@ async fn center(app: &TestApp, token: &str) -> Vec<String> {
         .collect()
 }
 
-fn mails(app: &TestApp, to: &str, kind: &str) -> Vec<String> {
-    app.state
-        .mailer
-        .outbox()
-        .unwrap()
-        .list()
-        .into_iter()
-        .filter(|m| {
-            m.email.to == [to] && m.email.tags.iter().any(|(k, v)| k == "kind" && v == kind)
-        })
-        .map(|m| m.email.subject)
-        .collect()
-}
-
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]
-async fn preferences_defaults_validation_and_group_filter(db: PgPool) {
+async fn preferences_are_push_switches_per_kind(db: PgPool) {
     let app = TestApp::new(db);
     let c = setup(&app).await;
 
-    // Defaults per kind; staff see their clubs' group filters.
+    // Defaults: push on, except the staff's feedback and new members. Nothing but the switches and the pause.
     let p = app.get("/v1/me/prefs", Some(&c.owner)).await;
-    assert_eq!(
-        p.ok()["kinds"]["feedback"],
-        json!({ "app": true, "push": false, "email": "digest" })
-    );
-    assert_eq!(p.ok()["kinds"]["week_released"]["email"], "instant");
-    assert_eq!(
-        (
-            p.ok()["digest_hour"].as_i64(),
-            p.ok()["quiet_start"].as_str()
-        ),
-        (Some(7), Some("22:00"))
-    );
-    assert_eq!(p.ok()["groups"][0]["club_id"], c.id.as_str());
-    assert_eq!(
-        app.get("/v1/me/prefs", Some(&c.ana.0)).await.ok()["groups"],
-        json!([])
-    );
+    let body = p.ok();
+    assert_eq!(body["kinds"]["feedback"], json!({ "push": false }));
+    assert_eq!(body["kinds"]["member_joined"], json!({ "push": false }));
+    assert_eq!(body["kinds"]["comment"], json!({ "push": true }));
+    assert_eq!(body["kinds"]["billing"], json!({ "push": true }));
+    assert_eq!(body["kinds"]["week_released"], json!({ "push": true }));
+    assert_eq!(body["kinds"].as_object().unwrap().len(), 9);
+    assert_eq!(body["paused"], false);
+    let mut keys: Vec<&String> = body.as_object().unwrap().keys().collect();
+    keys.sort();
+    assert_eq!(keys, ["kinds", "paused"]);
 
+    // Validation: unknown kinds, switches that aren't on/off, a pause that isn't either.
     let bad = app
         .patch(
             "/v1/me/prefs",
             Some(&c.owner),
-            json!({ "kinds": { "feedback": { "email": "weekly" } }, "quiet_start": "22:00" }),
+            json!({ "kinds": { "feedback": { "push": "yes" } }, "paused": "no" }),
         )
         .await;
     let fields: Vec<&str> = bad.problem(422, "validation.failed")["errors"]
@@ -166,137 +127,109 @@ async fn preferences_defaults_validation_and_group_filter(db: PgPool) {
         .iter()
         .map(|e| e["field"].as_str().unwrap())
         .collect();
-    assert_eq!(fields, ["kinds", "quiet_start"]);
-    app.patch(
-        "/v1/me/prefs",
-        Some(&c.ana.0),
-        json!({ "groups": [{ "club_id": c.id, "group_ids": [c.group] }] }),
-    )
-    .await
-    .problem(403, "auth.forbidden");
-
-    // The owner only wants feedback about the "Iniciantes" group (Bia).
-    let f = app
-        .patch("/v1/me/prefs", Some(&c.owner), json!({ "groups": [{ "club_id": c.id, "group_ids": [c.group, uuid::Uuid::now_v7()] }] }))
-        .await;
-    assert_eq!(
-        f.ok()["groups"][0]["group_ids"],
-        json!([c.group]),
-        "only the club's groups are kept"
-    );
-    feedback(&app, &c, &c.ana).await;
-    assert!(
-        !center(&app, &c.owner)
-            .await
-            .contains(&"feedback".to_string()),
-        "Ana is outside the group"
-    );
-    feedback(&app, &c, &c.bia).await;
-    assert_eq!(
-        center(&app, &c.owner)
-            .await
-            .iter()
-            .filter(|k| *k == "feedback")
-            .count(),
-        1
-    );
-
-    // Quiet hours off; then on with both ends.
-    let q = app
+    assert_eq!(fields, ["kinds", "paused"]);
+    assert_eq!(bad.body["errors"][0]["message"], "Use ligado ou desligado.");
+    let unknown = app
         .patch(
             "/v1/me/prefs",
             Some(&c.owner),
-            json!({ "quiet_start": null, "quiet_end": null }),
+            json!({ "kinds": { "digest": { "push": true } } }),
         )
         .await;
-    assert!(q.ok()["quiet_start"].is_null());
-    let q = app
+    assert_eq!(
+        unknown.problem(422, "validation.failed")["errors"][0]["message"],
+        "Tipo de notificação desconhecido."
+    );
+
+    // Switches merge per kind; old fields are ignored; /me carries the same prefs.
+    let p = app
         .patch(
             "/v1/me/prefs",
             Some(&c.owner),
-            json!({ "quiet_start": "23:00", "quiet_end": "06:30" }),
+            json!({ "kinds": { "feedback": { "push": true, "email": "digest" } }, "digest_hour": 7 }),
         )
         .await;
-    assert_eq!(q.ok()["quiet_end"], "06:30");
+    assert_eq!(p.ok()["kinds"]["feedback"], json!({ "push": true }));
+    let p = app
+        .patch(
+            "/v1/me/prefs",
+            Some(&c.owner),
+            json!({ "kinds": { "comment": { "push": false } }, "paused": true }),
+        )
+        .await;
+    assert_eq!(
+        (
+            p.ok()["kinds"]["feedback"]["push"].as_bool(),
+            p.ok()["kinds"]["comment"]["push"].as_bool(),
+            p.ok()["paused"].as_bool()
+        ),
+        (Some(true), Some(false), Some(true))
+    );
+    let me = app.get("/v1/me", Some(&c.owner)).await;
+    assert_eq!(me.ok()["prefs"], p.body);
 }
 
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]
-async fn the_center_e_mails_and_the_daily_summary_follow_the_choices(db: PgPool) {
+async fn everything_lands_in_the_center_and_no_notice_is_e_mailed(db: PgPool) {
     let app = TestApp::new(db);
     let c = setup(&app).await;
 
-    // Out of the center: Bia turns workout notices off in the app (no e-mail either: nothing is stored).
+    // Switches and the pause only concern push: the center always fills.
     app.patch(
         "/v1/me/prefs",
         Some(&c.bia.0),
-        json!({ "kinds": { "workout_assigned": { "app": false } } }),
+        json!({ "kinds": { "workout_assigned": { "push": false } } }),
     )
     .await
     .ok();
+    app.patch("/v1/me/prefs", Some(&c.ana.0), json!({ "paused": true }))
+        .await
+        .ok();
     feedback(&app, &c, &c.bia).await;
+    feedback(&app, &c, &c.ana).await;
     assert!(
-        !center(&app, &c.bia.0)
+        center(&app, &c.bia.0)
             .await
             .contains(&"workout_assigned".to_string())
     );
-    let me = app.get("/v1/me", Some(&c.bia.0)).await;
-    assert_eq!(me.ok()["prefs"]["kinds"]["workout_assigned"]["app"], false);
+    assert!(
+        center(&app, &c.ana.0)
+            .await
+            .contains(&"workout_assigned".to_string())
+    );
+    let owner = center(&app, &c.owner).await;
+    assert_eq!(owner.iter().filter(|k| *k == "feedback").count(), 2);
+    assert!(owner.contains(&"member_joined".to_string()));
+    let unread = app.get("/v1/me", Some(&c.owner)).await.ok()["unread_notifications"]
+        .as_i64()
+        .unwrap();
+    assert_eq!(unread, owner.len() as i64);
 
-    // Instant e-mail: Ana wants new workouts by e-mail right away; paused, nothing goes out.
-    app.patch(
-        "/v1/me/prefs",
-        Some(&c.ana.0),
-        json!({ "kinds": { "workout_assigned": { "email": "instant" } }, "paused": true }),
-    )
-    .await
-    .ok();
-    feedback(&app, &c, &c.ana).await;
-    app.tick(Utc::now()).await;
-    assert!(
-        mails(&app, "ana@email.com", "notification").is_empty(),
-        "paused"
-    );
-    app.patch("/v1/me/prefs", Some(&c.ana.0), json!({ "paused": false }))
-        .await
-        .ok();
-    feedback(&app, &c, &c.ana).await;
-    app.tick(Utc::now()).await;
-    app.tick(Utc::now()).await;
-    assert_eq!(
-        mails(&app, "ana@email.com", "notification"),
-        ["Novo treino na sua agenda"],
-        "sent once"
-    );
+    // Nobody has a device: nothing was queued for push.
+    let queued: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM notifications WHERE push_at IS NOT NULL")
+            .fetch_one(app.db())
+            .await
+            .unwrap();
+    assert_eq!(queued, 0);
 
-    // Daily summary: the owner's feedback notices (default: digest) go out once their hour has come.
-    app.patch("/v1/me/prefs", Some(&c.owner), json!({ "digest_hour": 0 }))
-        .await
-        .ok();
+    // The worker's minute tick and the queue send no notification e-mails: only sign-in codes and invites go out.
     app.tick(Utc::now()).await;
-    let summaries = mails(&app, "marcos@email.com", "digest");
-    assert_eq!(summaries.len(), 1);
+    app.run_jobs().await;
+    let kinds: Vec<String> = app
+        .state
+        .mailer
+        .outbox()
+        .unwrap()
+        .list()
+        .into_iter()
+        .flat_map(|m| m.email.tags)
+        .filter(|(k, _)| k == "kind")
+        .map(|(_, v)| v)
+        .collect();
+    assert!(!kinds.is_empty());
     assert!(
-        summaries[0].starts_with("Seu resumo do Runflow: "),
-        "{summaries:?}"
-    );
-    feedback(&app, &c, &c.bia).await;
-    app.tick(Utc::now()).await;
-    assert_eq!(
-        mails(&app, "marcos@email.com", "digest").len(),
-        1,
-        "one summary a day"
-    );
-    // The notices stay in the center either way.
-    let owner_center: Vec<Value> =
-        app.get("/v1/me/notifications", Some(&c.owner)).await.ok()["items"]
-            .as_array()
-            .unwrap()
-            .clone();
-    assert!(
-        owner_center
-            .iter()
-            .filter(|n| n["kind"] == "feedback")
-            .count()
-            >= 3
+        kinds.iter().all(|k| k == "sign_in_code" || k == "invite"),
+        "{kinds:?}"
     );
 }

@@ -1,6 +1,6 @@
-//! Push (S7b, X10): `push.send {notification_id}` runs at the notification's `push_at` (quiet hours delay it) and
-//! sends it to each of the person's devices: Web Push for the installed web app, Expo push for the phone app. Skipped when it was read in the app meanwhile; devices the push
-//! service no longer knows are forgotten. A retry may reach a device twice: the service worker shows one
+//! Push (S7b, X10, D-045): `push.send {notification_id}` is queued when a notification is created with push on, and
+//! sends it to each of the person's devices: Web Push for the installed web app, Expo push for the phone app.
+//! Skipped when it was read in the app meanwhile; devices the push service no longer knows are forgotten. A retry may reach a device twice: the service worker shows one
 //! notification per id (`tag`), so the second replaces the first.
 
 use runflow_db::push;

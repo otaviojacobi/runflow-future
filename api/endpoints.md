@@ -50,27 +50,24 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 Trainers plan ahead in private and release a week (Monday–Sunday) when it's ready.
 - `release_mode`: `immediate` (students see a workout as soon as it's saved) or `weekly` (default for new clubs).
 - In `weekly` mode a workout is **visible** to its student when its week has started (club time), when the week was released to everyone, or when it was released to that student. Otherwise it's a **draft**.
-- Drafts never reach the student. They are left out of `/my/*` (including the summary), the `.ics` feed and notifications, and auto-matching skips them. The student's own detail, completion and comment routes answer `404 workout.not_found`.
+- Drafts never reach the student. They are left out of `/my/*` (including the summary) and notifications, and auto-matching skips them. The student's own detail, completion and comment routes answer `404 workout.not_found`.
 - **Automatic release.** `auto_release_weekday` (1 = Monday … 7 = Sunday) + `auto_release_time` (`"HH:MM"`, club time) releases the *following* week to everyone. The default is Sunday 18:00; both `null` turns it off. Setting one without the other → `422`.
 - **Notifications.** A release sends one `week_released` notification to each newly released student who has workouts that week. Workouts added to a visible week notify as usual (`workout_assigned`).
 - **Switching modes.** Going from `immediate` to `weekly` releases every future week that already has workouts, so nothing students saw disappears.
 
-## Notifications (D-032)
+## Notifications (D-045)
 
-Every user decides what reaches them and how. Per **kind**: `app` (the notification center), `push` (system notifications on the person's devices: the installed web app now, S7b; the phone app with X10) and `email`: `off`, `instant` or `digest` (one daily summary at `digest_hour`, São Paulo time). Without a saved choice a kind uses its default:
+Every notification lands in the app: the notification center (W11) and the unread count on the bell (on the app icon too, on phones). What a person controls is only whether it **also arrives as a push** on their devices (the installed web app, S7b; the phone app with X10): one on/off switch per **kind**, plus `paused`, which stops every push until it's switched off again. There are **no notification e-mails** (no instant notices, no daily summary): e-mail is only for what's strictly necessary, i.e. sign-in codes, account setup and invites. Without a saved choice a kind uses its default:
 
-| Kind | Who gets it | app | push | email |
-|---|---|---|---|---|
-| `workout_assigned` · `workout_changed` | student | on | on | off |
-| `week_released` | student | on | on | instant |
-| `comment` · `message` · `announcement` | both | on | on | off |
-| `feedback` · `member_joined` | staff | on | off | digest |
-| `billing` | owner | on | off | instant |
+| Kind | Who gets it | Push by default |
+|---|---|---|
+| `workout_assigned` · `workout_changed` · `week_released` | student | on |
+| `comment` · `message` · `announcement` | both | on |
+| `feedback` · `member_joined` | staff | off (a big club would flood a trainer's phone) |
+| `billing` | owner | on |
 
-- `paused` holds push and e-mail (the center still fills). Quiet hours (`quiet_start`–`quiet_end`, default 22:00–07:00, São Paulo time) hold push only: it goes out when they end, unless the notification was read in the app by then.
-- Push reaches every device the person registered (`/me/push-tokens`); a device the push service no longer knows is forgotten. The payload is `{title, body, link, id}`.
-- **Group filter (staff):** per club, `feedback` and `comment` notices only about students in the chosen groups (empty = everyone).
-- A notification is created with the recipient's choices: `in_app` (shown in the center and the unread count) and `email` (`none`, `instant`, `digest`, then `sent`). E-mails go out from the worker: instant ones right away (club e-mails in the club's colors, D-036), digests once a day.
+- The switches are read when the notification is created: it is pushed (`push_at` set, the push queued) only when its kind is on, push isn't paused and the person has a registered device.
+- Push reaches every device the person registered (`/me/push-tokens`) right away; one read in the app before it went out is skipped. A device the push service no longer knows is forgotten. The payload is `{title, body, link, id}`.
 
 ## Endpoints
 
@@ -93,16 +90,13 @@ Every user decides what reaches them and how. Per **kind**: `app` (the notificat
 | PATCH | `/me` `{name, phone, birth_date, sex, avatar_url}` | Update profile. `avatar_url` only accepts `null` or one of our `/v1/assets/{id}` paths | A4, C1 |
 | DELETE | `/me` | Delete account (LGPD; App Store): name/e-mail/phone anonymized, every club left, sessions and provider links revoked, sign-in identities removed (the same e-mail can start over). `409 account.owns_club` | C1 |
 | GET | `/me/export` | All my data as JSON (LGPD portability) | C1 |
-| GET / PATCH | `/me/prefs` | Notification control (§ Notifications): `{kinds: {<kind>: {app, push, email}}, digest_hour, quiet_start, quiet_end, paused, groups: [{club_id, membership_id, group_ids}]}`. GET resolves every kind with its default; `groups` lists the caller's staff memberships. PATCH takes any part: `kinds` merges per kind, `groups: [{club_id, group_ids}]` replaces a club's filter (staff only, groups of that club; `403 auth.forbidden` otherwise). `email` ∈ off/instant/digest, `digest_hour` 0–23, quiet times `"HH:MM"` or both null → `422` | C1 |
+| GET / PATCH | `/me/prefs` | Push control (§ Notifications): `{kinds: {<kind>: {push}}, paused}`. GET resolves every kind with its default. PATCH takes either part: `kinds` merges per kind (`{"comment": {"push": false}}`); an unknown kind or a `push` that isn't true/false → `422` (field `kinds`), a `paused` that isn't true/false → `422` (field `paused`) | C1 |
 | POST | `/me/push-tokens` `{platform, token, keys?}` | Register this device for push (S7b): `web` = the Web Push subscription (`token` its endpoint: https on a browser push service, i.e. FCM, Mozilla, Apple or Windows; `keys` `{p256dh, auth}`, both required), `ios`/`android` = the phone app's Expo push token (`ExponentPushToken[…]`, X10; the worker sends through Expo's push service). A token already registered moves to the caller. `204`; `422` on a bad platform, token or keys | C1 |
 | DELETE | `/me/push-tokens` `{token}` | Forget this device (turning push off here, signing out). `204` even when unknown | C1 |
 | GET | `/me/consents` · POST `/me/consents` `{club_id?, kind, text_version}` · DELETE `/me/consents/{id}` | Consents (grant / revoke) | A4, C1 |
-| GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first (only `in_app` ones; the unread count too). Kinds: `workout_assigned` `workout_changed` `week_released` `comment` `feedback` `member_joined` `billing` `message` `announcement`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
+| GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first (every notification lands here, D-045). Kinds: `workout_assigned` `workout_changed` `week_released` `comment` `feedback` `member_joined` `billing` `message` `announcement`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
 | GET | `/me/sessions` · DELETE `/me/sessions/{id}` · POST `/me/sessions/revoke-others` | Signed-in devices `{id, kind, user_agent, created_at, last_seen_at, current}` | C1 |
 | POST / DELETE | `/me/avatar` `{data_url, width, height}` | Upload (PNG/JPG/WebP ≤ 5 MB, no SVG) or remove the profile photo → `/me` payload; `avatar_url` is an `/assets/{id}` path | C1 |
-
-| GET / POST / DELETE | `/me/calendar-feed` | Personal calendar: POST (re)generates a secret URL → `{url, webcal_url}` (the old one stops working); GET → `{active, created_at}`; DELETE revokes | C1 |
-| GET | `/ics/{token}.ics` | Public, secret-token `text/calendar` feed (RFC 5545): released planned workouts (all-day) and race entries; −30 to +120 days | — |
 
 ### Providers and activities (user-owned)
 | Method | Path | Purpose | Screens |

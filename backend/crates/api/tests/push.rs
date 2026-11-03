@@ -1,5 +1,5 @@
-//! S7b push: devices register their Web Push subscription; notifications go to them per the person's choices
-//! (per kind, pause, quiet hours), encrypted (RFC 8291) and signed (VAPID); dead subscriptions are forgotten.
+//! S7b push: devices register their Web Push subscription; notifications go to them per the person's switches
+//! (per kind, pause; D-045), encrypted (RFC 8291) and signed (VAPID); dead subscriptions are forgotten.
 //! A fake push service decrypts what it receives with the browser's keys.
 
 mod common;
@@ -213,14 +213,6 @@ async fn devices_register_and_get_pushes(db: PgPool) {
         assert_eq!(r.status.as_u16(), 204);
     }
 
-    // Quiet hours off, so the push goes out now.
-    app.patch(
-        "/v1/me/prefs",
-        Some(&ana),
-        json!({ "quiet_start": null, "quiet_end": null }),
-    )
-    .await
-    .ok();
     message(&app, &club, &owner, &ana, "Bora treinar amanhã?").await;
     app.run_jobs().await;
     let received = std::mem::take(&mut fake.lock().unwrap().received);
@@ -287,7 +279,7 @@ async fn devices_register_and_get_pushes(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]
-async fn quiet_hours_pause_and_reading_first(db: PgPool) {
+async fn pause_and_reading_first(db: PgPool) {
     let (base, fake) = fake_push_service().await;
     let app = TestApp::new(db).with_push();
     let (club, owner, ana) = setup(&app).await;
@@ -300,62 +292,42 @@ async fn quiet_hours_pause_and_reading_first(db: PgPool) {
     .await
     .ok();
 
-    // Quiet all day long except one minute: the push waits for the window to end.
-    let now = chrono::Utc::now().with_timezone(&chrono_tz::America::Sao_Paulo);
-    let start = (now - chrono::Duration::hours(1))
-        .format("%H:%M")
-        .to_string();
-    let end = (now + chrono::Duration::hours(2))
-        .format("%H:%M")
-        .to_string();
-    app.patch(
-        "/v1/me/prefs",
-        Some(&ana),
-        json!({ "quiet_start": start, "quiet_end": end }),
-    )
-    .await
-    .ok();
+    // Read in the app before the worker got to it: the push is dropped.
     message(&app, &club, &owner, &ana, "Bom dia").await;
-    app.run_jobs().await;
-    assert!(
-        fake.lock().unwrap().received.is_empty(),
-        "held during quiet hours"
-    );
-    let wait: f64 = sqlx::query_scalar("SELECT extract(epoch FROM push_at - now())::float8 FROM notifications WHERE push_at IS NOT NULL")
-        .fetch_one(app.db())
-        .await
-        .unwrap();
-    assert!(wait > 3600.0 && wait <= 7200.0, "{wait}");
-
-    // Read in the app before quiet hours end: the push is dropped.
     app.post(
         "/v1/me/notifications/read",
         Some(&ana),
         json!({ "all": true }),
     )
     .await;
-    sqlx::query("UPDATE jobs SET run_at = now() WHERE kind = 'push.send'")
-        .execute(app.db())
-        .await
-        .unwrap();
     app.run_jobs().await;
     assert!(fake.lock().unwrap().received.is_empty());
 
-    // Paused: no push at all.
-    app.patch(
-        "/v1/me/prefs",
-        Some(&ana),
-        json!({ "quiet_start": null, "quiet_end": null, "paused": true }),
-    )
-    .await
-    .ok();
+    // Paused: no push at all (the center still gets it).
+    app.patch("/v1/me/prefs", Some(&ana), json!({ "paused": true }))
+        .await
+        .ok();
     message(&app, &club, &owner, &ana, "Oi").await;
-    let held: i64 =
+    app.run_jobs().await;
+    assert!(fake.lock().unwrap().received.is_empty());
+    let queued: i64 =
         sqlx::query_scalar("SELECT count(*) FROM notifications WHERE push_at IS NOT NULL")
             .fetch_one(app.db())
             .await
             .unwrap();
-    assert_eq!(held, 1, "only the first one was ever scheduled");
+    assert_eq!(queued, 1, "only the first one was ever queued");
+    let center = app.get("/v1/me/notifications", Some(&ana)).await;
+    assert_eq!(center.ok()["items"].as_array().unwrap().len(), 2);
+
+    // Back from the pause: pushes again.
+    app.patch("/v1/me/prefs", Some(&ana), json!({ "paused": false }))
+        .await
+        .ok();
+    message(&app, &club, &owner, &ana, "Voltou").await;
+    app.run_jobs().await;
+    let received = std::mem::take(&mut fake.lock().unwrap().received);
+    assert_eq!(received.len(), 1);
+    assert_eq!(phone.decrypt(&received[0].2)["body"], "Voltou");
 }
 
 type ExpoSeen = Arc<Mutex<Vec<Value>>>;
@@ -409,13 +381,6 @@ async fn phones_get_pushes_through_expo(db: PgPool) {
             .await;
         assert_eq!(r.status.as_u16(), 204);
     }
-    app.patch(
-        "/v1/me/prefs",
-        Some(&ana),
-        json!({ "quiet_start": null, "quiet_end": null }),
-    )
-    .await
-    .ok();
     message(&app, &club, &owner, &ana, "Bora treinar amanhã?").await;
     app.run_jobs().await;
 

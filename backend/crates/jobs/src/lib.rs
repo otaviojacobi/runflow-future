@@ -5,7 +5,6 @@
 mod billing_jobs;
 mod invite_email;
 mod metrics;
-mod notify_email;
 mod push_jobs;
 mod strava_jobs;
 mod week_release;
@@ -156,12 +155,10 @@ impl Worker {
         Ok(batch.len())
     }
 
-    /// Poll until `shutdown` resolves (idle: once a second).
-    /// Time-based work, once a minute: automatic week releases (D-031), then the notification e-mails they and
-    /// everything else owe (D-032). Returns how many clubs released a week.
+    /// Time-based work, once a minute: automatic week releases (D-031) and the queue's backlog metrics. Returns how
+    /// many clubs released a week.
     pub async fn tick(&self, now: DateTime<Utc>) -> sqlx::Result<usize> {
         let released = week_release::run(self, now).await?;
-        notify_email::run(self, now).await?;
         let (due, oldest_s) = jobs::backlog(&self.db).await?;
         metrics::backlog(due, oldest_s);
         Ok(released)
@@ -189,6 +186,7 @@ impl Worker {
         Ok(Some((club.name, theme, logo)))
     }
 
+    /// Poll until `shutdown` resolves (idle: once a second).
     pub async fn run(&self, shutdown: impl std::future::Future<Output = ()>) {
         tracing::info!(worker = %self.id, "worker started");
         tokio::pin!(shutdown);

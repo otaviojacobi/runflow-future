@@ -1,9 +1,9 @@
 /** C1 · Minha conta: profile + photo, appearance, connections, notifications, privacy (consents, export), clubs (leave), devices, delete account. Route: /account */
 import { Link, useNavigate } from "@tanstack/react-router";
-import { CalendarPlus, ChevronRight, Copy, Download, ImageUp, LogOut, Monitor, Moon, ShieldCheck, Smartphone, Sun, Trash2, UserRound } from "lucide-react";
+import { ChevronRight, Download, ImageUp, LogOut, Monitor, Moon, ShieldCheck, Smartphone, Sun, Trash2, UserRound } from "lucide-react";
 import { useRef, useState } from "react";
 import {
-  exportMyData, useCalendarFeed, useConsents, useCreateCalendarFeed, useRevokeCalendarFeed, useDeleteAccount, useGrantConsent, useLeaveClub, useRemoveAvatar, useRevokeConsent, useRevokeOtherSessions, useRevokeSession, useSessions, useUpdateMe, useUploadAvatar,
+  exportMyData, useConsents, useDeleteAccount, useGrantConsent, useLeaveClub, useRemoveAvatar, useRevokeConsent, useRevokeOtherSessions, useRevokeSession, useSessions, useUpdateMe, useUploadAvatar,
 } from "@/api/account";
 import { signOut } from "@/api/auth";
 import { readLogo } from "@/api/clubs";
@@ -58,7 +58,6 @@ export function AccountScreen() {
       <InstallApp />
       <Section id="connections" title={t("Relógios e apps")} description={t("Seus treinos chegam sozinhos. Desconectar apaga os dados importados.")}><ProviderConnections /></Section>
       <Notifications />
-      {role === "student" && <CalendarFeed />}
       <Privacy memberships={me.memberships} />
       <Clubs memberships={me.memberships} />
       <Devices />
@@ -128,32 +127,8 @@ function InstallApp() {
 function Notifications() {
   const { me } = useClub();
   return (
-    <Section id="notifications" title={t("Notificações")} description={t("Escolha o que chega até você e por onde.")}>
+    <Section id="notifications" title={t("Notificações")} description={t("Tudo aparece na central do app. Escolha o que também chega como notificação no seu aparelho.")}>
       <NotificationSettings memberships={me?.memberships ?? []} />
-    </Section>
-  );
-}
-
-function CalendarFeed() {
-  const feed = useCalendarFeed();
-  const create = useCreateCalendarFeed(), revoke = useRevokeCalendarFeed();
-  const [link, setLink] = useState<{ url: string; webcal_url: string } | null>(null);
-  const copy = (u: string) => navigator.clipboard?.writeText(u).then(() => toast.success(t("Link copiado")));
-  return (
-    <Section id="calendar" title={t("Agenda no celular")} description={t("Seus treinos e provas no Google Agenda ou no Calendário do iPhone, atualizados sozinhos.")}>
-      {link ? (
-        <div className="grid gap-3">
-          <div className="flex items-center gap-2"><Input readOnly value={link.url} aria-label={t("Link do calendário")} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} /><Button variant="secondary" icon={<Copy />} onClick={() => copy(link.url)}>{t("Copiar")}</Button></div>
-          <div className="flex flex-wrap gap-2"><a href={link.webcal_url} className="inline-flex h-10 items-center gap-2 rounded-md border border-line bg-surface px-3 text-sm font-semibold hover:bg-soft"><CalendarPlus className="size-4" />{t("Abrir no Calendário (iPhone/Mac)")}</a><a href={`https://calendar.google.com/calendar/r?cid=${encodeURIComponent(link.webcal_url)}`} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-md border border-line bg-surface px-3 text-sm font-semibold hover:bg-soft"><CalendarPlus className="size-4" />{t("Adicionar ao Google Agenda")}</a></div>
-          <p className="text-xs text-fg-muted">{t("Este link é pessoal: quem tiver ele vê seus treinos. Se vazar, gere um novo.")}</p>
-        </div>
-      ) : feed.data?.active ? (
-        <p className="text-sm text-fg-muted">{t("Calendário ativo desde {d}. Por segurança, o link só aparece quando é criado.", { d: fullDate(localDate(feed.data.created_at!)) })}</p>
-      ) : null}
-      <div className="flex flex-wrap gap-2">
-        <Button variant={feed.data?.active ? "secondary" : "primary"} icon={<CalendarPlus />} loading={create.isPending} onClick={() => create.mutate(undefined, { onSuccess: (r) => setLink(r), onError: toast.error })}>{feed.data?.active ? t("Gerar novo link") : t("Criar link do calendário")}</Button>
-        {feed.data?.active && <Button variant="ghost" loading={revoke.isPending} onClick={() => revoke.mutate(undefined, { onSuccess: () => { setLink(null); toast.success(t("Link desativado")); } })}>{t("Desativar")}</Button>}
-      </div>
     </Section>
   );
 }

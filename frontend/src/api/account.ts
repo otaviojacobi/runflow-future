@@ -39,8 +39,20 @@ export const useMarkNotificationsRead = () =>
   useMutation({ mutationFn: (ids?: string[]) => api.post("/me/notifications/read", ids ? { ids } : {}), onSuccess: () => { queryClient.invalidateQueries({ queryKey: notificationKeys.all }); queryClient.invalidateQueries({ queryKey: meKey }); } });
 
 // ---- account (C1)
-export const usePrefs = () => useQuery({ queryKey: ["me", "prefs"], queryFn: () => api.get<NotificationPrefs>("/me/prefs") });
-export const useUpdatePrefs = () => useMutation({ mutationFn: (v: PrefsPatch) => api.patch<NotificationPrefs>("/me/prefs", v), onSuccess: (p) => queryClient.setQueryData(["me", "prefs"], p) });
+const prefsKey = ["me", "prefs"] as const;
+export const usePrefs = () => useQuery({ queryKey: prefsKey, queryFn: () => api.get<NotificationPrefs>("/me/prefs") });
+/** Switches flip right away (optimistic) and go back if the save fails. */
+export const useUpdatePrefs = () => useMutation({
+  mutationFn: (v: PrefsPatch) => api.patch<NotificationPrefs>("/me/prefs", v),
+  onMutate: async (v) => {
+    await queryClient.cancelQueries({ queryKey: prefsKey });
+    const prev = queryClient.getQueryData<NotificationPrefs>(prefsKey);
+    if (prev) queryClient.setQueryData<NotificationPrefs>(prefsKey, { kinds: { ...prev.kinds, ...v.kinds } as NotificationPrefs["kinds"], paused: v.paused ?? prev.paused });
+    return { prev };
+  },
+  onError: (_e, _v, ctx) => { if (ctx?.prev) queryClient.setQueryData(prefsKey, ctx.prev); },
+  onSuccess: (p) => queryClient.setQueryData(prefsKey, p),
+});
 export const useSessions = () => useQuery({ queryKey: ["me", "sessions"], queryFn: () => api.get<{ items: UserSession[] }>("/me/sessions").then((r) => r.items) });
 export const useRevokeSession = () => useMutation({ mutationFn: (id: string) => api.del(`/me/sessions/${id}`), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me", "sessions"] }) });
 export const useRevokeOtherSessions = () => useMutation({ mutationFn: () => api.post<{ revoked: number }>("/me/sessions/revoke-others"), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me", "sessions"] }) });
@@ -49,8 +61,3 @@ export const useRemoveAvatar = () => useMutation({ mutationFn: () => api.del<Me>
 export const useLeaveClub = () => useMutation({ mutationFn: (clubId: string) => api.post(`/clubs/${clubId}/leave`), onSuccess: () => queryClient.invalidateQueries({ queryKey: meKey }) });
 export const useDeleteAccount = () => useMutation({ mutationFn: () => api.del("/me") });
 export const exportMyData = () => api.get<unknown>("/me/export");
-
-// ---- calendar feed (F29)
-export const useCalendarFeed = () => useQuery({ queryKey: ["me", "calendar-feed"], queryFn: () => api.get<{ active: boolean; created_at: string | null }>("/me/calendar-feed") });
-export const useCreateCalendarFeed = () => useMutation({ mutationFn: () => api.post<{ url: string; webcal_url: string; created_at: string }>("/me/calendar-feed"), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me", "calendar-feed"] }) });
-export const useRevokeCalendarFeed = () => useMutation({ mutationFn: () => api.del("/me/calendar-feed"), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me", "calendar-feed"] }) });

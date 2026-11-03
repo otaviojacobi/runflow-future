@@ -61,7 +61,7 @@ function ReleaseDialog({ club, monday, open, onOpenChange }: { club: Club; monda
   );
   return (
     <Dialog open={open} onOpenChange={onOpenChange} size="sm" title={t("Liberar a semana de {range}", { range })}
-      description={t("Os alunos passam a ver os treinos desta semana no app e no calendário.")}
+      description={t("Os alunos passam a ver os treinos desta semana no app.")}
       footer={<><Button variant="secondary" onClick={() => onOpenChange(false)}>{t("Cancelar")}</Button><Button icon={<Send />} loading={release.isPending} disabled={who === "group" && !group} onClick={submit}>{t("Liberar")}</Button></>}>
       <div className="grid gap-4">
         <Segmented label={t("Para quem")} value={who} onChange={setWho} options={[{ value: "all", label: t("Todos os alunos") }, { value: "group", label: t("Um grupo") }]} className="w-fit" />
