@@ -67,6 +67,7 @@ pub async fn remove(db: impl PgExecutor<'_>, id: Uuid) -> sqlx::Result<()> {
 
 pub struct Pending {
     pub user_id: Uuid,
+    pub club_id: Option<Uuid>,
     pub title: String,
     pub body: Option<String>,
     pub link: Option<String>,
@@ -80,7 +81,7 @@ pub async fn pending(
 ) -> sqlx::Result<Option<Pending>> {
     sqlx::query_as!(
         Pending,
-        "SELECT user_id, title, body, link, read_at, pushed_at FROM notifications WHERE id = $1 AND push_at IS NOT NULL",
+        "SELECT user_id, club_id, title, body, link, read_at, pushed_at FROM notifications WHERE id = $1 AND push_at IS NOT NULL",
         notification_id
     )
     .fetch_optional(db)

@@ -53,13 +53,20 @@ Needs the **Apple Developer Program** (US$ 99/year; as a company you also need a
    JSON in the password manager, never in the repo.
 
 ### 3. Check it end to end
-1. Build a development client: `eas build -p ios --profile development` / `-p android` (or a TestFlight / internal
-   testing build).
-2. Sign in, accept the permission prompt, then in the app Perfil → Notificações check that the device shows as on.
+1. Build a development client from `mobile/`: `eas build -p android --profile development` / `-p ios` (profiles in
+   `mobile/eas.json`; development and preview builds talk to QA), or a TestFlight / internal testing build.
+2. Sign in, open Perfil → Notificações → "Notificações neste aparelho" → **Ativar**, accept the permission prompt; the
+   card then says "Ligadas". (Expo Go can't receive remote push: there the card explains it.)
 3. Trigger something that notifies (e.g. a trainer assigns a workout) and the phone should buzz within seconds.
    Expo's push tool (expo.dev/notifications) can also send a test to an `ExponentPushToken[…]`.
 4. If nothing arrives: the worker logs `expo push` results (Grafana → API logs on QA); `DeviceNotRegistered` means the
    token is stale (the app re-registers on launch); credential errors show in the Expo dashboard's push receipts.
+
+## In the app
+- The permission is asked only when the person taps "Ativar"; every launch re-registers silently while it's allowed
+  (tokens change), unless they tapped "Desativar" on this phone. Signing out forgets the device first.
+- Pushes carry `{id, link, club_id}`: a tap switches to that club, opens the link in the app (or on the web when no
+  screen matches yet) and marks the notice read. The app icon shows the unread count.
 
 ## Defaults (D-045)
 Quiet for staff on purpose: feedback and new-member pushes start **off** for trainers and owners; workout, week,

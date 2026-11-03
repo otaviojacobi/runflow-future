@@ -9,6 +9,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { endSession } from "@/api/auth";
+import { PushBridge } from "@/components/PushBridge";
 import { setUnauthorizedHandler } from "@/lib/api";
 import { session } from "@/lib/session";
 import { queryClient } from "@/queryClient";
@@ -33,6 +34,7 @@ function Shell() {
     <>
       <StatusBar style={theme.mode === "dark" ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.color.canvas } }} />
+      <PushBridge />
       <Toaster />
     </>
   );

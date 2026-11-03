@@ -47,7 +47,8 @@ src/
               links (a notification's web path → the app's route when a screen matches), avatar (photo library →
               ≤ 512 px JPEG data URL), files (a text file through the share sheet; `.web.ts` downloads it),
               strava (connect: auth session or the deep link, the callback posted once per code), logo (photo
-              library → ≤ 512 px PNG data URL)
+              library → ≤ 512 px PNG data URL), push (this phone's push: permission, Expo token, register/forget,
+              badge; `.web.ts` no-ops); components/PushBridge = opens a tapped push in its club
   theme/      theme.ts (tokens → RN theme, club roles via @runflow/design/color), ThemeProvider (Runflow's theme,
               color mode) + ThemeScope (re-theme a subtree: a club's colors, forced light/dark)
   ui/         the UI kit: same names/variants as frontend/src/ui (index.ts lists them); icons.ts = Lucide icons, one
@@ -74,5 +75,7 @@ Preview every change at `/dev/components` (light and dark side by side, demo clu
 - **Club colors only when signed in (D-024):** sign-in, invite and onboarding-before-joining screens use Runflow's theme; apply the cached club theme only inside the signed-in app.
 - **First frame is themed (§7.8):** the club colors are read synchronously from `storage` before render; the splash stays until the session token is loaded. Never fetch the theme before showing the first screen.
 - Platform splits use `.web.ts` files (the web preview only; the product is Android/iOS).
-- Native modules must exist in Expo Go until we move to development builds (X10: push, widgets, health data).
+- Everything except phone push must keep working in Expo Go. Push needs a development build (`expo-dev-client`;
+  `cd mobile && eas build -p android --profile development`, profiles in `eas.json` point at QA) and the founder's
+  Expo project and credentials (`docs/ops/push-notifications.md`); in Expo Go the device card says so.
 - Accessibility: `accessibilityRole`/`accessibilityState` on touchables, 44 pt touch targets, visible text = accessible name.

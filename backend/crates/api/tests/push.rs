@@ -231,6 +231,7 @@ async fn devices_register_and_get_pushes(db: PgPool) {
     assert_eq!(msg["title"], "Marcos respondeu");
     assert!(msg["link"].as_str().unwrap().starts_with("/messages"));
     assert!(msg["id"].is_string());
+    assert!(msg["club_id"].is_string());
     // The dead subscription is forgotten; the notification is marked pushed.
     let left: i64 = sqlx::query_scalar("SELECT count(*) FROM push_tokens")
         .fetch_one(app.db())
@@ -394,6 +395,8 @@ async fn phones_get_pushes_through_expo(db: PgPool) {
     assert_eq!(m["body"], "Bora treinar amanhã?");
     assert!(m["data"]["link"].as_str().unwrap().starts_with("/messages"));
     assert!(m["data"]["id"].is_string());
+    // The club, so the app opens the link in the right one.
+    assert!(m["data"]["club_id"].is_string());
     // The uninstalled app's token is forgotten; the notification counts as pushed.
     let left: Vec<String> = sqlx::query_scalar("SELECT token FROM push_tokens")
         .fetch_all(app.db())

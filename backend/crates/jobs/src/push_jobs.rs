@@ -40,6 +40,7 @@ pub(crate) async fn send(w: &Worker, payload: &Value) -> Result<(), JobError> {
         "title": clip(&n.title, 120),
         "body": n.body.as_deref().map(|b| clip(b, 400)),
         "link": n.link,
+        "club_id": n.club_id,
     })
     .to_string();
     let mut retry = None;
@@ -47,7 +48,8 @@ pub(crate) async fn send(w: &Worker, payload: &Value) -> Result<(), JobError> {
     // The phone app: one Expo request for all of the person's phones.
     let phones: Vec<&push::Device> = devices.iter().filter(|d| d.platform != "web").collect();
     if let (Some(expo), false) = (&w.expo, phones.is_empty()) {
-        let data = json!({ "id": id, "link": n.link });
+        // The app switches to the notice's club before opening its link (club-scoped paths).
+        let data = json!({ "id": id, "link": n.link, "club_id": n.club_id });
         let title = clip(&n.title, 120);
         let body = n.body.as_deref().map(|b| clip(b, 400));
         for chunk in phones.chunks(expo_push::BATCH) {

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT user_id, title, body, link, read_at, pushed_at FROM notifications WHERE id = $1 AND push_at IS NOT NULL",
+  "query": "SELECT user_id, club_id, title, body, link, read_at, pushed_at FROM notifications WHERE id = $1 AND push_at IS NOT NULL",
   "describe": {
     "columns": [
       {
@@ -16,6 +16,17 @@
       },
       {
         "ordinal": 1,
+        "name": "club_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "notifications",
+            "name": "club_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
         "name": "title",
         "type_info": "Text",
         "origin": {
@@ -26,7 +37,7 @@
         }
       },
       {
-        "ordinal": 2,
+        "ordinal": 3,
         "name": "body",
         "type_info": "Text",
         "origin": {
@@ -37,7 +48,7 @@
         }
       },
       {
-        "ordinal": 3,
+        "ordinal": 4,
         "name": "link",
         "type_info": "Text",
         "origin": {
@@ -48,7 +59,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "read_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -59,7 +70,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "pushed_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -77,6 +88,7 @@
     },
     "nullable": [
       false,
+      true,
       false,
       true,
       true,
@@ -84,5 +96,5 @@
       true
     ]
   },
-  "hash": "77a593a76f5dd6f78593b99a23079649edeb51ec43a32a528a35c7f6749ed25f"
+  "hash": "a8870af79f5a8b1e074d9e492280aec81cb88b3f393094156b9b0c1f3d7f4039"
 }

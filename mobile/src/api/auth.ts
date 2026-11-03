@@ -5,6 +5,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { offline } from "@/lib/offline";
+import { forgetPushDevice } from "@/lib/push";
 import { session } from "@/lib/session";
 import { queryClient } from "@/queryClient";
 import { fetchMe, meKey } from "./me";
@@ -25,6 +26,8 @@ export async function endSession() {
   queryClient.clear();
 }
 export async function signOut() {
+  // This phone stops getting the person's pushes before the session (needed to say so) ends.
+  await forgetPushDevice();
   await api.post("/auth/logout").catch(() => undefined);
   await endSession();
 }

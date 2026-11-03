@@ -68,7 +68,7 @@ Every notification lands in the app: the notification center (W11) and the unrea
 | `billing` | owner | on |
 
 - The switches are read when the notification is created: it is pushed (`push_at` set, the push queued) only when its kind is on, push isn't paused and the person has a registered device.
-- Push reaches every device the person registered (`/me/push-tokens`) right away; one read in the app before it went out is skipped. A device the push service no longer knows is forgotten. The payload is `{title, body, link, id}`.
+- Push reaches every device the person registered (`/me/push-tokens`) right away; one read in the app before it went out is skipped. A device the push service no longer knows is forgotten. The payload is `{title, body, link, id, club_id}` (`club_id` null for account-wide notices: the apps switch to that club before opening `link`).
 
 ## Endpoints
 
