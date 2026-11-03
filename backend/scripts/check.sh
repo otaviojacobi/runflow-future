@@ -10,7 +10,7 @@ cd "$backend"
 
 echo "› assets in sync with design/dist and api/"
 if [ -d "$root/design/dist" ]; then
-  for pair in "design/dist/tokens.json:assets/design/tokens.json" "design/dist/color-fixtures.json:assets/design/color-fixtures.json" "api/starter-library.json:assets/starter-library.json" "api/exercise-catalog.json:assets/exercise-catalog.json" "api/schema.sql:migrations/0001_bootstrap.sql"; do
+  for pair in "design/dist/tokens.json:assets/design/tokens.json" "design/dist/color-fixtures.json:assets/design/color-fixtures.json" "design/dist/logo.json:assets/design/logo.json" "api/starter-library.json:assets/starter-library.json" "api/exercise-catalog.json:assets/exercise-catalog.json" "api/schema.sql:migrations/0001_bootstrap.sql"; do
     if ! cmp -s "$root/${pair%%:*}" "${pair##*:}"; then
       echo "  ${pair##*:} is stale: run backend/scripts/sync-assets.sh"; exit 1
     fi

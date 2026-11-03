@@ -1,24 +1,26 @@
 # Setup to-do (founder)
 
 What's still open for the environments. The full guide for building QA from zero (and what each piece does) is
-`docs/ops/qa-pi.md`. Tick boxes here as you go; I keep this list current as steps land.
+`docs/ops/qa-pi.md`. Done items stay here, crossed out, so the history is visible; I keep the list current as steps land.
 
-## Done (checked 2026-11-02)
+## Done (checked 2026-11-03)
 
 QA is live at **https://qa.runflow.club**:
 - **Domain and mail:** DNS is on Cloudflare with the mailboxes intact, and `runflow.club` redirects to QA. HTTP goes to HTTPS.
-- **Pi and tunnel:** the tunnel connects in São Paulo and `doctor` is all green. Debian updates are installed; the reboot to finish them is pending (see Now).
-- **E-mail:** Resend sends from `contato@`; sign-in codes arrive.
+- **Pi and tunnel:** the tunnel connects in São Paulo, `doctor` is all green, and Debian is up to date (rebooted on the new kernel).
+- **E-mail:** Resend sends from `contato@`. Sign-in codes arrive, and club e-mails go out in the club's colors.
 - **Strava:** the webhook is subscribed (id 382315).
-- **Deploys:** each one arrives within 5 minutes of a push (`runflow-update` timer). The nightly database backup runs at 03:30.
+- **Deploys:** each one arrives within 5 minutes of a push (`runflow-update` timer). When the database schema changes, QA
+  starts over with an empty database by itself (D-030). The nightly backup runs at 03:30 (database and storage).
 - **Speed:** the API answers in about 1 ms on the Pi and about 30 ms more through the tunnel. Bundles are served by Cloudflare's edge.
 - **Storage:** uploads (logos, avatars) live in Garage, a self-hosted S3, next to the API. Production will point the same settings at any S3.
 
 ## Now
 
-- [ ] **Power-cycle the Pi** (unplug, wait 10 s, plug in). It didn't come back from the reboot after the 2026-11-02
-  kernel update. If it's still not on the network after 3 minutes, plug in HDMI + keyboard and tell me what the screen
-  shows. The containers and timers start on their own once it boots.
+- [x] ~~**Power-cycle the Pi** after the 2026-11-02 kernel update.~~ Done; it's running the new kernel.
+- [x] ~~**Google sign-in**: `https://qa.runflow.club` as an authorized JavaScript origin of the web client.~~ Done (set early on).
+  "Continuar com Google" is live on QA (S9a). For local dev against the real API, also add `http://localhost:8080`.
+- [x] ~~**Logo**: pick one of the concepts.~~ Ritmo (2026-11-03), now applied everywhere (B1b).
 - [ ] **Serve the whole web app from the edge** (`docs/ops/qa-pi.md` §6, 5 minutes). Cloudflare → runflow.club → Caching:
   - **Cache Rules** → rule `QA web app at the edge`, expression
     `(http.host eq "qa.runflow.club" and not starts_with(http.request.uri.path, "/api/"))` → Eligible for cache ·
@@ -32,12 +34,9 @@ QA is live at **https://qa.runflow.club**:
 - [ ] **Change the Pi's password**: `ssh runflow@runflow-qa.local`, then `passwd`. The current one was shared in chat.
   Tell me if you want me to keep root access. If so, the cleanest way is a sudoers rule only for `apt` and `systemctl`.
 - [ ] **Keep a copy of the Pi's secrets** in your password manager: `scp runflow@runflow-qa.local:runflow/ops/qa/.env ~/runflow-qa.env`.
-  It holds the only copy of the database password and `ENCRYPTION_KEY`, which unlocks the stored Strava tokens.
-- [ ] **Google sign-in**: Google Cloud → APIs & Services → Credentials → the Web client → Authorized JavaScript origins:
-  `https://qa.runflow.club` and `http://localhost:8080`. The "Continuar com Google" button is live on QA now (S9a); until the
-  origin is added, Google answers it with an error.
+  It holds the only copy of the database password, `ENCRYPTION_KEY` (unlocks the stored Strava tokens) and Garage's keys.
 - [ ] **Strava**: strava.com/settings/api → Authorization Callback Domain = `qa.runflow.club`. "Conectar com Strava" is live on QA
-  now (S9a) and fails at Strava until this is set.
+  (S9a) and fails at Strava until this is set.
 
 ## Before the private beta
 
@@ -54,7 +53,7 @@ QA is live at **https://qa.runflow.club**:
 
 | Step | What you'll do |
 |---|---|
-| B1 Logo | Pick one of the concepts (or redirect) |
+| ~~B1 Logo~~ | ~~Pick one of the concepts~~ Done: Ritmo |
 | S9b Club subdomains | Tunnel → Routes → add `*.runflow.club` → `http://web:80` and a proxied DNS record `*` (club sites `<club>-qa.runflow.club`, D-029) |
 | S11 Smoke tests | One random secret, `openssl rand -hex 32`, saved twice: as GitHub secret `SMOKE_KEY` and as `SMOKE_KEY=` in the Pi's `.env` |
 | S12 Sentry | sentry.io → org → two projects (Rust: `runflow-api`, React: `runflow-web`) → their DSNs: `SENTRY_DSN` in the Pi's `.env`, GitHub variable `VITE_SENTRY_DSN` |
@@ -69,4 +68,4 @@ QA is live at **https://qa.runflow.club**:
 | Pin or roll back | `RUNFLOW_TAG=sha-<commit>` in `.env`, then `./update.sh` |
 | Health of everything | `docker compose run --rm api doctor` |
 | Drop the edge copy of the app | `./purge-edge.sh` |
-| Start over with an empty database (D-030) | `./reset-db.sh --yes` (takes a backup first) |
+| Start over with an empty database and storage (D-030) | `./reset-db.sh --yes` (takes a backup first) |

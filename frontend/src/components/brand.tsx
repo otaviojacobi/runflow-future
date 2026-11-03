@@ -1,17 +1,21 @@
 import type { ReactNode } from "react";
 import Color from "@runflow/design/color";
+import Logo from "@runflow/design/logo";
 import { tokens } from "@runflow/design/tokens";
 import type { Branding, Club } from "@/api/types";
 import { initials } from "@/lib/format";
 import { cn } from "@/ui";
 
-/** Runflow's own mark: always Runflow colors, never club-themed (D-018). Placeholder until the final logo. */
-export function RunflowMark({ size = 32, className }: { size?: number; className?: string }) {
+/** Runflow's mark, Ritmo (B1, @runflow/design/logo): always Runflow colors, never club-themed (D-018). `mono` draws the
+ * bars alone in the current text color (on brand or dark surfaces, print). */
+export function RunflowMark({ size = 32, className, mono }: { size?: number; className?: string; mono?: boolean }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" aria-hidden className={className}>
-      <rect width="32" height="32" rx="9" fill={tokens.seeds.brand} />
-      <path d="M6.5 21c3.2 0 4.4-8.5 8.7-8.5S20 21 25.5 21" fill="none" stroke={tokens.seeds.accent} strokeWidth="3.2" strokeLinecap="round" />
-      <circle cx="24.4" cy="9.8" r="2.5" fill={tokens.seeds.accent} />
+    <svg width={size} height={size} viewBox={`0 0 ${Logo.GRID} ${Logo.GRID}`} aria-hidden className={className}>
+      {!mono && <rect width={Logo.GRID} height={Logo.GRID} rx={Logo.TILE_RADIUS} fill={tokens.seeds.brand} />}
+      {Logo.BARS.map((b) => (
+        <rect key={b.x} x={b.x} y={b.top} width={Logo.BAR.width} height={Logo.BAR.baseline - b.top} rx={Logo.BAR.radius}
+          fill={mono ? "currentColor" : b.accent ? tokens.seeds.accent : tokens.palette.neutral["0"]} />
+      ))}
     </svg>
   );
 }

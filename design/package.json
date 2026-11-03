@@ -21,6 +21,12 @@
       "types": "./src/color.d.ts",
       "default": "./src/color.js"
     },
+    "./logo": {
+      "types": "./src/logo.d.ts",
+      "default": "./src/logo.js"
+    },
+    "./logo.svg": "./dist/logo.svg",
+    "./logo-mono.svg": "./dist/logo-mono.svg",
     "./fonts.css": "./assets/fonts/fonts.css",
     "./color-fixtures.json": "./dist/color-fixtures.json"
   },

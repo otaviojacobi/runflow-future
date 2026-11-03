@@ -24,7 +24,8 @@
     "e2e": "npm run e2e -w @runflow/frontend",
     "dev:mobile": "npm run web -w @runflow/mobile",
     "up": "docker compose up -d --build",
-    "doctor": "docker compose run --rm api doctor"
+    "doctor": "docker compose run --rm api doctor",
+    "icons": "node scripts/brand-icons.mjs"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.14"

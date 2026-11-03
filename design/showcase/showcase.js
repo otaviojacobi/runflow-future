@@ -59,8 +59,9 @@
     return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + body + "</svg>";
   }
   // Placeholder Runflow mark: a "flow" wave + runner dot. Always Runflow's colors (never club-themed).
+  // Runflow's mark, Ritmo (src/logo.js), in the brand seeds.
   const runflowMark = (size) =>
-    `<svg width="${size}" height="${size}" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="${T.seeds.brand}"/><path d="M6.5 21c3.2 0 4.4-8.5 8.7-8.5S20 21 25.5 21" fill="none" stroke="${T.seeds.accent}" stroke-width="3.2" stroke-linecap="round"/><circle cx="24.4" cy="9.8" r="2.5" fill="${T.seeds.accent}"/></svg>`;
+    window.RunflowLogo.svg({ size, colors: { tile: T.seeds.brand, ink: T.palette.neutral["0"], accent: T.seeds.accent } }).replace("<svg ", '<svg aria-hidden="true" ');
 
   // ---------- sample clubs: 0, 1 or 2 colors ----------
   const CLUBS = [

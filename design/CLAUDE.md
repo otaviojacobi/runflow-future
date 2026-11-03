@@ -18,11 +18,13 @@ Zero dependencies: Node ≥ 20 only. No `npm install`.
 ```
 tokens.json          SOURCE OF TRUTH (DTCG-style: $type/$value/{alias})
 src/color.js         color engine: OKLCH scales, roles with contrast guarantees, brandCss(), logo color suggestions
+src/logo.js          Runflow's mark, Ritmo (D-038): 48-grid geometry + svg() (CommonJS and window.RunflowLogo)
 build.mjs            tokens.json + color.js → dist/
 dist/                GENERATED, committed on purpose (diffs show real values)
   tokens.css         CSS variables (--rf-*), light/dark, text-style classes
   tokens.ts / .json  same data for TS apps and other languages
   tokens.js          classic-script global (window.RunflowTokens) for showcase/mocks
+  logo.svg / logo-mono.svg / logo.json  the mark: app tile, one color, geometry (backend e-mails sync logo.json)
   color-fixtures.json  golden outputs every port of color.js must reproduce: scales, roles, resolution, and the
                        stored club theme + CSS (`themes`). The backend Rust port is tested against it
 assets/fonts/        self-hosted Archivo + Inter (latin subset, OFL)
@@ -35,6 +37,7 @@ mocks/               (D3+) screen mocks
 - **Edit `tokens.json` or `src/color.js`, never `dist/`.** Run `node build.mjs` and commit `dist/` in the same commit.
 - **Everything visible is pt-BR** (labels, samples, aria-labels, alerts). Code, comments and this file are English.
 - **Pages use tokens only:** `var(--rf-*)` and `.rf-text-*` classes. No raw hex in CSS. The only exception is the Runflow logo mark, which reads `RunflowTokens.seeds`.
+- **The mark changes in `src/logo.js` only.** Then `node build.mjs`, `npm run icons` (repo root: PWA and mobile icons, favicon) and `backend/scripts/sync-assets.sh`.
 - **Pages must work from disk and from `serve.mjs`.** Classic `<script>` tags only, no ES modules, no CDN, no build step.
 - **Changing `color.js` changes every club's theme.** Review the `color-fixtures.json` diff on purpose. The backend's Rust port must be updated to match the new fixtures.
 - Modes: `data-theme="light|dark"` on `<html>` or on any element forces a mode; otherwise the OS preference wins.

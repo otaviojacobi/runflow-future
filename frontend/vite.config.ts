@@ -10,8 +10,8 @@ const API = process.env.RUNFLOW_API || "http://localhost:8787";
 export default defineConfig({
   plugins: [react(), tailwind()],
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
-  // @runflow/design/color is a UMD/CommonJS file: pre-bundle it so ESM imports work in dev.
-  optimizeDeps: { include: ["@runflow/design/color"] },
+  // @runflow/design/color and /logo are UMD/CommonJS files: pre-bundle them so ESM imports work in dev.
+  optimizeDeps: { include: ["@runflow/design/color", "@runflow/design/logo"] },
   server: {
     port: Number(process.env.PORT) || 8080,
     strictPort: true,

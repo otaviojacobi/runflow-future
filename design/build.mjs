@@ -2,7 +2,7 @@
 /**
  * Runflow token build. Zero dependencies (Node >= 20).
  *
- *   node build.mjs          -> writes dist/tokens.{css,ts,js,json} and dist/color-fixtures.json
+ *   node build.mjs          -> writes dist/tokens.{css,ts,js,json}, dist/color-fixtures.json and dist/logo.{svg,json}
  *   node build.mjs --check  -> exits 1 if dist/ is stale or a contrast guarantee fails (CI)
  *
  * dist/ is committed on purpose: diffs show the exact values a token change produces.
@@ -15,6 +15,7 @@ import { createRequire } from "node:module";
 const here = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const C = require("./src/color.js");
+const Logo = require("./src/logo.js");
 const src = JSON.parse(readFileSync(join(here, "tokens.json"), "utf8"));
 const CHECK = process.argv.includes("--check");
 
@@ -238,6 +239,10 @@ const files = {
     `export const tokens = ${json} as const;\n\n` +
     `export type Tokens = typeof tokens;\nexport type ColorMode = keyof typeof tokens.semantic;\nexport type SemanticColors = (typeof tokens.semantic)["light"];\n`,
   "dist/tokens.js": `${header}\n(function (root) { root.RunflowTokens = ${json}; })(typeof self !== "undefined" ? self : this);\n`,
+  // The mark (B1): the app tile in the brand seeds, a one-color version, and the geometry for other ports (e-mails).
+  "dist/logo.svg": Logo.svg({ colors: { tile: seeds.brand, ink: palette.neutral["0"], accent: seeds.accent } }) + "\n",
+  "dist/logo-mono.svg": Logo.svg({ tile: "none", colors: { ink: "currentColor", accent: "currentColor" } }) + "\n",
+  "dist/logo.json": JSON.stringify({ $description: "Runflow's mark (Ritmo), 48 × 48 grid. Source: design/src/logo.js.", grid: Logo.GRID, tileRadius: Logo.TILE_RADIUS, bar: Logo.BAR, bars: Logo.BARS }, null, 2) + "\n",
   "dist/color-fixtures.json":
     JSON.stringify({ $description: "Golden fixtures: any port of src/color.js (Rust, Swift, Kotlin…) must reproduce these exactly.", env, defaults: { brand: seeds.brand, accent: seeds.accent }, resolution, fixtures, themes }, null, 2) + "\n",
 };

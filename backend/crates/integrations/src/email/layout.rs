@@ -12,6 +12,52 @@ static TOKENS: LazyLock<Value> = LazyLock::new(|| {
         .expect("assets/design/tokens.json is valid JSON")
 });
 
+/// Runflow's mark, Ritmo (`assets/design/logo.json`, a synced copy of `design/dist/logo.json`).
+static LOGO: LazyLock<Value> = LazyLock::new(|| {
+    serde_json::from_str(include_str!("../../../../assets/design/logo.json"))
+        .expect("assets/design/logo.json is valid JSON")
+});
+
+/// The mark in HTML at `size` px: most e-mail clients drop SVG, so the tile and its bars are inline blocks sitting on
+/// one baseline, sized from the logo's 48-grid geometry and colored with the brand tokens.
+fn mark_html(size: u64) -> String {
+    let f = |v: &Value| v.as_f64().unwrap_or_default();
+    let k = size as f64 / f(&LOGO["grid"]);
+    let px = |v: f64| (v * k).round() as u64;
+    let (width, baseline) = (f(&LOGO["bar"]["width"]), f(&LOGO["bar"]["baseline"]));
+    let bars = LOGO["bars"]
+        .as_array()
+        .map(Vec::as_slice)
+        .unwrap_or_default();
+    let top = bars.iter().map(|b| f(&b["top"])).fold(f64::MAX, f64::min);
+    let html: String = bars
+        .iter()
+        .enumerate()
+        .map(|(i, b)| {
+            let gap = bars.get(i + 1).map(|n| px(f(&n["x"]) - f(&b["x"]) - width)).unwrap_or(0);
+            let fill = if b["accent"].as_bool().unwrap_or(false) {
+                color(&["accent", "solid"])
+            } else {
+                color(&["brand", "onSolid"])
+            };
+            format!(
+                r#"<span style="display:inline-block;width:{w}px;height:{h}px;margin-right:{gap}px;border-radius:{r}px;background:{fill};vertical-align:bottom"></span>"#,
+                w = px(width),
+                h = px(baseline - f(&b["top"])),
+                r = px(f(&LOGO["bar"]["radius"])),
+            )
+        })
+        .collect();
+    format!(
+        r#"<span style="display:inline-block;box-sizing:border-box;width:{size}px;height:{size}px;padding:{pt}px 0 0 {pl}px;border-radius:{r}px;background:{brand};vertical-align:middle;margin-right:{s2}px;line-height:0;font-size:0">{html}</span>"#,
+        pt = px(top),
+        pl = bars.first().map(|b| px(f(&b["x"]))).unwrap_or(0),
+        r = px(f(&LOGO["tileRadius"])),
+        brand = color(&["brand", "solid"]),
+        s2 = space("2"),
+    )
+}
+
 fn color(path: &[&str]) -> String {
     let mut v = &TOKENS["semantic"]["light"];
     for k in path {
@@ -145,14 +191,7 @@ fn runflow_colors() -> Colors {
 /// Wrap already-escaped `body_html` (see [`paragraph`]) in the Runflow frame. `title` and `footer` are plain text.
 pub fn layout(title: &str, body_html: &str, action: Option<Action<'_>>, footer: &str) -> String {
     let c = runflow_colors();
-    let header = format!(
-        r#"<span style="display:inline-block;width:{s2}px;height:{s2}px;border-radius:{full}px;background:{accent};border:{s1}px solid {brand};vertical-align:middle;margin-right:{s2}px"></span>runflow"#,
-        s1 = space("1"),
-        s2 = space("2"),
-        full = radius("full"),
-        accent = c.accent,
-        brand = c.brand,
-    );
+    let header = format!("{}runflow", mark_html(space("8")));
     frame(&c, &header, title, body_html, action, &escape_html(footer))
 }
 
@@ -269,6 +308,10 @@ mod tests {
         assert!(html.contains("a=1&amp;b=2"));
         let brand = color(&["brand", "solid"]);
         assert!(brand.starts_with('#') && html.contains(&brand));
+        // The Ritmo mark in HTML: four bars, the last in Volt, on the brand tile (32 px = space 8).
+        assert_eq!(html.matches("vertical-align:bottom").count(), 4);
+        assert!(html.contains(&format!("background:{}", color(&["accent", "solid"]))));
+        assert!(html.contains("width:32px;height:32px"));
         assert!(html.contains("lang=\"pt-BR\"") && html.contains("font-size:16px"));
     }
 
