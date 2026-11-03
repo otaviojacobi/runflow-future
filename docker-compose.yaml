@@ -30,6 +30,18 @@ services:
 
   # S3-compatible object storage (D-037): logos, avatars, activity files. One node; it creates the bucket and
   # the API's key on first start (ops/garage/garage.toml).
+  # Database viewer for the local Postgres: http://localhost:8091 (read-only; local only).
+  pgweb:
+    image: sosedoff/pgweb:0.17.0
+    command: ["--readonly", "--skip-open", "--lock-session", "--no-idle-timeout"]
+    environment:
+      PGWEB_DATABASE_URL: postgres://${POSTGRES_USER:-runflow}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-runflow}?sslmode=disable
+    ports:
+      - "127.0.0.1:8091:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   garage:
     image: dxflrs/garage:v2.5.0
     restart: unless-stopped

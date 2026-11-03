@@ -25,7 +25,9 @@
     "dev:mobile": "npm run web -w @runflow/mobile",
     "up": "docker compose up -d --build",
     "doctor": "docker compose run --rm api doctor",
-    "icons": "node scripts/brand-icons.mjs"
+    "icons": "node scripts/brand-icons.mjs",
+    "eas": "bash mobile/scripts/eas.sh",
+    "apk": "bash mobile/scripts/eas.sh build --platform android --profile preview --non-interactive"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.14"

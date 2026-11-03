@@ -10,6 +10,9 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://qa.runflow.club/api/v1",
         "EXPO_PUBLIC_WEB_URL": "https://qa.runflow.club"
+      },
+      "android": {
+        "buildType": "apk"
       }
     },
     "preview": {
@@ -17,7 +20,11 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://qa.runflow.club/api/v1",
         "EXPO_PUBLIC_WEB_URL": "https://qa.runflow.club"
-      }
+      },
+      "android": {
+        "buildType": "apk"
+      },
+      "autoIncrement": true
     },
     "production": {
       "autoIncrement": true

@@ -1,4 +1,4 @@
-# Runflow QA (Raspberry Pi 5): everything behind one Cloudflare Tunnel, nothing exposed on the network.
+# Runflow QA (Intel NUC, D-046): everything behind one Cloudflare Tunnel; only the database viewer (pgweb, :8091) is on the LAN.
 #   qa.runflow.club → web (static app + /api proxy) → api (+ worker) → postgres, valkey
 #   grafana-qa.runflow.club → grafana (logs in Loki, metrics in Prometheus, both collected by Alloy; D-041)
 # Images are built for arm64 by GitHub Actions (.github/workflows/images.yml) and pulled from GHCR.
@@ -106,6 +106,22 @@ services:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in ops/qa/.env (Cloudflare Zero Trust → Tunnels)}
     depends_on:
       - web
+
+  # ---------------------------------------------------------------- database viewer: pgweb, read-only, on the LAN
+  # only (not in the tunnel): http://runflow-qa.local:8091 (or the NUC's IP), user `runflow`, PGWEB_PASSWORD in .env.
+  pgweb:
+    image: sosedoff/pgweb:0.17.0
+    restart: unless-stopped
+    command: ["--readonly", "--skip-open", "--lock-session", "--no-idle-timeout"]
+    environment:
+      PGWEB_DATABASE_URL: postgres://${POSTGRES_USER:-runflow}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-runflow}?sslmode=disable
+      PGWEB_AUTH_USER: runflow
+      PGWEB_AUTH_PASS: ${PGWEB_PASSWORD:?set PGWEB_PASSWORD in ops/qa/.env}
+    ports:
+      - "8091:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   # ---------------------------------------------------------------- observability (D-041): QA only; production
   # sends to Grafana Cloud (D-040). Configs in ops/qa/observability/.
