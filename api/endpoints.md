@@ -108,7 +108,7 @@ Every user decides what reaches them and how. Per **kind**: `app` (the notificat
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
 | GET | `/me/connections` | `{items: [{provider, available, connection}]}` (Garmin: `available: false` until the program is approved) | A4, C1 |
-| POST | `/me/connections/strava/start` | → `{authorize_url, state}`; Strava sends the person back to `{app}/connect/strava?code&state&scope` (mock: in-app fake consent page). `503 strava.unavailable` when not configured | A4, C1 |
+| POST | `/me/connections/strava/start` `{client?: web \| app}` | → `{authorize_url, state, redirect_uri}`; Strava sends the person back to `redirect_uri` with `?code&state&scope`: the web app's `{app}/connect/strava`, or for the phone app (`client: app`, Strava's mobile page that opens the Strava app) `runflow://<host of the web app>/connect/strava`, which the app hands to the callback below. Mock: the apps show their own fake consent and call the callback with `mock-code`. `422` on another client, `503 strava.unavailable` when not configured | A4, C1, X5 |
 | POST | `/me/connections/strava/callback` `{code, state, scope}` | Finish OAuth (state is signed, per person, 15 min): tokens stored encrypted, the last 30 days are imported in the background. `400 strava.denied` / `strava.state_invalid` / `strava.scope` (activities not granted), `409 strava.taken` (that Strava account is linked to another person). Mock: imports sample activities | A4, C1 |
 | DELETE | `/me/connections/{provider}` | Disconnect and delete that provider's data (§5) | C1 |
 | GET | `/me/activities?from&to&cursor` | My activities, newest first; each has `matched_workout` (id, title, date, compliance) or null | M4 |

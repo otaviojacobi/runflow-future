@@ -119,6 +119,35 @@ async fn connect_sync_and_disconnect(db: PgPool) {
     let authorize = start.ok()["authorize_url"].as_str().unwrap().to_string();
     assert!(authorize.starts_with(&format!("{url}/oauth/authorize?client_id=123&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fconnect%2Fstrava")));
     let state = start.body["state"].as_str().unwrap().to_string();
+    assert_eq!(
+        start.body["redirect_uri"],
+        "http://localhost:8080/connect/strava"
+    );
+    // The phone app: Strava's mobile page and a redirect back into the app on the callback domain.
+    let app_start = app
+        .post(
+            "/v1/me/connections/strava/start",
+            Some(&ana),
+            json!({ "client": "app" }),
+        )
+        .await;
+    assert_eq!(
+        app_start.ok()["redirect_uri"],
+        "runflow://localhost/connect/strava"
+    );
+    assert!(
+        app_start.body["authorize_url"]
+            .as_str()
+            .unwrap()
+            .starts_with(&format!("{url}/oauth/mobile/authorize?client_id=123&redirect_uri=runflow%3A%2F%2Flocalhost%2Fconnect%2Fstrava"))
+    );
+    app.post(
+        "/v1/me/connections/strava/start",
+        Some(&ana),
+        json!({ "client": "tv" }),
+    )
+    .await
+    .problem(422, "validation.failed");
 
     // Bad state, missing code, missing activity scope, a refused code.
     let cb = "/v1/me/connections/strava/callback";

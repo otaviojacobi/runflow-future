@@ -14,8 +14,11 @@ export default function register(h) {
   });
   h.post("/v1/me/connections/strava/start", (ctx) => {
     ctx.user();
+    const client = ctx.body?.client ?? "web";
+    if (!["web", "app"].includes(client)) h.invalid([{ field: "client", message: "Cliente inválido." }]);
     const state = h.uuid("oauth").slice(0, 8);
-    return { authorize_url: `/dev/strava/autorizar?state=${state}`, state };
+    const redirect_uri = client === "app" ? "runflow://localhost/connect/strava" : "/connect/strava";
+    return { authorize_url: `/dev/strava/autorizar?state=${state}`, state, redirect_uri };
   });
   h.post("/v1/me/connections/strava/callback", (ctx) => {
     const u = ctx.user();

@@ -85,6 +85,16 @@ impl StravaClient {
 
     /// Where to send the person to approve access. `redirect_uri` must be on the app's authorized domain.
     pub fn authorize_url(&self, redirect_uri: &str, state: &str) -> String {
+        self.authorize_at("/oauth/authorize", redirect_uri, state)
+    }
+
+    /// The phone app's variant: opens the Strava app when it's installed (else Strava's site), then returns to
+    /// `redirect_uri` (`runflow://<callback domain>/…`).
+    pub fn mobile_authorize_url(&self, redirect_uri: &str, state: &str) -> String {
+        self.authorize_at("/oauth/mobile/authorize", redirect_uri, state)
+    }
+
+    fn authorize_at(&self, path: &str, redirect_uri: &str, state: &str) -> String {
         let enc = |s: &str| {
             s.bytes()
                 .map(|b| {
@@ -97,7 +107,7 @@ impl StravaClient {
                 .collect::<String>()
         };
         format!(
-            "{}/oauth/authorize?client_id={}&redirect_uri={}&response_type=code&approval_prompt=auto&scope={}&state={}",
+            "{}{path}?client_id={}&redirect_uri={}&response_type=code&approval_prompt=auto&scope={}&state={}",
             self.base,
             enc(&self.client_id),
             enc(redirect_uri),

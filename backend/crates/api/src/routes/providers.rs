@@ -84,12 +84,38 @@ async fn connections(State(state): State<AppState>, auth: Auth) -> Result<Json<V
     ] })))
 }
 
-async fn strava_start(State(state): State<AppState>, auth: Auth) -> Result<Json<Value>, Problem> {
+/// The phone app's URL scheme (`mobile/app.json`): Strava sends it back to `runflow://<callback domain>/connect/strava`.
+const APP_SCHEME: &str = "runflow";
+
+async fn strava_start(
+    State(state): State<AppState>,
+    auth: Auth,
+    body: Body,
+) -> Result<Json<Value>, Problem> {
     let client = state.strava.as_ref().ok_or_else(unavailable)?;
+    let app = match body.str("client").as_deref() {
+        None | Some("web") => false,
+        Some("app") => true,
+        Some(_) => return Err(Problem::field("client", "Cliente inválido.")),
+    };
     let st = sign_state(&state, auth.user_id, Utc::now().timestamp() + STATE_TTL_S);
-    let redirect = format!("{}/connect/strava", state.settings.public_app_url);
+    let web = state.settings.public_app_url.trim_end_matches('/');
+    let (authorize_url, redirect) = if app {
+        // Strava accepts a custom scheme when its host is the app's callback domain (PUBLIC_APP_URL's host).
+        let host = web
+            .split_once("://")
+            .map_or(web, |(_, rest)| rest)
+            .split(['/', ':'])
+            .next()
+            .unwrap_or_default();
+        let redirect = format!("{APP_SCHEME}://{host}/connect/strava");
+        (client.mobile_authorize_url(&redirect, &st), redirect)
+    } else {
+        let redirect = format!("{web}/connect/strava");
+        (client.authorize_url(&redirect, &st), redirect)
+    };
     Ok(Json(
-        json!({ "authorize_url": client.authorize_url(&redirect, &st), "state": st }),
+        json!({ "authorize_url": authorize_url, "state": st, "redirect_uri": redirect }),
     ))
 }
 
