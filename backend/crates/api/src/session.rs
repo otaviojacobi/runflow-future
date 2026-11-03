@@ -176,6 +176,7 @@ mod tests {
             cookie_domain: Some(".runflow.club".into()),
             cookie_secure: true,
             dev_affordances: false,
+            smoke_key: None,
         }
     }
 

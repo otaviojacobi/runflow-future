@@ -66,6 +66,7 @@ pub fn settings(dev: bool) -> ApiSettings {
             cookie_domain: None,
             cookie_secure: false,
             dev_affordances: dev,
+            smoke_key: Some("smoke-test-key".into()),
         },
     }
 }

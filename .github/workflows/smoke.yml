@@ -1,0 +1,132 @@
+name: smoke
+
+# S11 (D-034): the main loop (sign in, club, invite, plan and release, feedback) through the real backend.
+# - local: on every push and pull request, against a backend started here (development, e-mails in the log).
+# - qa: after the images are published, once QA reports the new commit, against https://qa.runflow.club.
+#   Needs the SMOKE_KEY secret (the same value as SMOKE_KEY in the Pi's ops/qa/.env); skipped without it.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_run:
+    workflows: [images]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: smoke-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local:
+    name: Smoke against a local backend
+    if: github.event_name != 'workflow_run'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: runflow
+          POSTGRES_PASSWORD: runflow
+          POSTGRES_DB: runflow
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U runflow"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
+    env:
+      CARGO_TERM_COLOR: always
+      SQLX_OFFLINE: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: backend
+      - name: Build the API
+        working-directory: backend
+        run: cargo build -p runflow
+      - name: Start the API (development, e-mails in the log)
+        working-directory: backend
+        env:
+          RUNFLOW_ENV: development
+          DATABASE_URL: postgres://runflow:runflow@localhost:5432/runflow
+          EMAIL_PROVIDER: log
+          STORAGE_BACKEND: disk
+          STORAGE_DIR: /tmp/runflow-uploads
+          PUBLIC_APP_URL: http://localhost:4173
+          PORT: "3000"
+        run: |
+          export SESSION_SECRET="$(openssl rand -base64 32)" ENCRYPTION_KEY="$(openssl rand -base64 32)"
+          nohup ./target/debug/runflow all > /tmp/api.log 2>&1 &
+          for i in $(seq 1 60); do curl -fs localhost:3000/v1/health && exit 0; sleep 1; done
+          cat /tmp/api.log; exit 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build and serve the web app (real backend)
+        working-directory: frontend
+        run: |
+          VITE_MOCK=false npm run build
+          RUNFLOW_API=http://localhost:3000 nohup npx vite preview --port 4173 --strictPort > /tmp/web.log 2>&1 &
+          for i in $(seq 1 30); do curl -fs -o /dev/null localhost:4173 && exit 0; sleep 1; done
+          cat /tmp/web.log; exit 1
+      - name: Install Chromium
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Smoke
+        working-directory: frontend
+        env:
+          CI: "true"
+          SMOKE_URL: http://localhost:4173
+        run: npx playwright test -c playwright.smoke.config.ts
+      - name: API log
+        if: failure()
+        run: tail -200 /tmp/api.log
+
+  qa:
+    name: Smoke against QA
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    env:
+      SMOKE_KEY: ${{ secrets.SMOKE_KEY }}
+      SMOKE_URL: https://qa.runflow.club
+    steps:
+      - name: Needs the SMOKE_KEY secret
+        if: env.SMOKE_KEY == ''
+        run: echo "::notice::SMOKE_KEY isn't set; skipping the QA smoke test (setup-todo.md)"
+      - uses: actions/checkout@v4
+        if: env.SMOKE_KEY != ''
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - name: Wait until QA runs this commit
+        if: env.SMOKE_KEY != ''
+        run: |
+          sha="${{ github.event.workflow_run.head_sha }}"; want="${sha:0:7}"
+          for i in $(seq 1 60); do
+            v=$(curl -fs "$SMOKE_URL/api/v1/health" | sed -n 's/.*"version":"[^"+]*+\([0-9a-f]*\)".*/\1/p')
+            [ "$v" = "$want" ] && echo "QA runs $v" && exit 0
+            echo "QA runs ${v:-?}, waiting for $want"; sleep 20
+          done
+          echo "::error::QA didn't pick up $want within 20 minutes"; exit 1
+      - uses: actions/setup-node@v4
+        if: env.SMOKE_KEY != ''
+        with:
+          node-version: 24
+          cache: npm
+      - if: env.SMOKE_KEY != ''
+        run: npm ci
+      - name: Install Chromium
+        if: env.SMOKE_KEY != ''
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+      - name: Smoke
+        if: env.SMOKE_KEY != ''
+        working-directory: frontend
+        env:
+          CI: "true"
+        run: npx playwright test -c playwright.smoke.config.ts

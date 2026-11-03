@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT EXISTS (SELECT 1 FROM memberships WHERE user_id = $1 AND role = 'owner' AND status = 'active') AS \"x!\"",
+  "query": "SELECT EXISTS (SELECT 1 FROM memberships m JOIN clubs c ON c.id = m.club_id\n                           WHERE m.user_id = $1 AND m.role = 'owner' AND m.status = 'active' AND c.deleted_at IS NULL) AS \"x!\"",
   "describe": {
     "columns": [
       {
@@ -19,5 +19,5 @@
       null
     ]
   },
-  "hash": "606c5b572e507c9e336d91718ef550aca3cf629e0aeb6287b51248a9ada74e7b"
+  "hash": "be1b85c9cb3215b5a67acceb8146c9d06b06caa5d70aad5c5d82d35aeafc453f"
 }

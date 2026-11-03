@@ -63,6 +63,8 @@ pub struct Secrets {
     pub session_secret: Option<Secret>,
     /// Encrypts provider tokens at rest (S5).
     pub encryption_key: Option<Secret>,
+    /// Smoke tests on deployed environments (D-034): unlocks sign-in codes for `@smoke.runflow.club`.
+    pub smoke_key: Option<Secret>,
 }
 
 #[derive(Debug, Clone)]
@@ -260,6 +262,7 @@ impl Config {
 
         let secrets = Secrets {
             session_secret: e.secret("SESSION_SECRET"),
+            smoke_key: e.secret("SMOKE_KEY"),
             encryption_key: e.secret("ENCRYPTION_KEY"),
         };
         for (name, value) in [

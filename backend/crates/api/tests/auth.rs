@@ -568,6 +568,12 @@ async fn delete_account_anonymizes_and_allows_a_fresh_start(db: PgPool) {
     app.delete("/v1/me", Some(&owner))
         .await
         .problem(409, "account.owns_club");
+    // Closing the club (as the message suggests) lets the owner go.
+    sqlx::query("UPDATE clubs SET deleted_at = now()")
+        .execute(app.db())
+        .await
+        .unwrap();
+    assert_eq!(app.delete("/v1/me", Some(&owner)).await.status, 204);
 
     let t = app.sign_in("ana@email.com").await;
     let export = app.get("/v1/me/export", Some(&t)).await;
@@ -701,4 +707,48 @@ async fn google_sign_in_creates_and_links_accounts(db: PgPool) {
         .await
         .unwrap();
     assert_eq!(n, 2, "email + google identities");
+}
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn smoke_test_sign_in_needs_the_key_and_the_domain(db: PgPool) {
+    // Production-like: no dev codes in responses.
+    let app = TestApp::with(db, false, None);
+    let start = |email: &'static str, key: Option<&'static str>| {
+        let headers: Vec<(&str, &str)> = key.map(|k| vec![("x-smoke-key", k)]).unwrap_or_default();
+        let app = &app;
+        async move {
+            app.call(
+                Method::POST,
+                "/v1/auth/email/start",
+                None,
+                Some(json!({ "email": email })),
+                &headers,
+            )
+            .await
+        }
+    };
+    let ok = start("owner-1@smoke.runflow.club", Some("smoke-test-key")).await;
+    assert_eq!(ok.ok()["dev_code"].as_str().map(str::len), Some(6));
+    assert!(
+        start("owner-2@smoke.runflow.club", Some("wrong"))
+            .await
+            .ok()["dev_code"]
+            .is_null()
+    );
+    assert!(start("owner-3@smoke.runflow.club", None).await.ok()["dev_code"].is_null());
+    assert!(
+        start("ana@email.com", Some("smoke-test-key")).await.ok()["dev_code"].is_null(),
+        "only the smoke domain"
+    );
+    // Nothing was e-mailed to the smoke domain.
+    let to_smoke = app
+        .state
+        .mailer
+        .outbox()
+        .unwrap()
+        .list()
+        .iter()
+        .filter(|m| m.email.to[0].ends_with("@smoke.runflow.club"))
+        .count();
+    assert_eq!(to_smoke, 0);
 }

@@ -8,7 +8,9 @@ use axum::{Json, Router};
 use chrono::{Duration, Utc};
 use runflow_db::auth as db;
 use runflow_db::models::User;
-use runflow_integrations::email::{Email, code_block, escape_html, layout, paragraph};
+use runflow_integrations::email::{
+    Email, code_block, escape_html, is_smoke_address, layout, paragraph,
+};
 use runflow_integrations::google::GoogleError;
 use serde::Serialize;
 use serde_json::json;
@@ -47,8 +49,22 @@ fn read_email(body: &Body) -> Result<String, Problem> {
         .ok_or_else(|| Problem::field("email", "Digite um e-mail válido, como nome@email.com."))
 }
 
+/// A smoke-test sign-in (D-034): the `SMOKE_KEY` header for a `@smoke.runflow.club` address.
+fn smoke(state: &AppState, headers: &HeaderMap, email: &str) -> bool {
+    let (Some(key), Some(given)) = (
+        state.settings.auth.smoke_key.as_deref(),
+        headers.get("x-smoke-key").and_then(|v| v.to_str().ok()),
+    ) else {
+        return false;
+    };
+    is_smoke_address(email)
+        && aws_lc_rs::constant_time::verify_slices_are_equal(key.as_bytes(), given.as_bytes())
+            .is_ok()
+}
+
 async fn email_start(
     State(state): State<AppState>,
+    headers: HeaderMap,
     body: Body,
 ) -> Result<Json<serde_json::Value>, Problem> {
     let email = read_email(&body)?;
@@ -97,8 +113,8 @@ async fn email_start(
         ));
     }
     let mut out = json!({ "sent": true, "expires_in_s": CODE_TTL_MIN * 60 });
-    if state.settings.auth.dev_affordances {
-        // Development without real e-mail: hand the code back like the mock does.
+    if state.settings.auth.dev_affordances || smoke(&state, &headers, &email) {
+        // Development without real e-mail (like the mock), or a smoke test (its address gets no e-mail).
         out["dev_code"] = json!(code);
     }
     Ok(Json(out))

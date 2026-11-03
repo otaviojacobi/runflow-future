@@ -41,6 +41,15 @@ impl Email {
 }
 
 /// E-mails "sent" by the log provider, newest first (dev outbox, tests). Bounded.
+/// The smoke tests' accounts (D-034) live on this domain; nothing is ever e-mailed there.
+pub const SMOKE_DOMAIN: &str = "smoke.runflow.club";
+
+pub fn is_smoke_address(email: &str) -> bool {
+    email
+        .rsplit_once('@')
+        .is_some_and(|(_, d)| d.eq_ignore_ascii_case(SMOKE_DOMAIN))
+}
+
 #[derive(Clone, Default)]
 pub struct Outbox(Arc<Mutex<VecDeque<Logged>>>);
 
@@ -183,6 +192,12 @@ impl Mailer {
     pub async fn send(&self, email: &Email) -> Result<Sent, EmailError> {
         if email.to.is_empty() {
             return Err(EmailError::Config("no recipients".into()));
+        }
+        // The smoke tests' throwaway accounts (D-034) never get e-mail: that domain takes none, and bounces would
+        // hurt the sender's reputation.
+        if email.to.iter().all(|t| is_smoke_address(t)) {
+            tracing::info!(target: "runflow::email", to = ?email.to, subject = %email.subject, "e-mail to a smoke-test address skipped");
+            return Ok(Sent { id: "smoke".into() });
         }
         match self {
             Self::Resend(r) => r.send(email).await,

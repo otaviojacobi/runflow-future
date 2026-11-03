@@ -186,6 +186,11 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
             cookie_name: config.http.cookie_name.clone(),
             cookie_domain: config.http.cookie_domain.clone(),
             cookie_secure: config.http.public_app_url.starts_with("https://"),
+            smoke_key: config
+                .secrets
+                .smoke_key
+                .as_ref()
+                .map(|k| k.expose().to_string()),
             dev_affordances: config.env == RunEnv::Development
                 && mailer.provider() == Provider::Log,
         },

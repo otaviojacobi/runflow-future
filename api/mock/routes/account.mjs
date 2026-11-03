@@ -100,7 +100,8 @@ export default function register(h) {
   h.delete("/v1/me", (ctx) => {
     const u = ctx.user();
     const now = h.nowIso();
-    if (h.db.memberships.some((m) => m.user_id === u.id && m.role === "owner" && m.status === "active"))
+    // Owner of a club that's still open (closing the club is one way out).
+    if (h.db.memberships.some((m) => m.user_id === u.id && m.role === "owner" && m.status === "active" && !h.db.clubs.find((c) => c.id === m.club_id)?.deleted_at))
       h.fail(409, "account.owns_club", "Você ainda é gestor de um clube", "Transfira a gestão ou encerre o clube antes de excluir sua conta.");
     // LGPD: anonymize; training history stays with the clubs under the anonymized account.
     Object.assign(u, { deleted_at: now, email: `deleted+${u.id}@runflow.club`, name: "Conta excluída", phone: null, birth_date: null, sex: null, avatar_url: null });

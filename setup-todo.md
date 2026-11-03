@@ -39,6 +39,10 @@ QA is live at **https://qa.runflow.club**:
   Published application: subdomain `*`, domain `runflow.club`, service `http://web:80`. If Cloudflare doesn't create it,
   add a proxied DNS record `*` CNAME → `<tunnel-id>.cfargotunnel.com`. Explicit records (`qa`, `www`, mail) keep winning.
   Then `https://<club-slug>-qa.runflow.club` opens that club's sign-in. The Pi is already configured.
+- [ ] **Smoke tests on QA** (S11): one random secret saved in two places, so CI can run the main loop on QA after each deploy.
+  `K=$(openssl rand -hex 32)`, then `gh secret set SMOKE_KEY --body "$K"` (or GitHub → Settings → Secrets → Actions) and,
+  on the Pi, `SMOKE_KEY=<same value>` in `~/runflow/ops/qa/.env` followed by `./update.sh`. Until then the QA job skips
+  itself; the smoke run against a backend started in CI needs nothing.
 - [ ] **Strava**: strava.com/settings/api → Authorization Callback Domain = `qa.runflow.club`. "Conectar com Strava" is live on QA
   (S9a) and fails at Strava until this is set.
 
@@ -58,7 +62,6 @@ QA is live at **https://qa.runflow.club**:
 | Step | What you'll do |
 |---|---|
 | ~~B1 Logo~~ | ~~Pick one of the concepts~~ Done: Ritmo |
-| S11 Smoke tests | One random secret, `openssl rand -hex 32`, saved twice: as GitHub secret `SMOKE_KEY` and as `SMOKE_KEY=` in the Pi's `.env` |
 | S12 Sentry | sentry.io → org → two projects (Rust: `runflow-api`, React: `runflow-web`) → their DSNs: `SENTRY_DSN` in the Pi's `.env`, GitHub variable `VITE_SENTRY_DSN` |
 | S13 Grafana | Choose between Grafana Cloud's free tier (nothing to run) and the stack on the Pi (no account, uses ~1 GB RAM) |
 

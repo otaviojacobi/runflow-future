@@ -164,9 +164,11 @@ pub async fn update_profile(
     .await
 }
 
+/// Owner of a club that's still open (closing the club is one way out, as the error message says).
 pub async fn owns_a_club(db: impl PgExecutor<'_>, user_id: Uuid) -> sqlx::Result<bool> {
     sqlx::query_scalar!(
-        r#"SELECT EXISTS (SELECT 1 FROM memberships WHERE user_id = $1 AND role = 'owner' AND status = 'active') AS "x!""#,
+        r#"SELECT EXISTS (SELECT 1 FROM memberships m JOIN clubs c ON c.id = m.club_id
+                           WHERE m.user_id = $1 AND m.role = 'owner' AND m.status = 'active' AND c.deleted_at IS NULL) AS "x!""#,
         user_id
     )
     .fetch_one(db)

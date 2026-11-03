@@ -68,6 +68,8 @@ pub struct AuthSettings {
     pub cookie_secure: bool,
     /// Development with e-mails in the log: answer `dev_code` and serve `/v1/mock/outbox`, like the mock.
     pub dev_affordances: bool,
+    /// `SMOKE_KEY` (D-034): with it in `X-Smoke-Key`, sign-in for `@smoke.runflow.club` answers the code.
+    pub smoke_key: Option<String>,
 }
 
 /// Never prints the secret.
@@ -78,6 +80,7 @@ impl std::fmt::Debug for AuthSettings {
             .field("cookie_name", &self.cookie_name)
             .field("cookie_domain", &self.cookie_domain)
             .field("cookie_secure", &self.cookie_secure)
+            .field("smoke_key", &self.smoke_key.as_ref().map(|_| "<set>"))
             .field("dev_affordances", &self.dev_affordances)
             .finish_non_exhaustive()
     }
