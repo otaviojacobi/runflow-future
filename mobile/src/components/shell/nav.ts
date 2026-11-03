@@ -25,9 +25,9 @@ const STAFF_MAIN: NavItem[] = [
 const STAFF_TRAINING: NavItem[] = [
   { to: "/library", label: "Biblioteca", icon: Library },
   { to: "/plans", label: "Planilhas", icon: ClipboardList },
-  { to: "/exercises", label: "Exercícios", icon: Dumbbell, gym: true },
-  { to: "/assessments", label: "Avaliações", icon: Gauge },
-  { to: "/reports", label: "Relatórios", icon: BarChart3 },
+  { to: "/exercises", label: "Exercícios", icon: Dumbbell, gym: true, app: true },
+  { to: "/assessments", label: "Avaliações", icon: Gauge, app: true },
+  { to: "/reports", label: "Relatórios", icon: BarChart3, app: true },
 ];
 const STAFF_TEAM: NavItem[] = [
   { to: "/races/manage", label: "Provas", icon: Flag, app: true },

@@ -28,7 +28,7 @@ src/
               dev/components = the UI kit preview
   api/        TanStack Query hooks per area + types.ts (wire types, identical to the contract), like the web's src/api
   domain/     pure logic copied from the web's src/domain (keep in sync): workout.ts = the workout structure types,
-              zones, intensity segments, step texts, estimates
+              zones, intensity segments, step texts, estimates; assessments.ts = test formulas and the zones they make
   components/ domain components shared by screens (brand: Runflow mark/wordmark + ClubLogo; sport chips; ComingSoon;
               workout/ = intensity profile, steps, status, week strip, month grid, workout card, feedback sheet, thread
               and its message bubbles; staff/ = the trainer's pieces: workout row, compliance, filter chips,
@@ -37,7 +37,8 @@ src/
               messages/ = conversation rows, the chat thread and composer, announcement cards, the stack's top bar;
               activity.tsx = an activity row; connections/StravaConnect = the "Conectar com Strava" hook + mock sheet;
               club/ = color picker, theme preview (a phone in a club's colors), the one-by-one invite form;
-              races.tsx = race labels, distances, countdown, date tile, entry badge);
+              races.tsx = race labels, distances, countdown, date tile, entry badge;
+              assessments.ts = the test protocols, names and result headlines);
               shell/ = nav.ts (copy of the web's nav per role, `app` = has a screen here, the rest opens the web) and
               Shell.tsx (top bar with the club switcher and bell, back bar, bottom tab bar)
   lib/        api (ApiError, WEB_URL), session (token in the keychain + cached `/me` and active club in the sync store,
@@ -48,7 +49,9 @@ src/
               ≤ 512 px JPEG data URL), files (a text file through the share sheet; `.web.ts` downloads it),
               strava (connect: auth session or the deep link, the callback posted once per code), logo (photo
               library → ≤ 512 px PNG data URL), push (this phone's push: permission, Expo token, register/forget,
-              badge; `.web.ts` no-ops); components/PushBridge = opens a tapped push in its club
+              badge; `.web.ts` no-ops), csv (";", decimal comma, BOM → share sheet), pdf (HTML → PDF with
+              expo-print → share sheet; `.web.ts` prints), video (YouTube/Vimeo links, thumbnails);
+              components/PushBridge = opens a tapped push in its club
   theme/      theme.ts (tokens → RN theme, club roles via @runflow/design/color), ThemeProvider (Runflow's theme,
               color mode) + ThemeScope (re-theme a subtree: a club's colors, forced light/dark)
   ui/         the UI kit: same names/variants as frontend/src/ui (index.ts lists them); icons.ts = Lucide icons, one

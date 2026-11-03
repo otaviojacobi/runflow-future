@@ -60,6 +60,12 @@ function ClubTabs({ role, modalities }: { role: Role; modalities: Sport[] }) {
         <Tabs.Screen name="feedback" options={{ title: t("Feedbacks") }} />
         <Tabs.Screen name="more" options={{ title: t("Mais") }} />
         <Tabs.Screen name="races/manage" options={{ title: t("Provas e eventos") }} />
+        <Tabs.Screen name="assessments" options={{ title: t("Avaliações e testes") }} />
+        <Tabs.Screen name="reports" options={{ title: t("Relatórios") }} />
+      </Tabs.Protected>
+      {/* The exercise library is for clubs that teach musculação (D-035). */}
+      <Tabs.Protected guard={staff && modalities.includes("strength")} redirectTo={homeFor(role)}>
+        <Tabs.Screen name="exercises" options={{ title: t("Exercícios") }} />
       </Tabs.Protected>
       <Tabs.Screen name="messages" options={{ title: t("Mensagens") }} />
       <Tabs.Screen name="account" options={{ title: staff ? t("Minha conta") : t("Perfil") }} />

@@ -105,7 +105,10 @@ export interface Zone { id: ID; membership_id: ID; kind: "hr" | "pace" | "swim_p
 export type AssessmentKind = "body" | "cooper" | "run_3k" | "css" | "ftp" | "one_rm" | "hr_max";
 export type AssessmentData = Partial<{ weight_kg: number; height_cm: number; body_fat_pct: number; waist_cm: number; resting_hr: number; distance_m: number; time_s: number; t400_s: number; t200_s: number; avg_power_w: number; exercise: string; reps: number; max_hr: number }>;
 export type AssessmentResult = Partial<{ bmi: number; vo2max: number; threshold_pace_s_per_km: number; css_s_per_100m: number; ftp_w: number; one_rm_kg: number; max_hr: number }>;
-export interface Assessment { id: ID; club_id: ID; membership_id: ID; kind: AssessmentKind; date: ISODate; data: AssessmentData; result: AssessmentResult; notes: string | null; created_at: ISOTime }
+export interface Assessment {
+  id: ID; club_id: ID; membership_id: ID; kind: AssessmentKind; date: ISODate; data: AssessmentData; result: AssessmentResult; notes: string | null;
+  zones_id: ID | null; created_by: ID | null; created_at: ISOTime; athlete: { membership_id: ID; user: User }; zones: Zone | null;
+}
 
 /** A club group (GET /clubs/{id}/groups). */
 export interface Group { id: ID; club_id: ID; name: string; description: string | null; created_at: ISOTime; member_ids: ID[] }
@@ -177,3 +180,15 @@ export interface Race {
   distances_m: number[]; notes: string | null; created_by: ID | null; created_at: ISOTime; archived_at: ISOTime | null;
   entries_count: number; my_entry: RaceEntry | null; entries?: (RaceEntry & { athlete: { membership_id: ID; user: User } })[];
 }
+
+// ---- reports (W16)
+export interface TrainingReport {
+  from: ISODate; to: ISODate; group_id: ID | null;
+  totals: { athletes: number; planned: number; done: number; partial: number; missed: number; compliance_pct: number | null; planned_s: number; done_s: number; distance_m: number; sharing: number };
+  weekly: { week_start: ISODate; pct: number | null; planned: number; done: number; current: boolean }[];
+  athletes: { membership_id: ID; user: User; group_ids: ID[]; planned: number; done: number; partial: number; missed: number; compliance_pct: number | null; planned_s: number; shares_data: boolean; activities: number | null; done_s: number | null; distance_m: number | null }[];
+}
+
+// ---- exercise library (W18)
+export type ExerciseCategory = "strength" | "core" | "mobility" | "stretch" | "plyometrics" | "drill";
+export interface LibraryExercise { id: ID; club_id: ID | null; scope: "club" | "global"; name: string; category: ExerciseCategory; muscles: string[]; equipment: string[]; cues: string | null; video_url: string | null; created_at: ISOTime; archived_at: ISOTime | null }

@@ -1,10 +1,10 @@
 /**
  * pt-BR labels for the account screens, the same as the web's (onboarding/Welcome GOALS/LEVELS, student Profile
- * RACES, components/assessments, NotificationSettings INFO, Account deviceName). Pass the labels through t().
+ * RACES, NotificationSettings INFO, Account deviceName). Pass the labels through t().
  */
 import type { AssessmentData, AssessmentKind, AssessmentResult, Goal, Level, MembershipContext, NotificationKind, UserSession } from "@/api/types";
+import { headline } from "@/components/assessments";
 import { t } from "@/i18n";
-import { clock, number, pace } from "@/lib/format";
 
 export const GOALS: { value: Goal; label: string }[] = [
   { value: "5k", label: "5 km" }, { value: "10k", label: "10 km" }, { value: "21k", label: "Meia maratona" }, { value: "42k", label: "Maratona" },
@@ -14,21 +14,9 @@ export const GOALS: { value: Goal; label: string }[] = [
 export const LEVELS: { value: Level; label: string }[] = [{ value: "beginner", label: "Iniciante" }, { value: "intermediate", label: "Intermediário" }, { value: "advanced", label: "Avançado" }];
 export const RACES = [{ m: 5000, label: "5 km" }, { m: 10000, label: "10 km" }, { m: 21097, label: "Meia maratona" }, { m: 42195, label: "Maratona" }];
 
-export const ASSESSMENT_NAME: Record<AssessmentKind, string> = {
-  cooper: "Teste de Cooper", run_3k: "Teste de 3 km", css: "CSS (natação)", ftp: "FTP (ciclismo)", hr_max: "FC máxima", one_rm: "1RM estimado", body: "Avaliação física",
-};
-/** The headline value of a result (the web's components/assessments `headline`). */
-export function assessmentHeadline(kind: AssessmentKind, r: AssessmentResult, d: AssessmentData): string {
-  switch (kind) {
-    case "body": return t("{w} kg · IMC {b}", { w: number(d.weight_kg ?? 0, 1), b: number(r.bmi ?? 0, 1) }) + (d.body_fat_pct ? ` · ${t("{p}% de gordura", { p: number(d.body_fat_pct, 1) })}` : "");
-    case "cooper": return t("{d} m · VO₂máx {v} · limiar {p} /km", { d: number(d.distance_m ?? 0), v: number(r.vo2max ?? 0, 1), p: pace(r.threshold_pace_s_per_km) });
-    case "run_3k": return t("{t} · VO₂máx {v} · limiar {p} /km", { t: clock(d.time_s), v: number(r.vo2max ?? 0, 1), p: pace(r.threshold_pace_s_per_km) });
-    case "css": return t("CSS {p} /100 m", { p: pace(r.css_s_per_100m) });
-    case "ftp": return t("FTP {w} W", { w: r.ftp_w ?? 0 });
-    case "one_rm": return t("{e}: {k} kg", { e: d.exercise ?? "", k: number(r.one_rm_kg ?? 0, 1) });
-    case "hr_max": return t("FC máx {n} bpm", { n: r.max_hr ?? 0 });
-  }
-}
+/** Assessments: one copy, shared with W14 (components/assessments.ts). */
+export { ASSESSMENT_NAME } from "@/components/assessments";
+export const assessmentHeadline = (kind: AssessmentKind, r: AssessmentResult, d: AssessmentData): string => headline(kind, r, d).text;
 
 // ---------- notifications (D-045)
 export const KIND_INFO: Record<NotificationKind, { label: string; hint: string }> = {

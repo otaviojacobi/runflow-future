@@ -26,7 +26,7 @@ import { addDays, dayMonth, distance, duration, mondayOf, monthTitle, pace, toda
 import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar, Badge, Button, ButtonLink, Card, EmptyState, Field, IconButton, Input, Screen, Segmented, Select, Skeleton, Tabs, Text, Textarea, toast } from "@/ui";
-import { ArrowLeft, ChevronLeft, ChevronRight, CircleAlert, Lock, Phone, Plus, ShieldCheck, ShieldOff, Users } from "@/ui/icons";
+import { ArrowLeft, ChevronLeft, ChevronRight, CircleAlert, Gauge, Lock, Phone, Plus, ShieldCheck, ShieldOff, Users } from "@/ui/icons";
 
 type Tab = "workouts" | "activities" | "zones" | "profile";
 const ZONE_SOURCE = { race: "prova", test: "teste", manual: "manual", estimated: "estimativa" } as const;
@@ -290,6 +290,8 @@ function Zones({ clubId, a }: { clubId: string; a: AthleteDetail }) {
   const fieldErr = (k: string) => local[k] ?? err?.fieldError(k) ?? null;
   return (
     <View style={{ gap: theme.space[4] }}>
+      {/* Field tests (Cooper, 3 km, CSS, FTP, FC máx) set zones too, with the history (W14). */}
+      <ButtonLink variant="secondary" icon={Gauge} block href={{ pathname: "/assessments", params: { athlete: a.membership.id } }}>{t("Avaliações e testes")}</ButtonLink>
       <Section title={t("Zonas de pace")}>
         <Text variant="bodySm" tone="muted" style={{ marginTop: -theme.space[2] }}>{paceZ ? source(paceZ) : t("Ainda sem zonas.")}</Text>
         {paceZ && <ZoneTable z={paceZ} unit="pace" />}

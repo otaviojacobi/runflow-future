@@ -64,13 +64,16 @@ export { default as MessageSquare } from "lucide-react-native/icons/message-squa
 export { default as Minus } from "lucide-react-native/icons/minus";
 export { default as Monitor } from "lucide-react-native/icons/monitor";
 export { default as Moon } from "lucide-react-native/icons/moon";
+export { default as MoreHorizontal } from "lucide-react-native/icons/ellipsis";
 export { default as Palette } from "lucide-react-native/icons/palette";
 export { default as Pencil } from "lucide-react-native/icons/pencil";
 export { default as PersonStanding } from "lucide-react-native/icons/person-standing";
 export { default as Phone } from "lucide-react-native/icons/phone";
 export { default as Pin } from "lucide-react-native/icons/pin";
 export { default as PinOff } from "lucide-react-native/icons/pin-off";
+export { default as PlayCircle } from "lucide-react-native/icons/circle-play";
 export { default as Plus } from "lucide-react-native/icons/plus";
+export { default as Printer } from "lucide-react-native/icons/printer";
 export { default as RefreshCw } from "lucide-react-native/icons/refresh-cw";
 export { default as Repeat } from "lucide-react-native/icons/repeat";
 export { default as Ruler } from "lucide-react-native/icons/ruler";
