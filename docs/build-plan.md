@@ -97,7 +97,7 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 | X3 | Tabs per role + club switcher | [ ] |
 | X4 | Student: Today, workout detail, feedback, schedule (offline cache) | [ ] |
 | X5 | Activities + Strava connect | [ ] |
-| X6 | Classes: booking, waitlist, QR check-in | [ ] |
+| ~~X6~~ | ~~Classes: booking, waitlist, QR check-in~~ Moved to Later with class scheduling (D-035, removed in F37); not a step any more | — |
 | X7 | Profile, account, notifications, privacy | [ ] |
 | X8 | Trainer on mobile: students, feedback inbox, quick edit of today's workouts | [ ] |
 | X9 | Owner/student onboarding on mobile (invite deep link → consent → profile → Strava) | [ ] |
@@ -105,7 +105,7 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 
 ## Later (TODO, not scheduled)
 
-- **Class scheduling ("Aulas") and Desafios** (D-035): venues, class types, recurring schedules, sessions, bookings, waitlist, QR check-in (W9, M6); challenges, monthly ranking and badges (W15, M11). Built in F21–F25-era steps and removed in F37 to simplify the beta; the full UI, mock and contract are in git history (the commit before F37). Bring back per club type (gyms) when clubs ask.
+- **Class scheduling ("Aulas") and Desafios** (D-035): venues, class types, recurring schedules, sessions, bookings, waitlist, QR check-in (W9, M6; on mobile it was X6); challenges, monthly ranking and badges (W15, M11). Built in F21–F25-era steps and removed in F37 to simplify the beta; the full UI, mock and contract are in git history (the commit before F37). Bring back per club type (gyms) when clubs ask.
 
 - **Club fees through Runflow** (D-027): fee plans, per-student fees with discounts, monthly charges, Pix/card checkout via Stripe Connect on the club's account, overdue reminders, receipts, payments recorded outside the app. Built in F26 and removed in F33 as too much for v1; the full UI, mock and contract are in git history (commit `24b188a` and earlier). Needs Runflow's take rate (root.md §11) and Stripe Connect onboarding.
 
