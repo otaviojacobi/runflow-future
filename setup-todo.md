@@ -37,6 +37,9 @@ QA is live at **https://qa.runflow.club**:
   - Check: `curl -sI https://qa.runflow.club/ | grep cf-cache-status` says `HIT` (the first request after a purge says `MISS`).
 - [x] ~~**Change the Pi's password** / **keep a copy of the Pi's secrets**~~ Not needed (D-039): QA is disposable and its
   security can stay simple. If the Pi's `.env` is lost, write a new one and run `./reset-db.sh --yes`.
+- [ ] **The Pi's power supply** (urgent): the kernel logs repeated "Undervoltage detected" (40+ times on 2026-11-03), and
+  writes to the SD card came out empty twice (the checkout and then git itself got corrupted; I re-cloned it, the old copy
+  is in `~/runflow.broken-20261103`). Use the official Raspberry Pi 27 W USB-C supply (5.1 V / 5 A) and a short, good cable.
 - [ ] **Grafana for QA** (D-041, 2 minutes): Cloudflare Zero Trust → Networks → Tunnels → the QA tunnel → Public hostnames
   (or Routes) → Add: subdomain `grafana-qa`, domain `runflow.club`, service `http://grafana:3000`. Then open
   https://grafana-qa.runflow.club and sign in with `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` from your `.env.qa`
