@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO announcements (id, club_id, author_membership_id, title, body, group_ids, pinned)\n         VALUES ($1, $2, $3, $4, $5, ARRAY(SELECT id FROM groups WHERE club_id = $2 AND id = ANY($6)), $7)\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "announcements",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "UuidArray",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "62b77f5cbec96268ad3d9376e16831b3c2d167856e8da60c3cb07f35f81e421c"
+}

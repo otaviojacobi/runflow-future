@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object('membership_id', m.id, 'user', user_json(u), 'read_at', r.read_at) AS \"x!\"\n                 FROM announcements a CROSS JOIN LATERAL announcement_audience(a) au\n                 JOIN memberships m ON m.id = au.id JOIN users u ON u.id = m.user_id\n                 LEFT JOIN announcement_reads r ON r.announcement_id = a.id AND r.membership_id = m.id\n                WHERE a.id = $1\n                ORDER BY r.read_at IS NULL, u.name",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9d59c3b4750b33a075c877713519a7ce86b3729d9e15890ef55875f233ffe804"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO announcement_reads (announcement_id, membership_id)\n         SELECT a.id, $2 FROM announcements a WHERE a.club_id = $1 AND a.id = ANY($3)\n         ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c17bfaf6e55c11892a06e3bd1abde2044ae7dda47fdc4f1b27c7acac09bda55d"
+}

@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO conversations (club_id, student_membership_id) VALUES ($1, $2)\n         ON CONFLICT (club_id, student_membership_id) DO UPDATE SET club_id = excluded.club_id RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "conversations",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e6794add5eda00507f34db525efdc66333c800887574819cee5e1f226c426e95"
+}

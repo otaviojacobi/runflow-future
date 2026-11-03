@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE announcements SET\n            title = coalesce($3, title), body = coalesce($4, body), pinned = coalesce($5, pinned),\n            group_ids = CASE WHEN $6::uuid[] IS NULL THEN group_ids\n                             ELSE ARRAY(SELECT g.id FROM groups g WHERE g.club_id = $2 AND g.id = ANY($6)) END,\n            edited_at = CASE WHEN $3::text IS NOT NULL OR $4::text IS NOT NULL THEN now() ELSE edited_at END\n          WHERE id = $1 AND club_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cde1a62134aee217caa5d068f2ad557907669cbb7fe684248d6cc7bfa6642446"
+}

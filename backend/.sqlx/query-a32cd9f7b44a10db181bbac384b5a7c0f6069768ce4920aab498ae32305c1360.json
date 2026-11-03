@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT message_json(x) AS \"x!\" FROM messages x WHERE x.conversation_id = $1 ORDER BY x.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "a32cd9f7b44a10db181bbac384b5a7c0f6069768ce4920aab498ae32305c1360"
+}

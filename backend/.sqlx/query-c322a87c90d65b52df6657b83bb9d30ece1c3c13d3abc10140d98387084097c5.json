@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object(\n                  'id', a.id, 'club_id', a.club_id, 'author_membership_id', a.author_membership_id, 'title', a.title, 'body', a.body,\n                  'group_ids', a.group_ids, 'pinned', a.pinned, 'created_at', a.created_at, 'edited_at', a.edited_at, 'deleted_at', a.deleted_at,\n                  'author', jsonb_build_object('membership_id', am.id, 'user', user_json(au)),\n                  'read_at', (SELECT read_at FROM announcement_reads WHERE announcement_id = a.id AND membership_id = $2))\n                || CASE WHEN $3 THEN jsonb_build_object(\n                  'audience_count', (SELECT count(*) FROM announcement_audience(a)),\n                  'reads_count', (SELECT count(*) FROM announcement_reads r WHERE r.announcement_id = a.id\n                                    AND r.membership_id IN (SELECT id FROM announcement_audience(a))))\n                   ELSE '{}'::jsonb END AS \"x!\"\n             FROM announcements a JOIN memberships am ON am.id = a.author_membership_id JOIN users au ON au.id = am.user_id\n            WHERE a.club_id = $1 AND a.deleted_at IS NULL\n              AND ($3 OR cardinality(a.group_ids) = 0\n                   OR EXISTS (SELECT 1 FROM group_members g WHERE g.membership_id = $2 AND g.group_id = ANY(a.group_ids)))\n            ORDER BY a.pinned DESC, a.created_at DESC",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "c322a87c90d65b52df6657b83bb9d30ece1c3c13d3abc10140d98387084097c5"
+}

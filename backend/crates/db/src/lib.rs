@@ -12,6 +12,7 @@ pub mod jobs;
 pub mod library;
 pub mod me;
 pub mod members;
+pub mod messages;
 pub mod models;
 pub mod my;
 pub mod notifications;

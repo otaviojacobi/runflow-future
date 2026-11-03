@@ -450,6 +450,21 @@ CREATE TABLE conversation_reads (
   last_read_at     timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (conversation_id, membership_id)
 );
+-- JSON as the apps see it (shared by the API's queries): a person, and a message with its author.
+CREATE FUNCTION user_json(u users) RETURNS jsonb
+LANGUAGE sql STABLE AS $$
+  SELECT jsonb_build_object('id', u.id, 'email', u.email, 'name', u.name, 'avatar_url', u.avatar_url, 'phone', u.phone,
+                            'birth_date', u.birth_date, 'sex', u.sex, 'locale', u.locale, 'created_at', u.created_at)
+$$;
+CREATE FUNCTION message_json(x messages) RETURNS jsonb
+LANGUAGE sql STABLE AS $$
+  SELECT jsonb_build_object('id', x.id, 'conversation_id', x.conversation_id, 'author_membership_id', x.author_membership_id,
+                            'body', CASE WHEN x.deleted_at IS NULL THEN x.body ELSE '' END,
+                            'created_at', x.created_at, 'deleted_at', x.deleted_at,
+                            'author', jsonb_build_object('membership_id', m.id, 'role', m.role, 'user', user_json(u)))
+    FROM memberships m JOIN users u ON u.id = m.user_id WHERE m.id = x.author_membership_id
+$$;
+
 CREATE TABLE announcements (
   id                    uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   club_id               uuid NOT NULL REFERENCES clubs (id) ON DELETE CASCADE,
@@ -469,6 +484,14 @@ CREATE TABLE announcement_reads (
   read_at          timestamptz NOT NULL DEFAULT now(),
   PRIMARY KEY (announcement_id, membership_id)
 );
+-- Active students an announcement reaches: its groups' members, or the whole club when it names no group.
+CREATE FUNCTION announcement_audience(a announcements) RETURNS TABLE (id uuid)
+LANGUAGE sql STABLE AS $$
+  SELECT m.id FROM memberships m
+   WHERE m.club_id = a.club_id AND m.role = 'student' AND m.status = 'active'
+     AND (cardinality(a.group_ids) = 0
+          OR EXISTS (SELECT 1 FROM group_members g WHERE g.membership_id = m.id AND g.group_id = ANY(a.group_ids)))
+$$;
 
 -- =========================================================================== races and events (F21)
 -- The club's race calendar. Students sign up for a distance; an entry marked is_goal is their "A race":

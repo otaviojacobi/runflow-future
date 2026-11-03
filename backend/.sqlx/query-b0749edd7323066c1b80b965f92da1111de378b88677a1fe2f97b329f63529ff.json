@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE announcements SET deleted_at = now() WHERE id = $1 AND club_id = $2 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b0749edd7323066c1b80b965f92da1111de378b88677a1fe2f97b329f63529ff"
+}

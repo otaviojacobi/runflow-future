@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO conversation_reads (conversation_id, membership_id, last_read_at) VALUES ($1, $2, now())\n         ON CONFLICT (conversation_id, membership_id) DO UPDATE SET last_read_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3db9510c67fd40b10063944c63820ebcb32dcb2ee8caf4e8c53a01e3dc868ee0"
+}

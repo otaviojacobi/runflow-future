@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE messages x SET deleted_at = now() FROM conversations c\n          WHERE x.id = $1 AND x.author_membership_id = $3 AND c.id = x.conversation_id AND c.club_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0b263d67ea389552bb1a9a7ab4f3daafe5cf982e321f695282894062c68cfdfd"
+}
