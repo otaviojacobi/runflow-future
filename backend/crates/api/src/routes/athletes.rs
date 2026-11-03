@@ -2,8 +2,9 @@
 
 use std::collections::HashMap;
 
-use axum::extract::{Path, Query, State};
+use axum::extract::{Path, Query, RawQuery, State};
 use axum::http::StatusCode;
+use axum::response::Response;
 use axum::routing::{get, put};
 use axum::{Json, Router};
 use chrono::{Datelike, Duration, NaiveDate, Utc};
@@ -16,6 +17,7 @@ use uuid::Uuid;
 
 use crate::access::{Member, STAFF, member};
 use crate::body::Body;
+use crate::cache;
 use crate::session::Auth;
 use crate::time::{club_today, monday_of, parse_date};
 use crate::{AppState, FieldError, Problem};
@@ -562,18 +564,34 @@ fn is_done(w: &Workout) -> bool {
         .is_some_and(|c| c.status == "completed" || c.status == "partial")
 }
 
+/// Cached briefly in Redis (D-047): any write to the club refreshes it at once.
 async fn dashboard(
     State(state): State<AppState>,
     auth: Auth,
     Path(club_id): Path<String>,
+    RawQuery(raw): RawQuery,
     Query(q): Query<DashQuery>,
-) -> Result<Json<Value>, Problem> {
+) -> Result<Response, Problem> {
     let m = member(&state, &auth, &club_id, STAFF).await?;
+    // The answer depends on who looks (their unread threads, the plan as their role sees it) and on the query.
+    let variant = format!("{}?{}", m.membership_id, raw.unwrap_or_default());
+    cache::json(
+        &state,
+        "dashboard",
+        m.club_id,
+        &variant,
+        cache::DASHBOARD_TTL,
+        dashboard_json(&state, &m, q),
+    )
+    .await
+}
+
+async fn dashboard_json(state: &AppState, m: &Member, q: DashQuery) -> Result<Value, Problem> {
     let today = q
         .date
         .as_deref()
         .and_then(parse_date)
-        .unwrap_or(club_today(&club(&state, m.club_id).await?.timezone));
+        .unwrap_or(club_today(&club(state, m.club_id).await?.timezone));
     let monday = monday_of(today);
     let students = db::summaries(&state.db, m.club_id, today, monday, None, None).await?;
     let ids: std::collections::HashSet<Uuid> = students.iter().map(|s| s.membership.id).collect();
@@ -730,7 +748,7 @@ async fn dashboard(
     }
 
     let ob = db::onboarding(&state.db, m.club_id).await?;
-    Ok(Json(json!({
+    Ok(json!({
         "date": today,
         "students": students.len(),
         "today": {
@@ -751,7 +769,7 @@ async fn dashboard(
             "workouts": all.iter().any(|w| w.date >= monday), "groups": ob.groups, "strava": ob.strava,
         },
         "subscription": sub,
-    })))
+    }))
 }
 
 #[cfg(test)]

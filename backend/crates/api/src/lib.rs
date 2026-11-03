@@ -2,6 +2,7 @@
 
 pub mod access;
 pub mod body;
+pub mod cache;
 pub mod metrics;
 pub mod problem;
 pub mod routes;
@@ -23,6 +24,7 @@ use runflow_integrations::secrets::TokenCipher;
 use runflow_integrations::storage::Storage;
 use runflow_integrations::strava::StravaClient;
 use runflow_integrations::stripe::StripeClient;
+use runflow_kv::Kv;
 use tower::ServiceBuilder;
 use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::compression::CompressionLayer;
@@ -120,7 +122,10 @@ impl std::fmt::Debug for AuthSettings {
 
 #[derive(Clone)]
 pub struct AppState {
+    /// The system of record (and the job queue).
     pub db: Pool,
+    /// Ephemeral and cache data (D-047): sign-in codes, rate limits, the session and read caches.
+    pub kv: Kv,
     pub settings: Arc<ApiSettings>,
     pub mailer: Mailer,
     /// `None` when Google sign-in isn't configured (`GOOGLE_CLIENT_ID`).
@@ -138,6 +143,7 @@ pub struct AppState {
 impl AppState {
     pub fn new(
         db: Pool,
+        kv: Kv,
         settings: ApiSettings,
         mailer: Mailer,
         google: Option<GoogleVerifier>,
@@ -146,6 +152,7 @@ impl AppState {
     ) -> Self {
         Self {
             db,
+            kv,
             settings: Arc::new(settings),
             mailer,
             google: google.map(Arc::new),
@@ -201,6 +208,10 @@ pub fn router(state: AppState) -> Router {
         .nest(
             "/v1",
             v1.route_layer(axum::middleware::from_fn(access::write_gate))
+                .route_layer(axum::middleware::from_fn_with_state(
+                    state.clone(),
+                    cache::invalidate,
+                ))
                 .route_layer(axum::middleware::from_fn(metrics::track)),
         )
         .fallback(not_found)

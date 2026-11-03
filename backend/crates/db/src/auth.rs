@@ -1,5 +1,5 @@
-//! Users, sign-in identities, e-mail codes and sessions (§7.3). Tokens and codes arrive here already
-//! hashed; this module never sees a raw secret.
+//! Users, sign-in identities and sessions (§7.3). Tokens arrive here already hashed; this module never sees a raw
+//! secret. E-mail sign-in codes are ephemeral and live in Redis (`runflow_kv::codes`, D-047).
 
 use chrono::{DateTime, Duration, Utc};
 use sqlx::{PgConnection, PgExecutor};
@@ -119,81 +119,6 @@ pub async fn link_identity(
     Ok(())
 }
 
-// ------------------------------------------------------------------------------------ e-mail codes
-
-/// How many codes this address got recently, and when the last one was issued.
-pub async fn recent_codes(
-    db: impl PgExecutor<'_>,
-    email: &str,
-    since: DateTime<Utc>,
-) -> sqlx::Result<(i64, Option<DateTime<Utc>>)> {
-    let r = sqlx::query!(
-        r#"SELECT count(*) AS "count!", max(created_at) AS last FROM email_codes WHERE lower(email) = lower($1) AND created_at > $2"#,
-        email,
-        since
-    )
-    .fetch_one(db)
-    .await?;
-    Ok((r.count, r.last))
-}
-
-/// Store a new code; older pending codes for the same address stop working.
-pub async fn create_code(
-    tx: &mut PgConnection,
-    email: &str,
-    code_hash: &[u8],
-    ttl: Duration,
-) -> sqlx::Result<()> {
-    sqlx::query!(
-        "UPDATE email_codes SET consumed_at = now() WHERE lower(email) = lower($1) AND consumed_at IS NULL",
-        email
-    )
-    .execute(&mut *tx)
-    .await?;
-    sqlx::query!(
-        "INSERT INTO email_codes (id, email, code_hash, expires_at) VALUES ($1, $2, $3, $4)",
-        Uuid::now_v7(),
-        email,
-        code_hash,
-        Utc::now() + ttl
-    )
-    .execute(&mut *tx)
-    .await?;
-    Ok(())
-}
-
-pub struct PendingCode {
-    pub id: Uuid,
-    pub code_hash: Vec<u8>,
-    /// Attempts including the current one.
-    pub attempts: i32,
-}
-
-/// Lock the newest usable code for this address and count this attempt.
-pub async fn attempt_code(tx: &mut PgConnection, email: &str) -> sqlx::Result<Option<PendingCode>> {
-    sqlx::query_as!(
-        PendingCode,
-        "UPDATE email_codes SET attempts = attempts + 1
-          WHERE id = (SELECT id FROM email_codes
-                       WHERE lower(email) = lower($1) AND consumed_at IS NULL AND expires_at > now()
-                       ORDER BY created_at DESC LIMIT 1 FOR UPDATE)
-          RETURNING id, code_hash, attempts",
-        email
-    )
-    .fetch_optional(&mut *tx)
-    .await
-}
-
-pub async fn consume_code(db: impl PgExecutor<'_>, id: Uuid) -> sqlx::Result<()> {
-    sqlx::query!(
-        "UPDATE email_codes SET consumed_at = now() WHERE id = $1",
-        id
-    )
-    .execute(db)
-    .await?;
-    Ok(())
-}
-
 // ------------------------------------------------------------------------------------ sessions
 
 pub async fn create_session(
@@ -224,6 +149,7 @@ pub struct LiveSession {
     pub id: Uuid,
     pub user_id: Uuid,
     pub last_seen_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
 }
 
 pub async fn session_by_token(
@@ -232,7 +158,7 @@ pub async fn session_by_token(
 ) -> sqlx::Result<Option<LiveSession>> {
     sqlx::query_as!(
         LiveSession,
-        "SELECT s.id, s.user_id, s.last_seen_at
+        "SELECT s.id, s.user_id, s.last_seen_at, s.expires_at
            FROM sessions s JOIN users u ON u.id = s.user_id
           WHERE s.token_hash = $1 AND s.revoked_at IS NULL AND s.expires_at > now() AND u.deleted_at IS NULL",
         token_hash
@@ -253,34 +179,35 @@ pub async fn touch_session(db: impl PgExecutor<'_>, id: Uuid, ttl: Duration) -> 
     Ok(())
 }
 
+/// Revoke one of the user's sessions. Returns its token hash (the session cache drops it), `None` when there was no
+/// such live session.
 pub async fn revoke_session(
     db: impl PgExecutor<'_>,
     user_id: Uuid,
     id: Uuid,
-) -> sqlx::Result<bool> {
-    let r = sqlx::query!(
-        "UPDATE sessions SET revoked_at = now() WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL",
+) -> sqlx::Result<Option<Vec<u8>>> {
+    sqlx::query_scalar!(
+        "UPDATE sessions SET revoked_at = now() WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL RETURNING token_hash",
         id,
         user_id
     )
-    .execute(db)
-    .await?;
-    Ok(r.rows_affected() == 1)
+    .fetch_optional(db)
+    .await
 }
 
+/// Revoke every other session of the user. Returns their token hashes.
 pub async fn revoke_other_sessions(
     db: impl PgExecutor<'_>,
     user_id: Uuid,
     keep: Uuid,
-) -> sqlx::Result<u64> {
-    let r = sqlx::query!(
-        "UPDATE sessions SET revoked_at = now() WHERE user_id = $1 AND id <> $2 AND revoked_at IS NULL",
+) -> sqlx::Result<Vec<Vec<u8>>> {
+    sqlx::query_scalar!(
+        "UPDATE sessions SET revoked_at = now() WHERE user_id = $1 AND id <> $2 AND revoked_at IS NULL RETURNING token_hash",
         user_id,
         keep
     )
-    .execute(db)
-    .await?;
-    Ok(r.rows_affected())
+    .fetch_all(db)
+    .await
 }
 
 /// Live sessions, the current one first, then most recently used.

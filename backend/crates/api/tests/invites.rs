@@ -770,6 +770,66 @@ async fn failing_jobs_retry_then_close_with_the_error(db: PgPool) {
     );
 }
 
+/// D-047: the queue stays in Postgres, and enqueuing sends a NOTIFY that Postgres delivers on commit, so an idle worker
+/// starts at once. Its idle poll here is a minute: without the wake-up this times out.
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn an_idle_worker_wakes_up_when_a_job_commits(db: PgPool) {
+    use std::time::{Duration, Instant};
+    let app = TestApp::new(db);
+    let worker = runflow_jobs::Worker::new(
+        app.db().clone(),
+        app.state.mailer.clone(),
+        "http://localhost:8080",
+    )
+    .with_idle_poll(Duration::from_secs(60));
+    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let running = tokio::spawn(async move {
+        worker
+            .run(async {
+                let _ = stopped.await;
+            })
+            .await
+    });
+    let waited = Instant::now();
+    while sqlx::query_scalar::<_, i64>(
+        "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND query LIKE 'LISTEN%'",
+    )
+    .fetch_one(app.db())
+    .await
+    .unwrap()
+        == 0
+    {
+        assert!(waited.elapsed() < Duration::from_secs(10), "the worker never listened");
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+
+    let done = || async {
+        sqlx::query_scalar::<_, bool>("SELECT done_at IS NOT NULL FROM jobs")
+            .fetch_optional(app.db())
+            .await
+            .unwrap()
+            .unwrap_or(false)
+    };
+    let mut tx = app.db().begin().await.unwrap();
+    runflow_db::jobs::enqueue(&mut *tx, "nonsense", &json!({}), None)
+        .await
+        .unwrap();
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert!(!done().await, "nothing runs before the commit");
+    tx.commit().await.unwrap();
+    let committed = Instant::now();
+    while !done().await {
+        assert!(
+            committed.elapsed() < Duration::from_secs(10),
+            "the worker didn't wake up"
+        );
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    eprintln!("job picked up {:?} after its commit", committed.elapsed());
+    let _ = stop.send(());
+    running.await.unwrap();
+}
+
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]
 async fn invite_emails_wear_the_club_colors(db: PgPool) {
     let app = TestApp::new(db);

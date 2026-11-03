@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   check:
-    name: rustfmt, clippy, tests on Postgres 18
+    name: rustfmt, clippy, tests on Postgres 18 and Redis 8
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -28,8 +28,18 @@ jobs:
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30
+      # Ephemeral and cache data (D-047); tests use random key prefixes.
+      redis:
+        image: redis:8-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
     env:
       TEST_DATABASE_URL: postgres://runflow:runflow@localhost:5432/runflow
+      TEST_REDIS_URL: redis://localhost:6379
       CARGO_TERM_COLOR: always
     steps:
       - uses: actions/checkout@v4

@@ -1,0 +1,24 @@
+[package]
+name = "runflow-kv"
+description = "Redis (D-047): sign-in codes, rate limits, the session lookup cache and cached club reads; never records"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+aws-lc-rs.workspace = true
+chrono.workspace = true
+redis.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+
+[lints]
+workspace = true

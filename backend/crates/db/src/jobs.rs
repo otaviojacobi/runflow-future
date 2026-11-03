@@ -1,5 +1,10 @@
-//! Postgres job queue (§7.2, D-009: no Redis). Workers claim due jobs with `FOR UPDATE SKIP LOCKED`; a claim
-//! older than 5 minutes is considered abandoned (crashed worker) and can be claimed again.
+//! Postgres job queue (§7.2, D-047: jobs stay in Postgres, enqueued in the same transaction as the write that causes
+//! them). Workers claim due jobs with `FOR UPDATE SKIP LOCKED`; a claim older than 5 minutes is considered abandoned
+//! (crashed worker) and can be claimed again. Enqueuing also sends `NOTIFY runflow_jobs`, which Postgres delivers
+//! when the transaction commits, so a listening worker starts at once instead of at its next poll.
+
+/// The channel workers `LISTEN` on.
+pub const CHANNEL: &str = "runflow_jobs";
 
 use chrono::{DateTime, Utc};
 use serde_json::Value;
@@ -19,8 +24,10 @@ pub async fn enqueue(
     payload: &Value,
     run_at: Option<DateTime<Utc>>,
 ) -> sqlx::Result<i64> {
+    // The channel name is spelled out: CHANNEL must stay equal to it.
     sqlx::query_scalar!(
-        "INSERT INTO jobs (kind, payload, run_at) VALUES ($1, $2, coalesce($3, now())) RETURNING id",
+        r#"WITH job AS (INSERT INTO jobs (kind, payload, run_at) VALUES ($1, $2, coalesce($3, now())) RETURNING id)
+           SELECT job.id AS "id!" FROM job, pg_notify('runflow_jobs', '') AS wake"#,
         kind,
         payload,
         run_at
