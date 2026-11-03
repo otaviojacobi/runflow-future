@@ -282,7 +282,6 @@ async fn assign(
                 body: Some(content.title),
                 link: &format!("/workouts/{first}"),
             },
-            None,
         )
         .await?;
     }
@@ -405,7 +404,6 @@ async fn update(
                 body: Some(&title),
                 link: &format!("/workouts/{}", w.id),
             },
-            None,
         )
         .await?;
     }

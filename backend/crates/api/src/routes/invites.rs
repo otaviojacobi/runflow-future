@@ -511,7 +511,6 @@ async fn accept(
             body,
             link: &link,
         },
-        None,
     )
     .await?;
     runflow_db::clubs::audit(
@@ -524,6 +523,7 @@ async fn accept(
     )
     .await?;
     tx.commit().await?;
+    crate::routes::billing::seats_changed(&state, club.id).await?;
     Ok((
         StatusCode::CREATED,
         Json(json!({ "membership": m, "club": club, "already_member": false })),

@@ -325,7 +325,6 @@ async fn assign(
                 body: Some(&body),
                 link: "/schedule",
             },
-            None,
         )
         .await?;
     }

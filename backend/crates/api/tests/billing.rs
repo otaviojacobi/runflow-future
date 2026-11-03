@@ -144,14 +144,14 @@ async fn the_billing_simulation(db: PgPool) {
         (&pro.body["student_limit"], &pro.body["trainer_limit"]),
         (&json!(30), &json!(2))
     );
-    assert_eq!(pro.body["monthly_cents"], 2000);
+    assert_eq!(pro.body["monthly_cents"], 1990);
     assert_eq!(pro.body["has_billing_account"], true);
     assert!(pro.body["current_period_end"].is_string());
     assert_eq!(notifications(&app, &owner).await, ["Bem-vindo ao Pro!"]);
     let inv = app
         .get(&format!("/v1/clubs/{club}/invoices"), Some(&owner))
         .await;
-    assert_eq!(inv.ok()["items"][0]["amount_cents"], 2000);
+    assert_eq!(inv.ok()["items"][0]["amount_cents"], 1990);
     assert_eq!(inv.body["items"][0]["status"], "paid");
     let exists = app
         .post(
@@ -174,11 +174,11 @@ async fn the_billing_simulation(db: PgPool) {
     assert_eq!(max.ok()["plan"], "max");
     assert_eq!(max.body["student_limit"], Value::Null);
     assert_eq!(max.body["included_students"], 100);
-    assert_eq!(max.body["monthly_cents"], 5900);
+    assert_eq!(max.body["monthly_cents"], 7990);
     app.fill_seats(&club, "student", 101).await;
     app.fill_seats(&club, "trainer", 6).await;
     let extra = app.get(&sub, Some(&owner)).await;
-    assert_eq!(extra.ok()["monthly_cents"], 5900 + 500 + 50);
+    assert_eq!(extra.ok()["monthly_cents"], 7990 + 500 + 50);
     let small = app
         .post(
             &format!("{sub}/change"),
@@ -318,22 +318,41 @@ async fn without_stripe_or_simulation_nobody_upgrades(db: PgPool) {
         .problem(404, "route.not_found");
 }
 
+/// What the fake Stripe saw (POST forms, in order) and the one subscription it holds: `(item id, price, quantity)`.
 #[derive(Default)]
 struct Fake {
     calls: Vec<std::collections::HashMap<String, String>>,
+    items: Vec<(String, String, i64)>,
+}
+
+type Shared = State<Arc<Mutex<Fake>>>;
+type FormMap = Form<std::collections::HashMap<String, String>>;
+
+fn subscription_json(f: &Fake) -> Value {
+    let lookup = |price: &str| match price {
+        "price_pro" => "runflow_pro_monthly",
+        "price_max" => "runflow_max_monthly",
+        "price_max_trainer" => "runflow_max_extra_trainer_monthly",
+        _ => "runflow_max_extra_student_monthly",
+    };
+    let items: Vec<Value> = f
+        .items
+        .iter()
+        .map(|(id, price, q)| json!({ "id": id, "quantity": q, "price": { "id": price, "lookup_key": lookup(price) } }))
+        .collect();
+    json!({ "id": "sub_1", "items": { "data": items } })
 }
 
 async fn fake_stripe() -> (String, Arc<Mutex<Fake>>) {
+    use axum::extract::Path;
+    use axum::routing::get;
     let fake = Arc::new(Mutex::new(Fake::default()));
-    let checkout = |State(f): State<Arc<Mutex<Fake>>>,
-                    headers: axum::http::HeaderMap,
-                    Form(p): Form<std::collections::HashMap<String, String>>| async move {
+    let checkout = |State(f): Shared, headers: axum::http::HeaderMap, Form(p): FormMap| async move {
         assert_eq!(headers["authorization"], "Bearer sk_test_123");
         f.lock().unwrap().calls.push(p);
         Json(json!({ "id": "cs_1", "url": "https://checkout.stripe.com/c/pay/cs_1" }))
     };
-    let portal = |State(f): State<Arc<Mutex<Fake>>>,
-                  Form(p): Form<std::collections::HashMap<String, String>>| async move {
+    let portal = |State(f): Shared, Form(p): FormMap| async move {
         let customer = p.get("customer").cloned().unwrap_or_default();
         f.lock().unwrap().calls.push(p);
         if customer == "cus_gone" {
@@ -347,9 +366,71 @@ async fn fake_stripe() -> (String, Arc<Mutex<Fake>>) {
             Json(json!({ "id": "bps_1", "url": "https://billing.stripe.com/p/session/1" })),
         )
     };
+    let prices = || async {
+        Json(json!({ "data": [
+            { "id": "price_pro", "lookup_key": "runflow_pro_monthly" },
+            { "id": "price_max", "lookup_key": "runflow_max_monthly" },
+            { "id": "price_max_trainer", "lookup_key": "runflow_max_extra_trainer_monthly" },
+            { "id": "price_max_student", "lookup_key": "runflow_max_extra_student_monthly" } ] }))
+    };
+    let get_sub = |State(f): Shared| async move { Json(subscription_json(&f.lock().unwrap())) };
+    // Plan change: the old items are deleted, the new ones added.
+    let update_sub = |State(f): Shared, Form(p): FormMap| async move {
+        let mut f = f.lock().unwrap();
+        f.items.clear();
+        for n in 0..10 {
+            if let (Some(price), Some(q)) = (
+                p.get(&format!("items[{n}][price]")),
+                p.get(&format!("items[{n}][quantity]")),
+            ) {
+                f.items
+                    .push((format!("si_new{n}"), price.clone(), q.parse().unwrap()));
+            }
+        }
+        f.calls.push(p);
+        Json(subscription_json(&f))
+    };
+    let add_item = |State(f): Shared, Form(p): FormMap| async move {
+        let mut f = f.lock().unwrap();
+        let id = format!("si_{}", f.items.len() + 10);
+        f.items.push((
+            id.clone(),
+            p["price"].clone(),
+            p["quantity"].parse().unwrap(),
+        ));
+        f.calls.push(p);
+        Json(json!({ "id": id }))
+    };
+    let set_item = |State(f): Shared, Path(id): Path<String>, Form(p): FormMap| async move {
+        let mut f = f.lock().unwrap();
+        let q: i64 = p["quantity"].parse().unwrap();
+        f.items
+            .iter_mut()
+            .filter(|i| i.0 == id)
+            .for_each(|i| i.2 = q);
+        f.calls.push(p);
+        Json(json!({ "id": id }))
+    };
+    let del_item = |State(f): Shared, Path(id): Path<String>| async move {
+        let mut f = f.lock().unwrap();
+        f.items.retain(|i| i.0 != id);
+        f.calls.push([("deleted".to_string(), id.clone())].into());
+        Json(json!({ "id": id, "deleted": true }))
+    };
     let app = Router::new()
         .route("/v1/checkout/sessions", post(checkout))
         .route("/v1/billing_portal/sessions", post(portal))
+        .route(
+            "/v1/billing_portal/configurations",
+            get(|| async { Json(json!({ "data": [] })) }),
+        )
+        .route("/v1/prices", get(prices))
+        .route("/v1/subscriptions/{id}", get(get_sub).post(update_sub))
+        .route("/v1/subscription_items", post(add_item))
+        .route(
+            "/v1/subscription_items/{id}",
+            post(set_item).delete(del_item),
+        )
         .with_state(fake.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let url = format!("http://{}", listener.local_addr().unwrap());
@@ -379,14 +460,6 @@ async fn stripe_checkout_portal_and_webhooks(db: PgPool) {
     let (club, owner, ana) = setup(&app).await;
     let sub = format!("/v1/clubs/{club}/subscription");
 
-    // Max through Stripe waits for its seat prices (B3).
-    app.post(
-        &format!("{sub}/checkout"),
-        Some(&owner),
-        json!({ "plan": "max" }),
-    )
-    .await
-    .problem(503, "billing.unavailable");
     // Checkout: Stripe's hosted page, with the club and the owner's e-mail.
     let checkout = app
         .post(
@@ -524,4 +597,124 @@ async fn stripe_checkout_portal_and_webhooks(db: PgPool) {
     app.post(&format!("{sub}/portal"), Some(&owner), json!({}))
         .await
         .problem(502, "billing.provider_error");
+}
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn stripe_max_seats_and_plan_changes(db: PgPool) {
+    let (url, fake) = fake_stripe().await;
+    let app = TestApp::new(db).with_stripe(&url);
+    let (club, owner, _ana) = setup(&app).await;
+    let sub = format!("/v1/clubs/{club}/subscription");
+
+    // Checkout for Max with one trainer above the 5 included: the base price and one extra trainer seat.
+    app.fill_seats(&club, "trainer", 6).await;
+    app.post(
+        &format!("{sub}/checkout"),
+        Some(&owner),
+        json!({ "plan": "max" }),
+    )
+    .await
+    .ok();
+    let c = fake.lock().unwrap().calls[0].clone();
+    assert_eq!(
+        (
+            c["line_items[0][price]"].as_str(),
+            c["line_items[0][quantity]"].as_str()
+        ),
+        ("price_max", "1")
+    );
+    assert_eq!(
+        (
+            c["line_items[1][price]"].as_str(),
+            c["line_items[1][quantity]"].as_str()
+        ),
+        ("price_max_trainer", "1")
+    );
+    assert!(
+        !c.contains_key("line_items[2][price]"),
+        "no student seats above the included 100"
+    );
+    assert_eq!(c["subscription_data[metadata][plan]"], "max");
+
+    // Stripe confirms: the plan comes from the subscription's prices.
+    fake.lock().unwrap().items = vec![
+        ("si_1".into(), "price_max".into(), 1),
+        ("si_2".into(), "price_max_trainer".into(), 1),
+    ];
+    let completed = json!({ "id": "evt_1", "type": "checkout.session.completed", "data": { "object": {
+        "mode": "subscription", "customer": "cus_1", "subscription": "sub_1", "client_reference_id": club,
+        "metadata": { "club_id": club, "plan": "max" } } } });
+    let updated = json!({ "id": "evt_2", "type": "customer.subscription.updated", "data": { "object": {
+        "id": "sub_1", "customer": "cus_1", "status": "active", "metadata": { "club_id": club },
+        "items": { "data": [{ "price": { "id": "price_max", "lookup_key": "runflow_max_monthly" }, "current_period_end": 1 }] } } } });
+    assert_eq!(deliver(&app, completed).await, 200);
+    assert_eq!(deliver(&app, updated).await, 200);
+    app.run_jobs().await;
+    let max = app.get(&sub, Some(&owner)).await;
+    assert_eq!(max.ok()["plan"], "max");
+    assert_eq!(max.body["monthly_cents"], 7990 + 500);
+    assert_eq!(notifications(&app, &owner).await, ["Bem-vindo ao Max!"]);
+
+    // Making Ana a trainer takes another paid seat: the worker raises the quantity on Stripe.
+    let members = app
+        .get(
+            &format!("/v1/clubs/{club}/members?role=student"),
+            Some(&owner),
+        )
+        .await;
+    let ana_id = members.ok()["items"][0]["membership"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let member = format!("/v1/clubs/{club}/members/{ana_id}");
+    app.patch(&member, Some(&owner), json!({ "role": "trainer" }))
+        .await
+        .ok();
+    app.run_jobs().await;
+    assert!(
+        fake.lock()
+            .unwrap()
+            .items
+            .contains(&("si_2".into(), "price_max_trainer".into(), 2))
+    );
+
+    // Too many trainers for Pro; with the extra trainers gone, Pro replaces Max's items, prorated.
+    app.post(
+        &format!("{sub}/change"),
+        Some(&owner),
+        json!({ "plan": "pro" }),
+    )
+    .await
+    .problem(409, "plan.too_small");
+    app.free_seats().await;
+    app.patch(&member, Some(&owner), json!({ "role": "student" }))
+        .await
+        .ok();
+    app.run_jobs().await;
+    assert!(
+        !fake
+            .lock()
+            .unwrap()
+            .items
+            .iter()
+            .any(|i| i.1 == "price_max_trainer"),
+        "no extra trainer seats left"
+    );
+    let pro = app
+        .post(
+            &format!("{sub}/change"),
+            Some(&owner),
+            json!({ "plan": "pro" }),
+        )
+        .await;
+    assert_eq!(pro.ok()["plan"], "pro");
+    let f = fake.lock().unwrap();
+    assert_eq!(
+        f.items,
+        [("si_new1".to_string(), "price_pro".to_string(), 1)]
+    );
+    let change = f.calls.last().unwrap();
+    assert_eq!(change["items[0][deleted]"], "true");
+    assert_eq!(change["proration_behavior"], "create_prorations");
+    assert_eq!(change["metadata[plan]"], "pro");
 }

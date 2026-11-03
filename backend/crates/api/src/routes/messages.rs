@@ -203,7 +203,6 @@ async fn send(
                 body: Some(&snippet),
                 link: &link,
             },
-            None,
         )
         .await?;
     }
@@ -329,7 +328,6 @@ async fn publish(
                 body: Some(&snippet),
                 link: "/messages",
             },
-            None,
         )
         .await?;
     }

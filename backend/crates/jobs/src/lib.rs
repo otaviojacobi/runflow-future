@@ -21,7 +21,7 @@ use runflow_integrations::strava::StravaClient;
 use runflow_integrations::webpush::WebPush;
 use serde_json::Value;
 
-pub use billing_jobs::STRIPE_EVENT;
+pub use billing_jobs::{STRIPE_EVENT, STRIPE_SEATS};
 pub use invite_email::INVITE_EMAIL;
 pub use push_jobs::PUSH_SEND;
 pub use strava_jobs::{STRAVA_EVENT, STRAVA_SYNC};
@@ -70,6 +70,8 @@ pub struct Worker {
     webpush: Option<std::sync::Arc<WebPush>>,
     /// Expo push for the phone app (X10).
     expo: Option<std::sync::Arc<ExpoPush>>,
+    /// Stripe (Max's seat quantities); none = billing simulation or no billing.
+    stripe: Option<std::sync::Arc<runflow_integrations::stripe::StripeClient>>,
 }
 
 #[derive(Clone)]
@@ -103,7 +105,16 @@ impl Worker {
             strava: None,
             webpush: None,
             expo: None,
+            stripe: None,
         }
+    }
+
+    pub fn with_stripe(
+        mut self,
+        stripe: std::sync::Arc<runflow_integrations::stripe::StripeClient>,
+    ) -> Self {
+        self.stripe = Some(stripe);
+        self
     }
 
     pub fn with_expo(mut self, expo: std::sync::Arc<ExpoPush>) -> Self {
@@ -221,6 +232,7 @@ impl Worker {
             STRAVA_SYNC => strava_jobs::sync(self, &job.payload).await,
             STRAVA_EVENT => strava_jobs::event(self, &job.payload).await,
             STRIPE_EVENT => billing_jobs::event(self, &job.payload).await,
+            STRIPE_SEATS => billing_jobs::seats(self, &job.payload).await,
             PUSH_SEND => push_jobs::send(self, &job.payload).await,
             other => Err(JobError::permanent(format!("unknown job kind {other}"))),
         }

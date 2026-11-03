@@ -171,7 +171,6 @@ async fn release(
                     body: Some(&text),
                     link: "/schedule",
                 },
-                None,
             )
             .await?;
         }

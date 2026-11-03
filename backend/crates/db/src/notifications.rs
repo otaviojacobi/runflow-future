@@ -61,13 +61,11 @@ pub struct Notice<'a> {
     pub link: &'a str,
 }
 
-/// To the person behind a membership. `_about` (the student a notice concerns) fed the staff group filter that
-/// D-045 removed; it stays in this signature and `to_staff`'s until the billing v2 work merges, then goes.
+/// To the person behind a membership.
 pub async fn to_member(
     db: &mut PgConnection,
     membership_id: Uuid,
     n: Notice<'_>,
-    _about: Option<Uuid>,
 ) -> sqlx::Result<()> {
     let Some(user_id) = sqlx::query_scalar!(
         "SELECT user_id FROM memberships WHERE id = $1",
@@ -94,11 +92,7 @@ pub async fn to_member(
 }
 
 /// To every active staff member of the club.
-pub async fn to_staff(
-    db: &mut PgConnection,
-    n: Notice<'_>,
-    _about: Option<Uuid>,
-) -> sqlx::Result<()> {
+pub async fn to_staff(db: &mut PgConnection, n: Notice<'_>) -> sqlx::Result<()> {
     let staff = sqlx::query_scalar!(
         "SELECT user_id FROM memberships WHERE club_id = $1 AND role <> 'student' AND status = 'active'",
         n.club_id

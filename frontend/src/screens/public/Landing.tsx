@@ -179,7 +179,7 @@ function Features() {
     { I: Smartphone, title: "App do aluno rápido", text: "Abre em menos de 2 segundos e mostra o treino do dia mesmo sem internet." },
     { I: Users, title: "Grupos e convites", text: "Convites pessoais por e-mail, turmas organizadas e a aderência de cada aluno." },
     { I: ClipboardList, title: "Zonas por aluno", text: "Pace e frequência cardíaca calculados a partir de uma prova ou teste." },
-    { I: Wallet, title: "Preço justo", text: "Grátis até 10 alunos. R$ 20 por mês até 100. Sem taxa de ativação." },
+    { I: Wallet, title: "Preço justo", text: "Grátis até 10 alunos. R$ 19,90 por mês até 30. Sem taxa de ativação." },
   ];
   return (
     <section id="recursos" className="scroll-mt-20 border-y border-line bg-surface">
@@ -263,7 +263,7 @@ function Why() {
   const rows = [
     { k: t("Velocidade"), a: t("Abre em menos de 2 segundos, funciona offline"), b: t("Telas lentas, quedas frequentes") },
     { k: t("Criar treinos"), a: t("Escrita rápida + biblioteca + arrastar e soltar"), b: t("Formulários longos, um aluno por vez") },
-    { k: t("Preço para 20 alunos"), a: t("R$ 20 por mês"), b: t("A partir de R$ 99 por mês + taxa de ativação") },
+    { k: t("Preço para 20 alunos"), a: t("R$ 19,90 por mês"), b: t("A partir de R$ 99 por mês + taxa de ativação") },
     { k: t("Modalidades"), a: t("Corrida, natação, academia e híbridos"), b: t("Geralmente só corrida") },
     { k: t("Marca do clube"), a: t("Logo e cores em todos os planos"), b: t("Raramente disponível") },
   ];

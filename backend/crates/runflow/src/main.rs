@@ -68,6 +68,17 @@ enum Command {
     Healthcheck,
     /// Print a new VAPID key pair for Web Push (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY).
     VapidKeys,
+    /// Create or update what Runflow needs in Stripe (STRIPE_SECRET_KEY): the plans' prices (api/plans.json), the
+    /// Billing Portal configuration and the webhook endpoint. Safe to repeat.
+    StripeSetup {
+        /// Webhook URL; default `<PUBLIC_API_URL>/v1/webhooks/stripe`.
+        #[arg(long)]
+        webhook_url: Option<String>,
+        /// When the endpoint is new, write its signing secret here as STRIPE_WEBHOOK_SECRET (an env file) instead of
+        /// printing it.
+        #[arg(long)]
+        env_file: Option<std::path::PathBuf>,
+    },
 }
 
 #[tokio::main]
@@ -127,6 +138,10 @@ async fn main() -> ExitCode {
         Command::EmailTest { to, preview, club } => email_test(&config, to, preview, club).await,
         Command::Healthcheck => healthcheck(&config).await,
         Command::VapidKeys => Ok(()),
+        Command::StripeSetup {
+            webhook_url,
+            env_file,
+        } => stripe_setup(&config, webhook_url, env_file).await,
     };
     if let Some(t) = telemetry {
         let _ = tokio::task::spawn_blocking(move || t.shutdown()).await;
@@ -226,6 +241,9 @@ async fn worker(config: Config) -> anyhow::Result<()> {
         w = w.with_webpush(web);
     }
     w = w.with_expo(expo(&config));
+    if let Some(stripe) = stripe_client(&config) {
+        w = w.with_stripe(stripe);
+    }
     w.run(shutdown()).await;
     pool.close().await;
     Ok(())
@@ -263,10 +281,6 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
             .map(|t| t.expose().to_string()),
         billing: BillingSettings {
             simulation: config.billing_simulation,
-            price_pro: config
-                .stripe
-                .as_ref()
-                .and_then(|s| s.price_pro_monthly.clone()),
             webhook_secret: config
                 .stripe
                 .as_ref()
@@ -371,6 +385,9 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
             w = w.with_webpush(web);
         }
         w = w.with_expo(expo(&config));
+        if let Some(stripe) = stripe_client(&config) {
+            w = w.with_stripe(stripe);
+        }
         let mut rx = stop_rx.clone();
         tokio::spawn(async move {
             w.run(async move {
@@ -523,5 +540,100 @@ async fn healthcheck(config: &Config) -> anyhow::Result<()> {
         "health returned {}",
         res.status()
     );
+    Ok(())
+}
+
+fn stripe_client(config: &Config) -> Option<std::sync::Arc<StripeClient>> {
+    config.stripe.as_ref().map(|st| {
+        std::sync::Arc::new(StripeClient::new(
+            STRIPE_BASE,
+            st.secret_key.expose().to_string(),
+        ))
+    })
+}
+
+/// `runflow stripe-setup`: prices from the plan catalog, the portal configuration and the webhook endpoint.
+async fn stripe_setup(
+    config: &Config,
+    webhook_url: Option<String>,
+    env_file: Option<std::path::PathBuf>,
+) -> anyhow::Result<()> {
+    use runflow_domain::plans;
+    use runflow_integrations::stripe::{
+        PRICE_MAX, PRICE_MAX_STUDENT, PRICE_MAX_TRAINER, PRICE_PRO,
+    };
+    let client = stripe_client(config).context("STRIPE_SECRET_KEY is not set")?;
+    let (pro, max) = (plans::plan("pro"), plans::plan("max"));
+    let extra = max
+        .extra
+        .as_ref()
+        .context("Max has no extra seat prices in api/plans.json")?;
+    let prices = [
+        (PRICE_PRO, "Runflow Pro", pro.price_cents),
+        (PRICE_MAX, "Runflow Max", max.price_cents),
+        (
+            PRICE_MAX_TRAINER,
+            "Runflow Max · treinador extra",
+            extra.trainer_cents,
+        ),
+        (
+            PRICE_MAX_STUDENT,
+            "Runflow Max · aluno extra",
+            extra.student_cents,
+        ),
+    ];
+    let url = webhook_url.unwrap_or_else(|| {
+        format!(
+            "{}/v1/webhooks/stripe",
+            config.http.public_api_url.trim_end_matches('/')
+        )
+    });
+    let report = client.setup(&prices, &url).await?;
+    for (key, id, created) in &report.prices {
+        println!(
+            "price {key}: {id}{}",
+            if *created { " (created)" } else { "" }
+        );
+    }
+    println!(
+        "portal configuration: {}",
+        if report.portal_created {
+            "created"
+        } else {
+            "found"
+        }
+    );
+    println!("webhook {url}: {}", report.webhook_id);
+    match (report.webhook_secret, env_file) {
+        (Some(secret), Some(path)) => {
+            let text = std::fs::read_to_string(&path).unwrap_or_default();
+            let line = format!("STRIPE_WEBHOOK_SECRET={secret}");
+            let mut found = false;
+            let mut out: Vec<String> = text
+                .lines()
+                .map(|l| {
+                    if l.starts_with("STRIPE_WEBHOOK_SECRET=") {
+                        found = true;
+                        line.clone()
+                    } else {
+                        l.to_string()
+                    }
+                })
+                .collect();
+            if !found {
+                out.push(line);
+            }
+            std::fs::write(&path, out.join("\n") + "\n")
+                .with_context(|| format!("writing {}", path.display()))?;
+            println!(
+                "webhook signing secret written to {} (STRIPE_WEBHOOK_SECRET)",
+                path.display()
+            );
+        }
+        (Some(secret), None) => {
+            println!("STRIPE_WEBHOOK_SECRET={secret}  (shown once: store it in the env file)")
+        }
+        (None, _) => println!("webhook signing secret: unchanged (existing endpoint)"),
+    }
     Ok(())
 }

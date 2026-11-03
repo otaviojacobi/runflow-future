@@ -117,7 +117,6 @@ async fn create(
                 body: Some(&preview),
                 link: &link,
             },
-            Some(w.athlete_membership_id),
         )
         .await?;
     }

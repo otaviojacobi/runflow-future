@@ -11,7 +11,7 @@ use axum::{Json, Router};
 use chrono::Utc;
 use runflow_db::billing::{self as db, Invoice, Notice, Paid};
 use runflow_domain::plans::{self, Plan};
-use runflow_integrations::stripe::{Checkout, StripeError, verify_signature};
+use runflow_integrations::stripe::{Checkout, StripeError, plan_items, verify_signature};
 use serde_json::{Value, json};
 use uuid::Uuid;
 
@@ -40,17 +40,46 @@ async fn public_plans() -> Json<&'static plans::Catalog> {
 
 /// How checkout works here.
 enum Mode<'a> {
-    Stripe(&'a runflow_integrations::stripe::StripeClient, &'a str),
+    Stripe(&'a runflow_integrations::stripe::StripeClient),
     Simulation,
 }
 
 fn mode(state: &AppState) -> Result<Mode<'_>, Problem> {
-    let b = &state.settings.billing;
-    match (&state.stripe, &b.price_pro) {
-        (Some(client), Some(price)) => Ok(Mode::Stripe(client, price)),
-        _ if b.simulation => Ok(Mode::Simulation),
-        _ => Err(unavailable()),
+    match &state.stripe {
+        Some(client) => Ok(Mode::Stripe(client)),
+        None if state.settings.billing.simulation => Ok(Mode::Simulation),
+        None => Err(unavailable()),
     }
+}
+
+/// Max's seats above the included ones `(trainers, students)`.
+fn extras(p: &Plan, row: &runflow_db::models::SubscriptionRow) -> (i64, i64) {
+    match p.extra {
+        Some(_) => (
+            (row.active_trainers - p.trainers).max(0),
+            (row.active_students - p.students).max(0),
+        ),
+        None => (0, 0),
+    }
+}
+
+/// After a membership change: Max bills its seats, so the worker brings the Stripe quantities up to date.
+pub(crate) async fn seats_changed(state: &AppState, club_id: Uuid) -> Result<(), Problem> {
+    if state.stripe.is_none() {
+        return Ok(());
+    }
+    if let Some(a) = db::account(&state.db, club_id).await?
+        && a.plan == "max"
+        && a.subscription.is_some()
+    {
+        runflow_jobs::enqueue(
+            &state.db,
+            runflow_jobs::STRIPE_SEATS,
+            json!({ "club_id": club_id }),
+        )
+        .await?;
+    }
+    Ok(())
 }
 
 fn unavailable() -> Problem {
@@ -127,17 +156,21 @@ async fn checkout(
         ));
     }
     let url = match mode(&state)? {
-        // Max through Stripe needs its seat prices (B3); until then Stripe sells Pro only.
-        Mode::Stripe(..) if p.id != "pro" => return Err(unavailable()),
-        Mode::Stripe(client, price) => {
+        Mode::Stripe(client) => {
             let email = runflow_db::auth::user_by_id(&state.db, auth.user_id)
                 .await?
                 .map(|u| u.email)
                 .unwrap_or_default();
+            let row = runflow_db::clubs::subscription_row(&state.db, m.club_id)
+                .await?
+                .ok_or_else(Problem::club_not_found)?;
+            let (trainers, students) = extras(p, &row);
+            let prices = client.prices().await.map_err(stripe_failed)?;
+            let items = plan_items(&prices, &p.id, trainers, students).map_err(stripe_failed)?;
             let app = &state.settings.public_app_url;
             client
                 .checkout(Checkout {
-                    price,
+                    items: &items,
                     plan: &p.id,
                     club_id: &m.club_id.to_string(),
                     customer: account.customer.as_deref(),
@@ -188,9 +221,18 @@ async fn change(
             detail,
         ));
     }
-    // Swapping the subscription's prices on Stripe comes with its seat prices (B3).
-    if let Mode::Stripe(..) = mode(&state)? {
-        return Err(unavailable());
+    if let Mode::Stripe(client) = mode(&state)? {
+        let current = client
+            .subscription(account.subscription.as_deref().unwrap_or_default())
+            .await
+            .map_err(stripe_failed)?;
+        let (trainers, students) = extras(p, &row);
+        let prices = client.prices().await.map_err(stripe_failed)?;
+        let items = plan_items(&prices, &p.id, trainers, students).map_err(stripe_failed)?;
+        client
+            .change_plan(&current, &p.id, &items)
+            .await
+            .map_err(stripe_failed)?;
     }
     let mut tx = state.db.begin().await?;
     db::set_paid(
@@ -232,7 +274,7 @@ async fn portal(
             )
         })?;
     let url = match mode(&state)? {
-        Mode::Stripe(client, _) => client
+        Mode::Stripe(client) => client
             .portal(
                 &customer,
                 &format!("{}/club/billing", state.settings.public_app_url),

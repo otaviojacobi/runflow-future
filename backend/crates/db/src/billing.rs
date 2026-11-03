@@ -264,7 +264,6 @@ pub async fn notify_owners(
                 body: Some(&body),
                 link: "/club/billing",
             },
-            None,
         )
         .await?;
     }

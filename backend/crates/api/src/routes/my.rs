@@ -265,7 +265,6 @@ async fn complete(
                 body: Some(comment.as_deref().unwrap_or(&w.title)),
                 link: "/feedback",
             },
-            Some(m.membership_id),
         )
         .await?;
     }

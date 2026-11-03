@@ -33,7 +33,6 @@ pub async fn run(worker: &Worker, now: DateTime<Utc>) -> sqlx::Result<usize> {
                     body: Some(&text),
                     link: "/schedule",
                 },
-                None,
             )
             .await?;
         }

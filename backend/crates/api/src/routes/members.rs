@@ -204,6 +204,7 @@ async fn update(
         t.id,
     )
     .await?;
+    crate::routes::billing::seats_changed(&state, me.club_id).await?;
     Ok(Json(row(&state, me.club_id, t.id).await?))
 }
 
@@ -234,6 +235,7 @@ async fn remove(
     )
     .await?;
     tx.commit().await?;
+    crate::routes::billing::seats_changed(&state, me.club_id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -264,6 +266,7 @@ async fn leave(
     )
     .await?;
     tx.commit().await?;
+    crate::routes::billing::seats_changed(&state, me.club_id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

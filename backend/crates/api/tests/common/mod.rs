@@ -63,7 +63,6 @@ pub fn settings(dev: bool) -> ApiSettings {
         strava_verify_token: Some("verify-me".into()),
         billing: BillingSettings {
             simulation: true,
-            price_pro: None,
             webhook_secret: None,
         },
         push_public_key: None,
@@ -149,6 +148,9 @@ impl TestApp {
         if let Some(expo) = &self.expo {
             w = w.with_expo(expo.clone());
         }
+        if let Some(stripe) = &self.state.stripe {
+            w = w.with_stripe(stripe.clone());
+        }
         w.run_once(500).await.unwrap()
     }
 
@@ -184,11 +186,10 @@ impl TestApp {
         self
     }
 
-    /// Stripe pointed at a fake server (`base`), with a Pro price and a webhook secret.
+    /// Stripe pointed at a fake server (`base`), with a webhook secret.
     pub fn with_stripe(self, base: &str) -> Self {
         let mut app = self.with_billing(BillingSettings {
             simulation: false,
-            price_pro: Some("price_pro".into()),
             webhook_secret: Some("whsec_test".into()),
         });
         app.state = app

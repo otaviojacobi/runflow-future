@@ -156,7 +156,7 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
             "stripe",
             "ok",
             format!(
-                "key {}{} · webhook secret {} · Pro price {}",
+                "key {}{} · webhook secret {} · prices by lookup key (runflow stripe-setup)",
                 s.secret_key.hint(),
                 if s.secret_key.expose().starts_with("sk_live") {
                     " · LIVE"
@@ -168,7 +168,6 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
                 } else {
                     "missing"
                 },
-                s.price_pro_monthly.as_deref().unwrap_or("missing")
             ),
         ),
         None if c.billing_simulation => line(

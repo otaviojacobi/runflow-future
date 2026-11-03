@@ -1,12 +1,12 @@
 name: images
 
-# Builds the QA images on every push to main and pushes them to GHCR, for both amd64 (the Intel NUC QA is moving to)
-# and arm64 (the Raspberry Pi) until the move is done:
+# Builds the QA images on every push to main and pushes them to GHCR for amd64 (the Intel NUC that hosts QA, D-046;
+# the Raspberry Pi is retired):
 #   ghcr.io/otaviojacobi/runflow-api:qa, :sha-<commit>   (backend/Dockerfile)
 #   ghcr.io/otaviojacobi/runflow-web:qa, :sha-<commit>   (frontend/Dockerfile, context = repo root)
-# Each architecture builds natively on its own runner (no emulation, so the Rust build stays fast); a second job joins
-# them under one multi-arch tag. The QA host pulls :qa every 5 minutes (ops/qa/update.sh). Pin a commit with
-# RUNFLOW_TAG=sha-<commit> in ops/qa/.env.
+# The build job pushes by digest and the publish job tags it, so adding an architecture back is one matrix entry
+# (arm64 builds natively on ubuntu-24.04-arm). The QA host pulls :qa every 5 minutes (ops/qa/update.sh). Pin a commit
+# with RUNFLOW_TAG=sha-<commit> in ops/qa/.env.
 
 on:
   push:
@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         image: [runflow-api, runflow-web]
-        arch: [amd64, arm64]
+        arch: [amd64]
         include:
           - image: runflow-api
             context: backend
@@ -39,8 +39,6 @@ jobs:
             file: frontend/Dockerfile
           - arch: amd64
             runner: ubuntu-24.04
-          - arch: arm64
-            runner: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -74,7 +72,7 @@ jobs:
           retention-days: 1
 
   publish:
-    name: ${{ matrix.image }} (multi-arch tags)
+    name: ${{ matrix.image }} (tags)
     needs: build
     runs-on: ubuntu-24.04
     strategy:
@@ -93,7 +91,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Tag :qa and :sha-<commit> for both architectures
+      - name: Tag :qa and :sha-<commit>
         working-directory: /tmp/digests
         run: |
           repo="ghcr.io/otaviojacobi/${{ matrix.image }}"

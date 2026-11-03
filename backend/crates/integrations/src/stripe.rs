@@ -1,6 +1,8 @@
-//! Stripe (D-016): Checkout and the Billing Portal for the Pro plan, and webhook signatures. We never trust an
+//! Stripe (D-016, D-043): Checkout and the Billing Portal for the paid plans, Max's seat items, the one-time setup
+//! (prices by lookup key, the webhook endpoint, the portal configuration) and webhook signatures. We never trust an
 //! event that isn't signed with the endpoint's secret.
 
+use std::collections::HashMap;
 use std::time::Duration;
 
 use aws_lc_rs::hmac;
@@ -9,6 +11,77 @@ use serde_json::Value;
 pub const STRIPE_BASE: &str = "https://api.stripe.com";
 /// Signed events older (or newer) than this are rejected as replays.
 pub const TOLERANCE_S: i64 = 300;
+
+/// Our prices, found by lookup key (created by `runflow stripe-setup` from `api/plans.json`).
+pub const PRICE_PRO: &str = "runflow_pro_monthly";
+pub const PRICE_MAX: &str = "runflow_max_monthly";
+pub const PRICE_MAX_TRAINER: &str = "runflow_max_extra_trainer_monthly";
+pub const PRICE_MAX_STUDENT: &str = "runflow_max_extra_student_monthly";
+pub const LOOKUP_KEYS: [&str; 4] = [PRICE_PRO, PRICE_MAX, PRICE_MAX_TRAINER, PRICE_MAX_STUDENT];
+
+/// The webhook events the worker applies.
+pub const EVENTS: [&str; 12] = [
+    "checkout.session.completed",
+    "customer.subscription.created",
+    "customer.subscription.updated",
+    "customer.subscription.deleted",
+    "invoice.created",
+    "invoice.finalized",
+    "invoice.updated",
+    "invoice.paid",
+    "invoice.payment_succeeded",
+    "invoice.payment_failed",
+    "invoice.voided",
+    "invoice.marked_uncollectible",
+];
+
+/// The plan a subscription is on, from its items' price lookup keys, else our metadata.
+pub fn plan_of_subscription(subscription: &Value) -> Option<&'static str> {
+    let keys: Vec<&str> = subscription["items"]["data"]
+        .as_array()
+        .into_iter()
+        .flatten()
+        .filter_map(|i| i["price"]["lookup_key"].as_str())
+        .collect();
+    if keys.contains(&PRICE_MAX) {
+        return Some("max");
+    }
+    if keys.contains(&PRICE_PRO) {
+        return Some("pro");
+    }
+    match subscription["metadata"]["plan"].as_str() {
+        Some("max") => Some("max"),
+        Some("pro") => Some("pro"),
+        _ => None,
+    }
+}
+
+/// The line items for a plan: the base price, plus Max's extra seats (quantities above zero only).
+pub fn plan_items<'a>(
+    prices: &'a HashMap<String, String>,
+    plan: &str,
+    extra_trainers: i64,
+    extra_students: i64,
+) -> Result<Vec<(&'a str, i64)>, StripeError> {
+    let price = |key: &str| {
+        prices.get(key).map(String::as_str).ok_or_else(|| {
+            StripeError::Rejected(
+                404,
+                format!("price {key} missing: run `runflow stripe-setup`"),
+            )
+        })
+    };
+    let mut items = vec![(price(if plan == "max" { PRICE_MAX } else { PRICE_PRO })?, 1)];
+    if plan == "max" {
+        if extra_trainers > 0 {
+            items.push((price(PRICE_MAX_TRAINER)?, extra_trainers));
+        }
+        if extra_students > 0 {
+            items.push((price(PRICE_MAX_STUDENT)?, extra_students));
+        }
+    }
+    Ok(items)
+}
 
 #[derive(Debug, thiserror::Error)]
 pub enum StripeError {
@@ -35,7 +108,8 @@ impl std::fmt::Debug for StripeClient {
 
 /// A Checkout session for a club's paid plan; the club and the plan travel as metadata.
 pub struct Checkout<'a> {
-    pub price: &'a str,
+    /// `(price id, quantity)`: the plan's base price first, then Max's extra seats.
+    pub items: &'a [(&'a str, i64)],
     /// `pro` or `max` (D-043).
     pub plan: &'a str,
     pub club_id: &'a str,
@@ -62,11 +136,23 @@ impl StripeClient {
     }
 
     async fn post(&self, path: &str, form: &[(&str, &str)]) -> Result<Value, StripeError> {
-        let res = self
-            .http
-            .post(format!("{}{path}", self.base))
+        let req = self.http.post(format!("{}{path}", self.base)).form(form);
+        self.send(req).await
+    }
+
+    async fn get(&self, path: &str, query: &[(&str, &str)]) -> Result<Value, StripeError> {
+        let req = self.http.get(format!("{}{path}", self.base)).query(query);
+        self.send(req).await
+    }
+
+    async fn delete(&self, path: &str, form: &[(&str, &str)]) -> Result<Value, StripeError> {
+        let req = self.http.delete(format!("{}{path}", self.base)).form(form);
+        self.send(req).await
+    }
+
+    async fn send(&self, req: reqwest::RequestBuilder) -> Result<Value, StripeError> {
+        let res = req
             .bearer_auth(&self.secret_key)
-            .form(form)
             .send()
             .await
             .map_err(|e| StripeError::Transport(e.to_string()))?;
@@ -87,6 +173,111 @@ impl StripeClient {
         }
     }
 
+    /// Our active prices by lookup key → price id.
+    pub async fn prices(&self) -> Result<HashMap<String, String>, StripeError> {
+        let mut q = vec![("active", "true"), ("limit", "20")];
+        q.extend(LOOKUP_KEYS.iter().map(|k| ("lookup_keys[]", *k)));
+        let list = self.get("/v1/prices", &q).await?;
+        Ok(list["data"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(|p| {
+                Some((
+                    p["lookup_key"].as_str()?.to_string(),
+                    p["id"].as_str()?.to_string(),
+                ))
+            })
+            .collect())
+    }
+
+    pub async fn subscription(&self, id: &str) -> Result<Value, StripeError> {
+        self.get(&format!("/v1/subscriptions/{id}"), &[]).await
+    }
+
+    /// Swaps a subscription's items for `items` right away, prorated (Pro ⇄ Max).
+    pub async fn change_plan(
+        &self,
+        subscription: &Value,
+        plan: &str,
+        items: &[(&str, i64)],
+    ) -> Result<Value, StripeError> {
+        let id = subscription["id"].as_str().unwrap_or_default();
+        let mut form: Vec<(String, String)> = vec![
+            ("proration_behavior".into(), "create_prorations".into()),
+            ("metadata[plan]".into(), plan.into()),
+        ];
+        let mut n = 0;
+        for old in subscription["items"]["data"]
+            .as_array()
+            .into_iter()
+            .flatten()
+        {
+            if let Some(si) = old["id"].as_str() {
+                form.push((format!("items[{n}][id]"), si.into()));
+                form.push((format!("items[{n}][deleted]"), "true".into()));
+                n += 1;
+            }
+        }
+        for (price, quantity) in items {
+            form.push((format!("items[{n}][price]"), (*price).into()));
+            form.push((format!("items[{n}][quantity]"), quantity.to_string()));
+            n += 1;
+        }
+        let form: Vec<(&str, &str)> = form.iter().map(|(k, v)| (k.as_str(), v.as_str())).collect();
+        self.post(&format!("/v1/subscriptions/{id}"), &form).await
+    }
+
+    /// Sets the quantity of `price` on a subscription (adds, updates or removes the item), prorated. Returns
+    /// whether anything changed.
+    pub async fn set_quantity(
+        &self,
+        subscription: &Value,
+        price: &str,
+        quantity: i64,
+    ) -> Result<bool, StripeError> {
+        let item = subscription["items"]["data"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|i| i["price"]["id"].as_str() == Some(price));
+        let prorate = ("proration_behavior", "create_prorations");
+        let q = quantity.to_string();
+        match (item, quantity) {
+            (None, 0) => Ok(false),
+            (Some(i), 0) => {
+                let id = i["id"].as_str().unwrap_or_default();
+                self.delete(&format!("/v1/subscription_items/{id}"), &[prorate])
+                    .await?;
+                Ok(true)
+            }
+            (Some(i), _) if i["quantity"].as_i64() == Some(quantity) => Ok(false),
+            (Some(i), _) => {
+                let id = i["id"].as_str().unwrap_or_default();
+                self.post(
+                    &format!("/v1/subscription_items/{id}"),
+                    &[("quantity", &q), prorate],
+                )
+                .await?;
+                Ok(true)
+            }
+            (None, _) => {
+                let sub = subscription["id"].as_str().unwrap_or_default();
+                self.post(
+                    "/v1/subscription_items",
+                    &[
+                        ("subscription", sub),
+                        ("price", price),
+                        ("quantity", &q),
+                        prorate,
+                    ],
+                )
+                .await?;
+                Ok(true)
+            }
+        }
+    }
+
     fn url(v: &Value) -> Result<String, StripeError> {
         v["url"]
             .as_str()
@@ -96,10 +287,23 @@ impl StripeClient {
 
     /// A hosted Checkout page for the subscription; the club travels as `client_reference_id` and metadata.
     pub async fn checkout(&self, c: Checkout<'_>) -> Result<String, StripeError> {
-        let mut form = vec![
+        let lines: Vec<(String, String)> = c
+            .items
+            .iter()
+            .enumerate()
+            .flat_map(|(n, (price, quantity))| {
+                [
+                    (format!("line_items[{n}][price]"), price.to_string()),
+                    (format!("line_items[{n}][quantity]"), quantity.to_string()),
+                ]
+            })
+            .collect();
+        let mut form: Vec<(&str, &str)> = lines
+            .iter()
+            .map(|(k, v)| (k.as_str(), v.as_str()))
+            .collect();
+        form.extend([
             ("mode", "subscription"),
-            ("line_items[0][price]", c.price),
-            ("line_items[0][quantity]", "1"),
             ("client_reference_id", c.club_id),
             ("metadata[club_id]", c.club_id),
             ("subscription_data[metadata][club_id]", c.club_id),
@@ -108,7 +312,7 @@ impl StripeClient {
             ("success_url", c.success_url),
             ("cancel_url", c.cancel_url),
             ("locale", "pt-BR"),
-        ];
+        ]);
         match c.customer {
             Some(customer) => form.push(("customer", customer)),
             None => form.push(("customer_email", c.email)),
@@ -116,11 +320,138 @@ impl StripeClient {
         Self::url(&self.post("/v1/checkout/sessions", &form).await?)
     }
 
-    /// The Billing Portal for a customer (card, invoices, cancel).
+    /// The Billing Portal for a customer (card, invoices, cancel), with our portal configuration when it exists.
     pub async fn portal(&self, customer: &str, return_url: &str) -> Result<String, StripeError> {
-        let form = [("customer", customer), ("return_url", return_url)];
+        let config = self.portal_configuration().await.ok().flatten();
+        let mut form = vec![("customer", customer), ("return_url", return_url)];
+        if let Some(c) = &config {
+            form.push(("configuration", c));
+        }
         Self::url(&self.post("/v1/billing_portal/sessions", &form).await?)
     }
+
+    async fn portal_configuration(&self) -> Result<Option<String>, StripeError> {
+        let list = self
+            .get(
+                "/v1/billing_portal/configurations",
+                &[("active", "true"), ("limit", "20")],
+            )
+            .await?;
+        Ok(list["data"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|c| c["metadata"]["runflow"] == "portal")
+            .and_then(|c| c["id"].as_str().map(str::to_string)))
+    }
+
+    /// One-time setup, safe to repeat: the prices (`prices`: lookup key → (product name, cents a month, BRL)), the
+    /// portal configuration and the webhook endpoint at `webhook_url`. A price whose amount changed gets a new
+    /// price that takes over the lookup key.
+    pub async fn setup(
+        &self,
+        prices: &[(&str, &str, i64)],
+        webhook_url: &str,
+    ) -> Result<SetupReport, StripeError> {
+        let mut report = SetupReport::default();
+        let mut q = vec![
+            ("active", "true"),
+            ("limit", "20"),
+            ("expand[]", "data.product"),
+        ];
+        q.extend(prices.iter().map(|(k, _, _)| ("lookup_keys[]", *k)));
+        let existing = self.get("/v1/prices", &q).await?;
+        for (key, name, cents) in prices {
+            let found = existing["data"]
+                .as_array()
+                .into_iter()
+                .flatten()
+                .find(|p| p["lookup_key"] == *key);
+            if let Some(p) = found.filter(|p| p["unit_amount"].as_i64() == Some(*cents)) {
+                report.prices.push((
+                    key.to_string(),
+                    p["id"].as_str().unwrap_or_default().to_string(),
+                    false,
+                ));
+                continue;
+            }
+            let cents = cents.to_string();
+            let mut form = vec![
+                ("currency", "brl"),
+                ("unit_amount", cents.as_str()),
+                ("recurring[interval]", "month"),
+                ("lookup_key", *key),
+                ("transfer_lookup_key", "true"),
+            ];
+            let product = found.and_then(|p| p["product"]["id"].as_str().or(p["product"].as_str()));
+            match product {
+                Some(id) => form.push(("product", id)),
+                None => form.push(("product_data[name]", *name)),
+            }
+            let p = self.post("/v1/prices", &form).await?;
+            report.prices.push((
+                key.to_string(),
+                p["id"].as_str().unwrap_or_default().to_string(),
+                true,
+            ));
+        }
+
+        if self.portal_configuration().await?.is_none() {
+            self.post(
+                "/v1/billing_portal/configurations",
+                &[
+                    (
+                        "business_profile[headline]",
+                        "Runflow · assinatura do clube",
+                    ),
+                    ("features[invoice_history][enabled]", "true"),
+                    ("features[payment_method_update][enabled]", "true"),
+                    ("features[subscription_cancel][enabled]", "true"),
+                    ("features[subscription_cancel][mode]", "at_period_end"),
+                    ("metadata[runflow]", "portal"),
+                ],
+            )
+            .await?;
+            report.portal_created = true;
+        }
+
+        let endpoints = self
+            .get("/v1/webhook_endpoints", &[("limit", "100")])
+            .await?;
+        let events: Vec<(&str, &str)> = EVENTS.iter().map(|e| ("enabled_events[]", *e)).collect();
+        let same = endpoints["data"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .find(|e| e["url"] == webhook_url);
+        match same.and_then(|e| e["id"].as_str()) {
+            Some(id) => {
+                self.post(&format!("/v1/webhook_endpoints/{id}"), &events)
+                    .await?;
+                report.webhook_id = id.to_string();
+            }
+            None => {
+                let mut form = events.clone();
+                form.push(("url", webhook_url));
+                form.push(("description", "Runflow API"));
+                let e = self.post("/v1/webhook_endpoints", &form).await?;
+                report.webhook_id = e["id"].as_str().unwrap_or_default().to_string();
+                report.webhook_secret = e["secret"].as_str().map(str::to_string);
+            }
+        }
+        Ok(report)
+    }
+}
+
+/// What `setup` found or created. `webhook_secret` only exists when the endpoint was just created (Stripe shows it
+/// once).
+#[derive(Default)]
+pub struct SetupReport {
+    /// `(lookup key, price id, created now)`.
+    pub prices: Vec<(String, String, bool)>,
+    pub portal_created: bool,
+    pub webhook_id: String,
+    pub webhook_secret: Option<String>,
 }
 
 fn unhex(s: &str) -> Option<Vec<u8>> {

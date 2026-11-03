@@ -5,13 +5,69 @@ use chrono::{DateTime, Utc};
 use runflow_db::billing::{self, Invoice, Notice, Paid};
 use runflow_db::providers;
 use runflow_domain::plans;
-use runflow_integrations::stripe::{id_of, invoice_period, period_end, plan_status};
+use runflow_integrations::stripe::{
+    PRICE_MAX_STUDENT, PRICE_MAX_TRAINER, StripeError, id_of, invoice_period, period_end,
+    plan_of_subscription, plan_status,
+};
 use serde_json::{Value, json};
 use uuid::Uuid;
 
 use crate::{JobError, Worker};
 
 pub const STRIPE_EVENT: &str = "stripe.event";
+/// `{club_id}`: Max bills the seats above the included ones; brings the subscription's quantities up to date.
+pub const STRIPE_SEATS: &str = "stripe.seats";
+
+fn stripe_failed(e: StripeError) -> JobError {
+    match e {
+        StripeError::Rejected(..) => JobError::permanent(e.to_string()),
+        StripeError::Transport(_) => JobError::retry(e.to_string()),
+    }
+}
+
+pub(crate) async fn seats(w: &Worker, payload: &Value) -> Result<(), JobError> {
+    let Some(client) = &w.stripe else {
+        return Ok(());
+    };
+    let club = payload["club_id"]
+        .as_str()
+        .and_then(|s| Uuid::parse_str(s).ok())
+        .ok_or_else(|| JobError::permanent("bad payload"))?;
+    let Some(a) = billing::account(&w.db, club).await? else {
+        return Ok(());
+    };
+    let (Some(id), "max") = (a.subscription.as_deref(), a.plan.as_str()) else {
+        return Ok(());
+    };
+    let Some(row) = runflow_db::clubs::subscription_row(&w.db, club).await? else {
+        return Ok(());
+    };
+    let max = plans::plan("max");
+    let prices = client.prices().await.map_err(stripe_failed)?;
+    let subscription = client.subscription(id).await.map_err(stripe_failed)?;
+    for (key, quantity) in [
+        (
+            PRICE_MAX_TRAINER,
+            (row.active_trainers - max.trainers).max(0),
+        ),
+        (
+            PRICE_MAX_STUDENT,
+            (row.active_students - max.students).max(0),
+        ),
+    ] {
+        let price = prices.get(key).ok_or_else(|| {
+            JobError::permanent(format!("price {key} missing: run `runflow stripe-setup`"))
+        })?;
+        if client
+            .set_quantity(&subscription, price, quantity)
+            .await
+            .map_err(stripe_failed)?
+        {
+            tracing::info!(%club, key, quantity, "max seats updated on stripe");
+        }
+    }
+    Ok(())
+}
 
 pub(crate) async fn event(w: &Worker, payload: &Value) -> Result<(), JobError> {
     let id = payload["event_id"]
@@ -124,7 +180,7 @@ async fn apply(w: &Worker, e: &Value) -> Result<(), JobError> {
                     &w.db,
                     club,
                     Paid {
-                        plan: plan_of(o),
+                        plan: plan_of_subscription(o),
                         customer: id_of(&o["customer"]),
                         subscription,
                         status: Some(status),

@@ -4,7 +4,7 @@
   "grace_days": 7,
   "plans": [
     { "id": "free", "name": "Free", "price_cents": 0, "owners": 1, "trainers": 1, "students": 10, "extra": null },
-    { "id": "pro", "name": "Pro", "price_cents": 2000, "owners": 1, "trainers": 2, "students": 30, "extra": null },
-    { "id": "max", "name": "Max", "price_cents": 5900, "owners": 1, "trainers": 5, "students": 100, "extra": { "trainer_cents": 500, "student_cents": 50 } }
+    { "id": "pro", "name": "Pro", "price_cents": 1990, "owners": 1, "trainers": 2, "students": 30, "extra": null },
+    { "id": "max", "name": "Max", "price_cents": 7990, "owners": 1, "trainers": 5, "students": 100, "extra": { "trainer_cents": 500, "student_cents": 50 } }
   ]
 }

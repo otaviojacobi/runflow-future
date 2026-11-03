@@ -165,10 +165,10 @@ mod tests {
 
     #[test]
     fn prices_with_extra_seats() {
-        assert_eq!(monthly_cents(plan("pro"), 29, 2), 2000);
-        assert_eq!(monthly_cents(plan("max"), 100, 5), 5900);
+        assert_eq!(monthly_cents(plan("pro"), 29, 2), 1990);
+        assert_eq!(monthly_cents(plan("max"), 100, 5), 7990);
         // 2 extra trainers, 20 extra students.
-        assert_eq!(monthly_cents(plan("max"), 120, 7), 5900 + 2 * 500 + 20 * 50);
+        assert_eq!(monthly_cents(plan("max"), 120, 7), 7990 + 2 * 500 + 20 * 50);
     }
 
     #[test]

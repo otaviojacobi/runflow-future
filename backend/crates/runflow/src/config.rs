@@ -100,7 +100,6 @@ pub struct Strava {
 pub struct Stripe {
     pub secret_key: Secret,
     pub webhook_secret: Option<Secret>,
-    pub price_pro_monthly: Option<String>,
 }
 
 /// Telemetry over OTLP (S13): the standard OpenTelemetry variables.
@@ -391,7 +390,6 @@ impl Config {
         let stripe = e.secret("STRIPE_SECRET_KEY").map(|key| Stripe {
             secret_key: key,
             webhook_secret: e.secret("STRIPE_WEBHOOK_SECRET"),
-            price_pro_monthly: e.opt("STRIPE_PRICE_PRO_MONTHLY"),
         });
 
         let storage = match e.or("STORAGE_BACKEND", "disk").as_str() {

@@ -69,11 +69,11 @@ QA is live at **https://qa.runflow.club**:
 - [ ] **Strava**: strava.com/settings/api → Authorization Callback Domain = `qa.runflow.club`. "Conectar com Strava" is live on QA
   (S9a) and fails at Strava until this is set.
 
-- [ ] *(Optional)* **Stripe in test mode**, to see the real Checkout instead of the simulation: dashboard.stripe.com →
-  Test mode → a product "Runflow Pro" with a recurring price R$ 20/month (its `price_…`), API key `sk_test_…`, and a webhook
-  endpoint `https://qa.runflow.club/api/v1/webhooks/stripe` with the events listed in `.env.example` (its `whsec_…`). Send
-  me the three values (or put `STRIPE_SECRET_KEY`, `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_WEBHOOK_SECRET` in the Pi's `.env`)
-  and run `./update.sh`. The simulation switches itself off when Stripe is set.
+- [x] **Stripe in test mode** (B3, 2026-11-03): the founder's sandbox key is in `.env.qa` and the NUC's `ops/qa/.env`;
+  `runflow stripe-setup` created the prices (from `api/plans.json`), the portal configuration and the webhook endpoint
+  `https://qa.runflow.club/api/v1/webhooks/stripe` (its secret went straight into the env files). QA now uses Stripe's
+  real Checkout with test cards (4242 4242 4242 4242); the simulation is off there. Production keys wait for P1 (the
+  business verification).
 
 ## Before the private beta
 
