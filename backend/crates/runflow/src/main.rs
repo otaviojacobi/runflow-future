@@ -24,14 +24,20 @@ use tracing_subscriber::EnvFilter;
 
 use crate::config::{Config, LogFormat, RunEnv};
 
-/// `0.1.0` or `0.1.0+<git sha>` when the image is built with `RUNFLOW_GIT_SHA`.
-pub static VERSION: LazyLock<&'static str> =
-    LazyLock::new(|| match option_env!("RUNFLOW_GIT_SHA") {
-        Some(sha) if !sha.is_empty() => Box::leak(
-            format!("{}+{}", env!("CARGO_PKG_VERSION"), &sha[..sha.len().min(7)]).into_boxed_str(),
-        ),
-        _ => env!("CARGO_PKG_VERSION"),
-    });
+/// The release (D-048): `RUNFLOW_VERSION` (CI's next semantic version, from the conventional commits since the last
+/// `v*` tag) or the crate version for local builds, plus `+<git sha>` when built with `RUNFLOW_GIT_SHA`:
+/// `0.2.0+56352d6`. Shown by `/v1/health`, sent to Sentry as the release.
+pub static VERSION: LazyLock<&'static str> = LazyLock::new(|| {
+    let version = option_env!("RUNFLOW_VERSION")
+        .filter(|v| !v.is_empty())
+        .unwrap_or(env!("CARGO_PKG_VERSION"));
+    match option_env!("RUNFLOW_GIT_SHA") {
+        Some(sha) if !sha.is_empty() => {
+            Box::leak(format!("{version}+{}", &sha[..sha.len().min(7)]).into_boxed_str())
+        }
+        _ => version,
+    }
+});
 
 #[derive(Parser)]
 #[command(name = "runflow", version, about = "Runflow API server")]

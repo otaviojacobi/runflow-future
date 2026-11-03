@@ -2,8 +2,11 @@ name: images
 
 # Builds the QA images on every push to main and pushes them to GHCR for amd64 (the Intel NUC that hosts QA, D-046;
 # the Raspberry Pi is retired):
-#   ghcr.io/otaviojacobi/runflow-api:qa, :sha-<commit>   (backend/Dockerfile)
-#   ghcr.io/otaviojacobi/runflow-web:qa, :sha-<commit>   (frontend/Dockerfile, context = repo root)
+#   ghcr.io/otaviojacobi/runflow-api:qa, :sha-<commit>, :v<version>   (backend/Dockerfile)
+#   ghcr.io/otaviojacobi/runflow-web:qa, :sha-<commit>, :v<version>   (frontend/Dockerfile, context = repo root)
+# Every push to main is a release (D-048): the version comes from the conventional commits since the last `v*` tag
+# (.github/scripts/next-version.sh), is baked into the API (`/v1/health` → "0.2.0+<sha>"), and once the images are
+# published the commit is tagged `v<version>` with a GitHub release.
 # The build job pushes by digest and the publish job tags it, so adding an architecture back is one matrix entry
 # (arm64 builds natively on ubuntu-24.04-arm). The QA host pulls :qa every 5 minutes (ops/qa/update.sh). Pin a commit
 # with RUNFLOW_TAG=sha-<commit> in ops/qa/.env.
@@ -22,8 +25,22 @@ permissions:
   packages: write
 
 jobs:
+  version:
+    name: Next version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: v
+        run: echo "version=$(bash .github/scripts/next-version.sh)" >> "$GITHUB_OUTPUT"
+      - run: echo "Releasing v${{ steps.v.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+
   build:
     name: ${{ matrix.image }} (${{ matrix.arch }})
+    needs: version
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -54,7 +71,9 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           platforms: linux/${{ matrix.arch }}
-          build-args: RUNFLOW_GIT_SHA=${{ github.sha }}
+          build-args: |
+            RUNFLOW_GIT_SHA=${{ github.sha }}
+            RUNFLOW_VERSION=${{ needs.version.outputs.version }}
           outputs: type=image,name=ghcr.io/otaviojacobi/${{ matrix.image }},push-by-digest=true,name-canonical=true,push=true
           cache-from: type=gha,scope=${{ matrix.image }}-${{ matrix.arch }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}-${{ matrix.arch }}
@@ -73,7 +92,7 @@ jobs:
 
   publish:
     name: ${{ matrix.image }} (tags)
-    needs: build
+    needs: [version, build]
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -91,11 +110,33 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Tag :qa and :sha-<commit>
+      - name: Tag :qa, :sha-<commit> and :v<version>
         working-directory: /tmp/digests
         run: |
           repo="ghcr.io/otaviojacobi/${{ matrix.image }}"
           docker buildx imagetools create \
-            -t "$repo:qa" -t "$repo:sha-${GITHUB_SHA::7}" \
+            -t "$repo:qa" -t "$repo:sha-${GITHUB_SHA::7}" -t "$repo:v${{ needs.version.outputs.version }}" \
             $(printf "$repo@sha256:%s " *)
           docker buildx imagetools inspect "$repo:qa"
+
+  release:
+    name: Tag v${{ needs.version.outputs.version }}
+    needs: [version, publish]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Tag and GitHub release (notes from the commits since the last tag)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: v${{ needs.version.outputs.version }}
+        run: |
+          if git rev-parse -q --verify "refs/tags/$VERSION" >/dev/null; then
+            echo "$VERSION already exists"; exit 0
+          fi
+          git tag "$VERSION" "$GITHUB_SHA"
+          git push origin "$VERSION"
+          gh release create "$VERSION" --verify-tag --generate-notes --title "$VERSION"
