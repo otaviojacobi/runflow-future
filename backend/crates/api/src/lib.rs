@@ -2,6 +2,7 @@
 
 pub mod access;
 pub mod body;
+pub mod metrics;
 pub mod problem;
 pub mod routes;
 pub mod session;
@@ -205,7 +206,7 @@ pub fn router(state: AppState) -> Router {
         .max_age(Duration::from_secs(600));
 
     Router::new()
-        .nest("/v1", v1)
+        .nest("/v1", v1.route_layer(axum::middleware::from_fn(metrics::track)))
         .fallback(not_found)
         .method_not_allowed_fallback(method_not_allowed)
         .layer(

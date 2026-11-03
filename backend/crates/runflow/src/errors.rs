@@ -16,7 +16,7 @@ pub fn init(config: &Config, release: &'static str) -> Option<sentry::ClientInit
     let options = sentry::ClientOptions::new()
         .dsn(dsn)
         .release(release)
-        .environment(config.sentry_environment.clone())
+        .environment(config.deployment_env.clone())
         .send_default_pii(false)
         .attach_stacktrace(true)
         .before_send(|e| Some(scrub(e)));

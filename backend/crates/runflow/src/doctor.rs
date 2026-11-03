@@ -279,6 +279,24 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
             secret(&c.secrets.encryption_key)
         ),
     );
+    match &c.otel {
+        Some(o) => line(
+            "telemetry",
+            "ok",
+            format!(
+                "OTLP {} · headers {} · traces {:.0}% · metrics every {}s",
+                o.endpoint,
+                o.headers.as_ref().map_or("none".to_string(), |h| h.hint()),
+                o.traces_ratio * 100.0,
+                o.metrics_interval.as_secs()
+            ),
+        ),
+        None => line(
+            "telemetry",
+            "off",
+            "OTEL_EXPORTER_OTLP_ENDPOINT not set: logs on stdout only (S13, Grafana Cloud)",
+        ),
+    }
     line(
         "sentry",
         if c.sentry_dsn.is_some() { "ok" } else { "off" },
@@ -294,7 +312,7 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
             } else {
                 "SENTRY_WEB_DSN not set"
             },
-            c.sentry_environment
+            c.deployment_env
         ),
     );
 

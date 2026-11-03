@@ -3,6 +3,7 @@
 mod config;
 mod doctor;
 mod errors;
+mod telemetry;
 
 use std::process::ExitCode;
 use std::sync::LazyLock;
@@ -96,7 +97,26 @@ async fn main() -> ExitCode {
         }
     };
     let _sentry = errors::init(&config, *VERSION);
-    init_logging(config.log_format, _sentry.is_some());
+    // Telemetry for the long-running processes only (not doctor, migrate…).
+    let process = match cli.command {
+        Command::All => Some("all"),
+        Command::Serve => Some("serve"),
+        Command::Worker => Some("worker"),
+        _ => None,
+    };
+    let telemetry = match (process, &config.otel) {
+        (Some(p), Some(o)) => {
+            match telemetry::Telemetry::init(o, *VERSION, &config.deployment_env, p) {
+                Ok(t) => Some(t),
+                Err(e) => {
+                    eprintln!("telemetry off: {e:#}");
+                    None
+                }
+            }
+        }
+        _ => None,
+    };
+    init_logging(config.log_format, _sentry.is_some(), telemetry.as_ref());
 
     let result = match cli.command {
         Command::All => run(config, true, true).await,
@@ -108,6 +128,9 @@ async fn main() -> ExitCode {
         Command::Healthcheck => healthcheck(&config).await,
         Command::VapidKeys => Ok(()),
     };
+    if let Some(t) = telemetry {
+        let _ = tokio::task::spawn_blocking(move || t.shutdown()).await;
+    }
     match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
@@ -135,7 +158,7 @@ fn webpush(
     )))
 }
 
-fn init_logging(format: LogFormat, sentry: bool) {
+fn init_logging(format: LogFormat, sentry: bool, telemetry: Option<&telemetry::Telemetry>) {
     use tracing_subscriber::prelude::*;
     let filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,runflow=debug"));
@@ -150,6 +173,7 @@ fn init_logging(format: LogFormat, sentry: bool) {
         .with(filter)
         .with(fmt)
         .with(sentry.then(errors::layer))
+        .with(telemetry.map(|t| t.layer()))
         .init();
 }
 
@@ -173,6 +197,7 @@ async fn migrate(config: &Config) -> anyhow::Result<()> {
 
 async fn worker(config: Config) -> anyhow::Result<()> {
     let pool = connect(&config).await?;
+    telemetry::observe_pool(pool.clone());
     let mailer = Mailer::from_settings(&config.email).context("e-mail settings")?;
     let mut w = runflow_jobs::Worker::new(pool.clone(), mailer, config.http.public_app_url.clone())
         .with_api_url(config.http.public_api_url.clone());
@@ -196,6 +221,7 @@ async fn worker(config: Config) -> anyhow::Result<()> {
 
 async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow::Result<()> {
     let pool = connect(&config).await?;
+    telemetry::observe_pool(pool.clone());
     if with_migrations {
         runflow_db::migrate(&pool)
             .await
@@ -243,7 +269,7 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
             .as_ref()
             .map(|dsn| runflow_api::WebSentry {
                 dsn: dsn.clone(),
-                environment: config.sentry_environment.clone(),
+                environment: config.deployment_env.clone(),
                 release: (*VERSION).to_string(),
             }),
         auth: AuthSettings {

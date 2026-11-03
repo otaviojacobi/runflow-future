@@ -26,6 +26,10 @@ pub enum LogFormat {
 pub struct Secret(String);
 
 impl Secret {
+    #[cfg(test)]
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
     pub fn expose(&self) -> &str {
         &self.0
     }
@@ -101,6 +105,21 @@ pub struct Stripe {
     pub price_pro_monthly: Option<String>,
 }
 
+/// Telemetry over OTLP (S13): the standard OpenTelemetry variables.
+#[derive(Debug, Clone)]
+pub struct Otel {
+    /// `OTEL_EXPORTER_OTLP_ENDPOINT`: the base URL (`/v1/traces`, `/v1/metrics`, `/v1/logs` are appended).
+    pub endpoint: String,
+    /// `OTEL_EXPORTER_OTLP_HEADERS`: `Authorization=Basic%20…` for Grafana Cloud.
+    pub headers: Option<Secret>,
+    /// `OTEL_SERVICE_NAME` (default `runflow`).
+    pub service_name: String,
+    /// `OTEL_TRACES_SAMPLER_ARG`: share of traces kept, 0–1 (default 1).
+    pub traces_ratio: f64,
+    /// `OTEL_METRIC_EXPORT_INTERVAL` in ms (default 60000).
+    pub metrics_interval: std::time::Duration,
+}
+
 /// Web Push (S7b): the VAPID key pair (`runflow vapid-keys`) and a contact for the push services.
 #[derive(Debug, Clone)]
 pub struct Push {
@@ -148,10 +167,12 @@ pub struct Config {
     pub storage: Storage,
     pub assistant: Assistant,
     pub sentry_dsn: Option<String>,
+    pub otel: Option<Otel>,
     /// The web app's DSN (`SENTRY_WEB_DSN`), handed to it by `/public/config` (browser DSNs are public).
     pub sentry_web_dsn: Option<String>,
-    /// `SENTRY_ENVIRONMENT` (default `development` or `production` from `RUNFLOW_ENV`; QA sets `qa`).
-    pub sentry_environment: String,
+    /// `DEPLOYMENT_ENV`: the environment's name in Sentry and telemetry (default `development` or `production` from
+    /// `RUNFLOW_ENV`; QA sets `qa`).
+    pub deployment_env: String,
 }
 
 /// Reads variables through a function so tests don't touch the process environment.
@@ -404,6 +425,17 @@ impl Config {
             }
         };
 
+        let otel_service = e.or("OTEL_SERVICE_NAME", "runflow");
+        let otel_ratio: f64 = e.parse("OTEL_TRACES_SAMPLER_ARG", 1.0);
+        let otel_interval: u64 = e.parse("OTEL_METRIC_EXPORT_INTERVAL", 60_000);
+        let otel_headers = e.secret("OTEL_EXPORTER_OTLP_HEADERS");
+        let otel = e.opt("OTEL_EXPORTER_OTLP_ENDPOINT").map(|endpoint| Otel {
+            endpoint,
+            headers: otel_headers,
+            service_name: otel_service,
+            traces_ratio: otel_ratio.clamp(0.0, 1.0),
+            metrics_interval: std::time::Duration::from_millis(otel_interval.max(1000)),
+        });
         let sentry_dsn = e.opt("SENTRY_DSN");
         let sentry_web_dsn = e.opt("SENTRY_WEB_DSN");
         for (name, dsn) in [
@@ -418,8 +450,8 @@ impl Config {
                 ));
             }
         }
-        let sentry_environment = e.or(
-            "SENTRY_ENVIRONMENT",
+        let deployment_env = e.or(
+            "DEPLOYMENT_ENV",
             if env == RunEnv::Development {
                 "development"
             } else {
@@ -461,8 +493,9 @@ impl Config {
                 storage,
                 assistant,
                 sentry_dsn,
+                otel,
                 sentry_web_dsn,
-                sentry_environment,
+                deployment_env,
             })
         } else {
             Err(e.errors)

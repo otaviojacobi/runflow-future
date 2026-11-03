@@ -74,3 +74,14 @@ pub async fn fail(
     .await?;
     Ok(())
 }
+
+/// Jobs waiting to run now, and how long the oldest has waited (seconds): the worker's health (S13).
+pub async fn backlog(db: impl PgExecutor<'_>) -> sqlx::Result<(i64, f64)> {
+    let r = sqlx::query!(
+        r#"SELECT count(*) AS "due!", coalesce(extract(epoch FROM now() - min(run_at)), 0)::float8 AS "oldest_s!"
+             FROM jobs WHERE done_at IS NULL AND run_at <= now()"#
+    )
+    .fetch_one(db)
+    .await?;
+    Ok((r.due, r.oldest_s))
+}

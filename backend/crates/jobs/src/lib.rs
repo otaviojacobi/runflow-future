@@ -4,6 +4,7 @@
 
 mod billing_jobs;
 mod invite_email;
+mod metrics;
 mod notify_email;
 mod push_jobs;
 mod strava_jobs;
@@ -122,7 +123,10 @@ impl Worker {
     pub async fn run_once(&self, limit: i64) -> sqlx::Result<usize> {
         let batch = jobs::claim(&self.db, &self.id, limit).await?;
         for job in &batch {
-            match self.handle(job).await {
+            let started = std::time::Instant::now();
+            let result = self.handle(job).await;
+            metrics::job_ran(&job.kind, started.elapsed(), &result);
+            match result {
                 Ok(()) => jobs::complete(&self.db, job.id).await?,
                 Err(e) => {
                     let retry_at = (e.retry && job.attempts < MAX_ATTEMPTS).then(|| {
@@ -149,6 +153,8 @@ impl Worker {
     pub async fn tick(&self, now: DateTime<Utc>) -> sqlx::Result<usize> {
         let released = week_release::run(self, now).await?;
         notify_email::run(self, now).await?;
+        let (due, oldest_s) = jobs::backlog(&self.db).await?;
+        metrics::backlog(due, oldest_s);
         Ok(released)
     }
 
