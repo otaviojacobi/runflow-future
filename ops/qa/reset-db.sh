@@ -19,6 +19,6 @@ docker compose exec -T postgres sh -c '
 # Garage recreates its bucket and the API's key from .env when it starts on an empty volume.
 docker compose rm -sf garage
 docker volume rm -f runflow-qa_garage >/dev/null
-docker compose up -d --wait garage
-docker compose start api
+# Then everything (the web container may have been held back while the API was down).
+docker compose up -d --wait
 echo "QA reset: empty database (migrated by the API at start) and empty storage"
