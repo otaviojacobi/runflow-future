@@ -1,6 +1,6 @@
 //! Assistant (W4, W5, W8, W17; endpoints.md § Assistant), like api/mock/routes/ai.mjs: the rules engine in
-//! `runflow_domain::assistant` behind the provider-agnostic contract (`source: "rules"`). Staff only, 20 requests
-//! a minute per user.
+//! `runflow_domain::assistant` and the free-text grammar in `runflow_domain::workout_text` behind the
+//! provider-agnostic contract (`source: "rules"`). Staff only, 20 requests a minute per user.
 
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{LazyLock, Mutex};
@@ -14,6 +14,7 @@ use chrono::Duration;
 use runflow_db::assistant as db;
 use runflow_domain::assistant::{self as rules, Athlete, Feedback, SOURCE};
 use runflow_domain::workout::estimate;
+use runflow_domain::workout_text;
 use serde_json::{Value, json};
 use uuid::Uuid;
 
@@ -24,6 +25,8 @@ use crate::time::{club_today, monday_of, parse_date};
 use crate::{AppState, Problem};
 
 const PER_MINUTE: usize = 20;
+/// The longest description `/ai/workout` reads.
+const MAX_TEXT: usize = 2000;
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -85,21 +88,30 @@ async fn workout(
     let text = body.str("text").unwrap_or_default();
     let text = text.trim();
     let sport = body.str("sport").unwrap_or_else(|| "run".into());
-    if text.chars().count() < 5 {
+    let chars = text.chars().count();
+    if chars < 5 {
         return Err(Problem::field("text", "Descreva o treino em uma frase."));
     }
-    let Some(structure) = rules::parse_description(text, &sport) else {
+    if chars > MAX_TEXT {
+        return Err(Problem::field("text", "Use até 2.000 caracteres."));
+    }
+    let parsed = workout_text::parse(text, &sport);
+    if parsed.structure["blocks"]
+        .as_array()
+        .is_none_or(Vec::is_empty)
+    {
         return Err(Problem::new(
             StatusCode::UNPROCESSABLE_ENTITY,
             "ai.not_understood",
             "Não entendi o treino",
             rules::example_for(&sport),
         ));
-    };
-    let (est_duration_s, est_distance_m) = estimate(&sport, &structure);
+    }
+    let (est_duration_s, est_distance_m) = estimate(&sport, &parsed.structure);
     Ok(Json(json!({
-        "name": rules::name_of(&structure, &sport), "sport": sport, "structure": structure,
-        "est_duration_s": est_duration_s, "est_distance_m": est_distance_m, "notes": null, "source": SOURCE,
+        "name": parsed.name, "sport": sport, "structure": parsed.structure,
+        "est_duration_s": est_duration_s, "est_distance_m": est_distance_m, "notes": null,
+        "warnings": parsed.warnings, "tags": parsed.tags, "source": SOURCE,
     })))
 }
 

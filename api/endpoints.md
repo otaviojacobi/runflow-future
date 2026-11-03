@@ -36,7 +36,7 @@ Screen IDs (A*, M*, W*, O*, C*) refer to `docs/build-plan.md`.
 | swim extras (on a step) | `stroke`: `free` `back` `breast` `fly` `im` `choice` `kick` `drill` · `equipment`: [`pullbuoy` `kickboard` `fins` `paddles` `snorkel`] · `send_off_s` |
 | strength block | `{kind:"exercise", name, sets, reps:"8-10", load:{type:"kg"\|"pct_1rm"\|"bodyweight"\|"rpe", value}, rest_s, tempo?, note?, exercise_id?}`. Without `exercise_id`, apps match the library by name (case-insensitive) |
 
-Blocks can carry `note`. The quick-text parser (frontend) produces this structure; Garmin/FIT export maps from it.
+Blocks can carry `note`. Free text becomes this structure through one pt-BR grammar (coaching shorthand and plain sentences), shared by the web builder's quick text and `POST /ai/workout` in the mock and the backend; `api/workout-text-examples.json` holds the golden examples every implementation must match (rules: `docs/workout-text.md`). Garmin/FIT export maps from it.
 
 The backend validates every stored structure against these types (unknown extra fields are kept, wrong shapes or out-of-range values → `422`, field `structure`: "Não entendemos a estrutura do treino. Revise as etapas."; no blocks → "Adicione pelo menos uma etapa."). `est_duration_s` / `est_distance_m` come from the app (non-negative integers or null).
 
@@ -186,7 +186,7 @@ Staff only. Responses carry `source`: `rules` (the deterministic rules engine, i
 
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
-| POST | `/clubs/{club_id}/ai/workout` `{text, sport}` | Natural pt-BR description → `{name, sport, structure, est_duration_s, est_distance_m, notes}`. `422 ai.not_understood` with an example in `detail` | W5, W17 |
+| POST | `/clubs/{club_id}/ai/workout` `{text, sport}` | Natural pt-BR description (5 to 2,000 characters, else `422` field `text`) → `{name, sport, structure, est_duration_s, est_distance_m, notes, warnings, tags}`: `warnings` are the pieces that weren't understood (as typed; the rest is applied), `tags` the `#hashtags` (normalized, § Tags). The rules engine parses with the shared free-text grammar (§ Workout structure, golden examples in `api/workout-text-examples.json`). Nothing understood → `422 ai.not_understood` with an example for the sport in `detail` | W5, W17 |
 | POST | `/clubs/{club_id}/ai/week-plan` `{membership_id, week_start}` | Suggested week from the profile (goal, level, sessions/week), the last 14 days' compliance and the goal-race date (taper) → `{rationale[], items[] {date, sport, title, structure, est_duration_s, est_distance_m, reason}}`; skips days that already have workouts. Nothing is saved: the app assigns the chosen items | W4, W17 |
 | POST | `/clubs/{club_id}/ai/feedback-summary` `{from?, to?, group_id?}` | Period summary of completions, PSE and comments → `{summary[], highlights[] {membership_id, planned_workout_id, kind: pain \| fatigue \| life \| sick \| rpe \| missed, severity, text}}` | W8, W17 |
 

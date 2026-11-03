@@ -1,0 +1,108 @@
+#!/usr/bin/env node
+/**
+ * Golden examples for free-text workouts: api/workout-text-examples.json (R1). Every implementation of the grammar
+ * (this mock's lib/workout-text.mjs, the web builder's quick text, the backend's workout_text.rs) must give exactly
+ * the structure, name, warnings and tags written there.
+ *
+ *   node api/mock/workout-text-examples.mjs               check every example (also part of `npm run check:api`)
+ *   node api/mock/workout-text-examples.mjs --fill        fill in examples that only have `text` + `sport` with what
+ *                                                         the parser understands today (review the diff!)
+ *   node api/mock/workout-text-examples.mjs run "6x1km @4:30 c/ 2' trote"   show what the parser understands
+ *   node api/mock/workout-text-examples.mjs --corpus /tmp/corpus.json [n]    n random texts (default 20000) with
+ *                                                         this parser's answers, to compare the ports beyond the
+ *                                                         examples: WORKOUT_TEXT_CORPUS=/tmp/corpus.json cargo test
+ *                                                         -p runflow-domain --test workout_text -- --ignored
+ */
+import { readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { parseWorkoutText } from "./lib/workout-text.mjs";
+
+export const EXAMPLES_FILE = join(dirname(fileURLToPath(import.meta.url)), "..", "workout-text-examples.json");
+const SPORTS = ["run", "swim", "bike", "strength", "mobility", "other"];
+
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+/** Key order doesn't matter in JSON objects: compare with sorted keys. */
+const canon = (v) => (Array.isArray(v) ? v.map(canon) : v && typeof v === "object" ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, canon(v[k])])) : v);
+
+/** What a parse must match: `warnings` and `tags` default to none; `name` is checked when written. */
+function expected(ex) {
+  return { structure: ex.structure, warnings: ex.warnings ?? [], tags: ex.tags ?? [], ...(ex.name !== undefined && { name: ex.name }) };
+}
+
+/** `{count, failures: [{text, sport, field, want, got}]}` for every example of the file. */
+export function checkExamples(doc = JSON.parse(readFileSync(EXAMPLES_FILE, "utf8"))) {
+  const failures = [];
+  for (const ex of doc.examples) {
+    if (typeof ex.text !== "string" || !SPORTS.includes(ex.sport)) { failures.push({ text: ex.text, sport: ex.sport, field: "sport", want: SPORTS.join(" | "), got: ex.sport }); continue; }
+    if (ex.structure === undefined) { failures.push({ text: ex.text, sport: ex.sport, field: "structure", want: "(missing: run with --fill)", got: null }); continue; }
+    const got = parseWorkoutText(ex.text, ex.sport);
+    const want = expected(ex);
+    for (const field of Object.keys(want)) if (!same(canon(want[field]), canon(got[field]))) failures.push({ text: ex.text, sport: ex.sport, field, want: want[field], got: got[field] });
+  }
+  return { count: doc.examples.length, failures };
+}
+
+// ---------------------------------------------------------------- the file's layout (one block per line)
+const j = (v) => JSON.stringify(v);
+function formatExample(ex) {
+  const lines = [];
+  for (const [k, v] of Object.entries(ex)) {
+    if (k === "structure" && v?.blocks?.length) lines.push(`   "structure": {"v":${j(v.v)},"blocks":[\n${v.blocks.map((b) => "    " + j(b)).join(",\n")}\n   ]}`);
+    else lines.push(`   ${j(k)}: ${j(v)}`);
+  }
+  return `  {\n${lines.join(",\n")}\n  }`;
+}
+export function formatExamples(doc) {
+  const head = Object.entries(doc).filter(([k]) => k !== "examples").map(([k, v]) => ` ${j(k)}: ${Array.isArray(v) ? `[\n${v.map((x) => "  " + j(x)).join(",\n")}\n ]` : j(v)}`);
+  return `{\n${head.join(",\n")},\n "examples": [\n${doc.examples.map(formatExample).join(",\n")}\n ]\n}\n`;
+}
+
+/** Fill `structure`, `name`, `warnings`, `tags` of examples written with only `text` + `sport`. */
+export function fill(doc) {
+  let n = 0;
+  doc.examples = doc.examples.map((ex) => {
+    if (ex.structure !== undefined) return ex;
+    n++;
+    const r = parseWorkoutText(ex.text, ex.sport);
+    const { text, sport, comment, ...rest } = ex;
+    return { text, sport, ...(comment !== undefined && { comment }), name: r.name, structure: r.structure, ...(r.warnings.length && { warnings: r.warnings }), ...(r.tags.length && { tags: r.tags }), ...rest };
+  });
+  return n;
+}
+
+// ---------------------------------------------------------------- random texts (port parity beyond the examples)
+const PARTS = ["6x", "x", "(", ")", "+", ",", ".", "-", " / ", "/", "@", ":", "'", '"', "%", "e", "de", "com", "c/", "1", "10", "100", "400", "1,5", "1.500", "4:30", "1:35", "1:23:45", "km", "m", "min", "s", "h", "Z2", "Z5", "zona", "pse", "7", "fc", "150", "bpm", "w", "200", "ftp", "95%", "aquec", "desaq", "trote", "descanso", "entre", "séries", "tiros", "leve", "forte", "progressivo", "a", "até", "crawl", "palmar", "saída", "cada", "kg", "desc", "pc", "máx", "rpm", "km/h", "#tag", "\n", "seis", "meia", "hora", "mil", "vinte", "e meia", "1)", "×", "’", "—", "em", "ritmo", "pace", "0", "99999", "0:00", "acelerações", "por", "lado", "Agachamento", "3xmáx", "tempo", "3-1-1", "1RM", "peso do corpo", "fartlek", "longão", "potência", "FC até", "volta à calma", "entre os tiros", "20\"", "2'", "nadadeira", "pé de pato", "pull buoy", "educativo", "subida", "rodagem", "VO2", "\u00a0", "–"];
+export function corpus(n) {
+  let seed = 20261103;
+  const rnd = (k) => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % k; };
+  return Array.from({ length: n }, () => {
+    let text = "";
+    for (let k = 1 + rnd(16); k > 0; k--) text += PARTS[rnd(PARTS.length)] + (rnd(3) ? " " : "");
+    const sport = SPORTS[rnd(SPORTS.length)];
+    return { text, sport, ...parseWorkoutText(text, sport) };
+  });
+}
+
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const [arg, text] = process.argv.slice(2);
+  if (arg === "--corpus") {
+    const n = Number(process.argv[4]) || 20000;
+    writeFileSync(text, JSON.stringify(corpus(n)));
+    console.log(`wrote ${n} random texts with the mock parser's answers to ${text}`);
+  } else if (arg && SPORTS.includes(arg)) {
+    console.log(JSON.stringify(parseWorkoutText(text ?? "", arg), null, 1));
+  } else {
+    const doc = JSON.parse(readFileSync(EXAMPLES_FILE, "utf8"));
+    if (arg === "--fill") {
+      const n = fill(doc);
+      writeFileSync(EXAMPLES_FILE, formatExamples(doc));
+      console.log(`filled ${n} example(s) in api/workout-text-examples.json: review the diff, fix what's wrong by hand, then make the parsers match`);
+    } else {
+      const { count, failures } = checkExamples(doc);
+      for (const f of failures.slice(0, 10)) console.error(`✗ [${f.sport}] ${j(f.text)}: ${f.field}\n    want ${j(f.want)}\n    got  ${j(f.got)}`);
+      if (failures.length) process.exit(1);
+      console.log(`✓ ${count} workout text examples`);
+    }
+  }
+}

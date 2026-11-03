@@ -21,7 +21,8 @@ src/
   api/        types.ts (mirror of the contract) + one file of query/mutation hooks per domain
   ui/         generic components (Button, Input, Dialog…): no domain knowledge
   components/ domain components (WorkoutCard, IntensityProfile, SportChip…)
-  domain/     pure logic (workout structure, quick-text parser, estimates): unit-tested
+  domain/     pure logic (workout structure, quick-text parser, estimates): unit-tested. quicktext.ts is one of
+              three ports of the free-text grammar (docs/workout-text.md): its test checks api/workout-text-examples.json
   screens/    one folder per area; one file per screen (screen IDs in comments)
 ```
 

@@ -66,7 +66,7 @@ export function BuilderScreen() {
         </div>
         {err?.fieldError("structure") && <p className="rf-text-body-sm text-danger-text">{err.fieldError("structure")}</p>}
       </div>
-      {club && <AiDescribe clubId={club.id} sport={sport} onResult={(w) => { setStructure(w.structure); if (!name.trim()) setName(w.name); }} />}
+      {club && <AiDescribe clubId={club.id} sport={sport} onResult={(w) => { setStructure(w.structure); if (!name.trim()) setName(w.name); if (w.tags?.length) setTags((cur) => cleanTags([...cur, ...w.tags])); }} />}
       <WorkoutBuilder sport={sport} structure={structure} onChange={setStructure} onTags={(x) => setTags((cur) => cleanTags([...cur, ...x]))} />
       <Field label={t("Descrição para o aluno")} optional hint={t("Aparece no app do aluno junto do treino.")}>
         {(id, d) => <Textarea id={id} aria-describedby={d} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("Ex.: foco em manter o pace constante nos tiros.")} />}

@@ -26,16 +26,21 @@ crates/
   db/            pool, migrations (embedded), models.rs (JSON row shapes), one query module per area,
                  tests/contract.rs (migrations == api/schema.sql)
   domain/        pure rules, no I/O: the club color engine (port of design/src/color.js), workout structure and
-                 estimates, week release timing, notification rules, assessment formulas, the assistant's rules engine
+                 estimates, the free-text workout grammar (workout_text.rs), week release timing, notification rules,
+                 assessment formulas, the assistant's rules engine
   jobs/          the worker: Postgres queue (FOR UPDATE SKIP LOCKED), retries with backoff; job kinds (invite e-mails)
   integrations/  email (Resend + log with a dev outbox, token-based layout), google (ID-token verification),
                  strava, stripe (Checkout, portal, webhook signatures), webpush (RFC 8291 + VAPID), storage
 migrations/      0001_bootstrap.sql = api/schema.sql (synced; the only migration until the beta, D-030)
-assets/          synced copies: design/dist/tokens.json + color-fixtures.json, api/starter-library.json (scripts/sync-assets.sh)
+assets/          synced copies: design/dist/tokens.json + color-fixtures.json, api/starter-library.json,
+                 api/exercise-catalog.json, api/workout-text-examples.json (scripts/sync-assets.sh)
 ```
 `domain` holds pure rules with no I/O: `color.rs` is the Rust port of `design/src/color.js`, proven by
-`tests/color_fixtures.rs` against the synced golden fixtures (change both together). Workout structure, tags and
-estimates join it when needed.
+`tests/color_fixtures.rs` against the synced golden fixtures (change both together). `workout_text.rs` is the
+port of the free-text grammar (`api/mock/lib/workout-text.mjs`, `docs/workout-text.md`), proven by
+`tests/workout_text.rs` against the synced golden examples; its ignored `corpus` test compares a random corpus from
+the mock (`node api/mock/workout-text-examples.mjs --corpus /tmp/c.json`, then
+`WORKOUT_TEXT_CORPUS=/tmp/c.json cargo test -p runflow-domain --test workout_text -- --ignored`).
 
 ## Rules
 

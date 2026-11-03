@@ -1,166 +1,1092 @@
 /**
- * Quick text ("escrita rápida"): Brazilian coaching shorthand ⇄ workout structure.
+ * Quick text ("escrita rápida"): free pt-BR text ⇄ workout structure.
  *   "10' aquec + 6x1km @4:30 c/ 2' trote + 10' desaq"
- *   "15' Z2 + 3x(2km Z4 + 3' Z1) + 10' Z1"
+ *   "15 min de aquecimento, 6 tiros de 800 m a 4:10 com 2 min de trote e 10 min de desaquecimento"
  *   swim: "400 livre + 8x50 educativo + 10x100 crawl @1:45 palmar + 200 costas"
  *   strength (one exercise per line): "Agachamento 4x8 70% desc 90\""
  *   hashtags anywhere tag the workout: "... + 10' desaq #intervalado #pista"
  * Deterministic and forgiving: unknown bits become warnings, never exceptions.
+ *
+ * This is one of three ports of the same grammar (docs/workout-text.md), with api/mock/lib/workout-text.mjs (the
+ * mock's /ai/workout) and backend/crates/domain/src/workout_text.rs. All three must give exactly the golden examples
+ * in api/workout-text-examples.json (quicktext.test.ts reads them): change them together. Names, notes and warnings
+ * are workout data in pt-BR (stored with the workout, identical everywhere), so they don't go through t().
  */
 import type { Sport } from "@/api/types";
 import { cleanTags, extractTags } from "./tags";
 import type { Block, Duration, Equipment, Exercise, Intent, Load, Repeat, Step, Stroke, Structure, Target, ZoneN } from "./workout";
 
-/** `tags`: "#hashtags" found anywhere in the text (they never become steps). */
-export interface ParseResult { structure: Structure; warnings: string[]; tags: string[] }
+/** `tags`: "#hashtags" found anywhere in the text (they never become steps); `name`: a suggested workout name. */
+export interface ParseResult { structure: Structure; warnings: string[]; tags: string[]; name: string }
 
-const STROKES: [RegExp, Stroke][] = [
-  [/\b(crawl|livre)\b/, "free"], [/\bcostas\b/, "back"], [/\bpeito\b/, "breast"], [/\bborboleta\b/, "fly"],
-  [/\bmedley\b/, "im"], [/\bpernadas?\b/, "kick"], [/\beducativos?\b/, "drill"], [/\b(escolha|livre escolha)\b/, "choice"],
+// ---------------------------------------------------------------- vocabulary
+const KM = ["km", "k", "kms", "quilômetro", "quilômetros", "quilometro", "quilometros"];
+const METERS = ["m", "mt", "mts", "metro", "metros"];
+const HOURS = ["h", "hr", "hrs", "hora", "horas"];
+const MINUTES = ["min", "mins", "minuto", "minutos", "minutinho", "minutinhos"];
+const SECONDS = ["s", "seg", "segs", "segundo", "segundos", "sec"];
+const UNIT_WORDS = [...KM, ...METERS, ...HOURS, ...MINUTES, ...SECONDS];
+const NUMBER_WORDS: Record<string, number> = {
+  um: 1, uma: 1, dois: 2, duas: 2, "três": 3, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10,
+  onze: 11, doze: 12, treze: 13, quatorze: 14, catorze: 14, quinze: 15, dezesseis: 16, dezessete: 17, dezoito: 18, dezenove: 19,
+  vinte: 20, trinta: 30, quarenta: 40, cinquenta: 50, sessenta: 60, setenta: 70, oitenta: 80, noventa: 90,
+  cem: 100, cento: 100, duzentos: 200, duzentas: 200, trezentos: 300, trezentas: 300, quatrocentos: 400, quatrocentas: 400,
+  quinhentos: 500, quinhentas: 500, seiscentos: 600, setecentos: 700, oitocentos: 800, novecentos: 900, mil: 1000,
+};
+/** "6x", "6 vezes", "6 tiros (de)", "3 séries (de)". */
+const REPEAT_WORDS = ["x", "vezes", "tiro", "tiros", "repetição", "repetições", "repeticao", "repeticoes", "rep", "reps", "série", "séries", "serie", "series", "bloco", "blocos", "estímulo", "estímulos", "estimulo", "estimulos", "aceleração", "acelerações", "aceleracao", "aceleracoes", "strides"];
+/** Words that open the recovery part of a repeat ("6x1km c/ 2' trote", "8x100 com 20\" de descanso"). */
+const RECOVERY_MARKERS = ["com", "int", "intervalo", "intervalos", "rec", "recuperação", "recuperacao", "recupera", "pausa", "descanso", "desc"];
+/** Words that make a piece a recovery when they follow an amount ("2' trote", "15\" desc", "1' parado"). */
+const RECOVERY_WORDS = ["descanso", "desc", "parado", "parada", "pausa", "intervalo", "int", "rec", "recuperação", "recuperacao", "andando", "repouso"];
+/** Easy words: after a hard rep, an amount with one of these is the recovery ("10x1' forte 1' leve"). */
+const EASY_WORDS = ["leve", "leves", "solto", "soltinho", "levinho", "regenerativo", "fácil", "facil", "devagar", "suave"];
+const SOFT_WORDS = ["e", "depois", "então", "entao", "seguido", "seguida", "seguidos", "seguidas"];
+const HR_WORDS = ["fc", "bpm", "frequência", "frequencia", "cardíaca", "cardiaca"];
+const POWER_WORDS = ["potência", "potencia", "power", "watts", "watt", "w", "ftp"];
+/** Intensity words → zone. Adjectives first (they win over nouns like "rodagem"); then in zone order. */
+const INTENSITY_PHRASES: [string[], ZoneN][] = [[["bem", "leve"], 1], [["muito", "leve"], 1], [["bem", "levinho"], 1], [["muito", "forte"], 5], [["ritmo", "de", "meia", "maratona"], 4], [["ritmo", "de", "meia"], 4], [["ritmo", "de", "maratona"], 3]];
+const INTENSITY_WORDS: [string[], ZoneN][] = [
+  [["regenerativo", "regenerativa", "regenerativos", "recuperativo", "recuperativa", "soltinho", "levinho"], 1],
+  [["leve", "leves", "fácil", "facil", "tranquilo", "tranquila", "confortável", "confortavel", "aeróbico", "aerobico"], 2],
+  [["moderado", "moderada", "médio", "medio", "steady"], 3],
+  [["forte", "fortes", "limiar", "intenso", "intensa", "threshold"], 4],
+  [["máximo", "maximo", "máxima", "maxima", "máx", "max", "sprint", "sprints", "fortíssimo", "fortissimo"], 5],
 ];
-const EQUIP: [RegExp, Equipment][] = [[/\bpalmar(es)?\b/, "paddles"], [/\bpull ?(buoy)?\b/, "pullbuoy"], [/\bnadadeiras?\b/, "fins"], [/\bprancha\b/, "kickboard"], [/\bsnorkel\b/, "snorkel"]];
+const INTENSITY_NOUNS: [string[], ZoneN][] = [[["rodagem", "longão", "longao", "longo", "longa"], 2]];
+/** Swim strokes, most specific first (a kick or drill set wins over the base stroke). */
+const STROKES: [string[], Stroke][] = [
+  [["escolha"], "choice"], [["pernada", "pernadas", "perna", "pernas"], "kick"], [["educativo", "educativos", "educativa"], "drill"],
+  [["borboleta", "golfinho"], "fly"], [["costas"], "back"], [["peito"], "breast"], [["medley"], "im"], [["crawl", "crol", "livre"], "free"],
+];
+const EQUIPMENT: [string[], Equipment][] = [
+  [["palmar", "palmares"], "paddles"], [["pull", "pullbuoy", "buoy", "flutuador", "boia", "bóia"], "pullbuoy"],
+  [["nadadeira", "nadadeiras"], "fins"], [["prancha", "pranchinha"], "kickboard"], [["snorkel", "respirador"], "snorkel"],
+];
+/** Free words kept as the step's note (pt-BR, as shown to the athlete). */
+const NOTE_WORDS: [string[], string][] = [
+  [["educativo", "educativos", "educativa"], "educativos"], [["subida", "subidas", "ladeira", "ladeiras", "morro", "rampa", "rampas"], "subida"],
+  [["esteira"], "esteira"], [["caminhada", "caminhando", "andando", "caminhar"], "caminhada"],
+];
+/** Words that may sit inside "( )" and still be read as the step's target ("6x1km (4:30)", "40' (Z2)"). */
+const INLINE_WORDS = ["z", "zona", "pse", "rpe", "fc", "bpm", "w", "km", "min", "pace", "ritmo", "a", "de", "por", "ftp", "do", "potência", "potencia", "watts"];
+const LEAD_FILLERS = ["e", "depois", "mais", "então", "entao", "seguido", "seguida", "de", "do", "da", "por", "fim", "também", "tambem", "faça", "faca", "fazer", "faz", "com", "o", "a", "os", "as", "no", "na", "pra", "para", "finalizar", "finalizando", "terminar"];
+const TRAIL_FILLERS = ["de", "com", "em", "no", "na", "a", "o", "e"];
+const SETS_WORDS = ["séries", "series", "série", "serie", "sets", "set"];
+const REPS_WORDS = ["repetições", "repeticoes", "repetição", "repeticao", "reps", "rep", "vezes"];
+const KG = ["kg", "kgs", "quilos", "kilos", "quilo", "kilo"];
+const REST_WORDS = ["desc", "descanso", "int", "intervalo", "pausa", "rest", "rec", "recuperação", "recuperacao"];
+const ATTR_WORDS = [...KG, ...REST_WORDS, "pse", "rpe", "pc", "peso", "tempo", "carga", "com", "a", "de", "sem", "cada", "por", "cadência", "cadencia"];
+const ATTR_FILLERS = ["com", "a", "de", "e", "carga", "do", "da"];
+const SIDE_WORDS = ["lado", "perna", "braço", "braco", "membro"];
+const MAX_REPEAT_STEPS = 50;
+const MAX_AMOUNT = 1000000;
 
-const num = (s: string) => Number(s.replace(",", "."));
-const mmss = (m: string, s: string) => Number(m) * 60 + Number(s);
+// ---------------------------------------------------------------- tokens
+type Kind = "num" | "clock" | "word" | "p";
+/** A token: `v` = the number (num) or seconds (clock); `int` = written without decimals; `n` = clock parts; `sp` = space before. */
+interface Tok { k: Kind; raw: string; low: string; sp: boolean; v: number; int: boolean; n: number }
+type T = Tok | undefined;
+// Narrowed kinds for the guards below (a failed check says nothing, so the guards narrow to these, not to `Tok`).
+type NumTok = Tok & { k: "num" };
+type ClockTok = Tok & { k: "clock" };
+type WordTok = Tok & { k: "word" };
+type PTok = Tok & { k: "p" };
 
-/** Split on top-level separators ("+", ";", newlines), ignoring those inside parentheses. */
-function splitTop(s: string): string[] {
-  const out: string[] = [];
-  let depth = 0, cur = "";
-  for (const ch of s) {
-    if (ch === "(") depth++;
-    if (ch === ")") depth = Math.max(0, depth - 1);
-    if (depth === 0 && (ch === "+" || ch === ";" || ch === "\n")) { if (cur.trim()) out.push(cur.trim()); cur = ""; }
-    else cur += ch;
+const isDigit = (c: string | undefined) => c !== undefined && c >= "0" && c <= "9";
+/** ASCII letters and Latin-1/Latin Extended letters (Portuguese), the same set in every port. */
+const isLetter = (c: string | undefined) => c !== undefined && ((c >= "a" && c <= "z") || (c >= "A" && c <= "Z") || (c >= "À" && c <= "ɏ" && c !== "×" && c !== "÷"));
+const round = (x: number) => Math.floor(x + 0.5);
+/** JavaScript's `\s`, spelled out so every port treats the same characters as spaces. */
+const isSpace = (c: string) => "\t\n\v\f\r       　﻿".includes(c) || (c >= " " && c <= " ");
+
+/** "1) " or "2. " numbering a line. */
+function stripListMarker(s: string): string {
+  let j = 0;
+  while (j < 2 && isDigit(s[j])) j++;
+  return j > 0 && (s[j] === ")" || s[j] === ".") && s[j + 1] === " " ? s.slice(j + 2) : s;
+}
+
+/** Typographic marks → ASCII ("×" → x, primes → ' and "), one space between words. */
+function normalizeLine(s: string): string {
+  let out = "";
+  for (const c of s) {
+    if (c === "×") out += "x";
+    else if ("′’´`‘".includes(c)) out += "'";
+    else if ("″”“".includes(c)) out += '"';
+    else if ("–—−".includes(c)) out += "-";
+    else if (isSpace(c)) out += " ";
+    else out += c;
   }
-  if (cur.trim()) out.push(cur.trim());
+  return out.replaceAll("''", '"').replace(/ {2,}/g, " ").trim();
+}
+
+function tokenize(text: string): Tok[] {
+  const cs = [...text];
+  const out: Tok[] = [];
+  let i = 0, sp = false;
+  const push = (k: Kind, j: number, v = 0, int = false, n = 0) => { const raw = cs.slice(i, j).join(""); out.push({ k, raw, low: raw.toLowerCase(), sp, v, int, n }); sp = false; i = j; };
+  const twoDigits = (j: number) => isDigit(cs[j]) && isDigit(cs[j + 1]) && !isDigit(cs[j + 2]);
+  while (i < cs.length) {
+    const c = cs[i]!;
+    if (c === " ") { sp = true; i++; continue; }
+    if (isDigit(c)) {
+      let j = i;
+      while (isDigit(cs[j])) j++;
+      let digits = cs.slice(i, j).join("");
+      // "4:30", "1:23:45": a clock (minutes or hours up to two digits).
+      if (cs[j] === ":" && j - i <= 2 && twoDigits(j + 1)) {
+        const a = Number(digits), b = Number(cs[j + 1]! + cs[j + 2]!);
+        if (cs[j + 3] === ":" && twoDigits(j + 4)) push("clock", j + 6, a * 3600 + b * 60 + Number(cs[j + 4]! + cs[j + 5]!), false, 3);
+        else push("clock", j + 3, a * 60 + b, false, 2);
+        continue;
+      }
+      // "1.500" is a thousand separator; "1,5" and "1.5" are decimals.
+      while (cs[j] === "." && isDigit(cs[j + 1]) && isDigit(cs[j + 2]) && isDigit(cs[j + 3]) && !isDigit(cs[j + 4])) { digits += cs[j + 1]! + cs[j + 2]! + cs[j + 3]!; j += 4; }
+      if ((cs[j] === "," || cs[j] === ".") && isDigit(cs[j + 1])) {
+        let k = j + 1;
+        while (isDigit(cs[k])) k++;
+        push("num", k, Number(digits + "." + cs.slice(j + 1, k).join("")), false);
+      } else push("num", j, Number(digits), true);
+      continue;
+    }
+    if (isLetter(c)) {
+      let j = i;
+      while (isLetter(cs[j])) j++;
+      // "3xmáx", "4xfalha": the "x" of a count glued to a word.
+      const prev = out[out.length - 1];
+      if ((c === "x" || c === "X") && j > i + 1 && !sp && prev !== undefined && prev.k === "num") { push("word", i + 1); continue; }
+      push("word", j);
+      continue;
+    }
+    push("p", i + 1);
+  }
   return out;
 }
-const normalize = (s: string) =>
-  s.replace(/[×]/g, "x").replace(/[′’´`]/g, "'").replace(/[″”“]/g, '"').replace(/''/g, '"').replace(/\s+/g, " ").trim();
 
-function parseDuration(t: string, sport: Sport): Duration | null {
-  let m: RegExpMatchArray | null;
-  if ((m = t.match(/(\d+(?:[.,]\d+)?)\s*km\b/))) return { type: "distance", m: Math.round(num(m[1]!) * 1000) };
-  if ((m = t.match(/(\d+)\s*m\b(?!in)/))) return { type: "distance", m: Number(m[1]) };
-  if ((m = t.match(/(\d+)\s*h\s*(\d{1,2})?\b/))) return { type: "time", s: Number(m[1]) * 3600 + Number(m[2] ?? 0) * 60 };
-  if ((m = t.match(/(\d+)\s*'\s*(\d{1,2})\s*"/))) return { type: "time", s: mmss(m[1]!, m[2]!) };
-  if ((m = t.match(/(\d+(?:[.,]\d+)?)\s*(?:'|min\b|minutos?\b)/))) return { type: "time", s: Math.round(num(m[1]!) * 60) };
-  if ((m = t.match(/(\d+)\s*(?:"|s\b|seg\b|segundos?\b)/))) return { type: "time", s: Number(m[1]) };
-  if (sport === "swim" && (m = t.match(/^(\d{2,4})\b/))) return { type: "distance", m: Number(m[1]) };
-  return null;
-}
+const W = (t: T, ...ws: string[]): t is WordTok => t !== undefined && t.k === "word" && ws.includes(t.low);
+const P = (t: T, c: string): t is PTok => t !== undefined && t.k === "p" && t.low === c;
+const N = (t: T): t is NumTok => t !== undefined && t.k === "num";
+const INT = (t: T): t is NumTok => N(t) && t.int;
+const CLOCK = (t: T): t is ClockTok => t !== undefined && t.k === "clock" && t.n === 2;
+const numish = (t: T): t is NumTok | ClockTok => t !== undefined && (t.k === "num" || t.k === "clock");
+const isUnit = (t: T): t is WordTok => t !== undefined && t.k === "word" && UNIT_WORDS.includes(t.low);
+const isNumberWord = (t: T): t is WordTok => t !== undefined && t.k === "word" && Object.hasOwn(NUMBER_WORDS, t.low);
+/** The text of some tokens, as typed (after normalization). */
+const textOf = (toks: Tok[]) => toks.map((t, i) => (i > 0 && t.sp ? " " : "") + t.raw).join("");
 
-function parseTarget(t: string, sport: Sport): Target | null {
-  let m: RegExpMatchArray | null;
-  if ((m = t.match(/(?:fc|bpm)\s*(\d{2,3})\s*(?:-|–|a)\s*(\d{2,3})/))) return { type: "hr", min: Number(m[1]), max: Number(m[2]) };
-  if ((m = t.match(/\b(?:pse|rpe)\s*(\d{1,2})\b/))) return { type: "rpe", value: Math.min(10, Number(m[1])) };
-  if ((m = t.match(/\bz\s*([1-5])\b/))) return { type: "zone", metric: /\bfc\b/.test(t) ? "hr" : "pace", zone: Number(m[1]) as ZoneN };
-  if (sport !== "swim" || /\/\s*100/.test(t)) {
-    if ((m = t.match(/@\s*(\d{1,2}):(\d{2})\s*(?:-|–|a)\s*(\d{1,2}):(\d{2})/))) {
-      const a = mmss(m[1]!, m[2]!), b = mmss(m[3]!, m[4]!);
-      return { type: "pace", min_s: Math.min(a, b), max_s: Math.max(a, b) };
+/** Number words → numbers ("seis tiros", "vinte e cinco", "dois mil"); "meia hora", "1 hora e meia", "1 hora e 20". */
+function numberWords(toks: Tok[]): Tok[] {
+  const res: Tok[] = [];
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i]!;
+    if (isNumberWord(t) || (INT(t) && W(toks[i + 1], "mil"))) {
+      let v = isNumberWord(t) ? NUMBER_WORDS[t.low]! : t.v, last = v, j = i + 1;
+      if (W(toks[j], "mil") && v !== 1000) { v *= 1000; last = 1000; j++; }
+      while (W(toks[j], "e") && isNumberWord(toks[j + 1]) && last >= 20 && NUMBER_WORDS[toks[j + 1]!.low]! < last) { last = NUMBER_WORDS[toks[j + 1]!.low]!; v += last; j += 2; }
+      const raw = textOf(toks.slice(i, j));
+      res.push({ k: "num", v, int: true, raw, low: raw.toLowerCase(), sp: t.sp, n: 0 });
+      i = j - 1;
+      continue;
     }
-    if ((m = t.match(/@\s*(\d{1,2}):(\d{2})/))) { const p = mmss(m[1]!, m[2]!); return { type: "pace", min_s: p - 5, max_s: p + 5 }; }
+    if (W(t, "meia", "meio") && isUnit(toks[i + 1])) { res.push({ ...t, k: "num", v: 0.5, int: false }); continue; }
+    const a = res[res.length - 2], u = res[res.length - 1];
+    if (W(t, "e") && N(a) && isUnit(u)) {
+      if (W(toks[i + 1], "meia", "meio")) { res[res.length - 2] = { ...a, v: a.v + 0.5, int: false }; i++; continue; }
+      if (N(toks[i + 1]) && (HOURS.includes(u.low) || (MINUTES.includes(u.low) && (W(toks[i + 2], ...SECONDS) || P(toks[i + 2], '"'))))) continue;
+    }
+    res.push(t);
   }
-  if (/\bregenerativ/.test(t)) return { type: "zone", metric: "pace", zone: 1 };
-  if (/\bleve\b/.test(t)) return { type: "zone", metric: "pace", zone: 2 };
-  if (/\bmoderad/.test(t)) return { type: "zone", metric: "pace", zone: 3 };
-  if (/\b(forte|limiar)\b/.test(t)) return { type: "zone", metric: "pace", zone: 4 };
-  if (/\b(máximo|maximo|tiro forte|sprint)\b/.test(t)) return { type: "zone", metric: "pace", zone: 5 };
+  return res;
+}
+
+// ---------------------------------------------------------------- pieces
+interface Piece { toks: Tok[]; sep: "hard" | "soft" }
+
+/** "entre 4:30 e 4:40": that "e" joins a range, it doesn't split. */
+function rangeE(toks: Tok[], i: number): boolean {
+  if (!numish(toks[i + 1])) return false;
+  for (let j = i - 1; j >= 0 && j >= i - 4; j--) {
+    const t = toks[j]!;
+    if (W(t, "entre")) return true;
+    if (!(numish(t) || t.k === "p" || isUnit(t) || W(t, "bpm", "w", "watts", "kg"))) return false;
+  }
+  return false;
+}
+function softAt(toks: Tok[], i: number): boolean {
+  const t = toks[i];
+  if (P(t, ",") || P(t, ".")) return true;
+  if (P(t, "-")) return t.sp && !!toks[i + 1]?.sp && !(numish(toks[i - 1]) && numish(toks[i + 1]) && !W(toks[i + 2], ...REPEAT_WORDS));
+  if (P(t, "/")) return t.sp && !!toks[i + 1]?.sp;
+  if (W(t, "e")) return !rangeE(toks, i);
+  return W(t, ...SOFT_WORDS);
+}
+/** Split on "+", ";" and new lines (hard), and on soft separators once the piece has a number. */
+function segment(toks: Tok[]): Piece[] {
+  const pieces: Piece[] = [];
+  let cur: Tok[] = [], sep: Piece["sep"] = "hard", depth = 0;
+  const flush = (next: Piece["sep"]) => {
+    if (cur.length) { pieces.push({ toks: cur, sep }); cur = []; sep = next; }
+    else if (next === "hard") sep = "hard";
+  };
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i]!;
+    if (P(t, "\n")) { depth = 0; flush("hard"); continue; }
+    if (P(t, "(")) depth++;
+    else if (P(t, ")")) depth = Math.max(0, depth - 1);
+    else if (depth === 0) {
+      if (P(t, "+") || P(t, ";")) { flush("hard"); continue; }
+      if (softAt(toks, i) && cur.some(numish)) { flush("soft"); continue; }
+    }
+    cur.push(t);
+  }
+  flush("hard");
+  return pieces;
+}
+
+/** Parenthesized text: a note, or (when it only holds a target) inline tokens. */
+function takeParens(toks0: Tok[]): { toks: Tok[]; notes: string[] } {
+  const toks: Tok[] = [], notes: string[] = [];
+  for (let i = 0; i < toks0.length; i++) {
+    if (P(toks0[i], ")")) continue;
+    if (!P(toks0[i], "(")) { toks.push(toks0[i]!); continue; }
+    let d = 1, j = i + 1;
+    for (; j < toks0.length; j++) {
+      if (P(toks0[j], "(")) d++;
+      else if (P(toks0[j], ")") && --d === 0) break;
+    }
+    const inner = toks0.slice(i + 1, j);
+    const inline = inner.every((t) => t.k !== "word" || INLINE_WORDS.includes(t.low));
+    if (inner.length && inline && (inner.some(numish) || inner.some((t) => W(t, ...HR_WORDS, ...POWER_WORDS)))) toks.push(...inner);
+    else { const s = textOf(inner).trim(); if (s) notes.push(s); }
+    i = j;
+  }
+  return { toks, notes };
+}
+
+// ---------------------------------------------------------------- amounts and values
+type Bare = "active" | "recovery" | null;
+interface Amount { dur: Duration & { type: "time" | "distance" }; end: number }
+
+/** A duration at `i` → {dur, end} (unused tokens only), up to 1,000 km or 1,000,000 s. */
+function amountAt(toks: Tok[], used: boolean[], i: number, sport: Sport, bare: Bare): Amount | null {
+  const a = rawAmountAt(toks, used, i, sport, bare);
+  return a && (a.dur.type === "distance" ? a.dur.m : a.dur.s) <= MAX_AMOUNT ? a : null;
+}
+/** `bare`: unitless numbers ("active": swim meters, run ≥ 100 m; "recovery": < 100 s, else m). */
+function rawAmountAt(toks: Tok[], used: boolean[], i: number, sport: Sport, bare: Bare): Amount | null {
+  const at = (j: number): T => (used[j] ? undefined : toks[j]);
+  const t = at(i);
+  if (!N(t)) return null;
+  const u = at(i + 1), v = t.v;
+  if (W(u, ...KM)) {
+    if (P(at(i + 2), "/") && W(at(i + 3), "h")) return null;
+    return { dur: { type: "distance", m: round(v * 1000) }, end: i + 2 };
+  }
+  if (W(u, ...METERS)) return { dur: { type: "distance", m: round(v) }, end: i + 2 };
+  if (W(u, ...HOURS)) {
+    let s = v * 3600, end = i + 2;
+    const m = at(end);
+    if (INT(m) && m.v < 60) { s += m.v * 60; end++; if (W(at(end), ...MINUTES) || P(at(end), "'")) end++; }
+    return { dur: { type: "time", s: round(s) }, end };
+  }
+  if (W(u, ...MINUTES) || P(u, "'")) {
+    let s = v * 60, end = i + 2;
+    const n = at(end);
+    if (INT(n) && n.v < 60 && (P(at(end + 1), '"') || W(at(end + 1), ...SECONDS) || (P(u, "'") && !n.sp))) { s += n.v; end += P(at(end + 1), '"') || W(at(end + 1), ...SECONDS) ? 2 : 1; }
+    return { dur: { type: "time", s: round(s) }, end };
+  }
+  if (W(u, ...SECONDS) || P(u, '"')) return { dur: { type: "time", s: round(v) }, end: i + 2 };
+  if (!bare || !t.int) return null;
+  const prev = at(i - 1);
+  if (W(prev, "fc", "pse", "rpe", "z", "zona", "x") || W(u, "w", "watts", "bpm", "rpm", ...KG) || P(u, "%")) return null;
+  if (bare === "recovery") return v < 100 ? { dur: { type: "time", s: v }, end: i + 1 } : sport === "bike" ? null : { dur: { type: "distance", m: v }, end: i + 1 };
+  if (sport === "swim" && v >= 10 && v <= 10000) return { dur: { type: "distance", m: v }, end: i + 1 };
+  if (sport === "run" && v >= 100 && v <= 50000) return { dur: { type: "distance", m: v }, end: i + 1 };
   return null;
 }
+/** A pace or send-off value: "4:30", "4'30" → {v (s), end}. */
+function clockAt(toks: Tok[], used: boolean[], i: number): { v: number; end: number } | null {
+  const at = (j: number): T => (used[j] ? undefined : toks[j]);
+  const t = at(i);
+  if (CLOCK(t)) return { v: t.v, end: i + 1 };
+  const s = at(i + 2);
+  if (INT(t) && t.v < 60 && P(at(i + 1), "'") && INT(s) && s.v < 60) return { v: t.v * 60 + s.v, end: i + (P(at(i + 3), '"') ? 4 : 3) };
+  return null;
+}
+/** "/km", "min/km", "/100", "por km" → {end, per100}. */
+function paceUnitAt(toks: Tok[], used: boolean[], i: number): { end: number; per100: boolean } | null {
+  const at = (j: number): T => (used[j] ? undefined : toks[j]);
+  let j = i;
+  if (W(at(j), "min")) j++;
+  if (P(at(j), "/")) {
+    if (W(at(j + 1), "km")) return { end: j + 2, per100: false };
+    const h = at(j + 1);
+    if (N(h) && h.v === 100) return { end: j + (W(at(j + 2), "m", "metros") ? 3 : 2), per100: true };
+  }
+  if (W(at(i), "por") && W(at(i + 1), "km")) return { end: i + 2, per100: false };
+  return null;
+}
+const rangeConn = (t: T) => P(t, "-") || W(t, "a", "e", "até", "ate");
+const fmtNum = (v: number) => String(v).replace(".", ",");
 
-function parseIntent(t: string, fallback: Intent): Intent {
-  if (/\baquec/.test(t)) return "warmup";
-  if (/\b(desaq|volta (a|à) calma|soltar|solto)/.test(t)) return "cooldown";
-  if (/\b(descanso|parado|pausa)\b/.test(t)) return "rest";
-  if (/\b(trote|rec|recupera|caminhada)/.test(t)) return "recovery";
-  return fallback;
+/** Numbers nobody took, with the free words around them ("nos últimos 5 km"): reported as warnings. */
+function leftovers(toks: Tok[], used: boolean[]): string[] {
+  const out: string[] = [];
+  const free = (k: number) => k >= 0 && k < toks.length && !used[k] && !P(toks[k], ",") && !P(toks[k], "(") && !P(toks[k], ")");
+  for (let i = 0; i < toks.length; i++) {
+    if (used[i] || !numish(toks[i])) continue;
+    let a = i, b = i + 1;
+    while (free(a - 1)) a--;
+    while (free(b)) b++;
+    while (a < i && toks[a]!.k === "p") a++;
+    while (b > i + 1 && toks[b - 1]!.k === "p" && !P(toks[b - 1], "'") && !P(toks[b - 1], '"') && !P(toks[b - 1], "%")) b--;
+    out.push(textOf(toks.slice(a, b)));
+    i = b - 1;
+  }
+  return out;
 }
 
-function parseStep(raw: string, sport: Sport, fallback: Intent, warnings: string[]): Step | null {
-  const noteMatch = raw.match(/\(([^)]*)\)/);
-  const t = raw.replace(/\([^)]*\)/g, " ").toLowerCase();
-  const duration = parseDuration(t, sport);
-  const intent = parseIntent(t, fallback);
-  const target = parseTarget(t, sport);
-  const step: Step = { kind: "step", intent, duration: duration ?? { type: "open" }, target: target ?? { type: "open" } };
-  if (noteMatch?.[1]?.trim()) step.note = noteMatch[1].trim();
+// ---------------------------------------------------------------- steps
+const isRest = (s: Step | undefined) => s !== undefined && s.kind === "step" && (s.intent === "recovery" || s.intent === "rest");
+const isEasy = (s: Step) => s.target.type === "open" || (s.target.type === "zone" && s.target.zone <= 2) || (s.target.type === "rpe" && s.target.value <= 3);
+/** An easy step short enough to be a recovery: an easy target, up to 5 min or 1 km (not a pool distance). */
+const shortRecovery = (s: Step, sport: Sport) => s.target.type !== "open" && isEasy(s) && ((s.duration.type === "time" && s.duration.s <= 300) || (s.duration.type === "distance" && sport !== "swim" && s.duration.m <= 1000));
+const restIntent = (sport: Sport): Intent => (sport === "swim" ? "rest" : "recovery");
+const defaultMetric = (sport: Sport): "hr" | "pace" => (sport === "bike" ? "hr" : "pace");
+const ftpZone = (pct: number): ZoneN => (pct < 56 ? 1 : pct < 76 ? 2 : pct < 91 ? 3 : pct < 106 ? 4 : 5);
+const zoneN = (v: number) => v as ZoneN;
+
+/** Split a progression's total into `n` parts: whole km (or minutes) when it fits, the remainder on the first. */
+function splitParts(dur: Amount["dur"], n: number): Duration[] {
+  const total = dur.type === "distance" ? dur.m : dur.s;
+  const unit = dur.type === "distance" ? (total >= n * 1000 ? 1000 : 100) : total >= n * 60 ? 60 : 1;
+  const base = Math.floor(total / n / unit) * unit;
+  return Array.from({ length: n }, (_, i) => (i === 0 ? total - base * (n - 1) : base)).map((x): Duration => (dur.type === "distance" ? { type: "distance", m: x } : { type: "time", s: x }));
+}
+
+type Between = "reps" | "series" | null;
+interface StepsResult { steps: Step[]; understood: boolean; fromWord: boolean; between: Between; modifierOnly: boolean; hasDuration: boolean; progression: boolean; total: Duration | null; leftovers: string[] }
+
+/**
+ * One piece → steps. `fallback`: the intent when no word says it. Returns the steps plus what the piece said:
+ * `fromWord` (an intent word), `between` ("entre os tiros" / "entre séries"), `modifierOnly` (only a target, stroke,
+ * equipment, send-off or note: it can complete the previous block), `progression`.
+ */
+function parseSteps(toks0: Tok[], sport: Sport, fallback: Intent, bare: Bare): StepsResult {
+  const { toks, notes: parenNotes } = takeParens(toks0);
+  const used = toks.map(() => false);
+  const at = (j: number): T => (used[j] ? undefined : toks[j]);
+  const claim = (a: number, b: number) => { for (let k = a; k < b; k++) used[k] = true; };
+  const n = toks.length;
+
+  let between: Between = null;
+  for (let i = 0; i < n && !between; i++) {
+    if (!W(at(i), "entre")) continue;
+    let j = i + 1;
+    while (W(at(j), "os", "as", "o", "a")) j++;
+    const w = at(j);
+    if (w?.k !== "word") continue;
+    if (["tiro", "rep", "estímul", "estimul", "eles", "elas", "cada", "piq"].some((p) => w.low.startsWith(p))) between = "reps";
+    else if (["séri", "seri", "bloco", "set", "round"].some((p) => w.low.startsWith(p))) between = "series";
+    if (between) claim(i, j + 1);
+  }
+  let progression = false;
+  for (let i = 0; i < n; i++) { const w = at(i); if (w?.k === "word" && (w.low.startsWith("progress") || w.low.startsWith("progredi"))) { used[i] = true; progression = true; } }
+
+  // "5 km em 25 min", "400 em 6:00": a total time for a distance → pace.
+  let total: { s: number; clock: boolean } | null = null;
+  for (let i = 0; i < n && total === null; i++) {
+    if (!W(at(i), "em")) continue;
+    const c = at(i + 1);
+    if (c !== undefined && c.k === "clock" && !paceUnitAt(toks, used, i + 2)) { total = { s: c.v, clock: c.n === 2 }; claim(i, i + 2); continue; }
+    const a = amountAt(toks, used, i + 1, sport, null);
+    if (a && a.dur.type === "time") { total = { s: a.dur.s, clock: false }; claim(i, a.end); }
+  }
+
+  let ftp: { a: number; b: number } | null = null, power: Target | null = null, hr: Target | null = null, rpe: Target | null = null;
+  let zone: { a: number; b: number | null } | null = null, pace: { a: number; b: number | null } | null = null, sendOff: number | null = null;
+  const extraNotes: string[] = [];
+  for (let i = 0; i < n && !ftp; i++) {
+    if (!N(at(i))) continue;
+    let j = i + 1, b = toks[i]!.v;
+    if (rangeConn(at(j)) && N(at(j + 1))) { b = toks[j + 1]!.v; j += 2; }
+    if (!P(at(j), "%")) continue;
+    j++;
+    while (W(at(j), "do", "de", "da")) j++;
+    if (!W(at(j), "ftp") || toks[i]!.v < 1 || toks[i]!.v >= 1000 || b < 1 || b >= 1000) continue;
+    claim(i, j + 1);
+    ftp = { a: toks[i]!.v, b };
+  }
+  for (let i = 0; i < n && !power; i++) {
+    if (!N(at(i))) continue;
+    let j = i + 1, b: number | null = null;
+    if (rangeConn(at(j)) && N(at(j + 1))) { b = toks[j + 1]!.v; j += 2; }
+    if (!W(at(j), "w", "watts", "watt") || toks[i]!.v > 3000 || (b !== null && b > 3000)) continue;
+    claim(i, j + 1);
+    const a = round(toks[i]!.v);
+    power = b === null ? { type: "power", min: Math.max(0, a - 5), max: a + 5 } : { type: "power", min: Math.min(a, round(b)), max: Math.max(a, round(b)) };
+  }
+  // "FC até 150", "FC máx 160": a cap, kept as a note.
+  for (let i = 0; i < n; i++) {
+    if (!W(at(i), "fc", "frequência", "frequencia")) continue;
+    let j = i + 1;
+    while (W(at(j), "cardíaca", "cardiaca") || P(at(j), ":")) j++;
+    if (!W(at(j), "até", "ate", "abaixo", "máx", "max", "máxima", "maxima")) continue;
+    j++;
+    while (W(at(j), "de", "da")) j++;
+    const c = at(j);
+    if (!N(c) || c.v < 40 || c.v > 230) continue;
+    const k = W(at(j + 1), "bpm") ? j + 2 : j + 1;
+    claim(i, k);
+    extraNotes.push(`FC até ${round(c.v)}`);
+    break;
+  }
+  for (let i = 0; i < n && !hr; i++) {
+    let j = i;
+    if (W(at(i), "fc", "frequência", "frequencia")) {
+      j = i + 1;
+      while (W(at(j), "cardíaca", "cardiaca", "de", "entre", "em", "a") || P(at(j), ":")) j++;
+    } else if (!N(at(i))) continue;
+    const t = at(j);
+    if (!N(t) || t.v < 40 || t.v > 230) continue;
+    let k = j + 1, b: number | null = null;
+    if (rangeConn(at(k)) && N(at(k + 1))) { b = toks[k + 1]!.v; k += 2; }
+    if (W(at(k), "bpm")) k++;
+    else if (j === i) continue; // a bare number needs "bpm"
+    claim(i, k);
+    const a = round(t.v);
+    hr = b === null ? { type: "hr", min: a - 5, max: a + 5 } : { type: "hr", min: Math.min(a, round(b)), max: Math.max(a, round(b)) };
+  }
+  for (let i = 0; i < n && !rpe; i++) {
+    if (!W(at(i), "pse", "rpe")) continue;
+    let j = i + 1;
+    while (W(at(j), "de") || P(at(j), ":")) j++;
+    if (!N(at(j))) continue;
+    const a = toks[j]!.v;
+    let k = j + 1;
+    if (rangeConn(at(k)) && N(at(k + 1))) {
+      const b = toks[k + 1]!.v;
+      if (b !== a && a >= 1 && a <= 10 && b >= 1 && b <= 10) extraNotes.push(`PSE ${fmtNum(a)}–${fmtNum(b)}`);
+      k += 2;
+    }
+    const ten = at(k + 1);
+    if (P(at(k), "/") && N(ten) && ten.v === 10) k += 2;
+    claim(i, k);
+    rpe = { type: "rpe", value: Math.min(10, Math.max(1, round(a))) };
+  }
+  for (let i = 0; i < n && !zone; i++) {
+    if (!W(at(i), "z", "zona")) continue;
+    const t = at(i + 1);
+    if (!INT(t) || t.v < 1 || t.v > 5) continue;
+    let k = i + 2, b: number | null = null;
+    if (P(at(k), "-") || P(at(k), "/") || P(at(k), ">") || W(at(k), "a", "ao", "até", "ate", "para")) {
+      const m = W(at(k + 1), "z", "zona") ? k + 2 : k + 1;
+      const z = at(m);
+      if (INT(z) && z.v >= 1 && z.v <= 5) { b = z.v; k = m + 1; }
+    }
+    claim(i, k);
+    zone = { a: t.v, b };
+  }
+  let metric: "hr" | "pace" | "power" = defaultMetric(sport);
+  if (zone) {
+    for (let i = 0; i < n; i++) {
+      if (W(at(i), ...HR_WORDS)) { metric = "hr"; used[i] = true; }
+      else if (W(at(i), ...POWER_WORDS)) { metric = "power"; used[i] = true; }
+    }
+  }
+  for (let j = 0; j < n && !pace; j++) {
+    const v1 = clockAt(toks, used, j);
+    if (!v1) continue;
+    let start = j, marker = false;
+    if (P(at(j - 1), "@")) { start = j - 1; marker = sport !== "swim"; }
+    else if (W(at(j - 1), "ritmo", "pace")) { start = j - 1; marker = true; }
+    else if (W(at(j - 1), "de", "em", "a", "no") && W(at(j - 2), "ritmo", "pace")) { start = j - 2; marker = true; }
+    else if (W(at(j - 1), "a") && sport !== "swim") { start = j - 1; marker = true; }
+    else if (W(at(j - 1), "entre", "de")) start = j - 1;
+    let end = v1.end, b: number | null = null;
+    if (P(at(end), "-") || P(at(end), ">") || W(at(end), "a", "até", "ate", "e", "para")) {
+      const v2 = clockAt(toks, used, end + 1);
+      if (v2) { b = v2.v; end = v2.end; }
+    }
+    const unit = paceUnitAt(toks, used, end);
+    if (unit) end = unit.end;
+    const ok = sport === "swim" ? (unit && unit.per100) || (marker && !P(at(start), "@")) : marker || unit || b !== null;
+    if (!ok) continue;
+    if (start === j - 1 && W(at(j - 1), "entre", "de") && b === null && !unit) start = j;
+    claim(start, end);
+    pace = { a: v1.v, b };
+  }
   if (sport === "swim") {
-    const stroke = STROKES.find(([rx]) => rx.test(t));
-    if (stroke) step.stroke = stroke[1];
-    const eq = EQUIP.filter(([rx]) => rx.test(t)).map(([, e]) => e);
-    if (eq.length) step.equipment = eq;
-    const so = t.match(/(?:@|sa[ií]da|a cada)\s*(\d{1,2}):(\d{2})/) ?? t.match(/(?:sa[ií]da|a cada)\s*(\d+)\s*'/);
-    if (so) step.send_off_s = so[2] !== undefined ? mmss(so[1]!, so[2]) : Number(so[1]) * 60;
-  }
-  if (!duration && !target && step.intent === fallback && !step.stroke) {
-    if (/^\s*(trote|recupera|descanso|caminhada)/.test(t)) return step;
-    warnings.push(raw.trim());
-    return null;
-  }
-  return step;
-}
-
-const RECOVERY_SPLIT = /\s(?:c\/|com|int(?:ervalo)?(?: de)?|rec(?:uperação)?|pausa de|pausa)\s+(?=\d)/;
-
-function parseSegment(seg: string, sport: Sport, warnings: string[]): Block | null {
-  const s = seg.trim();
-  let m: RegExpMatchArray | null;
-  if ((m = s.match(/^(\d+)\s*x\s*\((.+)\)\s*(.*)$/i))) {
-    const steps = splitTop(m[2]!.replace(/,(?!\d)/g, "+")).map((x, i) => parseStep(x, sport, i === 0 ? "active" : "recovery", warnings)).filter(Boolean) as Step[];
-    const after = m[3]?.trim();
-    if (after && RECOVERY_SPLIT.test(" " + after + " ")) {
-      const rec = parseStep(after.replace(/^(?:c\/|com|int(?:ervalo)?(?: de)?|rec|pausa(?: de)?)\s*/i, ""), sport, "recovery", warnings);
-      if (rec) steps.push(rec);
+    for (let i = 0; i < n && sendOff === null; i++) {
+      let k: number, start = i;
+      if (P(at(i), "@")) k = i + 1;
+      else if (W(at(i), "saída", "saida", "saindo", "sai", "sair")) { k = i + 1; while (W(at(k), "em", "a", "de", "com", "cada", "do")) k++; }
+      else if (W(at(i), "cada")) { k = i + 1; if (W(at(i - 1), "a")) start = i - 1; }
+      else continue;
+      const c = clockAt(toks, used, k);
+      const a = c ? null : amountAt(toks, used, k, sport, null);
+      if (c) { claim(start, c.end); sendOff = c.v; }
+      else if (a && a.dur.type === "time") { claim(start, a.end); sendOff = a.dur.s; }
     }
-    return steps.length ? ({ kind: "repeat", count: Number(m[1]), steps } as Repeat) : null;
   }
-  if ((m = s.match(/^(\d+)\s*(?:x|tiros? de|vezes)\s*(.+)$/i))) {
-    const [active, rec] = m[2]!.split(RECOVERY_SPLIT);
-    const a = parseStep(active!, sport, "active", warnings);
-    if (!a) return null;
-    const steps: Step[] = [a];
-    if (rec) { const r = parseStep(rec, sport, "recovery", warnings); if (r) steps.push(r); }
-    return { kind: "repeat", count: Number(m[1]), steps };
+  for (let i = 0; i < n; i++) {
+    const t = at(i);
+    if (!N(t)) continue;
+    if (t.v < 1 || t.v >= 1000) continue;
+    if (W(at(i + 1), "km") && P(at(i + 2), "/") && W(at(i + 3), "h")) { claim(i, i + 4); extraNotes.push(`${fmtNum(t.v)} km/h`); }
+    else if (W(at(i + 1), "rpm")) { claim(i, i + 2); if (W(at(i - 1), "de")) used[i - 1] = true; extraNotes.push(`${fmtNum(t.v)} rpm`); }
   }
-  const [main, rec] = s.split(RECOVERY_SPLIT);
-  const st = parseStep(main!, sport, "active", warnings);
-  if (st && rec) { const r = parseStep(rec, sport, "recovery", warnings); return r ? ({ kind: "repeat", count: 1, steps: [st, r] } as Repeat) : st; }
-  return st;
+  for (let i = 0; i < n; i++) if (W(at(i), "cadência", "cadencia") && extraNotes.some((x) => x.endsWith("rpm"))) used[i] = true;
+  // An unmarked "4:30": a pace (a send-off in the pool).
+  for (let j = 0; j < n; j++) {
+    const c = at(j);
+    if (!CLOCK(c)) continue;
+    if (sport === "swim" && sendOff === null) { sendOff = c.v; used[j] = true; }
+    else if (sport !== "swim" && !pace) { pace = { a: c.v, b: null }; used[j] = true; }
+  }
+
+  let dur: Amount["dur"] | null = null;
+  // "30 a 40 min", "6 a 8 km", "1h a 1h30": the lower amount, and the range as typed in the note.
+  for (let i = 0; i < n && !dur; i++) {
+    if (!N(at(i))) continue;
+    const lo = amountAt(toks, used, i, sport, null);
+    const c = lo ? lo.end : i + 1;
+    if (!(P(at(c), "-") || W(at(c), "a", "até", "ate", "ou"))) continue;
+    const hi = amountAt(toks, used, c + 1, sport, null);
+    if (!hi || (lo && lo.dur.type !== hi.dur.type) || !(toks[c + 1]!.v > 0)) continue;
+    const f = toks[i]!.v / toks[c + 1]!.v;
+    const low: Amount["dur"] = lo ? lo.dur : hi.dur.type === "distance" ? { type: "distance", m: round(hi.dur.m * f) } : { type: "time", s: round(hi.dur.s * f) };
+    if ((low.type === "distance" ? low.m : low.s) > MAX_AMOUNT) continue;
+    dur = low;
+    extraNotes.push(textOf(toks.slice(i, hi.end)));
+    claim(i, hi.end);
+  }
+  for (let i = 0; i < n && !dur; i++) {
+    const a = amountAt(toks, used, i, sport, bare);
+    if (a) { claim(i, a.end); dur = a.dur; }
+  }
+  for (let i = 0; i < n && !dur; i++) { const c = at(i); if (c?.k === "clock" && c.n === 3 && c.v <= MAX_AMOUNT) { dur = { type: "time", s: c.v }; used[i] = true; } }
+
+  // Intent words (aquecimento > desaquecimento > descanso > trote).
+  let intent: Intent | null = null;
+  const words = (pred: (w: string) => boolean) => { for (let i = 0; i < n; i++) { const w = at(i); if (w?.k === "word" && pred(w.low)) { used[i] = true; return true; } } return false; };
+  const calma = () => { for (let i = 0; i < n; i++) if (W(at(i), "volta") && W(at(i + 1), "à", "a") && W(at(i + 2), "calma")) { claim(i, i + 3); return true; } return false; };
+  if (words((w) => w.startsWith("aquec") || w === "aq")) intent = "warmup";
+  else if (words((w) => w.startsWith("desaq") || ["soltar", "solto", "solta", "soltura", "soltando"].includes(w)) || calma()) intent = "cooldown";
+  else if (words((w) => ["descanso", "desc", "parado", "parada", "pausa", "repouso", "descansar", "descansando"].includes(w))) intent = "rest";
+  else if (words((w) => ["intervalo", "intervalos", "int"].includes(w))) intent = restIntent(sport);
+  else if (words((w) => w.startsWith("trot") || w === "rec" || (w.startsWith("recupera") && !w.startsWith("recuperativ")) || w.startsWith("caminh") || w === "andando")) intent = "recovery";
+  const fromWord = intent !== null;
+  const theIntent: Intent = intent ?? (between ? restIntent(sport) : fallback);
+
+  // Notes from free words, swim stroke and equipment.
+  const kwNotes: string[] = [];
+  for (const [ws, note] of NOTE_WORDS) {
+    if (sport === "swim" && note === "educativos") continue;
+    if (toks.some((t) => t.k === "word" && ws.includes(t.low))) { kwNotes.push(note); toks.forEach((t, i) => { if (t.k === "word" && ws.includes(t.low)) used[i] = true; }); }
+  }
+  let stroke: Stroke | null = null;
+  const equipment: Equipment[] = [];
+  if (sport === "swim") {
+    for (const [ws, s] of STROKES) if (!stroke && toks.some((t) => t.k === "word" && ws.includes(t.low))) stroke = s;
+    const pato = toks.some((t, i) => W(t, "pé", "pe") && W(toks[i + 1], "de") && W(toks[i + 2], "pato"));
+    for (const [ws, e] of EQUIPMENT) if (toks.some((t) => t.k === "word" && ws.includes(t.low)) || (e === "fins" && pato)) equipment.push(e);
+  }
+
+  // Target: pace > power > % FTP > heart rate > zone > PSE > intensity words.
+  let target: Target | null = null;
+  if (pace) {
+    let a = pace.a, b = pace.b;
+    // Under 2:30 it can't be a pace per km: it's the time for the rep ("8x400 @1:35").
+    if (total === null && sport === "run" && dur?.type === "distance" && dur.m > 0 && Math.min(a, b ?? a) < 150) { const m = dur.m; a = round((a * 1000) / m); b = b === null ? null : round((b * 1000) / m); }
+    target = b === null ? { type: "pace", min_s: Math.max(0, a - 5), max_s: a + 5 } : { type: "pace", min_s: Math.min(a, b), max_s: Math.max(a, b) };
+  } else if (total !== null && dur?.type === "distance" && dur.m > 0 && (sport === "run" || sport === "swim")) {
+    const p = round((total.s * (sport === "swim" ? 100 : 1000)) / dur.m);
+    target = { type: "pace", min_s: Math.max(0, p - 5), max_s: p + 5 };
+  } else if (total !== null && total.clock && !dur && sport === "run") target = { type: "pace", min_s: Math.max(0, total.s - 5), max_s: total.s + 5 };
+  else if (power) target = power;
+  else if (ftp) target = { type: "zone", metric: "power", zone: ftpZone((ftp.a + ftp.b) / 2) };
+  else if (hr) target = hr;
+  else if (zone) {
+    target = { type: "zone", metric, zone: zoneN(zone.a) };
+    if (zone.b !== null && zone.b !== zone.a && !progression) extraNotes.push(`Z${zone.a}–Z${zone.b}`);
+  }
+  else if (rpe) target = rpe;
+  if (ftp) extraNotes.unshift(ftp.a === ftp.b ? `${fmtNum(ftp.a)}% do FTP` : `${fmtNum(ftp.a)}–${fmtNum(ftp.b)}% do FTP`);
+  let wordZone: ZoneN | null = null;
+  if (!target) {
+    for (const [seq, z] of INTENSITY_PHRASES) {
+      if (wordZone) break;
+      for (let i = 0; i + seq.length <= n; i++) if (seq.every((w, k) => W(at(i + k), w))) { claim(i, i + seq.length); wordZone = z; break; }
+    }
+    for (const [ws, z] of [...INTENSITY_WORDS, ...INTENSITY_NOUNS]) if (!wordZone && words((w) => ws.includes(w))) wordZone = z;
+    if (!wordZone) for (let i = 0; i < n; i++) { const two = at(i + 1); if (W(at(i), "vo") && N(two) && two.v === 2) { claim(i, i + 2); wordZone = 5; break; } }
+    if (!wordZone) for (let i = 0; i < n; i++) if (W(at(i), "tempo") && W(at(i + 1), "run")) { claim(i, i + 2); wordZone = 4; break; }
+    if (wordZone) target = { type: "zone", metric: defaultMetric(sport), zone: wordZone };
+  }
+
+  const note = [...extraNotes, ...kwNotes, ...parenNotes];
+  const hasDuration = dur !== null;
+  const understood = hasDuration || target !== null || fromWord || stroke !== null || equipment.length > 0 || sendOff !== null || kwNotes.length > 0 || extraNotes.length > 0 || between !== null;
+  const make = (duration: Duration, tgt: Target): Step => {
+    const st: Step = { kind: "step", intent: theIntent, duration, target: tgt };
+    if (note.length) st.note = note.join("; ");
+    if (stroke) st.stroke = stroke;
+    if (equipment.length) st.equipment = [...equipment];
+    if (sendOff !== null) st.send_off_s = sendOff;
+    return st;
+  };
+
+  let steps = [make(dur ?? { type: "open" }, target ?? { type: "open" })];
+  let expanded = false;
+  if (progression && dur) {
+    let targets: Target[] | null = null;
+    if (pace && pace.b !== null && total === null) {
+      const a = pace.a, b = pace.b;
+      targets = [0, 1, 2].map((k): Target => { const p = round(a + ((b - a) * k) / 2); return { type: "pace", min_s: Math.max(0, p - 5), max_s: p + 5 }; });
+    } else if (zone && zone.b !== null && !pace && !power && !ftp && !hr) {
+      const step = zone.b >= zone.a ? 1 : -1;
+      targets = [];
+      for (let z = zone.a; z !== zone.b + step; z += step) targets.push({ type: "zone", metric, zone: zoneN(z) });
+    } else if (!target) targets = [2, 3, 4].map((z): Target => ({ type: "zone", metric: defaultMetric(sport), zone: zoneN(z) }));
+    if (targets && targets.length > 1) {
+      const ts = targets;
+      steps = splitParts(dur, ts.length).map((d, k) => { const st = make(d, ts[k]!); if (k > 0) delete st.note; return st; });
+      expanded = true;
+    }
+  }
+  const modifierOnly = !hasDuration && !fromWord && between === null && !progression && (target !== null || stroke !== null || equipment.length > 0 || sendOff !== null || note.length > 0);
+  return { steps, understood, fromWord, between, modifierOnly, hasDuration, progression: expanded, total: expanded ? dur : null, leftovers: leftovers(toks, used) };
 }
 
-function parseExercise(line: string, warnings: string[]): Exercise | null {
-  const m = line.match(/^(.+?)\s+(\d+)\s*x\s*(\d+(?:\s*-\s*\d+)?(?:\s*s\b|\s*")?)(.*)$/i);
-  if (!m) { warnings.push(line.trim()); return null; }
-  const rest = m[4]!.toLowerCase();
-  let load: Load | undefined;
-  let x: RegExpMatchArray | null;
-  if ((x = rest.match(/(\d+(?:[.,]\d+)?)\s*kg/))) load = { type: "kg", value: num(x[1]!) };
-  else if ((x = rest.match(/(\d{1,3})\s*%/))) load = { type: "pct_1rm", value: Number(x[1]) };
-  else if ((x = rest.match(/\b(?:pse|rpe)\s*(\d{1,2})/))) load = { type: "rpe", value: Number(x[1]) };
-  else if (/\b(pc|peso corporal)\b/.test(rest)) load = { type: "bodyweight" };
-  const r = rest.match(/(?:desc(?:anso)?|int(?:ervalo)?)\s*(\d+)\s*('|"|s\b|min)?/);
-  const ex: Exercise = { kind: "exercise", name: m[1]!.trim().replace(/^\w/, (c) => c.toUpperCase()), sets: Number(m[2]), reps: m[3]!.replace(/\s+/g, "").replace('"', " s").replace(/(\d)s$/, "$1 s") };
-  if (load) ex.load = load;
-  if (r) ex.rest_s = r[2] === "'" || r[2] === "min" ? Number(r[1]) * 60 : Number(r[1]);
-  return ex;
+/** Fill the previous block's open fields from a modifier piece ("6x1km, ritmo de 4:30"). False on a conflict. */
+function applyMods(step: Step, mod: Step): boolean {
+  if (mod.target.type !== "open") {
+    if (step.target.type === "open") step.target = mod.target;
+    else if (JSON.stringify(step.target) !== JSON.stringify(mod.target)) return false;
+  }
+  if (mod.note) step.note = step.note ? `${step.note}; ${mod.note}` : mod.note;
+  if (mod.stroke && !step.stroke) step.stroke = mod.stroke;
+  if (mod.equipment) { const m = mod.equipment; step.equipment = EQUIPMENT.map(([, e]) => e).filter((e) => step.equipment?.includes(e) || m.includes(e)); }
+  if (mod.send_off_s !== undefined && step.send_off_s === undefined) step.send_off_s = mod.send_off_s;
+  return true;
+}
+const mainStep = (b: Step | Repeat): Step => (b.kind === "repeat" ? (b.steps.find((s) => s.intent === "active") ?? b.steps[0]!) : b);
+/** A rest between series: replaces the last rest of a flattened inner repeat, else goes last. */
+function attachSeries(steps: Step[], rest: Step, lastFromInner: boolean) {
+  if (lastFromInner && isRest(steps[steps.length - 1])) steps[steps.length - 1] = rest;
+  else steps.push(rest);
+}
+const clone = <X>(x: X): X => JSON.parse(JSON.stringify(x)) as X;
+
+// ---------------------------------------------------------------- repeats
+/** "6x", "6 vezes", "seis tiros de", "3 séries de" at depth 0 → {i, count, j (body start)}. */
+function findAnchor(toks: Tok[]): { i: number; count: number; j: number } | null {
+  let depth = 0;
+  for (let i = 0; i < toks.length; i++) {
+    const t = toks[i]!;
+    if (P(t, "(")) depth++;
+    else if (P(t, ")")) depth = Math.max(0, depth - 1);
+    if (depth > 0 || !INT(t) || t.v < 1 || t.v > 200 || !W(toks[i + 1], ...REPEAT_WORDS)) continue;
+    let j = i + 2;
+    if (W(toks[j], "de") && !W(toks[i + 1], "x")) j++;
+    if (j < toks.length) return { i, count: t.v, j };
+  }
+  return null;
+}
+/** A word that says "recovery" on its own ("trote", "caminhando", "descanso", "parado"…). */
+const recoveryWord = (x: Tok) => x.k === "word" && (x.low.startsWith("trot") || x.low.startsWith("caminh") || RECOVERY_WORDS.includes(x.low));
+/** A word that says "easy" ("leve", "solto", "regenerativo") or an easy zone ("Z1", "Z2"). */
+function easyAt(toks: Tok[], k: number): boolean {
+  const x = toks[k];
+  if (x === undefined || x.k !== "word") return false;
+  if (W(x, "z", "zona")) { const z = toks[k + 1]; return INT(z) && z.v <= 2; }
+  return EASY_WORDS.includes(x.low);
+}
+/**
+ * Where the recovery part of a repeat body starts, or -1: after a marker ("c/ 2' trote", "com 20\" de descanso",
+ * "/ 1' leve", "- 2' trote"), or at a second amount followed by a recovery or easy word ("1' forte 1' leve", "15\" desc").
+ */
+function recoverySplit(body: Tok[], sport: Sport): number {
+  const none = body.map(() => false);
+  const hasAmount = (from: number) => { for (let k = from; k < body.length; k++) if (amountAt(body, none, k, sport, "recovery")) return true; return false; };
+  let first: Amount | null = null;
+  for (let k = 0; k < body.length; k++) { const a = amountAt(body, none, k, sport, "active"); if (a) { first = a; break; } }
+  for (let j = 1; j < body.length; j++) {
+    const t = body[j];
+    const slash = P(t, "/") && first !== null && first.end <= j && !CLOCK(body[j - 1]) && !W(body[j - 1], "min") && amountAt(body, none, j + 1, sport, null) !== null;
+    const marker = (W(t, "c") && P(body[j + 1], "/")) || W(t, ...RECOVERY_MARKERS) || slash;
+    if (marker && (hasAmount(j) || body.slice(j + 1).some(recoveryWord))) return j;
+  }
+  if (!first) return -1;
+  for (let k = first.end; k < body.length; k++) {
+    if (!amountAt(body, none, k, sport, null)) continue;
+    if (body.slice(k).some(recoveryWord) || body.some((_, i) => i >= k && easyAt(body, i))) return k;
+    break;
+  }
+  return -1;
 }
 
+interface RepeatResult { type: "repeat"; count: number; steps: Step[]; before: Step[]; nested: number | null; lastFromInner: boolean; warnings: string[] }
+
+/** Inside "N x ( … )": steps in order; inner repeats are flattened (the structure has one level of repeats). */
+function parseGroup(inner: Tok[], sport: Sport, warnings: string[]): { steps: Step[]; nested: number | null; lastFromInner: boolean } {
+  const steps: Step[] = [];
+  let nested: number | null = null, lastFromInner = false, others = 0;
+  for (const p of segment(inner)) {
+    const r = parseRepeat(p.toks, sport);
+    if (r) {
+      if (r.type === "unknown" || steps.length + r.before.length + r.count * r.steps.length > MAX_REPEAT_STEPS) { warnings.push(textOf(p.toks)); continue; }
+      warnings.push(...r.warnings);
+      steps.push(...r.before);
+      for (let k = 0; k < r.count; k++) steps.push(...r.steps.map(clone));
+      nested = r.count;
+      lastFromInner = isRest(steps[steps.length - 1]);
+      continue;
+    }
+    const s = parseSteps(p.toks, sport, "active", "active");
+    if (!s.understood) { warnings.push(textOf(p.toks)); continue; }
+    warnings.push(...s.leftovers);
+    if (s.between === "series") { attachSeries(steps, s.steps[0]!, lastFromInner); lastFromInner = false; continue; }
+    const prev = steps[steps.length - 1];
+    if (s.modifierOnly && p.sep === "soft" && prev) { if (!applyMods(prev, s.steps[0]!)) warnings.push(textOf(p.toks)); continue; }
+    const first = s.steps[0]!;
+    if (prev && prev.intent === "active" && !s.fromWord && s.steps.length === 1 && isEasy(first) && !(sport === "swim" && first.duration.type === "distance")) first.intent = restIntent(sport);
+    steps.push(...s.steps);
+    lastFromInner = false;
+    others++;
+  }
+  return { steps, nested: others === 0 ? nested : null, lastFromInner };
+}
+
+/** A repeat piece → the repeat, `{type: "unknown"}`, or null (no "N x"). */
+function parseRepeat(toks: Tok[], sport: Sport): RepeatResult | { type: "unknown" } | null {
+  const an = findAnchor(toks);
+  if (!an) return null;
+  const warnings: string[] = [], before: Step[] = [];
+  let prefix = toks.slice(0, an.i);
+  const body = toks.slice(an.j);
+  if (prefix.some(numish)) {
+    const p = parseSteps(prefix, sport, "active", sport === "swim" ? "active" : null);
+    if (p.understood) { before.push(...p.steps); warnings.push(...p.leftovers); }
+    else warnings.push(textOf(prefix));
+    prefix = [];
+  }
+  let steps: Step[], nested: number | null = null, lastFromInner = false;
+  if (P(body[0], "(")) {
+    let d = 0, k = 0;
+    for (; k < body.length; k++) {
+      if (P(body[k], "(")) d++;
+      else if (P(body[k], ")") && --d === 0) break;
+    }
+    ({ steps, nested, lastFromInner } = parseGroup(body.slice(1, k), sport, warnings));
+    const trailing = body.slice(k + 1);
+    if (trailing.length && steps.length) {
+      const r = parseSteps(trailing, sport, restIntent(sport), "recovery");
+      if (r.understood && r.hasDuration) { attachSeries(steps, r.steps[0]!, lastFromInner); lastFromInner = false; warnings.push(...r.leftovers); }
+      else if (r.understood && r.modifierOnly) { if (!applyMods(mainStep({ kind: "repeat", count: 1, steps }), r.steps[0]!)) warnings.push(textOf(trailing)); else warnings.push(...r.leftovers); }
+      else warnings.push(textOf(trailing));
+    }
+  } else {
+    const inner = findAnchor(body);
+    if (inner && inner.i === 0) {
+      const r = parseRepeat(body, sport);
+      if (!r || r.type === "unknown" || r.count * r.steps.length > MAX_REPEAT_STEPS) return { type: "unknown" };
+      warnings.push(...r.warnings);
+      steps = [];
+      for (let k = 0; k < r.count; k++) steps.push(...r.steps.map(clone));
+      nested = r.count;
+      lastFromInner = isRest(steps[steps.length - 1]);
+    } else {
+      const split = recoverySplit(body, sport);
+      const a = parseSteps([...prefix, ...(split < 0 ? body : body.slice(0, split))], sport, "active", "active");
+      if (!a.understood) return { type: "unknown" };
+      steps = [...a.steps];
+      warnings.push(...a.leftovers);
+      if (split >= 0) {
+        const r = parseSteps(body.slice(split), sport, restIntent(sport), "recovery");
+        if (r.understood) { steps.push(...r.steps); warnings.push(...r.leftovers); }
+        else warnings.push(textOf(body.slice(split)));
+      }
+    }
+  }
+  if (!steps.length || steps.length > MAX_REPEAT_STEPS) return { type: "unknown" };
+  return { type: "repeat", count: an.count, steps, before, nested, lastFromInner, warnings };
+}
+
+// ---------------------------------------------------------------- exercises (strength, mobility)
+function trimName(toks: Tok[]): Tok[] {
+  let a = 0, b = toks.length;
+  for (;;) {
+    if (a < b && toks[a]!.k === "p") a++;
+    else if (a + 1 < b && N(toks[a]) && (P(toks[a + 1], ".") || P(toks[a + 1], ")") || P(toks[a + 1], "-"))) a += 2;
+    else if (a < b && W(toks[a], ...LEAD_FILLERS)) a++;
+    else break;
+  }
+  while (b > a && (toks[b - 1]!.k === "p" || W(toks[b - 1], ...TRAIL_FILLERS))) b--;
+  return toks.slice(a, b);
+}
+/** Rest after "desc", "descanso"…: 90" / 1'30 / 2 min / 1:30; a bare number is seconds (minutes up to 5). */
+function restAt(toks: Tok[], used: boolean[], i: number, bareOk: boolean): { s: number; end: number } | null {
+  const at = (j: number): T => (used[j] ? undefined : toks[j]);
+  const t = at(i);
+  if (CLOCK(t)) return { s: t.v, end: i + 1 };
+  if (!N(t)) return null;
+  const u = at(i + 1);
+  if (P(u, "'") || W(u, ...MINUTES)) {
+    let s = t.v * 60, end = i + 2;
+    const x = at(end);
+    if (INT(x) && x.v < 60 && (!x.sp || P(at(end + 1), '"') || W(at(end + 1), ...SECONDS))) { s += x.v; end += P(at(end + 1), '"') || W(at(end + 1), ...SECONDS) ? 2 : 1; }
+    return round(s) <= MAX_AMOUNT ? { s: round(s), end } : null;
+  }
+  if (P(u, '"') || W(u, ...SECONDS)) return round(t.v) <= MAX_AMOUNT ? { s: round(t.v), end: i + 2 } : null;
+  if (!bareOk) return null;
+  const s = round(t.v <= 5 ? t.v * 60 : t.v);
+  return s <= MAX_AMOUNT ? { s, end: i + 1 } : null;
+}
+interface Attrs { load: Load | null; rest_s: number | null; tempo: string | null; notes: string[]; found: boolean; all: boolean; leftovers: string[] }
+/** Load, rest, tempo and notes of an exercise. `all`: nothing else in the tokens (a piece that only adds to the previous exercise). */
+function parseAttrs(toks0: Tok[]): Attrs {
+  const { toks, notes: parenNotes } = takeParens(toks0);
+  const used = toks.map(() => false);
+  const at = (j: number): T => (used[j] ? undefined : toks[j]);
+  const claim = (a: number, b: number) => { for (let k = a; k < b; k++) used[k] = true; };
+  const n = toks.length;
+  let load: Load | null = null, rest: number | null = null, tempo: string | null = null;
+  const notes: string[] = [];
+  for (let i = 0; i < n && !load; i++) {
+    if (!N(at(i))) continue;
+    let j = i + 1;
+    if (rangeConn(at(j)) && N(at(j + 1))) j += 2;
+    if (W(at(j), ...KG)) { claim(i, j + 1); load = { type: "kg", value: toks[i]!.v }; break; }
+    if (!P(at(j), "%")) continue;
+    j++;
+    while (W(at(j), "de", "do", "da")) j++;
+    const one = at(j);
+    if (N(one) && one.v === 1 && W(at(j + 1), "rm")) j += 2;
+    else if (W(at(j), "rm")) j++;
+    claim(i, j);
+    load = { type: "pct_1rm", value: toks[i]!.v };
+  }
+  for (let i = 0; i < n && !load; i++) {
+    const v = at(i + 1);
+    if (W(at(i), "pse", "rpe") && N(v)) { claim(i, i + 2); load = { type: "rpe", value: v.v }; }
+    else if (W(at(i), "pc", "bodyweight")) { claim(i, i + 1); load = { type: "bodyweight" }; }
+    else if (W(at(i), "peso") && W(at(i + 1), "corporal")) { claim(i, i + 2); load = { type: "bodyweight" }; }
+    else if (W(at(i), "peso") && W(at(i + 1), "do") && W(at(i + 2), "corpo")) { claim(i, i + 3); load = { type: "bodyweight" }; }
+    else if (W(at(i), "sem") && W(at(i + 1), "carga", "peso")) { claim(i, i + 2); load = { type: "bodyweight" }; }
+  }
+  for (let i = 0; i < n && rest === null; i++) {
+    if (W(at(i), ...REST_WORDS)) {
+      let j = i + 1;
+      while (W(at(j), "de") || P(at(j), ":")) j++;
+      const r = restAt(toks, used, j, true);
+      if (r) { claim(i, r.end); rest = r.s; }
+      continue;
+    }
+    const r = restAt(toks, used, i, false);
+    if (!r) continue;
+    const k = W(at(r.end), "de") ? r.end + 1 : r.end;
+    if (W(at(k), "descanso", "intervalo", "pausa", "desc")) { claim(i, k + 1); rest = r.s; }
+  }
+  for (let i = 0; i < n && !tempo; i++) {
+    if (!W(at(i), "tempo", "cadência", "cadencia")) continue;
+    let j = i + 1;
+    if (P(at(j), ":")) j++;
+    if (!N(at(j))) continue;
+    let k = j + 1;
+    while (P(at(k), "-") && N(at(k + 1))) k += 2;
+    tempo = textOf(toks.slice(j, k));
+    claim(i, k);
+  }
+  for (let i = 0; i < n; i++) {
+    const next = at(i + 1);
+    if (W(at(i), "cada") && next?.k === "word") { notes.push(`cada ${next.low}`); claim(i, i + 2); }
+    else if (W(at(i), "por") && W(next, ...SIDE_WORDS)) { notes.push(`por ${next.low}`); claim(i, i + 2); }
+    else if (W(at(i), "unilateral")) { notes.push("unilateral"); claim(i, i + 1); }
+  }
+  const found = load !== null || rest !== null || tempo !== null || notes.length > 0;
+  const all = toks.every((t, i) => used[i] || t.k === "p" || W(t, ...ATTR_FILLERS));
+  return { load, rest_s: rest, tempo, notes: [...notes, ...parenNotes], found, all, leftovers: leftovers(toks, used) };
+}
+/** "Agachamento 4x8 70% desc 90\"", "4 séries de 10 supino", "Prancha 3x45s pc" → exercise, or null. */
+function parseExercise(toks: Tok[]): { ex: Exercise; leftovers: string[] } | null {
+  let depth = 0;
+  for (let i = 0; i < toks.length; i++) {
+    const c = toks[i]!;
+    if (P(c, "(")) depth++;
+    else if (P(c, ")")) depth = Math.max(0, depth - 1);
+    if (depth > 0 || !INT(c) || c.v < 1 || c.v > 50) continue;
+    let j = i + 1;
+    if (W(toks[j], "x")) j++;
+    else if (W(toks[j], ...SETS_WORDS)) { j++; if (W(toks[j], "de")) j++; }
+    else continue;
+    let reps: string, end: number;
+    const r = toks[j];
+    if (W(r, "máx", "max", "máximo", "maximo", "falha")) { reps = "máx"; end = j + 1; }
+    else if (INT(r) && r.v <= 1000) {
+      reps = String(r.v);
+      end = j + 1;
+      const hi = toks[end + 1];
+      if ((P(toks[end], "-") || W(toks[end], "a")) && INT(hi) && hi.v <= 1000 && !W(toks[end + 2], ...KG) && !P(toks[end + 2], "%")) { reps += "-" + hi.v; end += 2; }
+      if (P(toks[end], '"') || W(toks[end], ...SECONDS)) { reps += " s"; end++; }
+      else if (P(toks[end], "'") || W(toks[end], ...MINUTES)) { reps += " min"; end++; }
+      else if (W(toks[end], ...REPS_WORDS)) end++;
+    } else continue;
+    let name = trimName(toks.slice(0, i)), after = toks.slice(end);
+    if (!name.length) {
+      let k = 0;
+      while (k < after.length && after[k]!.k === "word" && !ATTR_WORDS.includes(after[k]!.low)) k++;
+      name = trimName(after.slice(0, k));
+      after = after.slice(k);
+    }
+    if (!name.length) return null;
+    const text = textOf(name);
+    const at = parseAttrs(after);
+    const ex: Exercise = { kind: "exercise", name: text.charAt(0).toUpperCase() + text.slice(1), sets: c.v, reps };
+    if (at.load) ex.load = at.load;
+    if (at.rest_s !== null) ex.rest_s = at.rest_s;
+    if (at.tempo) ex.tempo = at.tempo;
+    if (at.notes.length) ex.note = at.notes.join("; ");
+    return { ex, leftovers: at.leftovers };
+  }
+  return null;
+}
+function mergeAttrs(ex: Exercise, at: Attrs) {
+  if (at.load && !ex.load) ex.load = at.load;
+  if (at.rest_s !== null && ex.rest_s === undefined) ex.rest_s = at.rest_s;
+  if (at.tempo && !ex.tempo) ex.tempo = at.tempo;
+  if (at.notes.length) ex.note = [ex.note, ...at.notes].filter(Boolean).join("; ");
+}
+
+// ---------------------------------------------------------------- the workout
+interface Meta { nested?: number | null; lastFromInner?: boolean }
+interface Hints { long: boolean; fartlek: boolean; progressive: boolean; progression: Duration | null }
+
+function assemble(pieces: Piece[], sport: Sport, warnings: string[], hints: Hints): { blocks: Block[]; meta: Meta[] } {
+  const blocks: Block[] = [], meta: Meta[] = [];
+  const strengthLike = sport === "strength" || sport === "mobility";
+  for (const piece of pieces) {
+    const text = textOf(piece.toks);
+    const last = blocks[blocks.length - 1], lastMeta = meta[meta.length - 1];
+    if (strengthLike) {
+      const e = parseExercise(piece.toks);
+      if (e) { blocks.push(e.ex); meta.push({}); warnings.push(...e.leftovers); continue; }
+      const at = parseAttrs(piece.toks);
+      if (at.found && at.all) {
+        if (piece.sep === "soft" && last?.kind === "exercise") mergeAttrs(last, at);
+        else warnings.push(text);
+        continue;
+      }
+    } else {
+      const r = parseRepeat(piece.toks, sport);
+      if (r && r.type === "unknown") { warnings.push(text); continue; }
+      if (r) {
+        warnings.push(...r.warnings);
+        for (const st of r.before) { blocks.push(st); meta.push({}); }
+        if (r.count === 1) for (const st of r.steps) { blocks.push(st); meta.push({}); }
+        else { blocks.push({ kind: "repeat", count: r.count, steps: r.steps }); meta.push({ nested: r.nested, lastFromInner: r.lastFromInner }); }
+        continue;
+      }
+    }
+    // A bare number is pool meters, or (with a recovery word: "/ 200 trote") a recovery amount.
+    const s = parseSteps(piece.toks, sport, "active", sport === "swim" ? "active" : piece.toks.some(recoveryWord) ? "recovery" : null);
+    if (!s.understood) { warnings.push(text); continue; }
+    warnings.push(...s.leftovers);
+    const first = s.steps[0]!;
+    if (s.between === "series" && last?.kind === "repeat") { attachSeries(last.steps, first, !!lastMeta?.lastFromInner); lastMeta!.lastFromInner = false; continue; }
+    if (s.steps.length === 1 && isRest(first) && (s.fromWord || s.between) && last?.kind === "repeat" && !last.steps.some(isRest) && (piece.sep === "soft" || s.between === "reps")) { last.steps.push(first); continue; }
+    // "10x1' forte, 1' leve": a short easy piece right after a repeat without a rest is the repeat's recovery.
+    if (s.steps.length === 1 && !s.fromWord && piece.sep === "soft" && last?.kind === "repeat" && last.steps.length === 1 && !isEasy(last.steps[0]!) && shortRecovery(first, sport)) { first.intent = restIntent(sport); last.steps.push(first); continue; }
+    if (s.modifierOnly && piece.sep === "soft" && last && last.kind !== "exercise") { if (!applyMods(mainStep(last), first)) warnings.push(text); continue; }
+    if (s.progression && !hints.progression) hints.progression = s.total;
+    for (const st of s.steps) { blocks.push(st); meta.push({}); }
+  }
+  return { blocks, meta };
+}
+
+function amountText(d: Duration): string {
+  if (d.type === "distance") return d.m >= 1000 ? `${String(d.m / 1000).replace(".", ",")} km` : `${d.m} m`;
+  if (d.type !== "time") return "";
+  const s = d.s;
+  if (s < 60) return `${s}"`;
+  if (s < 3600) return s % 60 === 0 ? `${s / 60}'` : `${Math.floor(s / 60)}'${String(s % 60).padStart(2, "0")}"`;
+  const m = Math.floor((s % 3600) / 60);
+  return `${Math.floor(s / 3600)}h${m ? String(m).padStart(2, "0") : ""}`;
+}
+const volume = (d: Duration) => (d.type === "distance" ? d.m : d.type === "time" ? d.s * 3 : 0);
+/** How hard a target is, to spot progressions (comparable only within one target type). */
+const level = (t: Target) => (t.type === "zone" ? t.zone : t.type === "rpe" ? t.value : t.type === "pace" ? -(t.min_s + t.max_s) : t.type === "hr" || t.type === "power" ? t.min + t.max : null);
+const zoneOfTarget = (t: Target) => (t.type === "zone" ? t.zone : t.type === "rpe" ? (t.value >= 9 ? 5 : t.value >= 7 ? 4 : t.value >= 5 ? 3 : t.value >= 3 ? 2 : 1) : 3);
+/**
+ * A natural pt-BR name: "Intervalado 6×800 m", "Rodagem 8 km", "Séries 10×100 m", "Progressivo 10 km",
+ * "Força: Agachamento + Remada". The biggest part names the workout (a repeat's volume against the longest step).
+ */
+function nameOf(blocks: Block[], meta: Meta[], sport: Sport, hints: Hints): string {
+  const exercises = blocks.filter((b): b is Exercise => b.kind === "exercise");
+  if (exercises.length) {
+    const label = sport === "mobility" ? "Mobilidade" : "Força", names = exercises.slice(0, 2).map((e) => e.name).join(" + ");
+    return names.toLowerCase().startsWith(label.toLowerCase()) ? names : `${label}: ${names}`;
+  }
+  if (hints.progression) return `Progressivo ${amountText(hints.progression)}`;
+  const actives = blocks.filter((b): b is Step => b.kind === "step" && b.intent === "active");
+  let main: Step | null = null;
+  for (const a of actives) if (main === null || volume(a.duration) > volume(main.duration)) main = a;
+  let best = -1, bestVol = -1;
+  blocks.forEach((b, i) => {
+    if (b.kind !== "repeat") return;
+    const vol = b.count * b.steps.filter((s) => s.intent === "active").reduce((x, s) => x + volume(s.duration), 0);
+    if (vol > bestVol) { best = i; bestVol = vol; }
+  });
+  if (best >= 0 && (main === null || bestVol >= volume(main.duration))) {
+    const r = blocks[best] as Repeat, a = mainStep(r), inner = meta[best]?.nested;
+    const label = sport === "swim" ? "Séries" : hints.fartlek ? "Fartlek" : "Intervalado";
+    return `${label} ${r.count}×${inner ? `(${inner}×${amountText(a.duration)})` : amountText(a.duration)}`;
+  }
+  if (main === null) {
+    const any = blocks.find((b): b is Step => b.kind === "step");
+    if (!any) return "Treino";
+    return `${any.note?.includes("caminhada") ? "Caminhada" : "Treino"} ${amountText(any.duration)}`.trim();
+  }
+  const m = main;
+  // Several parts and none of them most of the work: the whole ("Progressivo 15 km" when each is harder).
+  const sum = actives.reduce((x, a) => x + volume(a.duration), 0);
+  if (actives.length > 1 && sum > 0 && volume(m.duration) * 5 <= sum * 3 && actives.every((a) => a.duration.type === m.duration.type)) {
+    const total: Duration = m.duration.type === "distance" ? { type: "distance", m: sum } : { type: "time", s: sum / 3 };
+    const t0 = actives[0]!.target, l0 = level(t0);
+    const rising = l0 !== null && actives.every((a, i) => i === 0 || (a.target.type === t0.type && level(a.target)! > level(actives[i - 1]!.target)!));
+    const label = rising ? "Progressivo" : sport === "run" ? "Corrida" : sport === "bike" ? "Pedal" : sport === "swim" ? "Natação" : sport === "mobility" ? "Mobilidade" : "Treino";
+    return `${label} ${amountText(total)}`.trim();
+  }
+  const z = zoneOfTarget(m.target);
+  const long = (m.duration.type === "distance" && m.duration.m >= 16000) || (m.duration.type === "time" && m.duration.s >= 5400);
+  const label =
+    hints.progressive && sport !== "mobility" && sport !== "other" ? "Progressivo"
+    : sport === "swim" ? "Nado contínuo"
+    : sport === "bike" ? (z <= 1 ? "Pedal regenerativo" : z === 2 ? "Pedal leve" : z === 3 ? "Pedal moderado" : "Pedal forte")
+    : sport === "mobility" ? "Mobilidade"
+    : sport !== "run" ? "Treino"
+    : hints.fartlek ? "Fartlek"
+    : hints.long && z <= 3 ? "Longão"
+    : z <= 1 ? "Regenerativo" : z === 2 ? (long ? "Longão" : "Rodagem") : z === 3 ? "Corrida moderada" : "Ritmo forte";
+  return `${label} ${amountText(m.duration)}`.trim();
+}
+
+/** Free text → structure, warnings (the pieces that weren't understood, as typed), #tags and a suggested name. */
 export function parseQuickText(raw: string, sport: Sport): ParseResult {
-  const warnings: string[] = [];
   const tags: string[] = [];
-  const input = raw.replace(/\r/g, "").split("\n").map((l) => { const x = extractTags(l); tags.push(...x.tags); return x.text; }).join("\n");
-  const text = normalize(input);
-  const uniq = cleanTags(tags);
-  if (!text) return { structure: { v: 1, blocks: [] }, warnings, tags: uniq };
-  if (sport === "strength") {
-    const blocks = input.split(/\n|;/).map((l) => normalize(l)).filter(Boolean).map((l) => parseExercise(l, warnings)).filter(Boolean) as Block[];
-    return { structure: { v: 1, blocks }, warnings, tags: uniq };
-  }
-  const blocks = splitTop(input.split("\n").map(normalize).join("\n")).map((seg) => parseSegment(seg, sport, warnings)).filter(Boolean) as Block[];
-  return { structure: { v: 1, blocks }, warnings, tags: uniq };
+  const lines = String(raw ?? "").replace(/\r/g, "").split("\n").map((l) => { const x = extractTags(l); tags.push(...x.tags); return stripListMarker(normalizeLine(x.text)); });
+  const toks = numberWords(tokenize(lines.join("\n")));
+  const hints: Hints = {
+    long: toks.some((t) => W(t, "longão", "longao", "longo", "longa")),
+    fartlek: toks.some((t) => W(t, "fartlek")),
+    progressive: toks.some((t) => t.k === "word" && (t.low.startsWith("progress") || t.low.startsWith("progredi"))),
+    progression: null,
+  };
+  const warnings: string[] = [];
+  const { blocks, meta } = assemble(segment(toks), sport, warnings, hints);
+  return { structure: { v: 1, blocks }, warnings, tags: cleanTags(tags), name: nameOf(blocks, meta, sport, hints) };
 }
 
 // ---------------------------------------------------------------- structure → text
@@ -170,11 +1096,16 @@ function durText(d: Duration, sport: Sport): string {
   if (d.type === "distance") return sport === "swim" ? `${d.m}` : d.m % 1000 === 0 ? `${d.m / 1000}km` : d.m > 1000 ? `${String(d.m / 1000).replace(".", ",")}km` : `${d.m}m`;
   return "";
 }
-function tgtText(t: Target): string {
+/** The target as quick text; the zone's metric is written only when it isn't the sport's default. */
+function tgtText(t: Target, sport: Sport): string {
   switch (t.type) {
-    case "zone": return `Z${t.zone}${t.metric === "hr" ? " fc" : ""}`;
-    case "pace": return t.max_s - t.min_s === 10 ? `@${fmtClock(t.min_s + 5)}` : `@${fmtClock(t.min_s)}-${fmtClock(t.max_s)}`;
+    case "zone": return `Z${t.zone}${t.metric === defaultMetric(sport) || t.metric === "pace" ? "" : t.metric === "hr" ? " fc" : " potência"}`;
+    case "pace": {
+      const v = t.max_s - t.min_s === 10 ? fmtClock(t.min_s + 5) : `${fmtClock(t.min_s)}-${fmtClock(t.max_s)}`;
+      return sport === "swim" ? `${v}/100m` : `@${v}`;
+    }
     case "hr": return `fc ${t.min}-${t.max}`;
+    case "power": return t.max - t.min === 10 ? `${t.min + 5}w` : `${t.min}-${t.max}w`;
     case "rpe": return `pse ${t.value}`;
     default: return "";
   }
@@ -188,28 +1119,28 @@ function stepToText(s: Step, sport: Sport): string {
     if (s.stroke) parts.push(STROKE_WORD[s.stroke]);
     if (s.send_off_s) parts.push(`@${fmtClock(s.send_off_s)}`);
     if (s.equipment?.length) parts.push(...s.equipment.map((e) => EQUIP_WORD[e]));
-    if (s.intent === "warmup" || s.intent === "cooldown") parts.push(INTENT_WORD[s.intent]!);
-  } else {
-    if (INTENT_WORD[s.intent]) parts.push(INTENT_WORD[s.intent]!);
-    const tg = tgtText(s.target);
-    if (tg) parts.push(tg);
-  }
+    if (s.intent === "warmup" || s.intent === "cooldown" || s.intent === "rest") parts.push(INTENT_WORD[s.intent]!);
+  } else if (INTENT_WORD[s.intent]) parts.push(INTENT_WORD[s.intent]!);
+  const tg = tgtText(s.target, sport);
+  if (tg) parts.push(tg);
   if (s.note) parts.push(`(${s.note})`);
   return parts.filter(Boolean).join(" ");
 }
+function exerciseToText(e: Exercise): string {
+  const load = e.load ? (e.load.type === "kg" ? ` ${e.load.value}kg` : e.load.type === "pct_1rm" ? ` ${e.load.value}%` : e.load.type === "rpe" ? ` pse ${e.load.value}` : " pc") : "";
+  return `${e.name} ${e.sets}x${e.reps.replace(" s", "s")}${load}${e.rest_s ? ` desc ${e.rest_s}"` : ""}${e.tempo ? ` tempo ${e.tempo}` : ""}${e.note ? ` (${e.note})` : ""}`;
+}
+/** Structure → quick text (the builder rewrites the text when the editor changes the workout). */
 export function toQuickText(st: Structure, sport: Sport): string {
-  if (sport === "strength")
-    return st.blocks.filter((b): b is Exercise => b.kind === "exercise").map((e) => {
-      const load = e.load ? (e.load.type === "kg" ? ` ${e.load.value}kg` : e.load.type === "pct_1rm" ? ` ${e.load.value}%` : e.load.type === "rpe" ? ` pse ${e.load.value}` : " pc") : "";
-      return `${e.name} ${e.sets}x${e.reps.replace(" s", "s")}${load}${e.rest_s ? ` desc ${e.rest_s}"` : ""}`;
-    }).join("\n");
-  return st.blocks.map((b) => {
-    if (b.kind === "exercise") return `${b.name} ${b.sets}x${b.reps}`;
+  const block = (b: Block): string => {
+    if (b.kind === "exercise") return exerciseToText(b);
     if (b.kind === "repeat") {
       const [a, ...rest] = b.steps;
       if (a && rest.length <= 1 && rest.every((r) => r.intent === "recovery" || r.intent === "rest")) return `${b.count}x${stepToText(a, sport)}${rest[0] ? ` c/ ${stepToText(rest[0], sport)}` : ""}`;
       return `${b.count}x(${b.steps.map((x) => stepToText(x, sport)).join(" + ")})`;
     }
     return stepToText(b, sport);
-  }).join(" + ");
+  };
+  // Strength and mobility: one block per line (an exercise line carries its own load and rest).
+  return st.blocks.map(block).join(sport === "strength" || sport === "mobility" ? "\n" : " + ");
 }
