@@ -204,6 +204,10 @@ async fn settings_follow_roles_plan_and_subdomain_rules(db: PgPool) {
         ("app", "Este endereço é reservado. Escolha outro."),
         ("-x-", "Use de 3 a 32 letras, números ou hífens."),
         ("ab", "Use de 3 a 32 letras, números ou hífens."),
+        (
+            "paceforte-qa",
+            "Endereços terminados em -qa são reservados.",
+        ),
     ] {
         let r = app
             .patch(&path, Some(&owner), json!({ "subdomain": sub }))
@@ -220,6 +224,27 @@ async fn settings_follow_roles_plan_and_subdomain_rules(db: PgPool) {
             .ok()["subdomain"],
         "paceforte"
     );
+    // Its site (S9b): the host names the club; other hosts name none.
+    for (host, club) in [
+        ("paceforte-qa.runflow.club", json!("Pace Forte Assessoria")),
+        ("qa.runflow.club", Value::Null),
+        ("nobody-qa.runflow.club", Value::Null),
+    ] {
+        let r = app
+            .call(
+                Method::GET,
+                "/v1/public/config",
+                None,
+                None,
+                &[("host", host)],
+            )
+            .await;
+        assert_eq!(
+            r.ok()["club"].get("name").cloned().unwrap_or(Value::Null),
+            club,
+            "{host}"
+        );
+    }
     let other = create(&app, &owner, "Outro", json!(["run"])).await;
     sqlx::query("UPDATE club_subscriptions SET plan = 'pro'")
         .execute(app.db())

@@ -52,6 +52,9 @@ pub struct Http {
     pub cors_origins: Vec<String>,
     /// `.runflow.club` in production (SSO across club subdomains, §7.3); `None` = host-only cookie.
     pub cookie_domain: Option<String>,
+    pub cookie_name: String,
+    pub club_host_suffix: Option<String>,
+    pub club_host_by_slug: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -245,6 +248,9 @@ impl Config {
             public_api_url,
             cors_origins,
             cookie_domain: e.opt("COOKIE_DOMAIN"),
+            cookie_name: e.or("COOKIE_NAME", "rf_session"),
+            club_host_suffix: e.opt("CLUB_HOST_SUFFIX").map(|s| s.to_lowercase()),
+            club_host_by_slug: e.parse("CLUB_HOST_BY_SLUG", false),
         };
 
         let db = DbSettings {

@@ -12,6 +12,7 @@ use uuid::Uuid;
 
 use crate::{AppState, AuthSettings, Problem};
 
+/// The default session cookie name; `COOKIE_NAME` changes it per environment (QA: `rf_session_qa`).
 pub const SESSION_COOKIE: &str = "rf_session";
 /// Don't write `last_seen_at` on every request.
 const TOUCH_EVERY: chrono::Duration = chrono::Duration::minutes(5);
@@ -74,8 +75,10 @@ pub fn clear_cookie(settings: &AuthSettings) -> HeaderValue {
 }
 
 fn cookie(settings: &AuthSettings, value: &str, max_age: i64) -> HeaderValue {
-    let mut c =
-        format!("{SESSION_COOKIE}={value}; Path=/; HttpOnly; SameSite=Lax; Max-Age={max_age}");
+    let mut c = format!(
+        "{}={value}; Path=/; HttpOnly; SameSite=Lax; Max-Age={max_age}",
+        settings.cookie_name
+    );
     if settings.cookie_secure {
         c.push_str("; Secure");
     }
@@ -86,8 +89,8 @@ fn cookie(settings: &AuthSettings, value: &str, max_age: i64) -> HeaderValue {
     HeaderValue::from_str(&c).expect("cookie is a valid header")
 }
 
-/// The caller's token: Bearer header first, then the session cookie.
-pub fn token_from(headers: &HeaderMap) -> Option<String> {
+/// The caller's token: Bearer header first, then the session cookie (`cookie_name`).
+pub fn token_from(headers: &HeaderMap, cookie_name: &str) -> Option<String> {
     if let Some(bearer) = headers
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
@@ -102,7 +105,7 @@ pub fn token_from(headers: &HeaderMap) -> Option<String> {
         .flat_map(|v| v.split(';'))
         .find_map(|kv| {
             kv.trim()
-                .strip_prefix(SESSION_COOKIE)?
+                .strip_prefix(cookie_name)?
                 .strip_prefix('=')
                 .map(str::to_string)
         })
@@ -132,7 +135,7 @@ impl FromRequestParts<AppState> for MaybeAuth {
     type Rejection = Problem;
 
     async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Problem> {
-        let Some(token) = token_from(&parts.headers) else {
+        let Some(token) = token_from(&parts.headers, &state.settings.auth.cookie_name) else {
             return Ok(Self(None));
         };
         let Some(s) = runflow_db::auth::session_by_token(&state.db, &hash_token(&token)).await?
@@ -169,6 +172,7 @@ mod tests {
         AuthSettings {
             secret: b"test-secret-test-secret-test-secret".to_vec(),
             session_ttl: chrono::Duration::days(60),
+            cookie_name: "rf_session_qa".into(),
             cookie_domain: Some(".runflow.club".into()),
             cookie_secure: true,
             dev_affordances: false,
@@ -208,13 +212,24 @@ mod tests {
         let mut h = HeaderMap::new();
         h.insert(
             header::COOKIE,
-            HeaderValue::from_static("theme=dark; rf_session=rf_xyz; rf_club=1"),
+            HeaderValue::from_static(
+                "theme=dark; rf_session=rf_prod; rf_session_qa=rf_xyz; rf_club=1",
+            ),
         );
-        assert_eq!(token_from(&h).as_deref(), Some("rf_xyz"));
+        assert!(c.starts_with("rf_session_qa=rf_abc;"));
+        assert_eq!(
+            token_from(&h, "rf_session_qa").as_deref(),
+            Some("rf_xyz"),
+            "another environment's cookie is ignored"
+        );
         h.insert(
             header::AUTHORIZATION,
             HeaderValue::from_static("Bearer rf_bearer"),
         );
-        assert_eq!(token_from(&h).as_deref(), Some("rf_bearer"), "Bearer wins");
+        assert_eq!(
+            token_from(&h, "rf_session_qa").as_deref(),
+            Some("rf_bearer"),
+            "Bearer wins"
+        );
     }
 }

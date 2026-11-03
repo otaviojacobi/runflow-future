@@ -357,6 +357,12 @@ async fn update(
                         "subdomain",
                         "Use de 3 a 32 letras, números ou hífens.",
                     ));
+                } else if sub.ends_with("-qa") {
+                    // QA serves club sites at <club>-qa.runflow.club (D-029).
+                    errors.push(fail(
+                        "subdomain",
+                        "Endereços terminados em -qa são reservados.",
+                    ));
                 } else if RESERVED_SUBDOMAINS.contains(&sub.as_str()) {
                     errors.push(fail(
                         "subdomain",

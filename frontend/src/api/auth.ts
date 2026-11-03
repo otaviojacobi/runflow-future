@@ -18,9 +18,10 @@ async function finishSignIn(r: AuthResult) {
 export const useEmailStart = () => useMutation({ mutationFn: (email: string) => api.post<{ sent: boolean; dev_code?: string }>("/auth/email/start", { email }) });
 export const useEmailVerify = () => useMutation({ mutationFn: (v: { email: string; code: string }) => api.post<AuthResult>("/auth/email/verify", v).then(finishSignIn) });
 export const useGoogleSignIn = () => useMutation({ mutationFn: (id_token: string) => api.post<AuthResult>("/auth/google", { id_token }).then(finishSignIn) });
-/** What the backend has switched on (Google sign-in's web client id, Strava). */
+/** What the backend has switched on (Google sign-in's web client id, Strava), and the club this host serves (S9b). */
+export interface PublicConfig { google_client_id: string | null; strava: boolean; club: { id: string; slug: string; name: string; logo_url: string | null } | null }
 export const usePublicConfig = () =>
-  useQuery({ queryKey: ["public-config"], staleTime: 5 * 60_000, queryFn: () => api.get<{ google_client_id: string | null; strava: boolean }>("/public/config") });
+  useQuery({ queryKey: ["public-config"], staleTime: 5 * 60_000, queryFn: () => api.get<PublicConfig>("/public/config") });
 export const useMockAccounts = (enabled: boolean) =>
   useQuery({ queryKey: ["mock-accounts"], enabled, queryFn: () => api.get<{ email: string; name: string; roles: { club: string; role: string }[] }[]>("/mock/accounts") });
 

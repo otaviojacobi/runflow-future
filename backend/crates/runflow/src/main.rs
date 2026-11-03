@@ -173,6 +173,8 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
         body_limit: 12 * 1024 * 1024,
         public_app_url: config.http.public_app_url.clone(),
         public_api_url: config.http.public_api_url.clone(),
+        club_host_suffix: config.http.club_host_suffix.clone(),
+        club_host_by_slug: config.http.club_host_by_slug,
         strava_verify_token: config
             .strava
             .as_ref()
@@ -181,6 +183,7 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
         auth: AuthSettings {
             secret,
             session_ttl: chrono::Duration::days(60),
+            cookie_name: config.http.cookie_name.clone(),
             cookie_domain: config.http.cookie_domain.clone(),
             cookie_secure: config.http.public_app_url.starts_with("https://"),
             dev_affordances: config.env == RunEnv::Development

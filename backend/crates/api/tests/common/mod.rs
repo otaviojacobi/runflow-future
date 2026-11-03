@@ -56,10 +56,13 @@ pub fn settings(dev: bool) -> ApiSettings {
         body_limit: 64 * 1024,
         public_app_url: "http://localhost:8080".into(),
         public_api_url: "http://localhost:3000".into(),
+        club_host_suffix: Some("-qa.runflow.club".into()),
+        club_host_by_slug: false,
         strava_verify_token: Some("verify-me".into()),
         auth: AuthSettings {
             secret: b"test-secret-test-secret-test-secret".to_vec(),
             session_ttl: chrono::Duration::days(60),
+            cookie_name: "rf_session".into(),
             cookie_domain: None,
             cookie_secure: false,
             dev_affordances: dev,

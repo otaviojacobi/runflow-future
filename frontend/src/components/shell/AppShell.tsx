@@ -2,7 +2,7 @@ import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-route
 import { AlertTriangle, Bell, Check, ChevronsUpDown, LogOut, Menu as MenuIcon, Monitor, Moon, Plus, Search, Sun, User, WifiOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { DropdownMenu } from "radix-ui";
-import { signOut } from "@/api/auth";
+import { signOut, usePublicConfig } from "@/api/auth";
 import type { MembershipContext, Subscription } from "@/api/types";
 import { ClubLogo } from "@/components/brand";
 import { t } from "@/i18n";
@@ -162,6 +162,15 @@ export function AppShell() {
   }, []);
   const isActive = useIsActive();
   useEffect(() => { if (ctx) applyClubTheme(ctx.branding?.theme_css ?? null); }, [ctx?.club.id, ctx?.branding?.theme_rev]); // eslint-disable-line react-hooks/exhaustive-deps
+  // On a club's own site (S9b), open in that club once per visit; the club switcher still works afterwards.
+  const hostClub = usePublicConfig().data?.club;
+  const hostApplied = useRef(false);
+  useEffect(() => {
+    if (hostApplied.current || !hostClub || !me) return;
+    hostApplied.current = true;
+    const m = me.memberships.find((x) => x.club.id === hostClub.id);
+    if (m && m.club.id !== ctx?.club.id) selectClub(m);
+  }, [hostClub?.id, me]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!ctx || !role || !me) return null;
   const modalities = ctx.club.modalities;
   const groups = navFor(role, modalities).map((g) => ({ ...g, items: g.items.filter((i) => i.sidebar !== false) }));

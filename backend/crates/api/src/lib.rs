@@ -47,6 +47,11 @@ pub struct ApiSettings {
     pub public_api_url: String,
     /// Strava webhook subscription check (`STRAVA_WEBHOOK_VERIFY_TOKEN`).
     pub strava_verify_token: Option<String>,
+    /// Club sites (S9b, D-029): `<subdomain><suffix>` serves that club, e.g. `-qa.runflow.club` (QA) or
+    /// `.runflow.club` (production). None = no club hosts.
+    pub club_host_suffix: Option<String>,
+    /// Also match club hosts by slug (QA: every club gets a site while subdomains are Pro and billing isn't live).
+    pub club_host_by_slug: bool,
     pub auth: AuthSettings,
 }
 
@@ -56,6 +61,8 @@ pub struct AuthSettings {
     pub secret: Vec<u8>,
     /// Sessions live this long after their last use.
     pub session_ttl: chrono::Duration,
+    /// Session cookie name (`COOKIE_NAME`, default `rf_session`): distinct per environment.
+    pub cookie_name: String,
     pub cookie_domain: Option<String>,
     /// `Secure` cookies (HTTPS deployments).
     pub cookie_secure: bool,
@@ -68,6 +75,7 @@ impl std::fmt::Debug for AuthSettings {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AuthSettings")
             .field("session_ttl", &self.session_ttl)
+            .field("cookie_name", &self.cookie_name)
             .field("cookie_domain", &self.cookie_domain)
             .field("cookie_secure", &self.cookie_secure)
             .field("dev_affordances", &self.dev_affordances)

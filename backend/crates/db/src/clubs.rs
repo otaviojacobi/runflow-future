@@ -41,6 +41,25 @@ pub async fn club(db: impl PgExecutor<'_>, id: Uuid) -> sqlx::Result<Option<Club
     .await
 }
 
+/// The club a host serves (S9b): by subdomain, or also by slug where every club gets a site (QA).
+pub async fn club_by_host(
+    db: impl PgExecutor<'_>,
+    sub: &str,
+    by_slug: bool,
+) -> sqlx::Result<Option<Club>> {
+    sqlx::query_as!(
+        Club,
+        "SELECT id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at,
+                release_mode, auto_release_weekday, to_char(auto_release_time, 'HH24:MI') AS auto_release_time
+           FROM clubs WHERE (subdomain = $1 OR ($2 AND slug = $1)) AND deleted_at IS NULL
+          ORDER BY subdomain = $1 DESC LIMIT 1",
+        sub,
+        by_slug
+    )
+    .fetch_optional(db)
+    .await
+}
+
 /// By slug or subdomain (public pages).
 pub async fn club_by_slug(db: impl PgExecutor<'_>, slug: &str) -> sqlx::Result<Option<Club>> {
     sqlx::query_as!(

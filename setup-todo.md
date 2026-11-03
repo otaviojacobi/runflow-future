@@ -35,6 +35,10 @@ QA is live at **https://qa.runflow.club**:
   Tell me if you want me to keep root access. If so, the cleanest way is a sudoers rule only for `apt` and `systemctl`.
 - [ ] **Keep a copy of the Pi's secrets** in your password manager: `scp runflow@runflow-qa.local:runflow/ops/qa/.env ~/runflow-qa.env`.
   It holds the only copy of the database password, `ENCRYPTION_KEY` (unlocks the stored Strava tokens) and Garage's keys.
+- [ ] **Club sites** (`paceforte-qa.runflow.club`, S9b): Cloudflare Zero Trust → the tunnel → Routes → Add route →
+  Published application: subdomain `*`, domain `runflow.club`, service `http://web:80`. If Cloudflare doesn't create it,
+  add a proxied DNS record `*` CNAME → `<tunnel-id>.cfargotunnel.com`. Explicit records (`qa`, `www`, mail) keep winning.
+  Then `https://<club-slug>-qa.runflow.club` opens that club's sign-in. The Pi is already configured.
 - [ ] **Strava**: strava.com/settings/api → Authorization Callback Domain = `qa.runflow.club`. "Conectar com Strava" is live on QA
   (S9a) and fails at Strava until this is set.
 
@@ -54,7 +58,6 @@ QA is live at **https://qa.runflow.club**:
 | Step | What you'll do |
 |---|---|
 | ~~B1 Logo~~ | ~~Pick one of the concepts~~ Done: Ritmo |
-| S9b Club subdomains | Tunnel → Routes → add `*.runflow.club` → `http://web:80` and a proxied DNS record `*` (club sites `<club>-qa.runflow.club`, D-029) |
 | S11 Smoke tests | One random secret, `openssl rand -hex 32`, saved twice: as GitHub secret `SMOKE_KEY` and as `SMOKE_KEY=` in the Pi's `.env` |
 | S12 Sentry | sentry.io → org → two projects (Rust: `runflow-api`, React: `runflow-web`) → their DSNs: `SENTRY_DSN` in the Pi's `.env`, GitHub variable `VITE_SENTRY_DSN` |
 | S13 Grafana | Choose between Grafana Cloud's free tier (nothing to run) and the stack on the Pi (no account, uses ~1 GB RAM) |

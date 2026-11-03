@@ -79,6 +79,7 @@ export default function register(h) {
     if ("subdomain" in b && b.subdomain) {
       const sub = String(b.subdomain).toLowerCase();
       if (!/^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/.test(sub)) errors.push({ field: "subdomain", message: "Use de 3 a 32 letras, números ou hífens." });
+      else if (sub.endsWith("-qa")) errors.push({ field: "subdomain", message: "Endereços terminados em -qa são reservados." }); // QA's club sites (D-029)
       else if (RESERVED.has(sub)) errors.push({ field: "subdomain", message: "Este endereço é reservado. Escolha outro." });
       else if (h.db.clubs.some((x) => x.subdomain === sub && x.id !== c.id)) errors.push({ field: "subdomain", message: "Este endereço já está em uso." });
       else if (h.subscription(c.id).plan === "free") h.fail(402, "plan.required", "Disponível no plano Pro", "O endereço próprio (seuclube.runflow.club) faz parte do plano Pro.");
