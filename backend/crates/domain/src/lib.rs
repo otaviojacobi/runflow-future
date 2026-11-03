@@ -8,3 +8,4 @@ pub mod notify;
 pub mod tags;
 pub mod week;
 pub mod workout;
+pub mod workout_text;

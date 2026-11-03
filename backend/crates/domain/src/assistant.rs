@@ -1,6 +1,7 @@
-//! The assistant's rules engine (F27): a port of api/mock/routes/ai.mjs. It turns a pt-BR description into a
-//! workout, suggests a running week from the profile, and summarizes a period's feedback. Deterministic and
-//! local: no student data leaves the server. An LLM can replace it later behind the same contract (root.md §11.4).
+//! The assistant's rules engine (F27): a port of api/mock/routes/ai.mjs. It suggests a running week from the
+//! profile and summarizes a period's feedback; workouts from text use the shared free-text grammar
+//! (`crate::workout_text`). Deterministic and local: no student data leaves the server. An LLM can replace it later
+//! behind the same contract (root.md §11.4).
 //!
 //! The patterns are the mock's, compiled with JavaScript semantics (`\d`, `\w` and `\b` are ASCII there), and the
 //! tests hold the mock's answers for the same inputs.
@@ -26,37 +27,6 @@ fn js(pattern: &str) -> Regex {
     Regex::new(&p).expect("valid pattern")
 }
 
-macro_rules! patterns {
-    ($($name:ident = $p:expr;)*) => { $(static $name: LazyLock<Regex> = LazyLock::new(|| js($p));)* };
-}
-
-patterns! {
-    SPACES = r"\s+";
-    ZONE = r"(?i)\b(?:z|zona\s*)([1-5])\b";
-    PACE = r"(?i)(?:@|a\s|ritmo\s*(?:de)?\s*|pace\s*(?:de)?\s*)(\d{1,2}):(\d{2})";
-    EXERCISE = r"([a-zà-ú][a-zà-ú ]{2,40}?)\s+(\d+)\s*[x×]\s*(\d+(?:-\d+)?)(?:\s*(?:com|a|@)\s*(\d+(?:[.,]\d+)?)\s*kg)?";
-    FILLER = r"^(e|depois|mais)\s+";
-    WARM = r"(\d+)\s*(min|minutos|')\s*(?:de\s*)?aquec|aquec\w*\s*(?:de\s*)?(\d+)\s*(min|minutos|')";
-    REPS = r"(\d+)\s*(?:x|×|vezes|tiros de|tiros|séries de|series de)\s*(?:de\s*)?(\d+(?:[.,]\d+)?)\s*(km|m\b|metros|min|minutos|')";
-    REST = r"(\d+(?:[.,]\d+)?)\s*(min|minutos|'|s\b|seg\w*)\s*(?:de\s*)?(?:trote|descanso|recupera\w*|pausa|parado|caminhada)|(?:trote|descanso|recupera\w*|pausa|intervalo)\s*(?:de\s*)?(\d+(?:[.,]\d+)?)\s*(min|minutos|'|s\b|seg\w*)";
-    WARM_COOL = r"(\d+)\s*(min|minutos|')\s*(?:de\s*)?(aquec|desaquec)\w*";
-    CONTINUOUS = r"(\d+(?:[.,]\d+)?)\s*(km|metros|m\b|min|minutos|h\b|hora\w*)";
-    COOL = r"(\d+)\s*(min|minutos|')\s*(?:de\s*)?(?:desaquec|volta à calma|soltar)|desaquec\w*\s*(?:de\s*)?(\d+)\s*(min|minutos|')";
-}
-
-static ZONE_WORDS: LazyLock<Vec<(Regex, i64)>> = LazyLock::new(|| {
-    [
-        (r"regenerativ|bem leve|soltinho", 1),
-        (r"\bleve|rodagem|confort|z2|longão|longao", 2),
-        (r"moderad|z3|ritmo de maratona", 3),
-        (r"forte|limiar|z4|tempo run", 4),
-        (r"tiro|máxim|maxim|z5|vo2", 5),
-    ]
-    .into_iter()
-    .map(|(p, z)| (js(p), z))
-    .collect()
-});
-
 /// JavaScript's `Math.round` (half up).
 fn round(x: f64) -> i64 {
     (x + 0.5).floor() as i64
@@ -69,38 +39,6 @@ fn number(x: f64) -> Value {
     } else {
         json!(x)
     }
-}
-
-/// `Number("1,5")` → 1.5.
-fn num(s: &str) -> f64 {
-    s.replacen(',', ".", 1).parse().unwrap_or(0.0)
-}
-
-/// A count in `unit` (h…, s…, else minutes) in seconds.
-fn seconds(n: f64, unit: &str) -> f64 {
-    if unit.starts_with('h') {
-        n * 3600.0
-    } else if unit.starts_with('s') {
-        n
-    } else {
-        n * 60.0
-    }
-}
-
-fn zone_of(s: &str, fallback: i64) -> i64 {
-    if let Some(c) = ZONE.captures(s) {
-        return c[1].parse().unwrap_or(fallback);
-    }
-    ZONE_WORDS
-        .iter()
-        .find(|(re, _)| re.is_match(s))
-        .map_or(fallback, |(_, z)| *z)
-}
-
-fn pace_of(s: &str) -> Option<Value> {
-    let c = PACE.captures(s)?;
-    let v: i64 = c[1].parse::<i64>().ok()? * 60 + c[2].parse::<i64>().ok()?;
-    Some(json!({ "type": "pace", "min_s": v - 5, "max_s": v + 5 }))
 }
 
 fn zone(n: i64) -> Value {
@@ -123,161 +61,23 @@ fn step(intent: &str, duration: Value, target: Value) -> Value {
     json!({ "kind": "step", "intent": intent, "duration": duration, "target": target })
 }
 
-/// A distance or time from a number and its unit (km, m/metros, else time).
-fn amount(v: f64, unit: &str) -> Value {
-    if unit.contains("km") {
-        distance(round(v * 1000.0))
-    } else if unit == "m" || unit.contains("metros") {
-        distance(round(v))
-    } else {
-        time(seconds(v, unit))
-    }
-}
-
-/// Group `a` or, when it didn't take part, group `b`.
-fn either<'h>(c: &regex::Captures<'h>, a: usize, b: usize) -> &'h str {
-    c.get(a).or_else(|| c.get(b)).map_or("", |m| m.as_str())
-}
-
-/// A natural pt-BR description → Structure v1 (`None` when nothing usable was found).
-pub fn parse_description(text: &str, sport: &str) -> Option<Value> {
-    let s = SPACES.replace_all(&text.to_lowercase(), " ").into_owned();
-    let mut blocks = Vec::new();
-    if sport == "strength" || sport == "mobility" {
-        for c in EXERCISE.captures_iter(&s) {
-            let name = FILLER.replace(c[1].trim(), "").into_owned();
-            let mut chars = name.chars();
-            let name = match chars.next() {
-                Some(f) if f.is_ascii_alphanumeric() || f == '_' => {
-                    f.to_uppercase().chain(chars).collect()
-                }
-                _ => name,
-            };
-            let mut b = json!({ "kind": "exercise", "name": name, "sets": c[2].parse::<i64>().unwrap_or(1), "reps": &c[3], "rest_s": 60 });
-            if let Some(kg) = c.get(4) {
-                b["load"] = json!({ "type": "kg", "value": number(num(kg.as_str())) });
-            }
-            blocks.push(b);
-        }
-        return (!blocks.is_empty()).then(|| json!({ "v": 1, "blocks": blocks }));
-    }
-    if let Some(w) = WARM.captures(&s) {
-        let n: f64 = either(&w, 1, 3).parse().unwrap_or(0.0);
-        blocks.push(step("warmup", time(seconds(n, either(&w, 2, 4))), zone(2)));
-    }
-    let mut work = false;
-    if let Some(r) = REPS.captures(&s) {
-        let at = r.get(0).map_or(0, |m| m.start());
-        let target = pace_of(&s)
-            .unwrap_or_else(|| zone(zone_of(&s[at..], if sport == "swim" { 3 } else { 5 })));
-        let mut steps = vec![step("active", amount(num(&r[2]), &r[3]), target)];
-        if let Some(rest) = REST.captures(&s) {
-            let n = num(either(&rest, 1, 3));
-            let intent = if sport == "swim" { "rest" } else { "recovery" };
-            steps.push(step(
-                intent,
-                time(round(seconds(n, either(&rest, 2, 4))) as f64),
-                open(),
-            ));
-        }
-        blocks.push(
-            json!({ "kind": "repeat", "count": r[1].parse::<i64>().unwrap_or(1), "steps": steps }),
-        );
-        work = true;
-    } else {
-        let main = WARM_COOL.replace_all(&s, "");
-        if let Some(c) = CONTINUOUS.captures(&main) {
-            let target = pace_of(&s).unwrap_or_else(|| zone(zone_of(&s, 2)));
-            blocks.push(step("active", amount(num(&c[1]), &c[2]), target));
-            work = true;
-        }
-    }
-    if let Some(c) = COOL.captures(&s) {
-        let n: f64 = either(&c, 1, 3).parse().unwrap_or(0.0);
-        blocks.push(step(
-            "cooldown",
-            time(seconds(n, either(&c, 2, 4))),
-            zone(1),
-        ));
-    }
-    work.then(|| json!({ "v": 1, "blocks": blocks }))
-}
-
-/// "6×800 m", "1,5 km", "40'".
-fn amount_text(d: &Value) -> String {
-    let f = |k: &str| d.get(k).and_then(Value::as_f64).unwrap_or(0.0);
-    if d["type"] == "distance" {
-        let m = f("m");
-        if m >= 1000.0 {
-            format!("{} km", (m / 1000.0).to_string().replace('.', ","))
-        } else {
-            format!("{m} m")
-        }
-    } else {
-        format!("{}'", round(f("s") / 60.0))
-    }
-}
-
-/// The suggested workout name.
-pub fn name_of(structure: &Value, sport: &str) -> String {
-    let blocks = structure["blocks"]
-        .as_array()
-        .map(Vec::as_slice)
-        .unwrap_or_default();
-    if let Some(r) = blocks.iter().find(|b| b["kind"] == "repeat") {
-        return format!(
-            "Intervalado {}×{}",
-            r["count"],
-            amount_text(&r["steps"][0]["duration"])
-        );
-    }
-    if let Some(a) = blocks
-        .iter()
-        .find(|b| b["kind"] == "step" && b["intent"] == "active")
-    {
-        let z = if a["target"]["type"] == "zone" {
-            a["target"]["zone"].as_i64().unwrap_or(3)
-        } else {
-            3
-        };
-        let long = a["duration"]["type"] == "distance"
-            && a["duration"]["m"].as_f64().unwrap_or(0.0) >= 16000.0;
-        let kind = match (sport, z) {
-            ("swim", _) => "Nado contínuo",
-            (_, ..=1) => "Regenerativo",
-            (_, 2) if long => "Longão",
-            (_, 2) => "Rodagem",
-            (_, 4..) => "Ritmo forte",
-            _ => "Corrida moderada",
-        };
-        return format!("{kind} {}", amount_text(&a["duration"]));
-    }
-    let exercises: Vec<&str> = blocks
-        .iter()
-        .filter(|b| b["kind"] == "exercise")
-        .filter_map(|b| b["name"].as_str())
-        .collect();
-    if exercises.is_empty() {
-        "Treino".into()
-    } else {
-        format!(
-            "Força: {}",
-            exercises
-                .iter()
-                .take(2)
-                .copied()
-                .collect::<Vec<_>>()
-                .join(" + ")
-        )
-    }
-}
-
-/// The example shown when a description isn't understood.
+/// The example shown when nothing in a description was understood (each one is a golden example in
+/// api/workout-text-examples.json), like the mock.
 pub fn example_for(sport: &str) -> &'static str {
-    if sport == "strength" {
-        "Tente algo como: agachamento 4x10 com 40 kg, remada 3x12, prancha 3x30."
-    } else {
-        "Tente algo como: 15 min de aquecimento, 6 tiros de 800 m a 4:10 com 2 min de trote e 10 min de desaquecimento."
+    match sport {
+        "swim" => {
+            "Tente algo como: 400 m de aquecimento, 10x100 crawl saída 1:45 com palmar e 200 m solto."
+        }
+        "bike" => {
+            "Tente algo como: 15 min leve, 4x8 min a 95% do FTP com 4 min leve e 10 min de desaquecimento."
+        }
+        "strength" => "Tente algo como: agachamento 4x10 com 40 kg, remada 3x12, prancha 3x30.",
+        "mobility" => {
+            "Tente algo como: Mobilidade de quadril 90/90 2x10, rotação torácica 2x10 por lado, prancha 3x30 s."
+        }
+        _ => {
+            "Tente algo como: 15 min de aquecimento, 6 tiros de 800 m a 4:10 com 2 min de trote e 10 min de desaquecimento."
+        }
     }
 }
 
@@ -599,92 +399,25 @@ mod tests {
         NaiveDate::parse_from_str(s, "%Y-%m-%d").unwrap()
     }
 
-    // Expected values: api/mock/routes/ai.mjs (parseDescription, nameOf) and seed.mjs (estimate) on the same text.
+    // The free-text grammar has its own golden tests (tests/workout_text.rs); here: the estimate of a parsed workout
+    // matches the mock's (seed.mjs `estimate`) and every sport has an example that parses.
     #[test]
-    fn descriptions_parse_like_the_mock() {
-        let cases: [(&str, &str, Value, &str); 9] = [
-            (
-                "15 min de aquecimento, 6 tiros de 800 m a 4:10 com 2 min de trote e 10 min de desaquecimento",
-                "run",
-                json!({"v":1,"blocks":[{"kind":"step","intent":"warmup","duration":{"type":"time","s":900},"target":{"type":"zone","metric":"pace","zone":2}},{"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":800},"target":{"type":"pace","min_s":245,"max_s":255}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]},{"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"zone","metric":"pace","zone":1}}]}),
-                "Intervalado 6×800 m",
-            ),
-            (
-                "rodagem leve de 8 km",
-                "run",
-                json!({"v":1,"blocks":[{"kind":"step","intent":"active","duration":{"type":"distance","m":8000},"target":{"type":"zone","metric":"pace","zone":2}}]}),
-                "Rodagem 8 km",
-            ),
-            (
-                "40 min z3",
-                "run",
-                json!({"v":1,"blocks":[{"kind":"step","intent":"active","duration":{"type":"time","s":2400},"target":{"type":"zone","metric":"pace","zone":3}}]}),
-                "Corrida moderada 40'",
-            ),
-            (
-                // No rest: "recuperação" stops the mock's ASCII \w (kept on purpose).
-                "aquecimento de 10 min, 5x 1km forte, recuperação de 90s, desaquecimento 5 min",
-                "run",
-                json!({"v":1,"blocks":[{"kind":"step","intent":"warmup","duration":{"type":"time","s":600},"target":{"type":"zone","metric":"pace","zone":2}},{"kind":"repeat","count":5,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"zone","metric":"pace","zone":4}}]},{"kind":"step","intent":"cooldown","duration":{"type":"time","s":300},"target":{"type":"zone","metric":"pace","zone":1}}]}),
-                "Intervalado 5×1 km",
-            ),
-            (
-                "agachamento 4x10 com 40 kg, remada 3x12, prancha 3x30",
-                "strength",
-                json!({"v":1,"blocks":[{"kind":"exercise","name":"Agachamento","sets":4,"reps":"10","load":{"type":"kg","value":40},"rest_s":60},{"kind":"exercise","name":"Remada","sets":3,"reps":"12","rest_s":60},{"kind":"exercise","name":"Prancha","sets":3,"reps":"30","rest_s":60}]}),
-                "Força: Agachamento + Remada",
-            ),
-            (
-                "8x100m com 20s de descanso",
-                "swim",
-                json!({"v":1,"blocks":[{"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":100},"target":{"type":"zone","metric":"pace","zone":3}},{"kind":"step","intent":"rest","duration":{"type":"time","s":20},"target":{"type":"open"}}]}]}),
-                "Intervalado 8×100 m",
-            ),
-            (
-                "1 hora regenerativo",
-                "run",
-                json!({"v":1,"blocks":[{"kind":"step","intent":"active","duration":{"type":"time","s":3600},"target":{"type":"zone","metric":"pace","zone":1}}]}),
-                "Regenerativo 60'",
-            ),
-            (
-                "3x10 min no limiar com 2' de trote",
-                "run",
-                json!({"v":1,"blocks":[{"kind":"repeat","count":3,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":600},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]}]}),
-                "Intervalado 3×10'",
-            ),
-            (
-                "supino 4x8-10 a 30kg e depois remada curvada 3x12",
-                "strength",
-                json!({"v":1,"blocks":[{"kind":"exercise","name":"Supino","sets":4,"reps":"8-10","load":{"type":"kg","value":30},"rest_s":60},{"kind":"exercise","name":"Depois remada curvada","sets":3,"reps":"12","rest_s":60}]}),
-                "Força: Supino + Depois remada curvada",
-            ),
-        ];
-        for (text, sport, structure, name) in cases {
-            let got = parse_description(text, sport).unwrap_or_else(|| panic!("{text}"));
-            assert_eq!(got, structure, "{text}");
-            assert_eq!(name_of(&got, sport), name, "{text}");
-        }
-        assert!(parse_description("treino legal", "run").is_none());
-        let names = [
-            ("longão de 18 km", "run", "Longão 18 km"),
-            ("Nado contínuo 1500 metros", "swim", "Nado contínuo 1,5 km"),
-            ("5 km a 5:30", "run", "Corrida moderada 5 km"),
-            ("4x1,5km forte", "run", "Intervalado 4×1,5 km"),
-            ("20 min forte", "run", "Ritmo forte 20'"),
-        ];
-        for (text, sport, name) in names {
-            assert_eq!(
-                name_of(&parse_description(text, sport).unwrap(), sport),
-                name,
-                "{text}"
-            );
-        }
-        let paced = parse_description("5 km a 5:30", "run").unwrap();
+    fn parsed_workouts_and_examples() {
+        let paced = crate::workout_text::parse("5 km a 5:30", "run").structure;
         assert_eq!(
             paced["blocks"][0]["target"],
             json!({"type":"pace","min_s":325,"max_s":335})
         );
         assert_eq!(estimate("run", &paced), (1680, Some(5000)));
+        for sport in ["run", "swim", "bike", "strength", "mobility", "other"] {
+            let example = example_for(sport).trim_start_matches("Tente algo como: ");
+            let parsed = crate::workout_text::parse(example, sport);
+            assert!(
+                parsed.warnings.is_empty()
+                    && !parsed.structure["blocks"].as_array().unwrap().is_empty(),
+                "{sport}"
+            );
+        }
     }
 
     #[test]

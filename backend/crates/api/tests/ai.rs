@@ -105,10 +105,28 @@ async fn a_description_becomes_a_workout(db: PgPool) {
     let w = w.ok();
     assert_eq!(w["name"], "Intervalado 6×800 m");
     assert_eq!(w["source"], "rules");
+    // Same estimate as the mock (seed.mjs `estimate`) for the same structure.
     assert_eq!(w["est_duration_s"], 3420);
-    assert_eq!(w["est_distance_m"], 11100);
+    assert_eq!(w["est_distance_m"], 11500);
     assert_eq!(w["structure"]["blocks"][1]["count"], 6);
     assert!(w["notes"].is_null());
+    assert_eq!(w["warnings"], json!([]));
+    assert_eq!(w["tags"], json!([]));
+
+    // What wasn't understood comes back as warnings; #hashtags as tags.
+    let partly = app
+        .post(
+            &path,
+            Some(&owner),
+            json!({ "text": "10' aquec + 6x1km @4:30 c/ 2' trote + blabla #pista", "sport": "run" }),
+        )
+        .await;
+    let partly = partly.ok();
+    assert_eq!(partly["name"], "Intervalado 6×1 km");
+    assert_eq!(partly["warnings"], json!(["blabla"]));
+    assert_eq!(partly["tags"], json!(["pista"]));
+    assert_eq!(partly["est_duration_s"], 2940);
+    assert_eq!(partly["est_distance_m"], 10000);
 
     let gym = app
         .post(
@@ -121,6 +139,9 @@ async fn a_description_becomes_a_workout(db: PgPool) {
     assert!(gym.body["est_distance_m"].is_null());
 
     app.post(&path, Some(&owner), json!({ "text": "oi" }))
+        .await
+        .problem(422, "validation.failed");
+    app.post(&path, Some(&owner), json!({ "text": "6x1km ".repeat(400) }))
         .await
         .problem(422, "validation.failed");
     let lost = app
@@ -137,8 +158,8 @@ async fn a_description_becomes_a_workout(db: PgPool) {
         .await
         .problem(403, "auth.forbidden");
 
-    // 20 a minute per user, rejected requests included (4 used above).
-    for _ in 0..16 {
+    // 20 a minute per user, rejected requests included (6 used above).
+    for _ in 0..14 {
         app.post(&path, Some(&owner), json!({ "text": "40 min z3" }))
             .await
             .ok();

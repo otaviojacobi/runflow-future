@@ -1,0 +1,1488 @@
+{
+ "readme": [
+  "Golden examples for free-text workouts (R1): what a coach types and the workout it must become (structure v1, api/endpoints.md § Workout structure).",
+  "The web builder's quick text (frontend), the mock's POST /ai/workout and the backend's POST /ai/workout all parse with the same grammar (docs/workout-text.md) and must give exactly this: structure, name, warnings (pieces not understood, as typed) and tags (#hashtags). A missing warnings/tags means none.",
+  "Add an example: append {\"text\": \"…\", \"sport\": \"run|swim|bike|strength|mobility|other\"} (optionally \"comment\": why), run `node api/mock/workout-text-examples.mjs --fill` and review what it wrote. If it's wrong, correct the expected fields by hand: the check (npm run check:api, the frontend tests, the backend tests) then fails until the three parsers are fixed to match.",
+  "Show one parse without saving: node api/mock/workout-text-examples.mjs run \"6x1km @4:30 c/ 2' trote\"."
+ ],
+ "examples": [
+  {
+   "text": "10' aquec + 6x1km @4:30 c/ 2' trote + 10' desaq",
+   "sport": "run",
+   "name": "Intervalado 6×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":600},"target":{"type":"open"}},
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"pace","min_s":265,"max_s":275}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "15' Z2 + 3x(2km Z4 + 3' Z1) + 10' Z1",
+   "sport": "run",
+   "name": "Intervalado 3×2 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":900},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"repeat","count":3,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":2000},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":180},"target":{"type":"zone","metric":"pace","zone":1}}]},
+    {"kind":"step","intent":"active","duration":{"type":"time","s":600},"target":{"type":"zone","metric":"pace","zone":1}}
+   ]}
+  },
+  {
+   "text": "15' Z2 + 3x(2km Z4 + 3' Z1) + 1,5km leve + 8x400m @1:35-1:40 c/ 90\" parado",
+   "sport": "run",
+   "comment": "A clock under 2:30 can't be a pace per km: on a run distance it is the time for that distance (1:35-1:40 per 400 m = 3:58-4:10/km).",
+   "name": "Intervalado 3×2 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":900},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"repeat","count":3,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":2000},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":180},"target":{"type":"zone","metric":"pace","zone":1}}]},
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":1500},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":238,"max_s":250}},{"kind":"step","intent":"rest","duration":{"type":"time","s":90},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "1h20 Z2 + 6 tiros de 800m forte com 2' trote + blablabla",
+   "sport": "run",
+   "name": "Rodagem 1h20",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":4800},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":800},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]}
+   ]},
+   "warnings": ["blablabla"]
+  },
+  {
+   "text": "15' aquec + 6x1km @4:30 c/ 2' trote #Intervalado + 10' desaq #pista",
+   "sport": "run",
+   "name": "Intervalado 6×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":900},"target":{"type":"open"}},
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"pace","min_s":265,"max_s":275}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]},
+   "tags": ["intervalado","pista"]
+  },
+  {
+   "text": "10' aquec Z2 + 6x1km @4:30 c/ 2' trote + 10' desaq Z1",
+   "sport": "run",
+   "name": "Intervalado 6×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":600},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"pace","min_s":265,"max_s":275}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"zone","metric":"pace","zone":1}}
+   ]}
+  },
+  {
+   "text": "10' aquec + 8x400m @3:50 c/ 1' trote + 10' desaq #Tiros-Curtos ",
+   "sport": "run",
+   "name": "Intervalado 8×400 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":600},"target":{"type":"open"}},
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":225,"max_s":235}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]},
+   "tags": ["tiros-curtos"]
+  },
+  {
+   "text": "20' Z2 + 8x400m @1:35 c/ 90\" parado + 10' Z1",
+   "sport": "run",
+   "name": "Rodagem 20'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1200},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":233,"max_s":243}},{"kind":"step","intent":"rest","duration":{"type":"time","s":90},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"active","duration":{"type":"time","s":600},"target":{"type":"zone","metric":"pace","zone":1}}
+   ]}
+  },
+  {
+   "text": "40' leve",
+   "sport": "run",
+   "name": "Rodagem 40'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":2400},"target":{"type":"zone","metric":"pace","zone":2}}
+   ]}
+  },
+  {
+   "text": "40' Z1 #leve",
+   "sport": "run",
+   "name": "Regenerativo 40'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":2400},"target":{"type":"zone","metric":"pace","zone":1}}
+   ]},
+   "tags": ["leve"]
+  },
+  {
+   "text": "1h40 Z2 #longão",
+   "sport": "run",
+   "name": "Longão 1h40",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":6000},"target":{"type":"zone","metric":"pace","zone":2}}
+   ]},
+   "tags": ["longão"]
+  },
+  {
+   "text": "1h20 Z2 (longão, hidratação a cada 5 km)",
+   "sport": "run",
+   "name": "Longão 1h20",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":4800},"target":{"type":"zone","metric":"pace","zone":2},"note":"longão, hidratação a cada 5 km"}
+   ]}
+  },
+  {
+   "text": "8x400 pace 3:50 rec 1' trote",
+   "sport": "run",
+   "name": "Intervalado 8×400 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":225,"max_s":235}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "5x1000 @3:50 int 2'",
+   "sport": "run",
+   "name": "Intervalado 5×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":5,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"pace","min_s":225,"max_s":235}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "6x1km @ 4:30/km c/ 2' de trote",
+   "sport": "run",
+   "name": "Intervalado 6×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"pace","min_s":265,"max_s":275}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "6x1km @4:30 - 2' trote",
+   "sport": "run",
+   "name": "Intervalado 6×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"pace","min_s":265,"max_s":275}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "6x1km @4:20-4:30 c/ 2'",
+   "sport": "run",
+   "name": "Intervalado 6×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"pace","min_s":260,"max_s":270}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "8 x 1' Z5 com 1' Z1",
+   "sport": "run",
+   "name": "Intervalado 8×1'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":60},"target":{"type":"zone","metric":"pace","zone":5}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"zone","metric":"pace","zone":1}}]}
+   ]}
+  },
+  {
+   "text": "6x(1' forte + 1' leve)",
+   "sport": "run",
+   "name": "Intervalado 6×1'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":60},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"zone","metric":"pace","zone":2}}]}
+   ]}
+  },
+  {
+   "text": "4x(400 forte + 200 leve)",
+   "sport": "run",
+   "name": "Intervalado 4×400 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":4,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"distance","m":200},"target":{"type":"zone","metric":"pace","zone":2}}]}
+   ]}
+  },
+  {
+   "text": "10x400",
+   "sport": "run",
+   "name": "Intervalado 10×400 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "10x400 c/ 200",
+   "sport": "run",
+   "comment": "A bare number after c/: 100 or more is meters, less is seconds.",
+   "name": "Intervalado 10×400 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}},{"kind":"step","intent":"recovery","duration":{"type":"distance","m":200},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "10x400 c/ 60",
+   "sport": "run",
+   "name": "Intervalado 10×400 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "12x200m forte c/ 200m trote",
+   "sport": "run",
+   "name": "Intervalado 12×200 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":12,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":200},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"distance","m":200},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "6 x 800m (3:20) c/ 400m trote",
+   "sport": "run",
+   "name": "Intervalado 6×800 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":800},"target":{"type":"pace","min_s":195,"max_s":205}},{"kind":"step","intent":"recovery","duration":{"type":"distance","m":400},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "1 km leve + 4x(1 km forte + 500 m leve) + 1 km leve",
+   "sport": "run",
+   "name": "Intervalado 4×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"repeat","count":4,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"distance","m":500},"target":{"type":"zone","metric":"pace","zone":2}}]},
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"zone","metric":"pace","zone":2}}
+   ]}
+  },
+  {
+   "text": "3x(4x400 c/ 1' + 3' entre séries)",
+   "sport": "run",
+   "comment": "One level of repeats in the structure: the inner repeat is written out and the last rest becomes the rest between series.",
+   "name": "Intervalado 3×(4×400 m)",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":3,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":180},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "3x(2x(400 + 200))",
+   "sport": "run",
+   "name": "Intervalado 3×(2×400 m)",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":3,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}},{"kind":"step","intent":"recovery","duration":{"type":"distance","m":200},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}},{"kind":"step","intent":"recovery","duration":{"type":"distance","m":200},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "20' aquecimento + 5 x 3' Z4 com 2' trote + 10' desaquecimento",
+   "sport": "run",
+   "name": "Intervalado 5×3'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":1200},"target":{"type":"open"}},
+    {"kind":"repeat","count":5,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":180},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "Fartlek: 10x1' forte / 1' leve",
+   "sport": "run",
+   "name": "Fartlek 10×1'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":60},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"zone","metric":"pace","zone":2}}]}
+   ]}
+  },
+  {
+   "text": "10x 1 min forte 1 min leve",
+   "sport": "run",
+   "name": "Intervalado 10×1'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":60},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"zone","metric":"pace","zone":2}}]}
+   ]}
+  },
+  {
+   "text": "10x1 min forte, 1 min leve",
+   "sport": "run",
+   "name": "Intervalado 10×1'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":60},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"zone","metric":"pace","zone":2}}]}
+   ]}
+  },
+  {
+   "text": "Treino de pista: 15' aquec, 12 x 400 m (1:28) rec 200 m trote, 10' desaq",
+   "sport": "run",
+   "name": "Intervalado 12×400 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":900},"target":{"type":"open"}},
+    {"kind":"repeat","count":12,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":215,"max_s":225}},{"kind":"step","intent":"recovery","duration":{"type":"distance","m":200},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "5km Z1 + 5km Z2",
+   "sport": "run",
+   "name": "Progressivo 10 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":5000},"target":{"type":"zone","metric":"pace","zone":1}},
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":5000},"target":{"type":"zone","metric":"pace","zone":2}}
+   ]}
+  },
+  {
+   "text": "1h Z2 FC",
+   "sport": "run",
+   "name": "Rodagem 1h",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":3600},"target":{"type":"zone","metric":"hr","zone":2}}
+   ]}
+  },
+  {
+   "text": "50' Z2 de FC",
+   "sport": "run",
+   "name": "Rodagem 50'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":3000},"target":{"type":"zone","metric":"hr","zone":2}}
+   ]}
+  },
+  {
+   "text": "6x1km Z4 (FC)",
+   "sport": "run",
+   "name": "Intervalado 6×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"zone","metric":"hr","zone":4}}]}
+   ]}
+  },
+  {
+   "text": "30' FC 140-150",
+   "sport": "run",
+   "name": "Corrida moderada 30'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1800},"target":{"type":"hr","min":140,"max":150}}
+   ]}
+  },
+  {
+   "text": "1:23:45 Z2",
+   "sport": "run",
+   "name": "Rodagem 1h23",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":5025},"target":{"type":"zone","metric":"pace","zone":2}}
+   ]}
+  },
+  {
+   "text": "6 X 1 KM",
+   "sport": "run",
+   "name": "Intervalado 6×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "10x400 / 200 trote",
+   "sport": "run",
+   "name": "Intervalado 10×400 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}},{"kind":"step","intent":"recovery","duration":{"type":"distance","m":200},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "8x1km Z4 rec 2' / 10' desaq",
+   "sport": "run",
+   "name": "Intervalado 8×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "3km aquecimento / 6x800 (3:15) rec 1'30 / 2km desaquecimento",
+   "sport": "run",
+   "name": "Intervalado 6×800 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"distance","m":3000},"target":{"type":"open"}},
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":800},"target":{"type":"pace","min_s":190,"max_s":200}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":90},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"distance","m":2000},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "20' leve - 10x(30\" forte - 30\" leve) - 10' leve",
+   "sport": "run",
+   "name": "Rodagem 20'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1200},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":30},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":30},"target":{"type":"zone","metric":"pace","zone":2}}]},
+    {"kind":"step","intent":"active","duration":{"type":"time","s":600},"target":{"type":"zone","metric":"pace","zone":2}}
+   ]}
+  },
+  {
+   "text": "Aquecimento: 2km leve\nPrincipal: 5x1km @4:10 int 2' trote\nDesaquecimento: 1km",
+   "sport": "run",
+   "name": "Intervalado 5×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"distance","m":2000},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"repeat","count":5,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"pace","min_s":245,"max_s":255}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"distance","m":1000},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "1) 15' aquecimento\n2) 6x1km @4:30 c/ 2' trote\n3) 10' desaquecimento",
+   "sport": "run",
+   "name": "Intervalado 6×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":900},"target":{"type":"open"}},
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"pace","min_s":265,"max_s":275}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "6x1km Z4-Z5",
+   "sport": "run",
+   "comment": "A zone range on a step: the first zone, the range in the note.",
+   "name": "Intervalado 6×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"zone","metric":"pace","zone":4},"note":"Z4–Z5"}]}
+   ]}
+  },
+  {
+   "text": "5x2000m em 8:00 c/ 3'",
+   "sport": "run",
+   "name": "Intervalado 5×2 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":5,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":2000},"target":{"type":"pace","min_s":235,"max_s":245}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":180},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "15 min de aquecimento, 6 tiros de 800 m a 4:10 com 2 min de trote e 10 min de desaquecimento.",
+   "sport": "run",
+   "name": "Intervalado 6×800 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":900},"target":{"type":"open"}},
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":800},"target":{"type":"pace","min_s":245,"max_s":255}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "15 min de aquecimento, 5 tiros de 1 km a 4:30 com 2 min de trote e 10 min de desaquecimento",
+   "sport": "run",
+   "name": "Intervalado 5×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":900},"target":{"type":"open"}},
+    {"kind":"repeat","count":5,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"pace","min_s":265,"max_s":275}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "rodagem leve de 8 km",
+   "sport": "run",
+   "name": "Rodagem 8 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":8000},"target":{"type":"zone","metric":"pace","zone":2}}
+   ]}
+  },
+  {
+   "text": "40 min z3",
+   "sport": "run",
+   "name": "Corrida moderada 40'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":2400},"target":{"type":"zone","metric":"pace","zone":3}}
+   ]}
+  },
+  {
+   "text": "progressivo de 5:30 a 4:50",
+   "sport": "run",
+   "comment": "No distance or time: one open step with the pace range.",
+   "name": "Progressivo",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"open"},"target":{"type":"pace","min_s":290,"max_s":330}}
+   ]}
+  },
+  {
+   "text": "progressivo de 10 km de 5:30 a 4:50",
+   "sport": "run",
+   "name": "Progressivo 10 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":4000},"target":{"type":"pace","min_s":325,"max_s":335}},
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":3000},"target":{"type":"pace","min_s":305,"max_s":315}},
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":3000},"target":{"type":"pace","min_s":285,"max_s":295}}
+   ]}
+  },
+  {
+   "text": "Progressivo 12 km Z2 a Z4",
+   "sport": "run",
+   "name": "Progressivo 12 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":4000},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":4000},"target":{"type":"zone","metric":"pace","zone":3}},
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":4000},"target":{"type":"zone","metric":"pace","zone":4}}
+   ]}
+  },
+  {
+   "text": "seis tiros de 1 km a 4:00 com 2 minutos de descanso",
+   "sport": "run",
+   "name": "Intervalado 6×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"pace","min_s":235,"max_s":245}},{"kind":"step","intent":"rest","duration":{"type":"time","s":120},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "dez tiros de 400",
+   "sport": "run",
+   "name": "Intervalado 10×400 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "aquecimento de 10 min, 5x 1km forte, recuperação de 90s, desaquecimento 5 min",
+   "sport": "run",
+   "name": "Intervalado 5×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":600},"target":{"type":"open"}},
+    {"kind":"repeat","count":5,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":90},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":300},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "1 hora regenerativo",
+   "sport": "run",
+   "name": "Regenerativo 1h",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":3600},"target":{"type":"zone","metric":"pace","zone":1}}
+   ]}
+  },
+  {
+   "text": "uma hora e meia de rodagem leve",
+   "sport": "run",
+   "name": "Longão 1h30",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":5400},"target":{"type":"zone","metric":"pace","zone":2}}
+   ]}
+  },
+  {
+   "text": "meia hora leve",
+   "sport": "run",
+   "name": "Rodagem 30'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1800},"target":{"type":"zone","metric":"pace","zone":2}}
+   ]}
+  },
+  {
+   "text": "vinte minutos leves",
+   "sport": "run",
+   "name": "Rodagem 20'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1200},"target":{"type":"zone","metric":"pace","zone":2}}
+   ]}
+  },
+  {
+   "text": "3x10 min no limiar com 2' de trote",
+   "sport": "run",
+   "name": "Intervalado 3×10'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":3,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":600},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "longão de 18 km",
+   "sport": "run",
+   "name": "Longão 18 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":18000},"target":{"type":"zone","metric":"pace","zone":2}}
+   ]}
+  },
+  {
+   "text": "5 km a 5:30",
+   "sport": "run",
+   "name": "Corrida moderada 5 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":5000},"target":{"type":"pace","min_s":325,"max_s":335}}
+   ]}
+  },
+  {
+   "text": "5 km em 25 min",
+   "sport": "run",
+   "comment": "A total time for a distance is a pace.",
+   "name": "Corrida moderada 5 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":5000},"target":{"type":"pace","min_s":295,"max_s":305}}
+   ]}
+  },
+  {
+   "text": "10 x 400m em 1:30 com 1 min parado",
+   "sport": "run",
+   "name": "Intervalado 10×400 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":220,"max_s":230}},{"kind":"step","intent":"rest","duration":{"type":"time","s":60},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "aquecimento 2 km + 4 x 1600 m em 6:40 + desaquecimento 2 km",
+   "sport": "run",
+   "name": "Intervalado 4×1,6 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"distance","m":2000},"target":{"type":"open"}},
+    {"kind":"repeat","count":4,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1600},"target":{"type":"pace","min_s":245,"max_s":255}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"distance","m":2000},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "4x1,5km forte",
+   "sport": "run",
+   "name": "Intervalado 4×1,5 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":4,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1500},"target":{"type":"zone","metric":"pace","zone":4}}]}
+   ]}
+  },
+  {
+   "text": "20 min forte",
+   "sport": "run",
+   "name": "Ritmo forte 20'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1200},"target":{"type":"zone","metric":"pace","zone":4}}
+   ]}
+  },
+  {
+   "text": "Tempo run 30'",
+   "sport": "run",
+   "name": "Ritmo forte 30'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1800},"target":{"type":"zone","metric":"pace","zone":4}}
+   ]}
+  },
+  {
+   "text": "Regenerativo 5 km bem leve",
+   "sport": "run",
+   "name": "Regenerativo 5 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":5000},"target":{"type":"zone","metric":"pace","zone":1}}
+   ]}
+  },
+  {
+   "text": "corrida contínua 50 minutos z2",
+   "sport": "run",
+   "name": "Rodagem 50'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":3000},"target":{"type":"zone","metric":"pace","zone":2}}
+   ]}
+  },
+  {
+   "text": "45 min ritmo de 5:10/km",
+   "sport": "run",
+   "name": "Corrida moderada 45'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":2700},"target":{"type":"pace","min_s":305,"max_s":315}}
+   ]}
+  },
+  {
+   "text": "8 km entre 5:00 e 5:10",
+   "sport": "run",
+   "name": "Corrida moderada 8 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":8000},"target":{"type":"pace","min_s":300,"max_s":310}}
+   ]}
+  },
+  {
+   "text": "4x2km ritmo de 4:20/km, 3' de trote entre os tiros",
+   "sport": "run",
+   "name": "Intervalado 4×2 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":4,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":2000},"target":{"type":"pace","min_s":255,"max_s":265}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":180},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "3 x 3 km em ritmo de meia maratona com 3 minutos de trote",
+   "sport": "run",
+   "name": "Intervalado 3×3 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":3,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":3000},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":180},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "8 tiros de 400 metros em ritmo forte com 1 minuto e meio de recuperação",
+   "sport": "run",
+   "name": "Intervalado 8×400 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":90},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "5 x 1 km a 4:15 com 1 min de pausa",
+   "sport": "run",
+   "name": "Intervalado 5×1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":5,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"pace","min_s":250,"max_s":260}},{"kind":"step","intent":"rest","duration":{"type":"time","s":60},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "2 séries de 5x400m @1:30 c/ 1' trote, 3' entre séries",
+   "sport": "run",
+   "name": "Intervalado 2×(5×400 m)",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":2,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":220,"max_s":230}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":220,"max_s":230}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":220,"max_s":230}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":220,"max_s":230}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":220,"max_s":230}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":180},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "2 x (5 x 400 m @ 1:30 c/ 1' de descanso) com 4' entre séries",
+   "sport": "run",
+   "name": "Intervalado 2×(5×400 m)",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":2,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":220,"max_s":230}},{"kind":"step","intent":"rest","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":220,"max_s":230}},{"kind":"step","intent":"rest","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":220,"max_s":230}},{"kind":"step","intent":"rest","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":220,"max_s":230}},{"kind":"step","intent":"rest","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":220,"max_s":230}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":240},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "15 min aquecendo, depois 3 x 2 km no ritmo de 4:40 com 400 m de trote, e 10 min soltando",
+   "sport": "run",
+   "name": "Intervalado 3×2 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":900},"target":{"type":"open"}},
+    {"kind":"repeat","count":3,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":2000},"target":{"type":"pace","min_s":275,"max_s":285}},{"kind":"step","intent":"recovery","duration":{"type":"distance","m":400},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "2 km de aquecimento, 10 x 400 m a 1:35 com 200 m trotando e 2 km de volta à calma",
+   "sport": "run",
+   "name": "Intervalado 10×400 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"distance","m":2000},"target":{"type":"open"}},
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"pace","min_s":233,"max_s":243}},{"kind":"step","intent":"recovery","duration":{"type":"distance","m":200},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"distance","m":2000},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "10x200 m em subida forte c/ volta trotando",
+   "sport": "run",
+   "name": "Intervalado 10×200 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":200},"target":{"type":"zone","metric":"pace","zone":4},"note":"subida"},{"kind":"step","intent":"recovery","duration":{"type":"open"},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "rodagem de 10 km z2 + 6 x 100 m de educativos",
+   "sport": "run",
+   "name": "Rodagem 10 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":10000},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":100},"target":{"type":"open"},"note":"educativos"}]}
+   ]}
+  },
+  {
+   "text": "20 min Z2, 20 min Z3, 10 min Z4",
+   "sport": "run",
+   "name": "Progressivo 50'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1200},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1200},"target":{"type":"zone","metric":"pace","zone":3}},
+    {"kind":"step","intent":"active","duration":{"type":"time","s":600},"target":{"type":"zone","metric":"pace","zone":4}}
+   ]}
+  },
+  {
+   "text": "10 km PSE 6",
+   "sport": "run",
+   "name": "Corrida moderada 10 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":10000},"target":{"type":"rpe","value":6}}
+   ]}
+  },
+  {
+   "text": "10km PSE 6-7",
+   "sport": "run",
+   "name": "Corrida moderada 10 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":10000},"target":{"type":"rpe","value":6},"note":"PSE 6–7"}
+   ]}
+  },
+  {
+   "text": "1h Z2 com FC até 150",
+   "sport": "run",
+   "name": "Rodagem 1h",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":3600},"target":{"type":"zone","metric":"pace","zone":2},"note":"FC até 150"}
+   ]}
+  },
+  {
+   "text": "45' FC 150 bpm",
+   "sport": "run",
+   "name": "Corrida moderada 45'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":2700},"target":{"type":"hr","min":145,"max":155}}
+   ]}
+  },
+  {
+   "text": "Corrida leve 30 a 40 minutos",
+   "sport": "run",
+   "comment": "A range of durations: the lower one, the range in the note.",
+   "name": "Rodagem 30'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1800},"target":{"type":"zone","metric":"pace","zone":2},"note":"30 a 40 minutos"}
+   ]}
+  },
+  {
+   "text": "corrida de 6 a 8 km leve",
+   "sport": "run",
+   "name": "Rodagem 6 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":6000},"target":{"type":"zone","metric":"pace","zone":2},"note":"6 a 8 km"}
+   ]}
+  },
+  {
+   "text": "3 séries de 4 tiros de 400 m com 1 minuto entre tiros e 3 minutos entre séries",
+   "sport": "run",
+   "name": "Intervalado 3×(4×400 m)",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":3,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":60},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":400},"target":{"type":"open"}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":180},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "4 x 5 min forte com 3 min de caminhada",
+   "sport": "run",
+   "name": "Intervalado 4×5'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":4,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":300},"target":{"type":"zone","metric":"pace","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":180},"target":{"type":"open"},"note":"caminhada"}]}
+   ]}
+  },
+  {
+   "text": "um tiro de 5 km forte",
+   "sport": "run",
+   "name": "Ritmo forte 5 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":5000},"target":{"type":"zone","metric":"pace","zone":4}}
+   ]}
+  },
+  {
+   "text": "5 km a 5'30\"/km",
+   "sport": "run",
+   "name": "Corrida moderada 5 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":5000},"target":{"type":"pace","min_s":325,"max_s":335}}
+   ]}
+  },
+  {
+   "text": "8km pace 5:30-5:45",
+   "sport": "run",
+   "name": "Corrida moderada 8 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":8000},"target":{"type":"pace","min_s":330,"max_s":345}}
+   ]}
+  },
+  {
+   "text": "30' no pace de 5:30",
+   "sport": "run",
+   "name": "Corrida moderada 30'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1800},"target":{"type":"pace","min_s":325,"max_s":335}}
+   ]}
+  },
+  {
+   "text": "40 min com FC entre 145 e 155 bpm",
+   "sport": "run",
+   "name": "Corrida moderada 40'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":2400},"target":{"type":"hr","min":145,"max":155}}
+   ]}
+  },
+  {
+   "text": "30 min na esteira a 9 km/h",
+   "sport": "run",
+   "name": "Corrida moderada 30'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1800},"target":{"type":"open"},"note":"9 km/h; esteira"}
+   ]}
+  },
+  {
+   "text": "caminhada 30 min",
+   "sport": "run",
+   "name": "Caminhada 30'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"recovery","duration":{"type":"time","s":1800},"target":{"type":"open"},"note":"caminhada"}
+   ]}
+  },
+  {
+   "text": "10' aquec + 20' Z3 + 10' desaq",
+   "sport": "run",
+   "name": "Corrida moderada 20'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":600},"target":{"type":"open"}},
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1200},"target":{"type":"zone","metric":"pace","zone":3}},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "Rodagem 12 km Z2 #base #longo",
+   "sport": "run",
+   "name": "Rodagem 12 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":12000},"target":{"type":"zone","metric":"pace","zone":2}}
+   ]},
+   "tags": ["base","longo"]
+  },
+  {
+   "text": "40 minutos de corrida leve com 6 acelerações de 20 segundos no final",
+   "sport": "run",
+   "name": "Rodagem 40'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":2400},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":20},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "40' leve, 6 acelerações de 20\"",
+   "sport": "run",
+   "name": "Rodagem 40'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":2400},"target":{"type":"zone","metric":"pace","zone":2}},
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":20},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "longão 25 km ritmo de maratona nos últimos 5 km",
+   "sport": "run",
+   "comment": "Not understood yet: \"nos últimos 5 km\". Shown as a warning; the whole run gets the target.",
+   "name": "Longão 25 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":25000},"target":{"type":"zone","metric":"pace","zone":3}}
+   ]},
+   "warnings": ["nos últimos 5 km"]
+  },
+  {
+   "text": "treino legal",
+   "sport": "run",
+   "comment": "Nothing understood: no blocks, one warning (the assistant answers 422 ai.not_understood).",
+   "name": "Treino",
+   "structure": {"v":1,"blocks":[]},
+   "warnings": ["treino legal"]
+  },
+  {
+   "text": "",
+   "sport": "run",
+   "name": "Treino",
+   "structure": {"v":1,"blocks":[]}
+  },
+  {
+   "text": "6x",
+   "sport": "run",
+   "comment": "A repeat without a body is not understood.",
+   "name": "Treino",
+   "structure": {"v":1,"blocks":[]},
+   "warnings": ["6x"]
+  },
+  {
+   "text": "1000000x1km",
+   "sport": "run",
+   "comment": "Counts above 200 aren't repeats; the number nobody took is a warning.",
+   "name": "Corrida moderada 1 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"open"}}
+   ]},
+   "warnings": ["1000000x"]
+  },
+  {
+   "text": "400 livre aquec + 8x50 educativo + 10x100 crawl @1:45 palmar + 200 costas",
+   "sport": "swim",
+   "name": "Séries 10×100 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"distance","m":400},"target":{"type":"open"},"stroke":"free"},
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":50},"target":{"type":"open"},"stroke":"drill"}]},
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":100},"target":{"type":"open"},"stroke":"free","equipment":["paddles"],"send_off_s":105}]},
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":200},"target":{"type":"open"},"stroke":"back"}
+   ]}
+  },
+  {
+   "text": "400 livre aquec + 8x50 educativo + 10x100 crawl @1:45 palmar + 200 costas desaq",
+   "sport": "swim",
+   "name": "Séries 10×100 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"distance","m":400},"target":{"type":"open"},"stroke":"free"},
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":50},"target":{"type":"open"},"stroke":"drill"}]},
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":100},"target":{"type":"open"},"stroke":"free","equipment":["paddles"],"send_off_s":105}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"distance","m":200},"target":{"type":"open"},"stroke":"back"}
+   ]}
+  },
+  {
+   "text": "300 aquec + 4x200 crawl @3:30 pull + 200 escolha",
+   "sport": "swim",
+   "name": "Séries 4×200 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"distance","m":300},"target":{"type":"open"}},
+    {"kind":"repeat","count":4,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":200},"target":{"type":"open"},"stroke":"free","equipment":["pullbuoy"],"send_off_s":210}]},
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":200},"target":{"type":"open"},"stroke":"choice"}
+   ]}
+  },
+  {
+   "text": "10x100 metros com 20 s de descanso",
+   "sport": "swim",
+   "name": "Séries 10×100 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":100},"target":{"type":"open"}},{"kind":"step","intent":"rest","duration":{"type":"time","s":20},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "8x100m com 20s de descanso",
+   "sport": "swim",
+   "name": "Séries 8×100 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":100},"target":{"type":"open"}},{"kind":"step","intent":"rest","duration":{"type":"time","s":20},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "Nado contínuo 1500 metros",
+   "sport": "swim",
+   "name": "Nado contínuo 1,5 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":1500},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "1500 m contínuo",
+   "sport": "swim",
+   "name": "Nado contínuo 1,5 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":1500},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "30 min contínuo",
+   "sport": "swim",
+   "name": "Nado contínuo 30'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1800},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "200 costas + 200 peito",
+   "sport": "swim",
+   "name": "Natação 400 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":200},"target":{"type":"open"},"stroke":"back"},
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":200},"target":{"type":"open"},"stroke":"breast"}
+   ]}
+  },
+  {
+   "text": "8x50 pernada com prancha saída 1:10",
+   "sport": "swim",
+   "name": "Séries 8×50 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":50},"target":{"type":"open"},"stroke":"kick","equipment":["kickboard"],"send_off_s":70}]}
+   ]}
+  },
+  {
+   "text": "8x50 pernada de nadadeira",
+   "sport": "swim",
+   "name": "Séries 8×50 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":50},"target":{"type":"open"},"stroke":"kick","equipment":["fins"]}]}
+   ]}
+  },
+  {
+   "text": "4x100 medley a cada 2'",
+   "sport": "swim",
+   "name": "Séries 4×100 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":4,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":100},"target":{"type":"open"},"stroke":"im","send_off_s":120}]}
+   ]}
+  },
+  {
+   "text": "6x100 crawl @1:50 com palmar e pull buoy",
+   "sport": "swim",
+   "name": "Séries 6×100 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":100},"target":{"type":"open"},"stroke":"free","equipment":["paddles","pullbuoy"],"send_off_s":110}]}
+   ]}
+  },
+  {
+   "text": "10x50 borboleta 15\" desc",
+   "sport": "swim",
+   "name": "Séries 10×50 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":50},"target":{"type":"open"},"stroke":"fly"},{"kind":"step","intent":"rest","duration":{"type":"time","s":15},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "12x100 pace 1:40/100m desc 15\"",
+   "sport": "swim",
+   "name": "Séries 12×100 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":12,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":100},"target":{"type":"pace","min_s":95,"max_s":105}},{"kind":"step","intent":"rest","duration":{"type":"time","s":15},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "10x100 Z3 saindo a cada 1:45",
+   "sport": "swim",
+   "name": "Séries 10×100 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":100},"target":{"type":"zone","metric":"pace","zone":3},"send_off_s":105}]}
+   ]}
+  },
+  {
+   "text": "4x(100 livre + 50 costas) saída 3:00",
+   "sport": "swim",
+   "name": "Séries 4×100 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":4,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":100},"target":{"type":"open"},"stroke":"free","send_off_s":180},{"kind":"step","intent":"active","duration":{"type":"distance","m":50},"target":{"type":"open"},"stroke":"back"}]}
+   ]}
+  },
+  {
+   "text": "3x(4x50 crawl forte c/ 10\" + 1' entre séries)",
+   "sport": "swim",
+   "name": "Séries 3×(4×50 m)",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":3,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":50},"target":{"type":"zone","metric":"pace","zone":4},"stroke":"free"},{"kind":"step","intent":"rest","duration":{"type":"time","s":10},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":50},"target":{"type":"zone","metric":"pace","zone":4},"stroke":"free"},{"kind":"step","intent":"rest","duration":{"type":"time","s":10},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":50},"target":{"type":"zone","metric":"pace","zone":4},"stroke":"free"},{"kind":"step","intent":"rest","duration":{"type":"time","s":10},"target":{"type":"open"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":50},"target":{"type":"zone","metric":"pace","zone":4},"stroke":"free"},{"kind":"step","intent":"rest","duration":{"type":"time","s":60},"target":{"type":"open"}}]}
+   ]}
+  },
+  {
+   "text": "800 pull palmar",
+   "sport": "swim",
+   "name": "Nado contínuo 800 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":800},"target":{"type":"open"},"equipment":["paddles","pullbuoy"]}
+   ]}
+  },
+  {
+   "text": "2000 m livre PSE 5",
+   "sport": "swim",
+   "name": "Nado contínuo 2 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":2000},"target":{"type":"rpe","value":5},"stroke":"free"}
+   ]}
+  },
+  {
+   "text": "400 m aquecimento livre, 8x25 sprint com 30 s de descanso, 200 solto",
+   "sport": "swim",
+   "name": "Séries 8×25 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"distance","m":400},"target":{"type":"open"},"stroke":"free"},
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":25},"target":{"type":"zone","metric":"pace","zone":5}},{"kind":"step","intent":"rest","duration":{"type":"time","s":30},"target":{"type":"open"}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"distance","m":200},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "aquecimento 300 m, 6 x 100 m crawl forte com 20 segundos de pausa, 4 x 50 m educativo, 200 m solto",
+   "sport": "swim",
+   "name": "Séries 6×100 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"distance","m":300},"target":{"type":"open"}},
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":100},"target":{"type":"zone","metric":"pace","zone":4},"stroke":"free"},{"kind":"step","intent":"rest","duration":{"type":"time","s":20},"target":{"type":"open"}}]},
+    {"kind":"repeat","count":4,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":50},"target":{"type":"open"},"stroke":"drill"}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"distance","m":200},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "400 m de aquecimento, 10x100 crawl saída 1:45 com palmar e 200 m solto.",
+   "sport": "swim",
+   "name": "Séries 10×100 m",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"distance","m":400},"target":{"type":"open"}},
+    {"kind":"repeat","count":10,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":100},"target":{"type":"open"},"stroke":"free","equipment":["paddles"],"send_off_s":105}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"distance","m":200},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "15' Z2 + 4x8' Z4 c/ 4' Z1 + 10' Z1",
+   "sport": "bike",
+   "name": "Intervalado 4×8'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":900},"target":{"type":"zone","metric":"hr","zone":2}},
+    {"kind":"repeat","count":4,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":480},"target":{"type":"zone","metric":"hr","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":240},"target":{"type":"zone","metric":"hr","zone":1}}]},
+    {"kind":"step","intent":"active","duration":{"type":"time","s":600},"target":{"type":"zone","metric":"hr","zone":1}}
+   ]}
+  },
+  {
+   "text": "2h Z2",
+   "sport": "bike",
+   "name": "Pedal leve 2h",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":7200},"target":{"type":"zone","metric":"hr","zone":2}}
+   ]}
+  },
+  {
+   "text": "1h30 de pedal leve",
+   "sport": "bike",
+   "name": "Pedal leve 1h30",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":5400},"target":{"type":"zone","metric":"hr","zone":2}}
+   ]}
+  },
+  {
+   "text": "pedal de 60 km leve",
+   "sport": "bike",
+   "name": "Pedal leve 60 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":60000},"target":{"type":"zone","metric":"hr","zone":2}}
+   ]}
+  },
+  {
+   "text": "15' aquec + 3x12' Z4 c/ 6' Z1 + 10' desaq",
+   "sport": "bike",
+   "name": "Intervalado 3×12'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":900},"target":{"type":"open"}},
+    {"kind":"repeat","count":3,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":720},"target":{"type":"zone","metric":"hr","zone":4}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":360},"target":{"type":"zone","metric":"hr","zone":1}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "3x10' a 95% FTP c/ 5' leve",
+   "sport": "bike",
+   "name": "Intervalado 3×10'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":3,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":600},"target":{"type":"zone","metric":"power","zone":4},"note":"95% do FTP"},{"kind":"step","intent":"recovery","duration":{"type":"time","s":300},"target":{"type":"zone","metric":"hr","zone":2}}]}
+   ]}
+  },
+  {
+   "text": "20 min 90-95% do FTP",
+   "sport": "bike",
+   "name": "Pedal forte 20'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1200},"target":{"type":"zone","metric":"power","zone":4},"note":"90–95% do FTP"}
+   ]}
+  },
+  {
+   "text": "15 min leve, 4x8 min a 95% do FTP com 4 min leve e 10 min de desaquecimento.",
+   "sport": "bike",
+   "name": "Intervalado 4×8'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":900},"target":{"type":"zone","metric":"hr","zone":2}},
+    {"kind":"repeat","count":4,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":480},"target":{"type":"zone","metric":"power","zone":4},"note":"95% do FTP"},{"kind":"step","intent":"recovery","duration":{"type":"time","s":240},"target":{"type":"zone","metric":"hr","zone":2}}]},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "5x5 min 300W com 3 min 150W",
+   "sport": "bike",
+   "name": "Intervalado 5×5'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":5,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":300},"target":{"type":"power","min":295,"max":305}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":180},"target":{"type":"power","min":145,"max":155}}]}
+   ]}
+  },
+  {
+   "text": "1h a 200 watts",
+   "sport": "bike",
+   "name": "Pedal moderado 1h",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":3600},"target":{"type":"power","min":195,"max":205}}
+   ]}
+  },
+  {
+   "text": "45' Z2 de potência",
+   "sport": "bike",
+   "name": "Pedal leve 45'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":2700},"target":{"type":"zone","metric":"power","zone":2}}
+   ]}
+  },
+  {
+   "text": "40 km Z2 cadência 90 rpm",
+   "sport": "bike",
+   "name": "Pedal leve 40 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":40000},"target":{"type":"zone","metric":"hr","zone":2},"note":"90 rpm"}
+   ]}
+  },
+  {
+   "text": "8x30\" sprint / 4'30\" leve",
+   "sport": "bike",
+   "name": "Intervalado 8×30\"",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":8,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":30},"target":{"type":"zone","metric":"hr","zone":5}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":270},"target":{"type":"zone","metric":"hr","zone":2}}]}
+   ]}
+  },
+  {
+   "text": "2h30 Z2 com 3x10' Z3",
+   "sport": "bike",
+   "name": "Pedal leve 2h30",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":9000},"target":{"type":"zone","metric":"hr","zone":2}},
+    {"kind":"repeat","count":3,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":600},"target":{"type":"zone","metric":"hr","zone":3}}]}
+   ]}
+  },
+  {
+   "text": "1h a 1h30 Z2",
+   "sport": "bike",
+   "name": "Pedal leve 1h",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":3600},"target":{"type":"zone","metric":"hr","zone":2},"note":"1h a 1h30"}
+   ]}
+  },
+  {
+   "text": "agachamento 4x8 70% desc 90\"\nSupino 4x10 20kg desc 1'\nPrancha 3x45s pc",
+   "sport": "strength",
+   "name": "Força: Agachamento + Supino",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Agachamento","sets":4,"reps":"8","load":{"type":"pct_1rm","value":70},"rest_s":90},
+    {"kind":"exercise","name":"Supino","sets":4,"reps":"10","load":{"type":"kg","value":20},"rest_s":60},
+    {"kind":"exercise","name":"Prancha","sets":3,"reps":"45 s","load":{"type":"bodyweight"}}
+   ]}
+  },
+  {
+   "text": "Agachamento 4x8 70% desc 90\"\nSupino 4x10 20kg desc 60\"\nPrancha 3x45s pc desc 30\"",
+   "sport": "strength",
+   "name": "Força: Agachamento + Supino",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Agachamento","sets":4,"reps":"8","load":{"type":"pct_1rm","value":70},"rest_s":90},
+    {"kind":"exercise","name":"Supino","sets":4,"reps":"10","load":{"type":"kg","value":20},"rest_s":60},
+    {"kind":"exercise","name":"Prancha","sets":3,"reps":"45 s","load":{"type":"bodyweight"},"rest_s":30}
+   ]}
+  },
+  {
+   "text": "agachamento 4x10 com 40 kg, remada 3x12, prancha 3x30.",
+   "sport": "strength",
+   "name": "Força: Agachamento + Remada",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Agachamento","sets":4,"reps":"10","load":{"type":"kg","value":40}},
+    {"kind":"exercise","name":"Remada","sets":3,"reps":"12"},
+    {"kind":"exercise","name":"Prancha","sets":3,"reps":"30"}
+   ]}
+  },
+  {
+   "text": "agachamento 4x10 com 40 kg, remada curvada 3x12 e prancha 3x30",
+   "sport": "strength",
+   "name": "Força: Agachamento + Remada curvada",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Agachamento","sets":4,"reps":"10","load":{"type":"kg","value":40}},
+    {"kind":"exercise","name":"Remada curvada","sets":3,"reps":"12"},
+    {"kind":"exercise","name":"Prancha","sets":3,"reps":"30"}
+   ]}
+  },
+  {
+   "text": "supino 4x8-10 a 30kg e depois remada curvada 3x12",
+   "sport": "strength",
+   "name": "Força: Supino + Remada curvada",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Supino","sets":4,"reps":"8-10","load":{"type":"kg","value":30}},
+    {"kind":"exercise","name":"Remada curvada","sets":3,"reps":"12"}
+   ]}
+  },
+  {
+   "text": "4 séries de 10 agachamentos com 20 kg, descanso de 1 minuto",
+   "sport": "strength",
+   "name": "Força: Agachamentos",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Agachamentos","sets":4,"reps":"10","load":{"type":"kg","value":20},"rest_s":60}
+   ]}
+  },
+  {
+   "text": "agachamento búlgaro 3 séries de 8 repetições com halteres de 10 kg",
+   "sport": "strength",
+   "name": "Força: Agachamento búlgaro",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Agachamento búlgaro","sets":3,"reps":"8","load":{"type":"kg","value":10}}
+   ]}
+  },
+  {
+   "text": "Levantamento terra 5x5 80% 1RM desc 2'",
+   "sport": "strength",
+   "name": "Força: Levantamento terra",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Levantamento terra","sets":5,"reps":"5","load":{"type":"pct_1rm","value":80},"rest_s":120}
+   ]}
+  },
+  {
+   "text": "Supino 4x6 PSE 8 desc 2 min",
+   "sport": "strength",
+   "name": "Força: Supino",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Supino","sets":4,"reps":"6","load":{"type":"rpe","value":8},"rest_s":120}
+   ]}
+  },
+  {
+   "text": "Remada unilateral 3x10-12 14kg tempo 3-1-1 desc 60\"",
+   "sport": "strength",
+   "name": "Força: Remada unilateral",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Remada unilateral","sets":3,"reps":"10-12","load":{"type":"kg","value":14},"rest_s":60,"tempo":"3-1-1"}
+   ]}
+  },
+  {
+   "text": "Flexão 3x máx",
+   "sport": "strength",
+   "name": "Força: Flexão",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Flexão","sets":3,"reps":"máx"}
+   ]}
+  },
+  {
+   "text": "Prancha lateral 3x30s cada lado",
+   "sport": "strength",
+   "name": "Força: Prancha lateral",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Prancha lateral","sets":3,"reps":"30 s","note":"cada lado"}
+   ]}
+  },
+  {
+   "text": "Afundo 3x12 por perna peso do corpo",
+   "sport": "strength",
+   "name": "Força: Afundo",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Afundo","sets":3,"reps":"12","load":{"type":"bodyweight"},"note":"por perna"}
+   ]}
+  },
+  {
+   "text": "Elevação pélvica 3x12 (pausa de 2\" no alto)",
+   "sport": "strength",
+   "name": "Força: Elevação pélvica",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Elevação pélvica","sets":3,"reps":"12","note":"pausa de 2\" no alto"}
+   ]}
+  },
+  {
+   "text": "Agachamento: 4 séries de 8 a 10 repetições, 60% 1RM, intervalo de 90 segundos",
+   "sport": "strength",
+   "name": "Força: Agachamento",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Agachamento","sets":4,"reps":"8-10","load":{"type":"pct_1rm","value":60},"rest_s":90}
+   ]}
+  },
+  {
+   "text": "Leg press 45 3x12 100kg\nCadeira extensora 3 x 12 c/ 30 kg\nAgachamento livre 4x8 (70%)\nPrancha 3x1 min",
+   "sport": "strength",
+   "name": "Força: Leg press 45 + Cadeira extensora",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Leg press 45","sets":3,"reps":"12","load":{"type":"kg","value":100}},
+    {"kind":"exercise","name":"Cadeira extensora","sets":3,"reps":"12","load":{"type":"kg","value":30}},
+    {"kind":"exercise","name":"Agachamento livre","sets":4,"reps":"8","load":{"type":"pct_1rm","value":70}},
+    {"kind":"exercise","name":"Prancha","sets":3,"reps":"1 min"}
+   ]}
+  },
+  {
+   "text": "1. Agachamento 4x8\n2. Supino 4x8\nPrancha 3xmáx",
+   "sport": "strength",
+   "name": "Força: Agachamento + Supino",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Agachamento","sets":4,"reps":"8"},
+    {"kind":"exercise","name":"Supino","sets":4,"reps":"8"},
+    {"kind":"exercise","name":"Prancha","sets":3,"reps":"máx"}
+   ]}
+  },
+  {
+   "text": "20' mobilidade (quadril, tornozelo e torácica)",
+   "sport": "mobility",
+   "name": "Mobilidade 20'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1200},"target":{"type":"open"},"note":"quadril, tornozelo e torácica"}
+   ]}
+  },
+  {
+   "text": "10 min de mobilidade + 15 min de alongamento",
+   "sport": "mobility",
+   "name": "Mobilidade 25'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":600},"target":{"type":"open"}},
+    {"kind":"step","intent":"active","duration":{"type":"time","s":900},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "Mobilidade de quadril 90/90 2x10, rotação torácica 2x10 por lado, prancha 3x30 s.",
+   "sport": "mobility",
+   "name": "Mobilidade de quadril 90/90 + Rotação torácica",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Mobilidade de quadril 90/90","sets":2,"reps":"10"},
+    {"kind":"exercise","name":"Rotação torácica","sets":2,"reps":"10","note":"por lado"},
+    {"kind":"exercise","name":"Prancha","sets":3,"reps":"30 s"}
+   ]}
+  },
+  {
+   "text": "Alongamento de posteriores 3x30s cada lado",
+   "sport": "mobility",
+   "name": "Mobilidade: Alongamento de posteriores",
+   "structure": {"v":1,"blocks":[
+    {"kind":"exercise","name":"Alongamento de posteriores","sets":3,"reps":"30 s","note":"cada lado"}
+   ]}
+  },
+  {
+   "text": "45' livre",
+   "sport": "other",
+   "name": "Treino 45'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":2700},"target":{"type":"open"}}
+   ]}
+  },
+  {
+   "text": "30 min de yoga",
+   "sport": "other",
+   "name": "Treino 30'",
+   "structure": {"v":1,"blocks":[
+    {"kind":"step","intent":"active","duration":{"type":"time","s":1800},"target":{"type":"open"}}
+   ]}
+  }
+ ]
+}
