@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE notifications n SET email = 'sent' FROM users u\n            WHERE n.user_id = $1 AND n.email = 'digest' AND u.id = n.user_id\n        RETURNING n.id, u.email, n.club_id, n.title, n.body, n.link, n.created_at",
+  "query": "SELECT id, user_id, club_id, kind, title, body, link, read_at, created_at FROM notifications\n          WHERE user_id = $1 AND ($2::timestamptz IS NULL OR (created_at, id) < ($2, $3))\n          ORDER BY created_at DESC, id DESC LIMIT $4",
   "describe": {
     "columns": [
       {
@@ -16,12 +16,12 @@
       },
       {
         "ordinal": 1,
-        "name": "email",
-        "type_info": "Text",
+        "name": "user_id",
+        "type_info": "Uuid",
         "origin": {
           "Table": {
-            "table": "users",
-            "name": "email"
+            "table": "notifications",
+            "name": "user_id"
           }
         }
       },
@@ -38,6 +38,17 @@
       },
       {
         "ordinal": 3,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "notifications",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
         "name": "title",
         "type_info": "Text",
         "origin": {
@@ -48,7 +59,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "body",
         "type_info": "Text",
         "origin": {
@@ -59,7 +70,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "link",
         "type_info": "Text",
         "origin": {
@@ -70,7 +81,18 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
+        "name": "read_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "notifications",
+            "name": "read_at"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -83,7 +105,10 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Timestamptz",
+        "Uuid",
+        "Int8"
       ]
     },
     "nullable": [
@@ -91,10 +116,12 @@
       false,
       true,
       false,
+      false,
+      true,
       true,
       true,
       false
     ]
   },
-  "hash": "7415c0879000ba416de358c80bd099ed7800c59ab1fa758351ea8569433e441c"
+  "hash": "f546aa7f16738e4c266ee5dd46cb666cc15296653c2cc6203831786b3aa759f7"
 }

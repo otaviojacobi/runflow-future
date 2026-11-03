@@ -115,7 +115,7 @@ pub async fn memberships(
 
 pub async fn unread_notifications(db: impl PgExecutor<'_>, user_id: Uuid) -> sqlx::Result<i64> {
     sqlx::query_scalar!(
-        r#"SELECT count(*) AS "n!" FROM notifications WHERE user_id = $1 AND read_at IS NULL AND in_app"#,
+        r#"SELECT count(*) AS "n!" FROM notifications WHERE user_id = $1 AND read_at IS NULL"#,
         user_id
     )
     .fetch_one(db)
@@ -345,7 +345,7 @@ pub async fn notifications(
     sqlx::query_as!(
         Notification,
         "SELECT id, user_id, club_id, kind, title, body, link, read_at, created_at FROM notifications
-          WHERE user_id = $1 AND in_app AND ($2::timestamptz IS NULL OR (created_at, id) < ($2, $3))
+          WHERE user_id = $1 AND ($2::timestamptz IS NULL OR (created_at, id) < ($2, $3))
           ORDER BY created_at DESC, id DESC LIMIT $4",
         user_id,
         at,

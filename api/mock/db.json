@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-03T18:14:47.944Z",
+  "generated_at": "2026-11-03T18:23:18.331Z",
   "version": 1
  },
  "users": [
@@ -369,171 +369,103 @@
   {
    "user_id": "52587271-4713-4ad1-a1d8-3da4dab9646e",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "e7b2ca02-72e1-44d5-a9be-e2955eefb138",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "6ce739fe-f337-4d5b-a443-556d2f7eb6f6",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "47fe2772-687e-4bef-af0d-8eae75eeecac",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "7fbb58be-cb52-405a-a464-053e10fc6e2d",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "54d55124-de94-440c-a419-a4acc8471669",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "a3d22d1b-e249-4999-ab0b-e1b5928be67c",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "4b0df9fb-ab3b-48ab-a45f-bbfc80a9ae12",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "f124251a-41ef-4807-a5ce-c00040b56111",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "abf6b79a-ee12-4a9b-aabc-9305bec7d116",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "98272d8e-7970-4510-a54c-c0b47f28c32c",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "744c0dc0-582b-436a-a020-916f5fe03662",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "9f59e99e-b7ff-41a1-ae37-acb862949b1f",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "e3f0ef81-349c-4f5c-aea2-302e2df718bb",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "da161362-783f-4ad8-abe5-a4d5dd820ac4",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "c7843e0d-7967-49ec-ab1b-cbcd5f8f404b",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   },
   {
    "user_id": "dd6ddf08-1ae4-4ce9-af94-2f10f7d4743e",
    "kinds": {},
-   "digest_hour": 7,
-   "quiet_start": "22:00",
-   "quiet_end": "07:00",
    "paused": false,
-   "last_digest_on": null,
    "updated_at": "2026-08-24T13:00:00.000Z"
   }
  ],
@@ -24515,8 +24447,6 @@
    "link": "/workouts/21d9611a-77fb-4f54-a7c4-774f0b926abf",
    "read_at": null,
    "created_at": "2026-11-02T23:00:00.000Z",
-   "in_app": true,
-   "email": "none",
    "push_at": null,
    "pushed_at": null
   },
@@ -24530,8 +24460,6 @@
    "link": "/workouts/30cc6a9e-c0a6-41c2-a764-7e5d72ab8b98",
    "read_at": "2026-10-27T15:30:00.000Z",
    "created_at": "2026-10-27T15:30:00.000Z",
-   "in_app": true,
-   "email": "none",
    "push_at": null,
    "pushed_at": null
   },
@@ -24545,8 +24473,6 @@
    "link": "/feedback",
    "read_at": null,
    "created_at": "2026-11-03T00:14:00.000Z",
-   "in_app": true,
-   "email": "none",
    "push_at": null,
    "pushed_at": null
   },
@@ -24560,8 +24486,6 @@
    "link": "/students",
    "read_at": "2026-11-01T22:12:00.000Z",
    "created_at": "2026-11-01T22:12:00.000Z",
-   "in_app": true,
-   "email": "none",
    "push_at": null,
    "pushed_at": null
   },
@@ -24575,8 +24499,6 @@
    "link": "/club/billing",
    "read_at": null,
    "created_at": "2026-11-01T22:13:00.000Z",
-   "in_app": true,
-   "email": "none",
    "push_at": null,
    "pushed_at": null
   }
@@ -24588,6 +24510,5 @@
  "webhook_events": [],
  "push_tokens": [],
  "audit_log": [],
- "jobs": [],
- "notification_group_filters": []
+ "jobs": []
 }

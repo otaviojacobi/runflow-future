@@ -54,8 +54,8 @@ async fn email_code_sign_in_creates_an_account_once(db: PgPool) {
     assert_eq!(me.ok()["user"]["email"], "ana.souza@email.com");
     assert_eq!(me.body["memberships"], json!([]));
     assert_eq!(
-        me.body["prefs"]["kinds"]["week_released"]["email"],
-        "instant"
+        me.body["prefs"]["kinds"]["week_released"],
+        json!({ "push": true })
     );
     assert_eq!(me.body["unread_notifications"], 0);
     let by_cookie = app
@@ -360,17 +360,17 @@ async fn profile_prefs_and_consents(db: PgPool) {
         "untouched fields stay"
     );
 
-    // Notification control (D-032): the full preference model is covered in tests/notifications.rs.
+    // Push switches (D-045): the full model is covered in tests/notifications.rs.
     let prefs = app
         .patch(
             "/v1/me/prefs",
             Some(&t),
-            json!({ "kinds": { "comment": { "push": false } }, "digest_hour": 30 }),
+            json!({ "kinds": { "comment": { "push": false } }, "paused": 1 }),
         )
         .await;
     assert_eq!(
         prefs.problem(422, "validation.failed")["errors"][0]["field"],
-        "digest_hour"
+        "paused"
     );
     let prefs = app
         .patch(
@@ -379,10 +379,7 @@ async fn profile_prefs_and_consents(db: PgPool) {
             json!({ "kinds": { "comment": { "push": false } } }),
         )
         .await;
-    assert_eq!(
-        prefs.ok()["kinds"]["comment"],
-        json!({ "app": true, "push": false, "email": "off" })
-    );
+    assert_eq!(prefs.ok()["kinds"]["comment"], json!({ "push": false }));
     assert_eq!(
         app.get("/v1/me/prefs", Some(&t)).await.ok()["kinds"]["comment"]["push"],
         false

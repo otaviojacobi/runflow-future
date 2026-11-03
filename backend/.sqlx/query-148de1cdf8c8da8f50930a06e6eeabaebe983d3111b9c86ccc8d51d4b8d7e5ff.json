@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT kinds, paused FROM notification_prefs WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kinds",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "kinds"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "paused",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "paused"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "148de1cdf8c8da8f50930a06e6eeabaebe983d3111b9c86ccc8d51d4b8d7e5ff"
+}

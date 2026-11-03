@@ -1,14 +1,13 @@
-/** C1 · Notificações (D-032): what reaches each person and how. Per kind: the app center, the phone, e-mail (off, right
- * away or a daily summary); pause everything; quiet hours; staff can limit feedback and comments to their groups. */
-import { BellOff, BellRing } from "lucide-react";
+/** C1 · Notificações (D-045): every notification lands in the app's center; what a person switches is whether each
+ * kind also arrives as a push on their devices, plus "Pausar tudo". The device card turns push on for this browser. */
+import { BellRing } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePublicConfig } from "@/api/auth";
-import { useGroups } from "@/api/members";
 import { usePrefs, useUpdatePrefs } from "@/api/account";
-import type { EmailMode, KindPref, MembershipContext, NotificationKind, NotificationPrefs } from "@/api/types";
+import type { MembershipContext, NotificationKind, PrefsPatch } from "@/api/types";
 import { t } from "@/i18n";
 import { type DevicePush as DevicePushState, devicePushState, disableDevicePush, enableDevicePush, refreshDevicePush } from "@/lib/push";
-import { Button, Field, Input, Select, Skeleton, Switch, cn, toast } from "@/ui";
+import { Button, Skeleton, Switch, toast } from "@/ui";
 
 const INFO: Record<NotificationKind, { label: string; hint: string }> = {
   workout_assigned: { label: "Treino novo", hint: "Um treino entrou na sua agenda" },
@@ -23,7 +22,6 @@ const INFO: Record<NotificationKind, { label: string; hint: string }> = {
 };
 const STUDENT: NotificationKind[] = ["week_released", "workout_assigned", "workout_changed", "comment", "message", "announcement"];
 const STAFF: NotificationKind[] = ["feedback", "comment", "message", "member_joined"];
-const EMAIL: { value: EmailMode; label: string }[] = [{ value: "off", label: "Sem e-mail" }, { value: "instant", label: "E-mail na hora" }, { value: "digest", label: "Resumo diário" }];
 
 /** The kinds this person can receive, by the roles they hold. */
 function kindsFor(memberships: MembershipContext[]): NotificationKind[] {
@@ -40,39 +38,38 @@ export function NotificationSettings({ memberships }: { memberships: MembershipC
   const update = useUpdatePrefs();
   const p = prefs.data;
   if (!p) return <Skeleton className="h-64" />;
-  const save = (v: Parameters<typeof update.mutate>[0]) => update.mutate(v, { onError: toast.error });
-  const setKind = (k: NotificationKind, v: Partial<KindPref>) => save({ kinds: { [k]: v } });
+  const save = (v: PrefsPatch) => update.mutate(v, { onError: toast.error });
   const kinds = kindsFor(memberships);
-  const digest = kinds.some((k) => p.kinds[k]?.email === "digest");
   return (
     <div className="grid gap-5">
       <DevicePush />
-      <Switch checked={p.paused} onCheckedChange={(paused) => save({ paused })} label={t("Pausar avisos")}
-        description={t("Nada no celular nem por e-mail até você voltar. A central do app continua mostrando tudo.")} />
-      <ul className={cn("grid divide-y divide-line-subtle rounded-lg border border-line", p.paused && "opacity-60")}>
-        {kinds.map((k) => <KindRow key={k} kind={k} pref={p.kinds[k]} onChange={(v) => setKind(k, v)} />)}
-      </ul>
-      <div className="grid gap-4 sm:grid-cols-2">
-        {digest && (
-          <Field label={t("Resumo diário às")} hint={t("Horário de Brasília.")}>{(id, d) => (
-            <Select id={id} aria-describedby={d} value={p.digest_hour} onChange={(e) => save({ digest_hour: Number(e.target.value) })}>
-              {Array.from({ length: 24 }, (_, h) => <option key={h} value={h}>{`${String(h).padStart(2, "0")}:00`}</option>)}
-            </Select>
-          )}</Field>
-        )}
-        <QuietHours p={p} onSave={(quiet_start, quiet_end) => save({ quiet_start, quiet_end })} />
+      <div className="rounded-lg border border-line px-4 py-3">
+        <Switch checked={p.paused} onCheckedChange={(paused) => save({ paused })} label={t("Pausar tudo")}
+          description={t("Nenhuma notificação chega aos seus aparelhos até você retomar. A central do app continua recebendo tudo.")} />
       </div>
-      {p.groups.map((g) => {
-        const m = memberships.find((x) => x.membership.id === g.membership_id);
-        return m ? <GroupFilter key={g.membership_id} clubId={g.club_id} clubName={m.club.name} groupIds={g.group_ids} onSave={(group_ids) => save({ groups: [{ club_id: g.club_id, group_ids }] })} /> : null;
-      })}
+      {kinds.length > 0 && (
+        <section aria-labelledby="push-kinds-h" className="grid gap-2">
+          <div>
+            <h3 id="push-kinds-h" className="rf-text-title-sm">{t("Receber no aparelho")}</h3>
+            <p className="text-sm text-fg-muted">{p.paused ? t("Pausado. Suas escolhas voltam a valer quando você retomar.") : t("Desligado, o aviso fica só na central do app.")}</p>
+          </div>
+          <ul className="grid divide-y divide-line-subtle rounded-lg border border-line">
+            {kinds.map((k) => (
+              <li key={k} className="px-4 py-3">
+                <Switch checked={p.kinds[k]?.push ?? false} disabled={p.paused} onCheckedChange={(push) => save({ kinds: { [k]: { push } } })}
+                  label={t(INFO[k].label)} description={t(INFO[k].hint)} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
 
 const DEVICE_TEXT: Record<DevicePushState, string> = {
-  on: "Ativas neste aparelho: os avisos marcados com “Celular” chegam aqui.",
-  off: "Receba os avisos marcados com “Celular” como notificação deste aparelho.",
+  on: "Ativas neste aparelho: os avisos ligados abaixo chegam aqui.",
+  off: "Ative para receber neste aparelho os avisos ligados abaixo.",
   denied: "Bloqueadas no navegador. Libere as notificações nas configurações do site e tente de novo.",
   install: "No iPhone, adicione o Runflow à Tela de Início e abra por lá para receber notificações.",
   unsupported: "Este navegador não mostra notificações do Runflow.",
@@ -106,63 +103,5 @@ function DevicePush() {
       {state === "off" && key && <Button loading={busy} onClick={() => run(() => enableDevicePush(key))}>{t("Ativar")}</Button>}
       {state === "on" && <Button variant="secondary" loading={busy} onClick={() => run(async () => { await disableDevicePush(); return "off"; })}>{t("Desativar")}</Button>}
     </div>
-  );
-}
-
-function KindRow({ kind, pref, onChange }: { kind: NotificationKind; pref: KindPref; onChange: (v: Partial<KindPref>) => void }) {
-  const info = INFO[kind];
-  const chip = (on: boolean, label: string, flip: () => void) => (
-    <button type="button" aria-pressed={on} onClick={flip}
-      className={cn("h-8 rounded-full border px-3 text-[13px] font-semibold", on ? "border-brand-ring bg-brand-soft text-on-brand-soft" : "border-line bg-surface text-fg-muted hover:bg-soft")}>{label}</button>
-  );
-  return (
-    <li className="grid gap-2 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-      <div className="min-w-0"><div className="font-semibold">{t(info.label)}</div><div className="text-sm text-fg-muted">{t(info.hint)}</div></div>
-      <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t("Como receber: {kind}", { kind: t(info.label) })}>
-        {chip(pref.app, t("No app"), () => onChange({ app: !pref.app }))}
-        {chip(pref.push, t("Celular"), () => onChange({ push: !pref.push }))}
-        <Select aria-label={t("E-mail: {kind}", { kind: t(info.label) })} value={pref.email} onChange={(e) => onChange({ email: e.target.value as EmailMode })} className="h-8 w-auto text-[13px]">
-          {EMAIL.map((o) => <option key={o.value} value={o.value}>{t(o.label)}</option>)}
-        </Select>
-      </div>
-    </li>
-  );
-}
-
-function QuietHours({ p, onSave }: { p: NotificationPrefs; onSave: (start: string | null, end: string | null) => void }) {
-  const on = !!p.quiet_start && !!p.quiet_end;
-  return (
-    <div className="grid gap-2">
-      <Switch checked={on} onCheckedChange={(v) => (v ? onSave("22:00", "07:00") : onSave(null, null))} label={t("Não perturbe")} description={t("Sem avisos no celular neste horário.")} />
-      {on && (
-        <div className="flex items-center gap-2">
-          <Input type="time" aria-label={t("Início")} value={p.quiet_start ?? ""} onChange={(e) => e.target.value && onSave(e.target.value, p.quiet_end)} className="h-9 w-32" />
-          <span className="text-sm text-fg-muted">{t("até")}</span>
-          <Input type="time" aria-label={t("Fim")} value={p.quiet_end ?? ""} onChange={(e) => e.target.value && onSave(p.quiet_start, e.target.value)} className="h-9 w-32" />
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Staff of a big club: feedback and comment notices only about some groups' students. */
-function GroupFilter({ clubId, clubName, groupIds, onSave }: { clubId: string; clubName: string; groupIds: string[]; onSave: (ids: string[]) => void }) {
-  const groups = useGroups(clubId).data ?? [];
-  if (!groups.length) return null;
-  const all = groupIds.length === 0;
-  const toggle = (id: string) => onSave(groupIds.includes(id) ? groupIds.filter((x) => x !== id) : [...groupIds, id]);
-  return (
-    <fieldset className="grid gap-2 rounded-lg bg-sunken p-4">
-      <legend className="sr-only">{t("Feedbacks e comentários no {club}", { club: clubName })}</legend>
-      <div className="flex items-center gap-2 font-semibold"><BellOff className="size-4 text-fg-muted" aria-hidden />{t("Feedbacks e comentários no {club}", { club: clubName })}</div>
-      <p className="text-sm text-fg-muted">{t("Receba só sobre os alunos dos seus grupos. Os outros continuam no painel e na caixa de feedbacks.")}</p>
-      <div className="flex flex-wrap gap-1.5">
-        <button type="button" aria-pressed={all} onClick={() => onSave([])} className={cn("h-8 rounded-full border px-3 text-[13px] font-semibold", all ? "border-brand-ring bg-brand-soft text-on-brand-soft" : "border-line bg-surface text-fg-muted hover:bg-soft")}>{t("Todos os alunos")}</button>
-        {groups.map((g) => {
-          const on = groupIds.includes(g.id);
-          return <button key={g.id} type="button" aria-pressed={on} onClick={() => toggle(g.id)} className={cn("h-8 rounded-full border px-3 text-[13px] font-semibold", on ? "border-brand-ring bg-brand-soft text-on-brand-soft" : "border-line bg-surface text-fg-muted hover:bg-soft")}>{g.name}</button>;
-        })}
-      </div>
-    </fieldset>
   );
 }

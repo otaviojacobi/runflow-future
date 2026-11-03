@@ -11,7 +11,7 @@ use chrono::{DateTime, NaiveDate, Utc};
 use runflow_db::me as db;
 use runflow_db::models::{MembershipContext, User};
 use runflow_db::notifications;
-use runflow_domain::{notify, week};
+use runflow_domain::notify;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -65,7 +65,7 @@ pub async fn me_payload(state: &AppState, user_id: Uuid) -> Result<Me, Problem> 
         .ok_or_else(Problem::unauthorized)?;
     Ok(Me {
         memberships: db::memberships(&mut conn, user_id).await?,
-        prefs: prefs_json(&mut conn, user_id).await?,
+        prefs: prefs_json(&mut *conn, user_id).await?,
         unread_notifications: db::unread_notifications(&mut *conn, user_id).await?,
         user,
     })
@@ -196,22 +196,14 @@ async fn remove_avatar(State(state): State<AppState>, auth: Auth) -> Result<Json
 
 // ------------------------------------------------------------------------------------ prefs
 
-/// `/me/prefs` (D-032): every kind resolved with its default, the global settings and the staff group filters.
-async fn prefs_json(db: &mut sqlx::PgConnection, user_id: Uuid) -> Result<Value, Problem> {
-    let p = notifications::prefs(&mut *db, user_id).await?;
-    Ok(json!({
-        "kinds": notify::all(&p.kinds),
-        "digest_hour": p.digest_hour,
-        "quiet_start": p.quiet_start,
-        "quiet_end": p.quiet_end,
-        "paused": p.paused,
-        "groups": notifications::group_filters(&mut *db, user_id).await?,
-    }))
+/// `/me/prefs` (D-045): push per kind, resolved with its default, and the pause.
+async fn prefs_json(db: impl sqlx::PgExecutor<'_>, user_id: Uuid) -> Result<Value, Problem> {
+    let p = notifications::prefs(db, user_id).await?;
+    Ok(json!({ "kinds": notify::all(&p.kinds), "paused": p.paused }))
 }
 
 async fn prefs(State(state): State<AppState>, auth: Auth) -> Result<Json<Value>, Problem> {
-    let mut conn = state.db.acquire().await?;
-    Ok(Json(prefs_json(&mut conn, auth.user_id).await?))
+    Ok(Json(prefs_json(&state.db, auth.user_id).await?))
 }
 
 async fn update_prefs(
@@ -219,8 +211,7 @@ async fn update_prefs(
     auth: Auth,
     body: Body,
 ) -> Result<Json<Value>, Problem> {
-    let mut conn = state.db.acquire().await?;
-    let p = notifications::prefs(&mut *conn, auth.user_id).await?;
+    let p = notifications::prefs(&state.db, auth.user_id).await?;
     let mut errors = Vec::new();
     let kinds = match body.get("kinds") {
         Some(patch) => notify::merge(&p.kinds, patch).unwrap_or_else(|msg| {
@@ -228,40 +219,6 @@ async fn update_prefs(
             p.kinds.clone()
         }),
         None => p.kinds.clone(),
-    };
-    let digest_hour = match body.get("digest_hour") {
-        None => p.digest_hour,
-        Some(v) => match v.as_i64().filter(|h| (0..=23).contains(h)) {
-            Some(h) => h as i16,
-            None => {
-                errors.push(fail("digest_hour", "Escolha um horário entre 0 e 23 h."));
-                p.digest_hour
-            }
-        },
-    };
-    let current = p
-        .quiet_start
-        .as_deref()
-        .and_then(week::parse_hhmm)
-        .zip(p.quiet_end.as_deref().and_then(week::parse_hhmm));
-    let quiet = if body.has("quiet_start") || body.has("quiet_end") {
-        let (s, e) = (body.str("quiet_start"), body.str("quiet_end"));
-        match (
-            s.as_deref().map(week::parse_hhmm),
-            e.as_deref().map(week::parse_hhmm),
-        ) {
-            (None, None) => None,
-            (Some(Some(s)), Some(Some(e))) => Some((s, e)),
-            _ => {
-                errors.push(fail(
-                    "quiet_start",
-                    "Informe o início e o fim do horário silencioso.",
-                ));
-                current
-            }
-        }
-    } else {
-        current
     };
     let paused = match body.get("paused") {
         None => p.paused,
@@ -273,36 +230,8 @@ async fn update_prefs(
     if !errors.is_empty() {
         return Err(Problem::invalid(errors));
     }
-    let mut tx = state.db.begin().await?;
-    for g in body
-        .get("groups")
-        .and_then(Value::as_array)
-        .into_iter()
-        .flatten()
-    {
-        let club = g["club_id"].as_str().and_then(|c| Uuid::parse_str(c).ok());
-        let ids: Vec<Uuid> = g["group_ids"]
-            .as_array()
-            .into_iter()
-            .flatten()
-            .filter_map(|v| v.as_str()?.parse().ok())
-            .collect();
-        let allowed = match club {
-            Some(c) => notifications::set_group_filter(&mut tx, auth.user_id, c, &ids).await?,
-            None => false,
-        };
-        if !allowed {
-            return Err(Problem::new(
-                StatusCode::FORBIDDEN,
-                "auth.forbidden",
-                "Sem permissão",
-                "Só a equipe do clube filtra avisos por grupo.",
-            ));
-        }
-    }
-    notifications::save_prefs(&mut *tx, auth.user_id, &kinds, digest_hour, quiet, paused).await?;
-    tx.commit().await?;
-    Ok(Json(prefs_json(&mut conn, auth.user_id).await?))
+    notifications::save_prefs(&state.db, auth.user_id, &kinds, paused).await?;
+    Ok(Json(prefs_json(&state.db, auth.user_id).await?))
 }
 
 // ------------------------------------------------------------------------------------ consents

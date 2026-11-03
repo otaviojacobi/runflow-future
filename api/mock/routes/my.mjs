@@ -65,7 +65,7 @@ export default function register(h) {
     Object.assign(c, { activity_id: activityId, status: b.status, compliance_pct: Math.min(200, compliance), rpe: b.rpe ?? null, feeling: b.feeling ?? null, comment: (b.comment || "").trim() || null, updated_at: now });
     const coach = h.db.memberships.find((x) => x.id === p.created_by);
     const student = h.db.users.find((u) => u.id === m.user_id);
-    if (coach && fresh) h.notify({ id: h.uuid("n"), user_id: coach.user_id, club_id: p.club_id, kind: "feedback", title: `${student.name} ${b.status === "missed" ? "não fez o treino" : "registrou o treino"}`, body: c.comment || p.title, link: "/feedback", read_at: null, created_at: now }, { about: m.id });
+    if (coach && fresh) h.notify({ id: h.uuid("n"), user_id: coach.user_id, club_id: p.club_id, kind: "feedback", title: `${student.name} ${b.status === "missed" ? "não fez o treino" : "registrou o treino"}`, body: c.comment || p.title, link: "/feedback", read_at: null, created_at: now });
     return h.workoutOut(p, m.id);
   });
   h.get("/v1/clubs/:club_id/my/summary", (ctx) => {

@@ -9,7 +9,7 @@ export default function register(h) {
     const now = h.nowIso();
     const user = { id: h.uuid("user"), email, name, avatar_url: null, phone: null, birth_date: null, sex: null, locale: "pt-BR", created_at: now, updated_at: now, deleted_at: null };
     h.db.users.push(user);
-    h.db.notification_prefs.push({ user_id: user.id, kinds: {}, digest_hour: 7, quiet_start: "22:00", quiet_end: "07:00", paused: false, last_digest_on: null, updated_at: now });
+    h.db.notification_prefs.push({ user_id: user.id, kinds: {}, paused: false, updated_at: now });
     for (const kind of ["terms", "privacy"]) h.db.consents.push({ id: h.uuid("consent"), user_id: user.id, club_id: null, kind, text_version: "2026-10", granted_at: now, revoked_at: null });
     return user;
   }
@@ -42,7 +42,7 @@ export default function register(h) {
       user: h.publicUser(user),
       memberships,
       prefs: h.prefsOut(user.id),
-      unread_notifications: h.db.notifications.filter((n) => n.user_id === user.id && !n.read_at && n.in_app !== false).length,
+      unread_notifications: h.db.notifications.filter((n) => n.user_id === user.id && !n.read_at).length,
     };
   }
 
@@ -169,7 +169,7 @@ export default function register(h) {
     h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: m.club_id, actor_user_id: m.user_id, action: "member.left", target_type: "membership", target_id: m.id, data: null, created_at: now });
   });
 
-  // ---- prefs: routes/notify.mjs (D-032)
+  // ---- prefs: routes/notify.mjs (D-045)
 
   // ---- consents
   const CONSENT_KINDS = ["terms", "privacy", "share_training_data", "share_strava", "share_garmin"];
@@ -195,7 +195,7 @@ export default function register(h) {
   // ---- notifications
   h.get("/v1/me/notifications", (ctx) => {
     const u = ctx.user();
-    const items = h.db.notifications.filter((n) => n.user_id === u.id && n.in_app !== false).sort((a, b) => b.created_at.localeCompare(a.created_at));
+    const items = h.db.notifications.filter((n) => n.user_id === u.id).sort((a, b) => b.created_at.localeCompare(a.created_at));
     return h.list(items, ctx);
   });
   h.post("/v1/me/notifications/read", (ctx) => {

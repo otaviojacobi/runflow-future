@@ -23,7 +23,7 @@ const ORDER = [
   "groups", "group_members", "consents", "athlete_profiles", "zones", "exercises", "workout_templates", "training_plans", "training_plan_items",
   "plan_assignments", "planned_workouts", "week_releases", "activities", "workout_completions", "comments", "thread_reads", "provider_connections",
   "webhook_events", "assessments", "conversations", "messages", "conversation_reads", "announcements", "announcement_reads", "races", "race_entries", "club_subscriptions", "invoices",
-  "notifications", "notification_prefs", "notification_group_filters", "push_tokens", "audit_log", "jobs",
+  "notifications", "notification_prefs", "push_tokens", "audit_log", "jobs",
 ];
 
 const db = new PGlite();

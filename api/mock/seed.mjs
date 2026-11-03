@@ -159,7 +159,7 @@ export function generate(anchor) {
     const row = { id: uuid("user:" + key), email, name, avatar_url: null, phone: null, birth_date: null, sex: null, locale: "pt-BR", created_at: createdLongAgo, updated_at: createdLongAgo, deleted_at: null, ...extra };
     t("users").push(row);
     t("auth_identities").push({ id: uuid("ident:" + key), user_id: row.id, provider: "google", subject: "google-" + key, email, created_at: createdLongAgo });
-    t("notification_prefs").push({ user_id: row.id, kinds: {}, digest_hour: 7, quiet_start: "22:00", quiet_end: "07:00", paused: false, last_digest_on: null, updated_at: createdLongAgo });
+    t("notification_prefs").push({ user_id: row.id, kinds: {}, paused: false, updated_at: createdLongAgo });
     t("consents").push(
       { id: uuid("consent:terms:" + key), user_id: row.id, club_id: null, kind: "terms", text_version: "2026-10", granted_at: createdLongAgo, revoked_at: null },
       { id: uuid("consent:privacy:" + key), user_id: row.id, club_id: null, kind: "privacy", text_version: "2026-10", granted_at: createdLongAgo, revoked_at: null },
@@ -452,7 +452,7 @@ export function generate(anchor) {
   ["lucas", "marina", "sofia"].forEach((k, i) => entry(travessia, "equipemare:" + k, i === 1 ? 3000 : 1500));
 
   // ---- notifications
-  const note = (ukey, clubRow, kind, title, body, link, when, read = false) => t("notifications").push({ id: uuid(`n:${ukey}:${kind}:${when}`), user_id: U[ukey].id, club_id: clubRow ? clubRow.id : null, kind, title, body, link, read_at: read ? when : null, created_at: when, in_app: true, email: "none", push_at: null, pushed_at: null });
+  const note = (ukey, clubRow, kind, title, body, link, when, read = false) => t("notifications").push({ id: uuid(`n:${ukey}:${kind}:${when}`), user_id: U[ukey].id, club_id: clubRow ? clubRow.id : null, kind, title, body, link, read_at: read ? when : null, created_at: when, push_at: null, pushed_at: null });
   note("ana", PF, "workout_assigned", "Novo treino para hoje", "Intervalado 6×1 km", `/workouts/${PW["ana:" + today].id}`, at(addDays(today, -1), "20:00"));
   if (lastTue) note("ana", PF, "comment", "Marcos comentou no seu treino", "Normal nessa fase. Amanhã faz o regenerativo bem leve…", `/workouts/${lastTue.id}`, at(lastTue.date, "12:30"), true);
   if (carlaMissed) note("marcos", PF, "feedback", "Carla Mendes deixou um comentário", "Não consegui treinar, plantão no hospital…", `/feedback`, at(addDays(anchor, -1), "21:14"));
@@ -460,7 +460,7 @@ export function generate(anchor) {
   note("marcos", PF, "billing", "9 de 10 alunos no plano Free", "Faça upgrade para o Pro e tenha até 100 alunos.", "/club/billing", at(addDays(anchor, -2), "19:13"));
 
   // empty tables (present so the mock and the check know them)
-  for (const k of ["email_codes", "sessions", "assets", "plan_assignments", "webhook_events", "push_tokens", "audit_log", "jobs", "notification_group_filters"]) t(k);
+  for (const k of ["email_codes", "sessions", "assets", "plan_assignments", "webhook_events", "push_tokens", "audit_log", "jobs"]) t(k);
   return { meta: { anchor_date: anchor, generated_at: new Date().toISOString(), version: 1 }, ...T };
 }
 
