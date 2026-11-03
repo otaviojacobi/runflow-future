@@ -469,7 +469,7 @@ flowchart LR
 | **0: Design system** | Tokens, club-theme engine, foundations page | **Done.** D1 approved by the founder (2026-11-01) |
 | **1: Web app on the mock API** | Every screen, wired to the mock: auth, onboarding, coaching loop, library, planilhas, classes, Club Studio, billing (Stripe mock), account | **Done** (F0–F32) |
 | **2: Real backend** | Rust API on PostgreSQL implementing the whole contract; Docker Compose; Pi deployment (D-025); founder priorities of 2026-11-02 (logo, week release, notification control, smoke tests, observability) | Done through S7b (the whole contract, billing, push). **Next:** the mobile app (Phase 3) and R1 text parser, in parallel; everything for production (P1) in its own session later (`docs/build-plan.md`) |
-| **3: Mobile app** | Expo app mirroring the web flows, on the real API | X0 done; X1 onward in parallel with the last Phase 2 steps |
+| **3: Mobile app** | Expo app at feature parity with the web app, on the real API (parity checklist in `docs/build-plan.md`) | X0–X3 done; X4 onward next |
 | **4: Private beta** | Friendly running clubs; Strava app review; LGPD texts | — |
 | **5: Public launch** | Stripe live (Pro), production on AWS (D-040, from P1) | — |
 | **6: Growth** | Garmin, Sign in with Apple + iOS App Store, club finances, class scheduling, events, challenges, AI assistant, Apple Health / Health Connect, Max, Enterprise | — |

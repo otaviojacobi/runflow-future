@@ -115,7 +115,7 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 | X0 | Expo + TS scaffold in the workspace, tokens → RN theme, club theme cache (sync kv-store, D-022) behind the splash (§7.8), API client against the mock | [x] |
 | X1 | RN UI kit mirroring `frontend/src/ui` names and variants (`src/ui`: Button/IconButton/ButtonLink, Field, Input, Textarea, Select as a sheet, Checkbox, Switch, Segmented, Badge, Card, Avatar, Skeleton, ProgressBar, EmptyState, PageHeader, Tabs, Dialog = bottom sheet, Menu = action sheet, toasts; mobile adds Text, Screen, ListItem, Divider, Spinner), tokens only, 44 pt targets, Lucide icons imported one file each; `/dev/components` previews every component in light and dark with demo club themes | [x] |
 | X2 | Sign-in (Google, email code) + deep links for invites. Done: A2 e-mail code (start → code → verify, resend cooldown from `Retry-After`, the API's pt-BR errors as they come, dev code shown), token in the keychain, back to `redirect`; A3 invite (`runflow://invite/<token>`, the web path `/invite/<token>`, or a pasted link on A6/A7) in Runflow's theme, signing in with the invited e-mail pre-filled and locked (F36); A6/A7 club list. `app.json` declares App Links / Universal Links for `https://{app,qa}.runflow.club/invite/…`; they open the app once the web host serves `/.well-known/assetlinks.json` and `apple-app-site-association` (needs the release signing key, so with the first store build). **TODO (Google):** native Google sign-in needs a development build (the SDK isn't in Expo Go): add it with X10's dev build and send its ID token to `POST /auth/google`; until then e-mail code only | [x] |
-| X3 | Tabs per role + club switcher. Done: the signed-in shell `(app)` (only with a session and a club, else sign-in with `redirect` or the club list) in the active club's colors from the cached `/me` (first frame themed; public screens stay Runflow's, D-024); students' 4 tabs (Hoje, Agenda, Mensagens, Perfil; Atividades and Provas inside Perfil, D-035), staff the web's phone tabs (Painel, Alunos, Planejamento, Feedbacks, Mais; "Mais" groups the rest like the sidebar, desktop tools open the web app, gym tools only for musculação clubs); other-role routes redirect home; top bar with the club switcher (sheet: clubs, invite, create) and the notifications bell; back bar on screens reached from Mais/Perfil/bell; Perfil with appearance and sign out. Screen bodies say what comes in X4/X5/X7/X8 and open the same screen on the web. **Gap:** Mensagens (a student tab) has no mobile step yet; fold it into X4 or add one | [x] |
+| X3 | Tabs per role + club switcher. Done: the signed-in shell `(app)` (only with a session and a club, else sign-in with `redirect` or the club list) in the active club's colors from the cached `/me` (first frame themed; public screens stay Runflow's, D-024); students' 4 tabs (Hoje, Agenda, Mensagens, Perfil; Atividades and Provas inside Perfil, D-035), staff the web's phone tabs (Painel, Alunos, Planejamento, Feedbacks, Mais; "Mais" groups the rest like the sidebar, desktop tools open the web app, gym tools only for musculação clubs); other-role routes redirect home; top bar with the club switcher (sheet: clubs, invite, create) and the notifications bell; back bar on screens reached from Mais/Perfil/bell; Perfil with appearance and sign out. Screen bodies say what comes in X4/X5/X7/X8 and open the same screen on the web. Mensagens got its own step (X4b) | [x] |
 | X4 | Student: Today, workout detail, feedback, schedule (offline cache) (in progress: unfinished work on the local branch `worktree-agent-a8336d6bb7b4d74aa`, paused 2026-11-03) | [ ] |
 | X4b | Messages and the mural (M10, W13) for every role: conversations (student ↔ staff, unread counts, read marks), the mural with pinned announcements and receipts, staff composing announcements to the club or groups; the Mensagens tab (students) and Mais → Mensagens (staff) (in progress: unfinished work on the local branch `worktree-agent-a635decbf6025996f`, paused 2026-11-03) | [ ] |
 | X5 | Activities + Strava connect (server half done: `strava/start` with `client: app` returns Strava's mobile authorize URL and `redirect_uri` `runflow://<web host>/connect/strava`; the app opens it with an auth session and posts the code to the callback) | [ ] |
@@ -124,6 +124,34 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 | X8 | Trainer on mobile: students, feedback inbox, quick edit of today's workouts (in progress: unfinished work on the local branch `worktree-agent-a33409a08992ea787`, paused 2026-11-03) | [ ] |
 | X9 | Owner/student onboarding on mobile (invite deep link → consent → profile → Strava) | [ ] |
 | X10 | Push notifications (server half done: the worker sends to `ios`/`android` Expo tokens through Expo's push service, forgets uninstalled apps; the app registers its token with `expo-notifications` in a development build), widgets (today's workout), Apple Health / Health Connect read | [ ] |
+| X11 | Provas: the student's races (M9: club calendar, sign up, goal race, results) and staff race management (W12: create/edit races, entries) | [ ] |
+| X12 | Builder and library on mobile (W5, W6, W17): templates by sport (search, `#tag` filter, duplicate, archive), the builder (quick text ⇄ structured steps, repeats, targets, swim and strength extras, tags, live summary), the assistant's "descreva o treino", `.FIT` export through the share sheet; Planejamento's assign sheet gains "Montar agora" | [ ] |
+| X13 | Planilhas on mobile (W7): list, the weeks × days editor reusing X12's builder, phases, weekly volume, apply to students/groups with a start date, active assignments, unassign | [ ] |
+| X14 | Avaliações, Relatórios, Exercícios on mobile (W14, W16, W18): tests that update zones, the training report with CSV/PDF through the share sheet, the exercise library with videos (musculação clubs only) | [ ] |
+| X15 | Owner's club on mobile (O1–O4) + the frozen layer (D-043): Club Studio (logo from the photo library, 0–2 colors, contrast report, suggestions, live preview), Membros (tabs, invite one by one, CSV import from a file, resend/cancel, promote, suspend, remove, seat limits), Configurações (data, modalities, trainer label, timezone, week release, close club), Plano e cobrança (plans from `/public/plans`, seats, Stripe Checkout/portal in the browser, invoices); frozen clubs show staff the icy overlay with the way out to payment (owners) or "fale com o gestor" (trainers), never to students | [ ] |
+
+### Mobile parity checklist (every web screen → its mobile step)
+
+Goal (founder, 2026-11-03): the app does everything the web app does, on the real API. Student-first, but trainers and owners can run their club from the phone. Until a screen lands, "Mais" opens it on the web.
+
+| Web screen | Mobile | Step |
+|---|---|---|
+| A1 Landing | Not in the app: the marketing site stays on the web; the app opens on sign-in | — |
+| A2 Entrar | E-mail code done; native Google needs the development build | X2 ✓, X10 |
+| A3 Convite, A6/A7 clubes | Deep link, invite page, club list and switcher | X2 ✓, X3 ✓ |
+| A4 Boas-vindas, A5 Criar clube | Student welcome (consent → profile → Strava); owner's create-club wizard | X9 |
+| M1 Hoje, M2 Treino, M5 Feedback, M3 Agenda | Today, workout with personal targets, feedback sheet, thread, week/month, offline | X4 |
+| M4 Atividades, Strava connect | List, detail, manual log, connect/disconnect | X5 |
+| M7 Perfil, C1 Minha conta, W11 Notificações | Profile, zones, goal; account, avatar, connections, push switches, consents, export, delete, sessions; notification center | X7 |
+| M9 Provas, W12 Provas e eventos | Student races; staff race management | X11 |
+| M10/W13 Mensagens e mural | Conversations, mural, announcements | X4b |
+| W1 Painel, W2 Alunos + grupos, W3 Aluno, W4 Planejamento, W8 Feedbacks | Dashboard, students and groups, student detail, planning (day/week, assign from library, move, edit, remove, week release), feedback inbox | X8 |
+| W5 Construtor, W6 Biblioteca, W17 Assistente | Builder, library, assistant | X12 |
+| W7 Planilhas | Planilhas editor and apply | X13 |
+| W14 Avaliações, W16 Relatórios, W18 Exercícios | Assessments, reports, exercises | X14 |
+| O1 Studio, O2 Membros, O3 Configurações, O4 Plano e cobrança, frozen layer | Owner tools; Stripe opens in the browser | X15 |
+| Push, widgets, Health | Device push per kind (D-045), today widget, Apple Health / Health Connect | X10 |
+| ⌘K palette, keyboard shortcuts, print-friendly week, PWA | Desktop-only by nature | — |
 
 ## Later (TODO, not scheduled)
 
