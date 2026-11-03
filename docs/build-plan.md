@@ -90,6 +90,13 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 | B3 | Stripe for real on QA (test mode): `runflow stripe-setup` creates or finds the products, prices (Pro, Max base, extra trainer, extra student) and the webhook endpoint from `STRIPE_SECRET_KEY`; Max subscriptions carry seat quantities that follow membership changes (prorated); the billing simulation switches off by itself. The founder only provides the test secret key | [ ] |
 | B4 | Club freezing for unpaid subscriptions (D-044): a paid plan whose payment fails stays usable during a grace period (proposal: 7 days past due), then the club is frozen. Frozen clubs: staff (owner and trainers) see the club behind a frozen, icy overlay and can't change anything (staff writes answer `423 club.frozen`), with a single way out to payment (owners: Plano e cobrança / Stripe portal; trainers: a message to ask the owner); students see nothing different and keep training. Web and mobile both; mock simulation actions to freeze and unfreeze | [ ] |
 
+## Simplifications (founder, 2026-11-03; queued)
+
+| Step | Scope | Status |
+|---|---|---|
+| N1 | Notifications are push only (D-045, replaces F35's channels): no notification e-mails at all, no daily digest; e-mail stays only for sign-in codes, invites and account setup. Every notification always lands in the app (center, unread count on the icon); what a person controls is whether it also arrives as a **push on the device**: one simple on/off switch per kind (plus "pausar tudo"), on web and mobile. Contract (prefs shape, `notifications.email` column and digest fields go), mock, backend (digest/instant e-mail jobs removed), web C1 settings, mobile X7, docs | [ ] |
+| F39 | Remove "sincronizar com meu calendário" (the `.ics` calendar feed) entirely, like F33/F37: endpoints, `calendar_feeds` table, backend, web (C1 card), mobile, docs. Founder: nobody uses it | [ ] |
+
 ## Production (its own session, D-040)
 
 | Step | Scope | Status |
