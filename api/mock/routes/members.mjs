@@ -21,12 +21,12 @@ export default function register(h) {
     const m = getMember(ctx.params.club_id, ctx.params.id);
     if (m.id === me.id) h.fail(409, "member.self", "Não é possível alterar o próprio acesso", "Peça a outro gestor para fazer essa mudança.");
     const { role, status } = ctx.body;
-    if (role !== undefined && !["owner", "trainer", "student"].includes(role)) h.invalid([{ field: "role", message: "Papel inválido." }]);
+    if (role === "owner") h.invalid([{ field: "role", message: "Cada clube tem um único responsável." }]);
+    if (role !== undefined && !["trainer", "student"].includes(role)) h.invalid([{ field: "role", message: "Papel inválido." }]);
     if (status !== undefined && !["active", "suspended"].includes(status)) h.invalid([{ field: "status", message: "Situação inválida." }]);
-    if (status === "active" && m.status !== "active" && m.role === "student") {
-      const s = h.subscription(ctx.params.club_id);
-      if (s.active_students >= s.student_limit) h.fail(409, "plan.limit_reached", "Limite de alunos atingido", `O plano ${s.plan === "free" ? "Free" : "Pro"} permite até ${s.student_limit} alunos ativos.`);
-    }
+    // Taking a seat (reactivated, or moved to another role) counts against the plan (D-043).
+    const nextRole = role ?? m.role, nextStatus = status ?? m.status;
+    if (nextStatus === "active" && (m.status !== "active" || nextRole !== m.role)) h.ensureSeat(ctx.params.club_id, nextRole);
     if (role) m.role = role;
     if (status) m.status = status;
     h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: m.club_id, actor_user_id: ctx.user().id, action: "member.updated", target_type: "membership", target_id: m.id, data: { role, status }, created_at: h.nowIso() });

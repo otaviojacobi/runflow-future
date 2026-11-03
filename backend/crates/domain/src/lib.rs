@@ -5,6 +5,7 @@ pub mod assessment;
 pub mod assistant;
 pub mod color;
 pub mod notify;
+pub mod plans;
 pub mod tags;
 pub mod week;
 pub mod workout;

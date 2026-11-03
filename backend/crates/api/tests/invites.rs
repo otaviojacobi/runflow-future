@@ -294,21 +294,20 @@ async fn resend_rotates_the_link_and_expired_cancelled_or_full_invites_fail(db: 
             .as_str()
             .unwrap(),
     );
-    sqlx::query("UPDATE club_subscriptions SET student_limit = 0")
-        .execute(app.db())
-        .await
-        .unwrap();
-    app.post(
-        &format!("/v1/invites/{fresh}/accept"),
-        Some(&ana),
-        json!({}),
-    )
-    .await
-    .problem(409, "invite.club_full");
-    sqlx::query("UPDATE club_subscriptions SET student_limit = 10")
-        .execute(app.db())
-        .await
-        .unwrap();
+    app.fill_seats(&c.id, "student", 10).await;
+    let full = app
+        .post(
+            &format!("/v1/invites/{fresh}/accept"),
+            Some(&ana),
+            json!({}),
+        )
+        .await;
+    full.problem(409, "invite.club_full");
+    assert_eq!(
+        full.body["detail"],
+        "O clube atingiu o limite de alunos do plano. Avise quem te convidou."
+    );
+    app.free_seats().await;
 
     // Cancelled: the link stops working.
     assert_eq!(
@@ -422,10 +421,8 @@ async fn bulk_import_invites_each_row_once(db: PgPool) {
     )
     .await
     .ok();
-    sqlx::query("UPDATE club_subscriptions SET student_limit = 2")
-        .execute(app.db())
-        .await
-        .unwrap();
+    // Free has 10 student seats: 2 left before the bulk invite.
+    app.fill_seats(&c.id, "student", 8).await;
 
     app.post(
         &format!("{invites}/bulk"),
@@ -567,29 +564,43 @@ async fn members_roles_limits_and_leaving(db: PgPool) {
         )
         .await;
     assert_eq!(suspended.ok()["membership"]["status"], "suspended");
-    sqlx::query("UPDATE club_subscriptions SET student_limit = 1")
-        .execute(app.db())
-        .await
-        .unwrap();
+    app.fill_seats(&c.id, "student", 10).await;
+    let full = app
+        .patch(
+            &format!("{members}/{ana}"),
+            Some(&c.owner),
+            json!({ "status": "active" }),
+        )
+        .await;
+    full.problem(409, "plan.limit_reached");
+    assert_eq!(
+        full.body["detail"],
+        "O plano Free inclui 10 alunos. Faça upgrade em Plano e cobrança para liberar mais vagas."
+    );
+    app.free_seats().await;
+    // One owner per club; Free has a single trainer seat.
     app.patch(
-        &format!("{members}/{ana}"),
+        &format!("{members}/{bruno}"),
         Some(&c.owner),
-        json!({ "status": "active" }),
+        json!({ "role": "owner" }),
     )
     .await
-    .problem(409, "plan.limit_reached");
-    sqlx::query("UPDATE club_subscriptions SET student_limit = 10")
-        .execute(app.db())
-        .await
-        .unwrap();
+    .problem(422, "validation.failed");
     let promoted = app
         .patch(
             &format!("{members}/{bruno}"),
             Some(&c.owner),
-            json!({ "role": "owner" }),
+            json!({ "role": "trainer" }),
         )
         .await;
-    assert_eq!(promoted.ok()["membership"]["role"], "owner");
+    assert_eq!(promoted.ok()["membership"]["role"], "trainer");
+    app.patch(
+        &format!("{members}/{ana}"),
+        Some(&c.owner),
+        json!({ "status": "active", "role": "trainer" }),
+    )
+    .await
+    .problem(409, "plan.limit_reached");
 
     assert_eq!(
         app.delete(&format!("{members}/{ana}"), Some(&c.owner))

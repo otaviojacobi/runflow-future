@@ -720,12 +720,13 @@ async fn dashboard(
             alerts.push(json!({ "kind": "new_member", "severity": "brand", "athlete": athlete, "text": format!("{name} entrou e ainda não tem treinos"), "link": "/planning" }));
         }
     }
-    let sub = runflow_db::clubs::subscription(&state.db, m.club_id).await?;
+    let sub = runflow_db::clubs::subscription(&state.db, m.club_id, &m.role).await?;
     if let Some(s) = &sub
-        && s.active_students as f64 >= s.student_limit as f64 * 0.9
+        && let Some(limit) = s.student_limit
+        && s.active_students as f64 >= limit as f64 * 0.9
     {
-        let plan = if s.plan == "free" { "Free" } else { "Pro" };
-        alerts.push(json!({ "kind": "plan_limit", "severity": "warning", "athlete": null, "text": format!("{} de {} alunos no plano {plan}", s.active_students, s.student_limit), "link": "/club/billing" }));
+        let plan = &runflow_domain::plans::plan(&s.plan).name;
+        alerts.push(json!({ "kind": "plan_limit", "severity": "warning", "athlete": null, "text": format!("{} de {limit} alunos no plano {plan}", s.active_students), "link": "/club/billing" }));
     }
 
     let ob = db::onboarding(&state.db, m.club_id).await?;

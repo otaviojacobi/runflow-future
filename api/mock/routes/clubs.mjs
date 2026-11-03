@@ -48,12 +48,12 @@ export default function register(h) {
     const m = { id: h.uuid("m"), club_id: c.id, user_id: u.id, role: "owner", status: "active", is_billing_owner: true, joined_at: now, left_at: null };
     h.db.memberships.push(m);
     setBranding(c.id, null, null, null);
-    h.db.club_subscriptions.push({ club_id: c.id, plan: "free", status: "active", student_limit: 10, stripe_customer_id: null, stripe_subscription_id: null, current_period_end: null, cancel_at_period_end: false, updated_at: now });
+    h.db.club_subscriptions.push({ club_id: c.id, plan: "free", status: "active", past_due_since: null, stripe_customer_id: null, stripe_subscription_id: null, current_period_end: null, cancel_at_period_end: false, updated_at: now });
     for (const t of modalities.flatMap((s) => STARTER[s] || [])) {
       h.db.workout_templates.push({ id: h.uuid("tpl"), club_id: c.id, author_membership_id: m.id, sport: t.sport, name: t.name, description: null, structure: t.structure, est_duration_s: t.est_duration_s, est_distance_m: t.est_distance_m, tags: t.tags, created_at: now, updated_at: now, archived_at: null });
     }
     h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: c.id, actor_user_id: u.id, action: "club.created", target_type: "club", target_id: c.id, data: null, created_at: now });
-    return { __status: 201, data: { club: c, membership: m, branding: h.branding(c.id), subscription: h.subscription(c.id) } };
+    return { __status: 201, data: { club: c, membership: m, branding: h.branding(c.id), subscription: h.subscription(c.id, "owner") } };
   });
   h.get("/v1/clubs/:club_id", (ctx) => { ctx.member(ctx.params.club_id); return club(ctx.params.club_id); });
   h.patch("/v1/clubs/:club_id", (ctx) => {
@@ -180,6 +180,8 @@ export default function register(h) {
     if (!EMAIL.test(email)) h.invalid([{ field: "email", message: "Digite um e-mail válido, como nome@email.com." }]);
     if (isMember(m.club_id, email)) h.fail(409, "invite.already_member", "Essa pessoa já está no clube", "Ela já pode entrar com esse e-mail.");
     if (openInvite(m.club_id, email)) h.fail(409, "invite.exists", "Já existe um convite para esse e-mail", "Use “Reenviar” na lista de convites para mandar de novo.");
+    // Trainer seats are few: open trainer invites count too (D-043).
+    if (role === "trainer") h.ensureSeat(m.club_id, "trainer", 1 + h.db.invitations.filter((x) => x.club_id === m.club_id && x.role === "trainer" && inviteStatus(x) === "pending").length);
     const groupIds = (Array.isArray(ctx.body.group_ids) ? ctx.body.group_ids : []).filter((g) => h.db.groups.some((x) => x.id === g && x.club_id === m.club_id));
     const row = { id: h.uuid("inv"), club_id: m.club_id, role, email, name: String(ctx.body.name || "").trim() || null, token: "", group_ids: role === "student" ? groupIds : [], created_by: m.id, expires_at: "", sent_at: null, send_count: 0, accepted_at: null, accepted_by: null, revoked_at: null, created_at: h.nowIso() };
     renew(row);
@@ -221,7 +223,7 @@ export default function register(h) {
       items.push({ ...inviteOut(row), resent });
     }
     const s = h.subscription(m.club_id);
-    return { __status: 201, data: { created: items.length, items, skipped, over_limit: Math.max(0, s.active_students + items.length - s.student_limit) } };
+    return { __status: 201, data: { created: items.length, items, skipped, over_limit: s.student_limit === null ? 0 : Math.max(0, s.active_students + items.length - s.student_limit) } };
   });
   h.delete("/v1/clubs/:club_id/invites/:id", (ctx) => {
     ctx.staff(ctx.params.club_id);
@@ -235,7 +237,11 @@ export default function register(h) {
     if (!i) h.fail(404, "invite.not_found", "Convite não encontrado", "O link pode ter sido trocado por um mais novo. Confira seu e-mail ou peça um novo convite.");
     const c = club(i.club_id);
     let reason = { pending: null, expired: "expired", revoked: "revoked", accepted: "accepted" }[inviteStatus(i)];
-    if (!reason && i.role === "student") { const s = h.subscription(c.id); if (s.active_students >= s.student_limit) reason = "club_full"; }
+    if (!reason) {
+      const s = h.subscription(c.id);
+      const [used, limit] = i.role === "trainer" ? [s.active_trainers, s.trainer_limit] : [s.active_students, s.student_limit];
+      if (limit !== null && used >= limit) reason = "club_full";
+    }
     return { i, c, reason };
   };
   h.get("/v1/public/invites/:token", (ctx) => {
@@ -262,7 +268,7 @@ export default function register(h) {
       revoked: ["Convite cancelado", "Peça um novo convite para quem te convidou."],
       expired: ["Convite expirado", "Os convites valem 7 dias. Peça para quem te convidou reenviar."],
       accepted: ["Convite já usado", "Este convite já foi aceito. Entre com sua conta para ver o clube."],
-      club_full: ["O clube está lotado", "O clube atingiu o limite de alunos do plano. Avise quem te convidou."],
+      club_full: ["O clube está lotado", `O clube atingiu o limite de ${i.role === "trainer" ? "treinadores" : "alunos"} do plano. Avise quem te convidou.`],
     };
     if (reason) h.fail(409, `invite.${reason}`, ...messages[reason]);
     const now = h.nowIso();

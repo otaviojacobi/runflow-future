@@ -33,9 +33,11 @@ impl std::fmt::Debug for StripeClient {
     }
 }
 
-/// A Checkout session for the Pro subscription of a club.
+/// A Checkout session for a club's paid plan; the club and the plan travel as metadata.
 pub struct Checkout<'a> {
     pub price: &'a str,
+    /// `pro` or `max` (D-043).
+    pub plan: &'a str,
     pub club_id: &'a str,
     /// The club's customer from an earlier subscription (keeps one customer per club).
     pub customer: Option<&'a str>,
@@ -101,6 +103,8 @@ impl StripeClient {
             ("client_reference_id", c.club_id),
             ("metadata[club_id]", c.club_id),
             ("subscription_data[metadata][club_id]", c.club_id),
+            ("metadata[plan]", c.plan),
+            ("subscription_data[metadata][plan]", c.plan),
             ("success_url", c.success_url),
             ("cancel_url", c.cancel_url),
             ("locale", "pt-BR"),

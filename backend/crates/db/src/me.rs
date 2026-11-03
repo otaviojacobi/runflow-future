@@ -8,7 +8,7 @@ use sqlx::{PgConnection, PgExecutor};
 use uuid::Uuid;
 
 use crate::models::{
-    Branding, Club, Consent, Membership, MembershipContext, Notification, Subscription, User,
+    Branding, Club, Consent, Membership, MembershipContext, Notification, SubscriptionRow, User,
 };
 
 /// Active memberships in clubs that still exist, with branding and plan. Oldest membership first.
@@ -53,11 +53,13 @@ pub async fn memberships(
     })
     .collect();
 
-    let mut subscriptions: HashMap<Uuid, Subscription> = sqlx::query!(
-        r#"SELECT s.club_id, s.plan, s.status, s.student_limit, s.current_period_end, s.cancel_at_period_end,
+    let mut subscriptions: HashMap<Uuid, SubscriptionRow> = sqlx::query!(
+        r#"SELECT s.club_id, s.plan, s.status, s.past_due_since, s.current_period_end, s.cancel_at_period_end,
                   s.stripe_customer_id IS NOT NULL AS "has_billing_account!",
                   (SELECT count(*) FROM memberships x
-                    WHERE x.club_id = s.club_id AND x.role = 'student' AND x.status = 'active') AS "active_students!"
+                    WHERE x.club_id = s.club_id AND x.role = 'student' AND x.status = 'active') AS "active_students!",
+                  (SELECT count(*) FROM memberships x
+                    WHERE x.club_id = s.club_id AND x.role = 'trainer' AND x.status = 'active') AS "active_trainers!"
              FROM club_subscriptions s WHERE s.club_id = ANY($1)"#,
         &club_ids
     )
@@ -67,14 +69,15 @@ pub async fn memberships(
     .map(|s| {
         (
             s.club_id,
-            Subscription {
+            SubscriptionRow {
                 plan: s.plan,
                 status: s.status,
-                student_limit: s.student_limit,
-                active_students: s.active_students,
+                past_due_since: s.past_due_since,
                 current_period_end: s.current_period_end,
                 cancel_at_period_end: s.cancel_at_period_end,
                 has_billing_account: s.has_billing_account,
+                active_students: s.active_students,
+                active_trainers: s.active_trainers,
             },
         )
     })
@@ -84,7 +87,7 @@ pub async fn memberships(
         .into_iter()
         .map(|r| MembershipContext {
             branding: branding.remove(&r.club_id),
-            subscription: subscriptions.remove(&r.club_id),
+            subscription: subscriptions.remove(&r.club_id).map(|s| s.view(&r.role)),
             club: Club {
                 id: r.club_id,
                 slug: r.slug,

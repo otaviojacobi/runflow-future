@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH before AS (SELECT status FROM club_subscriptions WHERE club_id = $1)\n           UPDATE club_subscriptions SET status = $2,\n                  past_due_since = CASE WHEN $2 = 'past_due' THEN coalesce(past_due_since, now()) END,\n                  updated_at = now()\n            WHERE club_id = $1 AND plan <> 'free'\n           RETURNING (SELECT status FROM before) AS \"before!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "before!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "16a53c09e07301a0e1f2fb8dbdddbdf9dad054ac7f42fa0038e5486abd0a684c"
+}

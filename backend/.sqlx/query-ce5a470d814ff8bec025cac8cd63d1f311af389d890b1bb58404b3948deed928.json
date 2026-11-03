@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT s.plan, s.status, s.student_limit, s.current_period_end, s.cancel_at_period_end,\n                  s.stripe_customer_id IS NOT NULL AS \"has_billing_account!\",\n                  (SELECT count(*) FROM memberships x WHERE x.club_id = s.club_id AND x.role = 'student' AND x.status = 'active') AS \"active_students!\"\n             FROM club_subscriptions s WHERE s.club_id = $1",
+  "query": "SELECT s.plan, s.status, s.past_due_since, s.current_period_end, s.cancel_at_period_end,\n                  s.stripe_customer_id IS NOT NULL AS \"has_billing_account!\",\n                  (SELECT count(*) FROM memberships x WHERE x.club_id = s.club_id AND x.role = 'student' AND x.status = 'active') AS \"active_students!\",\n                  (SELECT count(*) FROM memberships x WHERE x.club_id = s.club_id AND x.role = 'trainer' AND x.status = 'active') AS \"active_trainers!\"\n             FROM club_subscriptions s WHERE s.club_id = $1",
   "describe": {
     "columns": [
       {
@@ -27,12 +27,12 @@
       },
       {
         "ordinal": 2,
-        "name": "student_limit",
-        "type_info": "Int4",
+        "name": "past_due_since",
+        "type_info": "Timestamptz",
         "origin": {
           "Table": {
             "table": "club_subscriptions",
-            "name": "student_limit"
+            "name": "past_due_since"
           }
         }
       },
@@ -69,6 +69,12 @@
         "name": "active_students!",
         "type_info": "Int8",
         "origin": "Expression"
+      },
+      {
+        "ordinal": 7,
+        "name": "active_trainers!",
+        "type_info": "Int8",
+        "origin": "Expression"
       }
     ],
     "parameters": {
@@ -79,12 +85,13 @@
     "nullable": [
       false,
       false,
-      false,
+      true,
       true,
       false,
+      null,
       null,
       null
     ]
   },
-  "hash": "4d51afc18db8e3f796f8b27804a138e0da85206b7d3ea2c0a8d08f7a7a86d7d3"
+  "hash": "ce5a470d814ff8bec025cac8cd63d1f311af389d890b1bb58404b3948deed928"
 }

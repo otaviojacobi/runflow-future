@@ -2,8 +2,9 @@
 //! invoices. Events can arrive more than once and in any order, so every write is an idempotent upsert.
 
 use chrono::{DateTime, Utc};
-use runflow_db::billing::{self, Invoice, Notice, Pro};
+use runflow_db::billing::{self, Invoice, Notice, Paid};
 use runflow_db::providers;
+use runflow_domain::plans;
 use runflow_integrations::stripe::{id_of, invoice_period, period_end, plan_status};
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -25,6 +26,13 @@ pub(crate) async fn event(w: &Worker, payload: &Value) -> Result<(), JobError> {
         providers::event_done(&w.db, id, err.as_deref()).await?;
     }
     result
+}
+
+/// The plan our checkout put in the metadata (`pro` | `max`).
+fn plan_of(o: &Value) -> Option<&str> {
+    o["metadata"]["plan"]
+        .as_str()
+        .filter(|p| matches!(*p, "pro" | "max"))
 }
 
 fn at(secs: Option<i64>) -> Option<DateTime<Utc>> {
@@ -51,31 +59,33 @@ async fn apply(w: &Worker, e: &Value) -> Result<(), JobError> {
     let o = &e["data"]["object"];
     let kind = e["type"].as_str().unwrap_or_default();
     match kind {
-        // Checkout finished: the club is on Pro.
+        // Checkout finished: the club is on the plan it bought (our metadata; Pro before plans by seats).
         "checkout.session.completed" if o["mode"] == "subscription" => {
             let subscription = id_of(&o["subscription"]);
             let Some(club) = club_of(w, o, subscription).await? else {
                 return Ok(());
             };
+            let plan = plans::plan(plan_of(o).unwrap_or("pro"));
             let mut tx = w.db.begin().await?;
-            let before = billing::set_pro(
+            let before = billing::set_paid(
                 &mut *tx,
                 club,
-                Pro {
+                Paid {
+                    plan: Some(&plan.id),
                     customer: id_of(&o["customer"]),
                     subscription,
-                    ..Pro::default()
+                    ..Paid::default()
                 },
             )
             .await?;
-            if before.as_deref().is_some_and(|p| p != "pro") {
-                billing::notify_owners(&mut tx, club, Notice::Upgraded).await?;
+            if before.as_deref().is_some_and(|p| p != plan.id) {
+                billing::notify_owners(&mut tx, club, Notice::Welcome(plan)).await?;
                 billing::audit(
                     &mut *tx,
                     club,
                     None,
                     "subscription.upgraded",
-                    &json!({ "plan": "pro" }),
+                    &json!({ "plan": plan.id }),
                 )
                 .await?;
             }
@@ -108,12 +118,13 @@ async fn apply(w: &Worker, e: &Value) -> Result<(), JobError> {
                     .await?;
                 }
             } else if let Some(status) = status
-                && !(other && current.as_ref().is_some_and(|a| a.plan == "pro"))
+                && !(other && current.as_ref().is_some_and(|a| a.plan != "free"))
             {
-                billing::set_pro(
+                billing::set_paid(
                     &w.db,
                     club,
-                    Pro {
+                    Paid {
+                        plan: plan_of(o),
                         customer: id_of(&o["customer"]),
                         subscription,
                         status: Some(status),
@@ -162,8 +173,11 @@ async fn apply(w: &Worker, e: &Value) -> Result<(), JobError> {
                 },
             )
             .await?;
-            if kind == "invoice.payment_failed" {
-                billing::set_status(&mut *tx, club, "past_due").await?;
+            if kind == "invoice.payment_failed"
+                && billing::set_status(&mut *tx, club, "past_due")
+                    .await?
+                    .is_some_and(|before| before != "past_due")
+            {
                 billing::notify_owners(&mut tx, club, Notice::PaymentFailed).await?;
             }
             tx.commit().await?;

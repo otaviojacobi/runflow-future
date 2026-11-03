@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-03T16:48:06.055Z",
+  "generated_at": "2026-11-03T18:14:37.518Z",
   "version": 1
  },
  "users": [
@@ -1202,10 +1202,10 @@
    "stripe_subscription_id": null,
    "current_period_end": null,
    "cancel_at_period_end": false,
+   "past_due_since": null,
    "updated_at": "2026-08-24T13:00:00.000Z",
    "plan": "free",
-   "status": "active",
-   "student_limit": 10
+   "status": "active"
   },
   {
    "club_id": "c3da5abf-0ea4-43dd-ac57-f9bfa5861b1b",
@@ -1213,10 +1213,10 @@
    "stripe_subscription_id": "sub_mock_mare",
    "current_period_end": "2026-11-21T03:00:00.000Z",
    "cancel_at_period_end": false,
+   "past_due_since": null,
    "updated_at": "2026-08-24T13:00:00.000Z",
    "plan": "pro",
-   "status": "active",
-   "student_limit": 100
+   "status": "active"
   }
  ],
  "invoices": [

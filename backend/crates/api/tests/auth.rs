@@ -512,13 +512,11 @@ async fn club_with(app: &TestApp, user_email: &str, role: &str) -> Uuid {
         .unwrap();
     sqlx::query("INSERT INTO clubs (id, slug, name, modalities) VALUES ($1, $2, 'Pace Forte', '{run,swim}')").bind(club).bind(format!("pace-{}", &club.simple().to_string()[..8])).execute(app.db()).await.unwrap();
     sqlx::query("INSERT INTO club_branding (club_id, primary_color, theme, theme_css) VALUES ($1, '#E4572E', '{\"primary\":\"#E4572E\",\"source\":\"derived\"}', ':root{}')").bind(club).execute(app.db()).await.unwrap();
-    sqlx::query(
-        "INSERT INTO club_subscriptions (club_id, plan, student_limit) VALUES ($1, 'pro', 100)",
-    )
-    .bind(club)
-    .execute(app.db())
-    .await
-    .unwrap();
+    sqlx::query("INSERT INTO club_subscriptions (club_id, plan) VALUES ($1, 'pro')")
+        .bind(club)
+        .execute(app.db())
+        .await
+        .unwrap();
     sqlx::query("INSERT INTO memberships (id, club_id, user_id, role) VALUES ($1, $2, $3, $4)")
         .bind(Uuid::now_v7())
         .bind(club)
@@ -549,7 +547,7 @@ async fn me_lists_clubs_with_branding_and_plan(db: PgPool) {
             m["subscription"]["student_limit"].as_i64(),
             m["subscription"]["active_students"].as_i64()
         ),
-        (Some("pro"), Some(100), Some(0))
+        (Some("pro"), Some(30), Some(0))
     );
     app.post(
         "/v1/me/consents",

@@ -201,7 +201,11 @@ pub fn router(state: AppState) -> Router {
         .max_age(Duration::from_secs(600));
 
     Router::new()
-        .nest("/v1", v1.route_layer(axum::middleware::from_fn(metrics::track)))
+        .nest(
+            "/v1",
+            v1.route_layer(axum::middleware::from_fn(access::write_gate))
+                .route_layer(axum::middleware::from_fn(metrics::track)),
+        )
         .fallback(not_found)
         .method_not_allowed_fallback(method_not_allowed)
         .layer(

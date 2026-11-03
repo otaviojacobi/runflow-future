@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE club_subscriptions SET plan = 'free', status = 'active', past_due_since = NULL, stripe_subscription_id = NULL,\n                current_period_end = NULL, cancel_at_period_end = false, updated_at = now()\n          WHERE club_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e50369a0834a92ba9f2824dd06382974d6cb132113807b1cf429890b259b8957"
+}

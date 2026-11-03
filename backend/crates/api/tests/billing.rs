@@ -71,11 +71,17 @@ async fn the_billing_simulation(db: PgPool) {
 
     let free = app.get(&sub, Some(&ana)).await;
     assert_eq!(free.ok()["plan"], "free");
-    assert_eq!(free.body["student_limit"], 10);
+    assert_eq!(
+        (&free.body["student_limit"], &free.body["trainer_limit"]),
+        (&json!(10), &json!(1))
+    );
     assert_eq!(free.body["active_students"], 1);
+    assert_eq!(free.body["active_trainers"], 0);
+    assert_eq!(free.body["monthly_cents"], 0);
+    assert_eq!(free.body["frozen"], false);
     assert_eq!(free.body["has_billing_account"], false);
 
-    // Owner only; Max isn't sold; the portal needs an account.
+    // Owner only; a paid plan; the portal needs an account.
     app.post(
         &format!("{sub}/checkout"),
         Some(&ana),
@@ -83,19 +89,34 @@ async fn the_billing_simulation(db: PgPool) {
     )
     .await
     .problem(403, "auth.forbidden");
+    for plan in [json!({}), json!({ "plan": "free" })] {
+        app.post(&format!("{sub}/checkout"), Some(&owner), plan)
+            .await
+            .problem(422, "validation.failed");
+    }
+    app.post(&format!("{sub}/portal"), Some(&owner), json!({}))
+        .await
+        .problem(409, "billing.no_account");
     app.post(
-        &format!("{sub}/checkout"),
+        &format!("{sub}/change"),
         Some(&owner),
         json!({ "plan": "max" }),
     )
     .await
-    .problem(409, "plan.unavailable");
-    app.post(&format!("{sub}/checkout"), Some(&owner), json!({}))
-        .await
-        .problem(422, "validation.failed");
-    app.post(&format!("{sub}/portal"), Some(&owner), json!({}))
-        .await
-        .problem(409, "billing.no_account");
+    .problem(409, "billing.no_subscription");
+    let max = app
+        .post(
+            &format!("{sub}/checkout"),
+            Some(&owner),
+            json!({ "plan": "max" }),
+        )
+        .await;
+    assert!(
+        max.ok()["checkout_url"]
+            .as_str()
+            .unwrap()
+            .starts_with(&format!("/dev/stripe/checkout?club={club}&plan=max"))
+    );
     let checkout = app
         .post(
             &format!("{sub}/checkout"),
@@ -119,7 +140,11 @@ async fn the_billing_simulation(db: PgPool) {
         )
         .await;
     assert_eq!(pro.ok()["plan"], "pro");
-    assert_eq!(pro.body["student_limit"], 100);
+    assert_eq!(
+        (&pro.body["student_limit"], &pro.body["trainer_limit"]),
+        (&json!(30), &json!(2))
+    );
+    assert_eq!(pro.body["monthly_cents"], 2000);
     assert_eq!(pro.body["has_billing_account"], true);
     assert!(pro.body["current_period_end"].is_string());
     assert_eq!(notifications(&app, &owner).await, ["Bem-vindo ao Pro!"]);
@@ -128,13 +153,55 @@ async fn the_billing_simulation(db: PgPool) {
         .await;
     assert_eq!(inv.ok()["items"][0]["amount_cents"], 2000);
     assert_eq!(inv.body["items"][0]["status"], "paid");
-    app.post(
-        &format!("{sub}/checkout"),
-        Some(&owner),
-        json!({ "plan": "pro" }),
-    )
-    .await
-    .problem(409, "subscription.exists");
+    let exists = app
+        .post(
+            &format!("{sub}/checkout"),
+            Some(&owner),
+            json!({ "plan": "max" }),
+        )
+        .await;
+    exists.problem(409, "subscription.exists");
+    assert_eq!(exists.body["title"], "Você já está no Pro");
+
+    // Pro ⇄ Max right away; Max has no hard limits and bills the seats above the included ones.
+    let max = app
+        .post(
+            &format!("{sub}/change"),
+            Some(&owner),
+            json!({ "plan": "max" }),
+        )
+        .await;
+    assert_eq!(max.ok()["plan"], "max");
+    assert_eq!(max.body["student_limit"], Value::Null);
+    assert_eq!(max.body["included_students"], 100);
+    assert_eq!(max.body["monthly_cents"], 5900);
+    app.fill_seats(&club, "student", 101).await;
+    app.fill_seats(&club, "trainer", 6).await;
+    let extra = app.get(&sub, Some(&owner)).await;
+    assert_eq!(extra.ok()["monthly_cents"], 5900 + 500 + 50);
+    let small = app
+        .post(
+            &format!("{sub}/change"),
+            Some(&owner),
+            json!({ "plan": "pro" }),
+        )
+        .await;
+    small.problem(409, "plan.too_small");
+    assert_eq!(
+        small.body["detail"],
+        "O Pro inclui até 30 alunos e 2 treinadores; hoje o clube tem 101 alunos e 6 treinadores."
+    );
+    app.free_seats().await;
+    assert_eq!(
+        app.post(
+            &format!("{sub}/change"),
+            Some(&owner),
+            json!({ "plan": "pro" })
+        )
+        .await
+        .ok()["plan"],
+        "pro"
+    );
     assert_eq!(
         app.post(&format!("{sub}/portal"), Some(&owner), json!({}))
             .await
@@ -152,15 +219,57 @@ async fn the_billing_simulation(db: PgPool) {
         )
         .await;
     assert_eq!(failed.ok()["status"], "past_due");
+    assert!(failed.body["grace_until"].is_string());
+    assert_eq!(
+        failed.body["frozen"], false,
+        "usable during the grace period"
+    );
     assert_eq!(
         notifications(&app, &owner).await,
         ["Não conseguimos cobrar a assinatura", "Bem-vindo ao Pro!"]
     );
+
+    // The grace period is over: frozen for the staff (only billing and reads), never for students.
+    let frozen = app
+        .post("/v1/mock/stripe/portal", Some(&owner), portal("freeze"))
+        .await;
+    assert_eq!(frozen.ok()["frozen"], true);
     assert_eq!(
-        app.post("/v1/mock/stripe/portal", Some(&owner), portal("pay"))
+        notifications(&app, &owner).await.len(),
+        2,
+        "one notice per failure"
+    );
+    let groups = format!("/v1/clubs/{club}/groups");
+    let locked = app
+        .post(&groups, Some(&owner), json!({ "name": "Iniciantes" }))
+        .await;
+    locked.problem(423, "club.frozen");
+    assert_eq!(
+        locked.body["detail"],
+        "O pagamento do plano está pendente. Regularize em Plano e cobrança para voltar a usar o clube."
+    );
+    app.get(&groups, Some(&owner)).await.ok();
+    assert_eq!(app.get(&sub, Some(&ana)).await.ok()["frozen"], false);
+    let me = app.get("/v1/me", Some(&ana)).await;
+    assert_eq!(me.ok()["memberships"][0]["subscription"]["frozen"], false);
+    let me = app.get("/v1/me", Some(&owner)).await;
+    assert_eq!(me.ok()["memberships"][0]["subscription"]["frozen"], true);
+    app.post(&format!("{sub}/portal"), Some(&owner), json!({}))
+        .await
+        .ok();
+    let paid = app
+        .post("/v1/mock/stripe/portal", Some(&owner), portal("pay"))
+        .await;
+    assert_eq!(paid.ok()["status"], "active");
+    assert_eq!(
+        (&paid.body["frozen"], &paid.body["grace_until"]),
+        (&json!(false), &Value::Null)
+    );
+    assert_eq!(
+        app.post(&groups, Some(&owner), json!({ "name": "Iniciantes" }))
             .await
-            .ok()["status"],
-        "active"
+            .status,
+        201
     );
     let cancel = app
         .post("/v1/mock/stripe/portal", Some(&owner), portal("cancel"))
@@ -176,6 +285,7 @@ async fn the_billing_simulation(db: PgPool) {
         .await;
     assert_eq!(expired.ok()["plan"], "free");
     assert_eq!(expired.body["student_limit"], 10);
+    assert_eq!(expired.body["status"], "active");
     assert_eq!(expired.body["has_billing_account"], true);
     app.post("/v1/mock/stripe/portal", Some(&owner), portal("cancel"))
         .await
@@ -269,6 +379,14 @@ async fn stripe_checkout_portal_and_webhooks(db: PgPool) {
     let (club, owner, ana) = setup(&app).await;
     let sub = format!("/v1/clubs/{club}/subscription");
 
+    // Max through Stripe waits for its seat prices (B3).
+    app.post(
+        &format!("{sub}/checkout"),
+        Some(&owner),
+        json!({ "plan": "max" }),
+    )
+    .await
+    .problem(503, "billing.unavailable");
     // Checkout: Stripe's hosted page, with the club and the owner's e-mail.
     let checkout = app
         .post(
@@ -288,6 +406,7 @@ async fn stripe_checkout_portal_and_webhooks(db: PgPool) {
         assert_eq!(p["line_items[0][price]"], "price_pro");
         assert_eq!(p["client_reference_id"], club);
         assert_eq!(p["subscription_data[metadata][club_id]"], club);
+        assert_eq!(p["subscription_data[metadata][plan]"], "pro");
         assert_eq!(p["customer_email"], "marcos@email.com");
         assert_eq!(
             p["success_url"],
@@ -337,7 +456,7 @@ async fn stripe_checkout_portal_and_webhooks(db: PgPool) {
     let pro = app.get(&sub, Some(&ana)).await;
     assert_eq!(pro.ok()["plan"], "pro");
     assert_eq!(pro.body["status"], "active");
-    assert_eq!(pro.body["student_limit"], 100);
+    assert_eq!(pro.body["student_limit"], 30);
     assert_eq!(
         chrono::DateTime::parse_from_rfc3339(pro.body["current_period_end"].as_str().unwrap())
             .unwrap()

@@ -224,6 +224,46 @@ impl TestApp {
         &self.state.db
     }
 
+    /// Fills a club's active `role` seats up to `total` with fixture people who joined a month ago (plans by
+    /// seats, D-043). `free_seats` removes them again.
+    #[allow(dead_code)]
+    pub async fn fill_seats(&self, club: &str, role: &str, total: i64) {
+        let used: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM memberships WHERE club_id = $1::uuid AND role = $2 AND status = 'active'",
+        )
+        .bind(club)
+        .bind(role)
+        .fetch_one(self.db())
+        .await
+        .unwrap();
+        for _ in used..total {
+            let id = uuid::Uuid::now_v7();
+            sqlx::query("INSERT INTO users (id, email, name) VALUES ($1, $2, 'Vaga')")
+                .bind(id)
+                .bind(format!("{}@seat.test", id.simple()))
+                .execute(self.db())
+                .await
+                .unwrap();
+            sqlx::query(
+                "INSERT INTO memberships (club_id, user_id, role, joined_at) VALUES ($1::uuid, $2, $3, now() - interval '30 days')",
+            )
+            .bind(club)
+            .bind(id)
+            .bind(role)
+            .execute(self.db())
+            .await
+            .unwrap();
+        }
+    }
+
+    #[allow(dead_code)]
+    pub async fn free_seats(&self) {
+        sqlx::query("DELETE FROM users WHERE email LIKE '%@seat.test'")
+            .execute(self.db())
+            .await
+            .unwrap();
+    }
+
     pub async fn call(
         &self,
         method: Method,

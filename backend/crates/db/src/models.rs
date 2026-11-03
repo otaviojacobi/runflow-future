@@ -59,15 +59,72 @@ pub struct Branding {
     pub theme_css: String,
 }
 
+/// The club's plan as the apps see it (endpoints.md § Billing, § Plans): seats, the monthly price and whether the
+/// club is frozen for the caller (never for students).
 #[derive(Debug, Clone, Serialize)]
 pub struct Subscription {
     pub plan: String,
     pub status: String,
-    pub student_limit: i32,
+    pub frozen: bool,
+    pub grace_until: Option<DateTime<Utc>>,
+    /// `None` = no hard limit (Max charges seats above the included ones).
+    pub student_limit: Option<i64>,
     pub active_students: i64,
+    pub trainer_limit: Option<i64>,
+    pub active_trainers: i64,
+    pub included_students: i64,
+    pub included_trainers: i64,
+    pub monthly_cents: i64,
     pub current_period_end: Option<DateTime<Utc>>,
     pub cancel_at_period_end: bool,
     pub has_billing_account: bool,
+}
+
+/// `club_subscriptions` plus the active seat counts; [`SubscriptionRow::view`] applies the plan rules.
+#[derive(Debug, Clone)]
+pub struct SubscriptionRow {
+    pub plan: String,
+    pub status: String,
+    pub past_due_since: Option<DateTime<Utc>>,
+    pub current_period_end: Option<DateTime<Utc>>,
+    pub cancel_at_period_end: bool,
+    pub has_billing_account: bool,
+    pub active_students: i64,
+    pub active_trainers: i64,
+}
+
+impl SubscriptionRow {
+    /// The payload for a member with `role` (students never see `frozen`).
+    pub fn view(self, role: &str) -> Subscription {
+        use runflow_domain::plans;
+        let p = plans::plan(&self.plan);
+        let (student_limit, trainer_limit) = plans::limits(p);
+        let grace_until = plans::grace_until(&self.status, self.past_due_since);
+        let frozen = role != "student"
+            && plans::frozen(
+                p,
+                grace_until,
+                Utc::now(),
+                self.active_students,
+                self.active_trainers,
+            );
+        Subscription {
+            monthly_cents: plans::monthly_cents(p, self.active_students, self.active_trainers),
+            included_students: p.students,
+            included_trainers: p.trainers,
+            plan: self.plan,
+            status: self.status,
+            frozen,
+            grace_until,
+            student_limit,
+            active_students: self.active_students,
+            trainer_limit,
+            active_trainers: self.active_trainers,
+            current_period_end: self.current_period_end,
+            cancel_at_period_end: self.cancel_at_period_end,
+            has_billing_account: self.has_billing_account,
+        }
+    }
 }
 
 /// One entry of `GET /me` → `memberships`.

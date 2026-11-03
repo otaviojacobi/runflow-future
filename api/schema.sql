@@ -533,11 +533,11 @@ CREATE TABLE club_subscriptions (
   club_id                 uuid PRIMARY KEY REFERENCES clubs (id) ON DELETE CASCADE,
   plan                    text NOT NULL DEFAULT 'free' CHECK (plan IN ('free', 'pro', 'max')),
   status                  text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'trialing', 'past_due', 'canceled')),
-  student_limit           int NOT NULL DEFAULT 10,
   stripe_customer_id      text UNIQUE,
   stripe_subscription_id  text UNIQUE,
   current_period_end      timestamptz,
   cancel_at_period_end    boolean NOT NULL DEFAULT false,
+  past_due_since          timestamptz,                       -- first failed payment; frozen after the grace period (D-043)
   updated_at              timestamptz NOT NULL DEFAULT now()
 );
 

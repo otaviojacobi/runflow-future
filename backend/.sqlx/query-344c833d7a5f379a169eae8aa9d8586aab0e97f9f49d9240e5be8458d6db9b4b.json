@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH before AS (SELECT status FROM club_subscriptions WHERE club_id = $1)\n           UPDATE club_subscriptions SET status = 'past_due', past_due_since = now() - make_interval(days => $2),\n                  updated_at = now()\n            WHERE club_id = $1 AND plan <> 'free'\n           RETURNING (SELECT status FROM before) AS \"before!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "before!",
+        "type_info": "Text",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "344c833d7a5f379a169eae8aa9d8586aab0e97f9f49d9240e5be8458d6db9b4b"
+}

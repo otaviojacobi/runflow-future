@@ -234,13 +234,26 @@ Kinds, `data` → `result`: `body {weight_kg, height_cm, body_fat_pct?, waist_cm
 ### Billing (Stripe)
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
-| GET | `/clubs/{club_id}/subscription` | `{plan, status, student_limit, active_students, current_period_end, cancel_at_period_end, has_billing_account}`. A cancellation scheduled for a past period end is applied on read (the backend does it from the Stripe webhook) | O4, shell |
-| POST | `/clubs/{club_id}/subscription/checkout` `{plan: pro}` | → `{checkout_url}` (Stripe Checkout; billing simulation: `/dev/stripe/checkout`). `409 subscription.exists` when already on Pro, `409 plan.unavailable` for Max, `503 billing.unavailable` when neither Stripe nor the simulation is on, `502 billing.provider_error` when Stripe fails | O4 |
+| GET | `/public/plans` | The plan catalog (`api/plans.json`): `{currency, grace_days, plans[] {id, name, price_cents, owners, trainers, students, extra: {trainer_cents, student_cents} \| null}}` | A1, O4 |
+| GET | `/clubs/{club_id}/subscription` | `{plan, status, frozen, grace_until, student_limit, active_students, trainer_limit, active_trainers, included_students, included_trainers, monthly_cents, current_period_end, cancel_at_period_end, has_billing_account}`. `*_limit` null = no hard limit (Max charges seats above the included ones); `monthly_cents` = the plan's price plus extra seats. `frozen` and `grace_until`: § Plans. A cancellation scheduled for a past period end is applied on read (the backend does it from the Stripe webhook) | O4, shell |
+| POST | `/clubs/{club_id}/subscription/checkout` `{plan: pro \| max}` | → `{checkout_url}` (Stripe Checkout; billing simulation: `/dev/stripe/checkout`). `409 subscription.exists` when already on a paid plan (use `change`), `503 billing.unavailable` when neither Stripe nor the simulation is on, `502 billing.provider_error` when Stripe fails | O4 |
+| POST | `/clubs/{club_id}/subscription/change` `{plan: pro \| max}` | Owner, on a paid plan: switch between Pro and Max right away (prorated by Stripe). `409 plan.too_small` when the club has more members than the new plan's hard limits (detail names them), `409 billing.no_subscription` without a paid plan | O4 |
 | POST | `/clubs/{club_id}/subscription/portal` | → `{portal_url}` (Stripe Billing Portal; billing simulation: `/dev/stripe/portal`). `409 billing.no_account` before the first checkout | O4 |
 | GET | `/clubs/{club_id}/invoices` | Invoices, newest first (owner) | O4 |
 | POST | `/webhooks/stripe` · `/webhooks/strava` | Backend only. Stripe events must carry a valid `Stripe-Signature` (`400 webhook.invalid_signature`); each event id is applied once by the worker | — |
-| POST | `/mock/stripe/complete` `{club_id, plan}` | **Billing simulation** (the mock; the backend with `BILLING_SIMULATION` and no Stripe key, else `404`): checkout.session.completed → Pro, paid invoice, `billing` notification to the billing owner | O5 |
-| POST | `/mock/stripe/portal` `{club_id, action: cancel \| resume \| fail_payment \| pay \| expire}` | **Billing simulation**: portal actions and the webhooks they cause (`fail_payment` notifies the billing owner) | O5 |
+| POST | `/mock/stripe/complete` `{club_id, plan}` | **Billing simulation** (the mock; the backend with `BILLING_SIMULATION` and no Stripe key, else `404`): checkout.session.completed → that plan, paid invoice, `billing` notification to the billing owner | O5 |
+| POST | `/mock/stripe/portal` `{club_id, action: cancel \| resume \| fail_payment \| freeze \| pay \| expire}` | **Billing simulation**: portal actions and the webhooks they cause (`fail_payment` starts the grace period and notifies the billing owner; `freeze` backdates it so the club is frozen now; `pay` clears it) | O5 |
 
-**Plans** (D-016, §4.6): `free` = 10 active students; `pro` = 100 students, R$ 20/month; `max` = TBD (not sold yet).
-Hitting the limit blocks new joins (`invite.club_full`) and never removes existing students.
+### Plans (D-043, §4.6)
+
+The catalog is `api/plans.json` (`GET /public/plans`). Every club has exactly **one owner**.
+
+| Plan | Price | Trainers | Students |
+|---|---|---|---|
+| `free` | R$ 0 | 1 | 10 |
+| `pro` | R$ 20/month | 2 | 30 |
+| `max` | R$ 59/month | 5 included, then R$ 5/month each | 100 included, then R$ 0,50/month each |
+
+- **Seats count active memberships.** Free and Pro are hard limits: a trainer invite (or making someone a trainer) beyond the trainer seats answers `409 plan.limit_reached`, accepting a student invite when the student seats are full answers `invite.club_full`, and reactivating or switching a member into a full seat answers `409 plan.limit_reached` (detail names the seat and the plan). Nobody is ever removed. On Max nothing blocks; extra seats are billed.
+- **One owner.** `role: owner` can't be given to another member (`422`, field `role`).
+- **Frozen clubs.** A paid plan whose payment failed stays usable for `grace_days` (7) after `past_due_since` (`grace_until`); after that, or while a club has more members than its plan's hard limits (e.g. a subscription ended), the club is **frozen**. For its staff (owner and trainers) every write answers `423 club.frozen`, except billing (subscription, checkout, change, portal, invoices, the simulation) and closing the club; the apps show the club behind a frozen overlay with one way out: payment (owners) or a note to ask the owner (trainers). **Students never see it**: `frozen` is always `false` for them and their own actions keep working.

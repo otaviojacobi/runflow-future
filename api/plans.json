@@ -1,0 +1,10 @@
+{
+  "readme": "Runflow's plans (D-043): seats per role and prices in centavos. The single source for the mock, the backend (synced copy in backend/assets) and the apps (GET /v1/public/plans). Every club has exactly one owner. Free and Pro have hard limits; Max includes the seats below and charges each seat above them (extra). A paid plan whose payment fails stays usable for grace_days, then the club is frozen for its staff.",
+  "currency": "BRL",
+  "grace_days": 7,
+  "plans": [
+    { "id": "free", "name": "Free", "price_cents": 0, "owners": 1, "trainers": 1, "students": 10, "extra": null },
+    { "id": "pro", "name": "Pro", "price_cents": 2000, "owners": 1, "trainers": 2, "students": 30, "extra": null },
+    { "id": "max", "name": "Max", "price_cents": 5900, "owners": 1, "trainers": 5, "students": 100, "extra": { "trainer_cents": 500, "student_cents": 50 } }
+  ]
+}

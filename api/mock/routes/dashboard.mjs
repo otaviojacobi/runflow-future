@@ -45,8 +45,8 @@ export default function register(h) {
       if (u.birth_date && u.birth_date.slice(5) >= today.slice(5) && u.birth_date.slice(5) <= h.addDays(today, 6).slice(5)) alerts.push({ kind: "birthday", severity: "accent", athlete: { membership_id: m.id, user: u }, text: `Aniversário de ${u.name} em ${u.birth_date.slice(8)}/${u.birth_date.slice(5, 7)}`, link: `/students/${m.id}` });
       if (h.daysBetween(m.joined_at.slice(0, 10), today) <= 3 && !planned.some((p) => p.athlete_membership_id === m.id && p.date >= today)) alerts.push({ kind: "new_member", severity: "brand", athlete: { membership_id: m.id, user: u }, text: `${u.name} entrou e ainda não tem treinos`, link: "/planning" });
     }
-    const sub = h.subscription(clubId);
-    if (sub.active_students >= sub.student_limit * 0.9) alerts.push({ kind: "plan_limit", severity: "warning", athlete: null, text: `${sub.active_students} de ${sub.student_limit} alunos no plano ${sub.plan === "free" ? "Free" : "Pro"}`, link: "/club/billing" });
+    const sub = h.subscription(clubId, "owner");
+    if (sub.student_limit !== null && sub.active_students >= sub.student_limit * 0.9) alerts.push({ kind: "plan_limit", severity: "warning", athlete: null, text: `${sub.active_students} de ${sub.student_limit} alunos no plano ${h.plan(sub.plan).name}`, link: "/club/billing" });
 
 
     const b = h.db.club_branding.find((x) => x.club_id === clubId);

@@ -249,7 +249,7 @@ async fn create(
     tracing::info!(club_id = %club.id, slug = %club.slug, "club created");
 
     let branding = db::branding(&state.db, club.id).await?;
-    let subscription = db::subscription(&state.db, club.id).await?;
+    let subscription = db::subscription(&state.db, club.id, "owner").await?;
     Ok((StatusCode::CREATED, Json(json!({ "club": club, "membership": membership, "branding": branding, "subscription": subscription }))).into_response())
 }
 

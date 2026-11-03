@@ -164,6 +164,11 @@ async fn create(
             "Use “Reenviar” na lista de convites para mandar de novo.",
         ));
     }
+    // Trainer seats are few: open trainer invites count too (D-043).
+    if role == "trainer" {
+        let pending = db::pending_trainers(&state.db, m.club_id).await?;
+        crate::access::ensure_seat(&state, m.club_id, "trainer", 1 + pending).await?;
+    }
     let wanted: Vec<Uuid> = body
         .get("group_ids")
         .and_then(Value::as_array)
@@ -336,9 +341,9 @@ async fn bulk(
             resent,
         });
     }
-    let sub = runflow_db::clubs::subscription(&state.db, m.club_id).await?;
+    let sub = runflow_db::clubs::subscription(&state.db, m.club_id, &m.role).await?;
     let over_limit = sub
-        .map(|s| (s.active_students + items.len() as i64 - s.student_limit as i64).max(0))
+        .and_then(|s| Some((s.active_students + items.len() as i64 - s.student_limit?).max(0)))
         .unwrap_or(0);
     Ok((StatusCode::CREATED, Json(json!({ "created": items.len(), "items": items, "skipped": skipped, "over_limit": over_limit }))).into_response())
 }
@@ -381,11 +386,16 @@ async fn resolve(
         _ => Some("accepted"),
     };
     if reason.is_none()
-        && i.role == "student"
-        && let Some(s) = runflow_db::clubs::subscription(&state.db, club.id).await?
-        && s.active_students >= s.student_limit as i64
+        && let Some(s) = runflow_db::clubs::subscription(&state.db, club.id, "owner").await?
     {
-        reason = Some("club_full");
+        let (used, limit) = if i.role == "trainer" {
+            (s.active_trainers, s.trainer_limit)
+        } else {
+            (s.active_students, s.student_limit)
+        };
+        if limit.is_some_and(|l| used >= l) {
+            reason = Some("club_full");
+        }
     }
     Ok((i, club, reason))
 }
@@ -465,6 +475,10 @@ async fn accept(
             "accepted" => (
                 "Convite já usado",
                 "Este convite já foi aceito. Entre com sua conta para ver o clube.",
+            ),
+            _ if i.role == "trainer" => (
+                "O clube está lotado",
+                "O clube atingiu o limite de treinadores do plano. Avise quem te convidou.",
             ),
             _ => (
                 "O clube está lotado",

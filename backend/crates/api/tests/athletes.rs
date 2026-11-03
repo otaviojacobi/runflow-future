@@ -372,10 +372,6 @@ async fn the_dashboard_puts_the_day_week_feedback_and_alerts_together(db: PgPool
     .execute(app.db())
     .await
     .unwrap();
-    sqlx::query("UPDATE club_subscriptions SET student_limit = 3")
-        .execute(app.db())
-        .await
-        .unwrap();
 
     let res = app
         .get(&format!("/v1/clubs/{}/dashboard", c.id), Some(&c.owner))
@@ -397,13 +393,7 @@ async fn the_dashboard_puts_the_day_week_feedback_and_alerts_together(db: PgPool
         .iter()
         .map(|a| a["kind"].as_str().unwrap())
         .collect();
-    for k in [
-        "missed_streak",
-        "high_rpe",
-        "birthday",
-        "new_member",
-        "plan_limit",
-    ] {
+    for k in ["missed_streak", "high_rpe", "birthday", "new_member"] {
         assert!(kinds.contains(&k), "{k} in {kinds:?}");
     }
     let missed = d["alerts"]

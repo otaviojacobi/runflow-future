@@ -57,6 +57,17 @@ pub async fn by_token(db: impl PgExecutor<'_>, token: &str) -> sqlx::Result<Opti
 }
 
 /// The open (not accepted, not cancelled) invite for this e-mail, expired or not.
+/// Trainer invites still waiting for an answer (they hold a seat, D-043).
+pub async fn pending_trainers(db: impl PgExecutor<'_>, club_id: Uuid) -> sqlx::Result<i64> {
+    sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM invitations
+            WHERE club_id = $1 AND role = 'trainer' AND accepted_at IS NULL AND revoked_at IS NULL AND expires_at > now()"#,
+        club_id
+    )
+    .fetch_one(db)
+    .await
+}
+
 pub async fn open_for(
     db: impl PgExecutor<'_>,
     club_id: Uuid,

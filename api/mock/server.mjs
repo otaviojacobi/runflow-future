@@ -68,6 +68,11 @@ const invalid = (errors) => fail(422, "validation.failed", "Confira os campos", 
 // ------------------------------------------------------------------ helpers shared with route modules
 const sha256 = (s) => createHash("sha256").update(s).digest("hex");
 const STAFF = ["owner", "trainer"];
+/** The plan catalog (D-043): seats per role and prices; the backend reads a synced copy. */
+const CATALOG = JSON.parse(readFileSync(join(here, "..", "plans.json"), "utf8"));
+const DAY_MS = 86400000;
+/** Writes a frozen club's staff may still make: billing, the simulation, closing the club. */
+const WHILE_FROZEN = [/^\/v1\/clubs\/[^/]+\/(subscription|invoices)(\/|$)/, /^\/v1\/mock\/stripe\//];
 const h = {
   get db() { return db; },
   persist, fail, invalid, uuid: (prefix = "x") => uuid(prefix + ":" + randomBytes(8).toString("hex")),
@@ -83,9 +88,37 @@ const h = {
     return { primary_color: b.primary_color, secondary_color: b.secondary_color, logo_url: logo, theme_rev: b.theme_rev, theme: b.theme, theme_css: b.theme_css };
   },
   activeStudents: (clubId) => db.memberships.filter((m) => m.club_id === clubId && m.role === "student" && m.status === "active").length,
-  subscription: (clubId) => {
+  activeTrainers: (clubId) => db.memberships.filter((m) => m.club_id === clubId && m.role === "trainer" && m.status === "active").length,
+  catalog: CATALOG,
+  plan: (id) => CATALOG.plans.find((p) => p.id === id) ?? CATALOG.plans[0],
+  /** The subscription payload (endpoints.md § Billing, § Plans). `role`: students never see `frozen`. */
+  subscription: (clubId, role) => {
     const s = db.club_subscriptions.find((x) => x.club_id === clubId);
-    return s && { plan: s.plan, status: s.status, student_limit: s.student_limit, active_students: h.activeStudents(clubId), current_period_end: s.current_period_end, cancel_at_period_end: s.cancel_at_period_end };
+    if (!s) return null;
+    const p = h.plan(s.plan), students = h.activeStudents(clubId), trainers = h.activeTrainers(clubId);
+    const hard = !p.extra;
+    const grace_until = s.status === "past_due" && s.past_due_since ? new Date(Date.parse(s.past_due_since) + CATALOG.grace_days * DAY_MS).toISOString() : null;
+    const unpaid = s.plan !== "free" && grace_until !== null && grace_until <= h.nowIso();
+    const over = hard && (students > p.students || trainers > p.trainers);
+    const monthly = p.price_cents + (p.extra ? Math.max(0, trainers - p.trainers) * p.extra.trainer_cents + Math.max(0, students - p.students) * p.extra.student_cents : 0);
+    return {
+      plan: s.plan, status: s.status, frozen: role === "student" ? false : unpaid || over, grace_until,
+      student_limit: hard ? p.students : null, active_students: students, trainer_limit: hard ? p.trainers : null, active_trainers: trainers,
+      included_students: p.students, included_trainers: p.trainers, monthly_cents: monthly,
+      current_period_end: s.current_period_end, cancel_at_period_end: s.cancel_at_period_end,
+    };
+  },
+  /** 409 plan.limit_reached when a hard-limited seat is full (Free/Pro; Max bills extra seats instead). */
+  ensureSeat: (clubId, role, adding = 1) => {
+    const s = h.subscription(clubId);
+    const limit = role === "trainer" ? s.trainer_limit : s.student_limit;
+    if (limit === null) return;
+    const used = role === "trainer" ? s.active_trainers : s.active_students;
+    if (used + adding > limit) {
+      const p = h.plan(s.plan);
+      const what = role === "trainer" ? (limit === 1 ? "1 treinador" : `${limit} treinadores`) : `${limit} alunos`;
+      fail(409, "plan.limit_reached", role === "trainer" ? "Limite de treinadores atingido" : "Limite de alunos atingido", `O plano ${p.name} inclui ${what}. Faça upgrade em Plano e cobrança para liberar mais vagas.`);
+    }
   },
   list: (items, ctx, limit = 50) => {
     const start = Number(ctx.query.cursor || 0);
@@ -134,6 +167,12 @@ function context(req, url, params, body) {
       const m = db.memberships.find((x) => x.club_id === clubId && x.user_id === u.id && x.status === "active");
       if (!m) fail(404, "club.not_found", "Clube não encontrado", "Você não participa deste clube.");
       if (!roles.includes(m.role)) fail(403, "auth.forbidden", "Sem permissão", "Seu papel no clube não permite esta ação.");
+      // Frozen clubs (D-043): staff can only pay (or close the club); students never notice.
+      const path = new URL(req.url, "http://mock").pathname;
+      const closing = req.method === "DELETE" && /^\/v1\/clubs\/[^/]+$/.test(path);
+      if (req.method !== "GET" && m.role !== "student" && !closing && !WHILE_FROZEN.some((r) => r.test(path)) && h.subscription(clubId, m.role)?.frozen) {
+        fail(423, "club.frozen", "Clube congelado", m.role === "owner" ? "O pagamento do plano está pendente. Regularize em Plano e cobrança para voltar a usar o clube." : "O pagamento do plano está pendente. Peça ao responsável pelo clube para regularizar.");
+      }
       return m;
     },
     staff(clubId) { return ctx.member(clubId, STAFF); },
@@ -208,6 +247,7 @@ for (const f of readdirSync(dir).filter((f) => f.endsWith(".mjs")).sort()) {
   const mod = await import(pathToFileURL(join(dir, f)).href);
   mod.default(h);
 }
+h.get("/v1/public/plans", () => CATALOG);
 h.get("/v1/public/config", () => ({ google_client_id: null, strava: true, push_public_key: null, sentry: null }));
 h.get("/v1/health", () => ({ ok: true, version: "mock", database: { ok: true, latency_ms: 0 }, anchor_date: db.meta.anchor_date, routes: routes.length }));
 http.createServer(handle).listen(PORT, () =>

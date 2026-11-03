@@ -1,22 +1,19 @@
 //! Billing (D-016, §4.6): the club's plan from Stripe (Checkout, subscription and invoice events) or from the
-//! billing simulation, and its invoices. Plan limits: Free 10 active students, Pro 100.
+//! billing simulation, and its invoices. Seats and prices per plan: `runflow_domain::plans` (D-043).
 
 use chrono::{DateTime, Utc};
+use runflow_domain::plans::{self, Plan};
 use serde_json::Value;
 use sqlx::{PgConnection, PgExecutor};
 use uuid::Uuid;
 
-pub const FREE_LIMIT: i32 = 10;
-pub const PRO_LIMIT: i32 = 100;
-
 /// Applies a cancellation whose period is over (Stripe also sends `customer.subscription.deleted`).
 pub async fn settle(db: impl PgExecutor<'_>, club_id: Uuid) -> sqlx::Result<()> {
     sqlx::query!(
-        "UPDATE club_subscriptions SET plan = 'free', status = 'active', student_limit = $2, stripe_subscription_id = NULL,
+        "UPDATE club_subscriptions SET plan = 'free', status = 'active', past_due_since = NULL, stripe_subscription_id = NULL,
                 current_period_end = NULL, cancel_at_period_end = false, updated_at = now()
           WHERE club_id = $1 AND plan <> 'free' AND cancel_at_period_end AND current_period_end <= now()",
-        club_id,
-        FREE_LIMIT
+        club_id
     )
     .execute(db)
     .await?;
@@ -58,9 +55,11 @@ pub async fn club_of(
     .await
 }
 
-/// A Pro subscription's state; `None` keeps what's stored.
+/// A paid subscription's state; `None` keeps what's stored.
 #[derive(Default)]
-pub struct Pro<'a> {
+pub struct Paid<'a> {
+    /// `pro` or `max`; `None` keeps the current paid plan (Pro when coming from Free).
+    pub plan: Option<&'a str>,
     pub customer: Option<&'a str>,
     pub subscription: Option<&'a str>,
     pub status: Option<&'a str>,
@@ -68,25 +67,28 @@ pub struct Pro<'a> {
     pub cancel_at_period_end: Option<bool>,
 }
 
-/// Puts the club on Pro (or updates it). Returns the plan it had before.
-pub async fn set_pro(
+/// Puts the club on a paid plan (or updates it); `past_due_since` follows the status. Returns the plan it had
+/// before.
+pub async fn set_paid(
     db: impl PgExecutor<'_>,
     club_id: Uuid,
-    p: Pro<'_>,
+    p: Paid<'_>,
 ) -> sqlx::Result<Option<String>> {
     sqlx::query_scalar!(
         r#"WITH before AS (SELECT plan FROM club_subscriptions WHERE club_id = $1)
-           UPDATE club_subscriptions SET plan = 'pro', student_limit = $2,
+           UPDATE club_subscriptions SET plan = coalesce($2::text, CASE WHEN plan = 'free' THEN 'pro' ELSE plan END),
                   stripe_customer_id = coalesce($3, stripe_customer_id),
                   stripe_subscription_id = coalesce($4, stripe_subscription_id),
-                  status = coalesce($5, CASE WHEN plan = 'pro' THEN status ELSE 'active' END),
+                  status = coalesce($5::text, CASE WHEN plan <> 'free' THEN status ELSE 'active' END),
+                  past_due_since = CASE WHEN coalesce($5::text, CASE WHEN plan <> 'free' THEN status ELSE 'active' END) = 'past_due'
+                                        THEN coalesce(past_due_since, now()) END,
                   current_period_end = coalesce($6, current_period_end),
-                  cancel_at_period_end = coalesce($7, CASE WHEN plan = 'pro' THEN cancel_at_period_end ELSE false END),
+                  cancel_at_period_end = coalesce($7, CASE WHEN plan <> 'free' THEN cancel_at_period_end ELSE false END),
                   updated_at = now()
             WHERE club_id = $1
            RETURNING (SELECT plan FROM before) AS "before!""#,
         club_id,
-        PRO_LIMIT,
+        p.plan,
         p.customer,
         p.subscription,
         p.status,
@@ -100,26 +102,49 @@ pub async fn set_pro(
 /// Back to Free (the subscription ended); the customer stays for a later checkout and the portal.
 pub async fn set_free(db: impl PgExecutor<'_>, club_id: Uuid) -> sqlx::Result<()> {
     sqlx::query!(
-        "UPDATE club_subscriptions SET plan = 'free', status = 'active', student_limit = $2, stripe_subscription_id = NULL,
+        "UPDATE club_subscriptions SET plan = 'free', status = 'active', past_due_since = NULL, stripe_subscription_id = NULL,
                 current_period_end = NULL, cancel_at_period_end = false, updated_at = now()
           WHERE club_id = $1",
-        club_id,
-        FREE_LIMIT
+        club_id
     )
     .execute(db)
     .await?;
     Ok(())
 }
 
-pub async fn set_status(db: impl PgExecutor<'_>, club_id: Uuid, status: &str) -> sqlx::Result<()> {
-    sqlx::query!(
-        "UPDATE club_subscriptions SET status = $2, updated_at = now() WHERE club_id = $1 AND plan <> 'free'",
+/// A paid plan's payment status; `past_due` starts the grace period (once). Returns the status it had before.
+pub async fn set_status(
+    db: impl PgExecutor<'_>,
+    club_id: Uuid,
+    status: &str,
+) -> sqlx::Result<Option<String>> {
+    sqlx::query_scalar!(
+        r#"WITH before AS (SELECT status FROM club_subscriptions WHERE club_id = $1)
+           UPDATE club_subscriptions SET status = $2,
+                  past_due_since = CASE WHEN $2 = 'past_due' THEN coalesce(past_due_since, now()) END,
+                  updated_at = now()
+            WHERE club_id = $1 AND plan <> 'free'
+           RETURNING (SELECT status FROM before) AS "before!""#,
         club_id,
         status
     )
-    .execute(db)
-    .await?;
-    Ok(())
+    .fetch_optional(db)
+    .await
+}
+
+/// Simulation: the payment failed long enough ago that the grace period is over. Returns the status it had before.
+pub async fn freeze(db: impl PgExecutor<'_>, club_id: Uuid) -> sqlx::Result<Option<String>> {
+    sqlx::query_scalar!(
+        r#"WITH before AS (SELECT status FROM club_subscriptions WHERE club_id = $1)
+           UPDATE club_subscriptions SET status = 'past_due', past_due_since = now() - make_interval(days => $2),
+                  updated_at = now()
+            WHERE club_id = $1 AND plan <> 'free'
+           RETURNING (SELECT status FROM before) AS "before!""#,
+        club_id,
+        (plans::catalog().grace_days + 1) as i32
+    )
+    .fetch_optional(db)
+    .await
 }
 
 /// Simulation: the period ended yesterday with a scheduled cancellation (the next read settles it).
@@ -208,7 +233,8 @@ pub async fn audit(
 
 /// The billing notices (pt-BR), sent to the club's billing owners.
 pub enum Notice {
-    Upgraded,
+    /// A plan started (checkout completed).
+    Welcome(&'static Plan),
     PaymentFailed,
 }
 
@@ -218,13 +244,13 @@ pub async fn notify_owners(
     notice: Notice,
 ) -> sqlx::Result<()> {
     let (title, body) = match notice {
-        Notice::Upgraded => (
-            "Bem-vindo ao Pro!",
-            "Agora o clube comporta até 100 alunos.",
-        ),
+        Notice::Welcome(p) => plans::welcome(p),
         Notice::PaymentFailed => (
-            "Não conseguimos cobrar a assinatura",
-            "Atualize o cartão em Plano e cobrança para manter o Pro.",
+            "Não conseguimos cobrar a assinatura".to_string(),
+            format!(
+                "Atualize o cartão em Plano e cobrança em até {} dias para o clube não ser congelado.",
+                plans::catalog().grace_days
+            ),
         ),
     };
     for m in billing_owners(&mut *db, club_id).await? {
@@ -234,8 +260,8 @@ pub async fn notify_owners(
             crate::notifications::Notice {
                 club_id,
                 kind: "billing",
-                title,
-                body: Some(body),
+                title: &title,
+                body: Some(&body),
                 link: "/club/billing",
             },
             None,

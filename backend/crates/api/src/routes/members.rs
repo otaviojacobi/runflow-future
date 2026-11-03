@@ -157,9 +157,15 @@ async fn update(
     }
     let mut errors = Vec::new();
     let role = body.str("role");
+    if role.as_deref() == Some("owner") {
+        return Err(Problem::field(
+            "role",
+            "Cada clube tem um único responsável.",
+        ));
+    }
     if role
         .as_ref()
-        .is_some_and(|r| !["owner", "trainer", "student"].contains(&r.as_str()))
+        .is_some_and(|r| !["trainer", "student"].contains(&r.as_str()))
         || (body.has("role") && role.is_none())
     {
         errors.push(FieldError {
@@ -181,26 +187,12 @@ async fn update(
     if !errors.is_empty() {
         return Err(Problem::invalid(errors));
     }
-    // Reactivating a student counts against the plan.
-    let becomes_student = role.as_deref().unwrap_or(&t.role) == "student";
-    let becomes_active = status.as_deref().unwrap_or(&t.status) == "active";
-    let was_active_student = t.role == "student" && t.status == "active";
-    if becomes_student
-        && becomes_active
-        && !was_active_student
-        && let Some(s) = runflow_db::clubs::subscription(&state.db, me.club_id).await?
-        && s.active_students >= s.student_limit as i64
+    // Taking a seat (reactivated, or moved to another role) counts against the plan (D-043).
+    let next_role = role.as_deref().unwrap_or(&t.role);
+    if status.as_deref().unwrap_or(&t.status) == "active"
+        && (t.status != "active" || next_role != t.role)
     {
-        let plan = if s.plan == "free" { "Free" } else { "Pro" };
-        return Err(Problem::new(
-            StatusCode::CONFLICT,
-            "plan.limit_reached",
-            "Limite de alunos atingido",
-            format!(
-                "O plano {plan} permite até {} alunos ativos.",
-                s.student_limit
-            ),
-        ));
+        crate::access::ensure_seat(&state, me.club_id, next_role, 1).await?;
     }
     db::update(&state.db, t.id, role.as_deref(), status.as_deref()).await?;
     runflow_db::clubs::audit(

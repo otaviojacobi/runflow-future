@@ -5,7 +5,7 @@ use serde_json::Value;
 use sqlx::{PgConnection, PgExecutor};
 use uuid::Uuid;
 
-use crate::models::{Branding, Club, Membership, Subscription};
+use crate::models::{Branding, Club, Membership, Subscription, SubscriptionRow};
 
 /// The caller's active membership in a club that still exists.
 pub struct Access {
@@ -320,15 +320,25 @@ pub async fn save_branding(
     Ok(())
 }
 
+/// The club's subscription as a member with `role` sees it.
 pub async fn subscription(
     db: impl PgExecutor<'_>,
     club_id: Uuid,
+    role: &str,
 ) -> sqlx::Result<Option<Subscription>> {
+    Ok(subscription_row(db, club_id).await?.map(|s| s.view(role)))
+}
+
+pub async fn subscription_row(
+    db: impl PgExecutor<'_>,
+    club_id: Uuid,
+) -> sqlx::Result<Option<SubscriptionRow>> {
     sqlx::query_as!(
-        Subscription,
-        r#"SELECT s.plan, s.status, s.student_limit, s.current_period_end, s.cancel_at_period_end,
+        SubscriptionRow,
+        r#"SELECT s.plan, s.status, s.past_due_since, s.current_period_end, s.cancel_at_period_end,
                   s.stripe_customer_id IS NOT NULL AS "has_billing_account!",
-                  (SELECT count(*) FROM memberships x WHERE x.club_id = s.club_id AND x.role = 'student' AND x.status = 'active') AS "active_students!"
+                  (SELECT count(*) FROM memberships x WHERE x.club_id = s.club_id AND x.role = 'student' AND x.status = 'active') AS "active_students!",
+                  (SELECT count(*) FROM memberships x WHERE x.club_id = s.club_id AND x.role = 'trainer' AND x.status = 'active') AS "active_trainers!"
              FROM club_subscriptions s WHERE s.club_id = $1"#,
         club_id
     )

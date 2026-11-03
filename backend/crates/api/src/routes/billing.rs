@@ -9,7 +9,8 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use chrono::Utc;
-use runflow_db::billing::{self as db, Invoice, Notice, Pro};
+use runflow_db::billing::{self as db, Invoice, Notice, Paid};
+use runflow_domain::plans::{self, Plan};
 use runflow_integrations::stripe::{Checkout, StripeError, verify_signature};
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -23,11 +24,18 @@ pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/clubs/{club_id}/subscription", get(subscription))
         .route("/clubs/{club_id}/subscription/checkout", post(checkout))
+        .route("/clubs/{club_id}/subscription/change", post(change))
         .route("/clubs/{club_id}/subscription/portal", post(portal))
         .route("/clubs/{club_id}/invoices", get(invoices))
         .route("/webhooks/stripe", post(webhook))
         .route("/mock/stripe/complete", post(sim_complete))
         .route("/mock/stripe/portal", post(sim_portal))
+        .route("/public/plans", get(public_plans))
+}
+
+/// The plan catalog (`api/plans.json`): seats per role and prices, for the landing page and Plano e cobrança.
+async fn public_plans() -> Json<&'static plans::Catalog> {
+    Json(plans::catalog())
 }
 
 /// How checkout works here.
@@ -41,13 +49,17 @@ fn mode(state: &AppState) -> Result<Mode<'_>, Problem> {
     match (&state.stripe, &b.price_pro) {
         (Some(client), Some(price)) => Ok(Mode::Stripe(client, price)),
         _ if b.simulation => Ok(Mode::Simulation),
-        _ => Err(Problem::new(
-            StatusCode::SERVICE_UNAVAILABLE,
-            "billing.unavailable",
-            "Assinaturas indisponíveis no momento",
-            "Durante o beta todos os clubes usam o Runflow sem pagar. Fale com a gente se precisar de mais alunos.",
-        )),
+        _ => Err(unavailable()),
     }
+}
+
+fn unavailable() -> Problem {
+    Problem::new(
+        StatusCode::SERVICE_UNAVAILABLE,
+        "billing.unavailable",
+        "Assinaturas indisponíveis no momento",
+        "Durante o beta todos os clubes usam o Runflow sem pagar. Fale com a gente se precisar de mais vagas.",
+    )
 }
 
 fn stripe_failed(e: StripeError) -> Problem {
@@ -60,12 +72,29 @@ fn stripe_failed(e: StripeError) -> Problem {
     )
 }
 
-async fn current(state: &AppState, club_id: Uuid) -> Result<Value, Problem> {
+async fn current(state: &AppState, club_id: Uuid, role: &str) -> Result<Value, Problem> {
     db::settle(&state.db, club_id).await?;
-    let s = runflow_db::clubs::subscription(&state.db, club_id)
+    let s = runflow_db::clubs::subscription(&state.db, club_id, role)
         .await?
         .ok_or_else(Problem::club_not_found)?;
     Ok(json!(s))
+}
+
+/// `pro` or `max` (`422` otherwise).
+fn paid_plan(body: &Body) -> Result<&'static Plan, Problem> {
+    match body.str("plan").as_deref() {
+        Some(id @ ("pro" | "max")) => Ok(plans::plan(id)),
+        _ => Err(Problem::field("plan", "Escolha um plano.")),
+    }
+}
+
+fn no_subscription() -> Problem {
+    Problem::new(
+        StatusCode::CONFLICT,
+        "billing.no_subscription",
+        "Nenhuma assinatura ativa",
+        "Assine um plano primeiro.",
+    )
 }
 
 async fn subscription(
@@ -74,7 +103,7 @@ async fn subscription(
     Path(club_id): Path<String>,
 ) -> Result<Json<Value>, Problem> {
     let m = member(&state, &auth, &club_id, ANY).await?;
-    Ok(Json(current(&state, m.club_id).await?))
+    Ok(Json(current(&state, m.club_id, &m.role).await?))
 }
 
 async fn checkout(
@@ -84,31 +113,22 @@ async fn checkout(
     body: Body,
 ) -> Result<Json<Value>, Problem> {
     let m = member(&state, &auth, &club_id, OWNER).await?;
-    match body.str("plan").as_deref() {
-        Some("max") => {
-            return Err(Problem::new(
-                StatusCode::CONFLICT,
-                "plan.unavailable",
-                "O Max ainda não está à venda",
-                "Fale com a gente se precisar de mais de 100 alunos.",
-            ));
-        }
-        Some("pro") => {}
-        _ => return Err(Problem::field("plan", "Escolha um plano.")),
-    }
+    let p = paid_plan(&body)?;
     db::settle(&state.db, m.club_id).await?;
     let account = db::account(&state.db, m.club_id)
         .await?
         .ok_or_else(Problem::club_not_found)?;
-    if account.plan == "pro" && account.status != "canceled" {
+    if account.plan != "free" && account.status != "canceled" {
         return Err(Problem::new(
             StatusCode::CONFLICT,
             "subscription.exists",
-            "Você já está no Pro",
-            "Use “Gerenciar assinatura” para mudar o pagamento ou cancelar.",
+            format!("Você já está no {}", plans::plan(&account.plan).name),
+            "Para trocar de plano, use “Mudar plano”; para o pagamento, “Gerenciar assinatura”.",
         ));
     }
     let url = match mode(&state)? {
+        // Max through Stripe needs its seat prices (B3); until then Stripe sells Pro only.
+        Mode::Stripe(..) if p.id != "pro" => return Err(unavailable()),
         Mode::Stripe(client, price) => {
             let email = runflow_db::auth::user_by_id(&state.db, auth.user_id)
                 .await?
@@ -118,6 +138,7 @@ async fn checkout(
             client
                 .checkout(Checkout {
                     price,
+                    plan: &p.id,
                     club_id: &m.club_id.to_string(),
                     customer: account.customer.as_deref(),
                     email: &email,
@@ -128,12 +149,69 @@ async fn checkout(
                 .map_err(stripe_failed)?
         }
         Mode::Simulation => format!(
-            "/dev/stripe/checkout?club={}&plan=pro&session=cs_sim_{}",
+            "/dev/stripe/checkout?club={}&plan={}&session=cs_sim_{}",
             m.club_id,
+            p.id,
             &Uuid::now_v7().simple().to_string()[..12]
         ),
     };
     Ok(Json(json!({ "checkout_url": url })))
+}
+
+/// Pro ⇄ Max on a paid plan, never into a plan the club doesn't fit.
+async fn change(
+    State(state): State<AppState>,
+    auth: Auth,
+    Path(club_id): Path<String>,
+    body: Body,
+) -> Result<Json<Value>, Problem> {
+    let m = member(&state, &auth, &club_id, OWNER).await?;
+    let p = paid_plan(&body)?;
+    db::settle(&state.db, m.club_id).await?;
+    let row = runflow_db::clubs::subscription_row(&state.db, m.club_id)
+        .await?
+        .ok_or_else(Problem::club_not_found)?;
+    let account = db::account(&state.db, m.club_id)
+        .await?
+        .ok_or_else(Problem::club_not_found)?;
+    if row.plan == "free" || account.subscription.is_none() {
+        return Err(no_subscription());
+    }
+    if row.plan == p.id {
+        return Ok(Json(json!(row.view(&m.role))));
+    }
+    if let Some((title, detail)) = plans::too_small(p, row.active_students, row.active_trainers) {
+        return Err(Problem::new(
+            StatusCode::CONFLICT,
+            "plan.too_small",
+            title,
+            detail,
+        ));
+    }
+    // Swapping the subscription's prices on Stripe comes with its seat prices (B3).
+    if let Mode::Stripe(..) = mode(&state)? {
+        return Err(unavailable());
+    }
+    let mut tx = state.db.begin().await?;
+    db::set_paid(
+        &mut *tx,
+        m.club_id,
+        Paid {
+            plan: Some(&p.id),
+            ..Paid::default()
+        },
+    )
+    .await?;
+    db::audit(
+        &mut *tx,
+        m.club_id,
+        Some(auth.user_id),
+        "subscription.changed",
+        &json!({ "plan": p.id }),
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(Json(current(&state, m.club_id, &m.role).await?))
 }
 
 async fn portal(
@@ -150,7 +228,7 @@ async fn portal(
                 StatusCode::CONFLICT,
                 "billing.no_account",
                 "Nenhuma assinatura ainda",
-                "Assine o Pro para gerenciar pagamentos.",
+                "Assine um plano para gerenciar pagamentos.",
             )
         })?;
     let url = match mode(&state)? {
@@ -231,6 +309,10 @@ async fn sim_complete(
     simulating(&state, "/v1/mock/stripe/complete")?;
     let club_id = body.str("club_id").unwrap_or_default();
     let m = member(&state, &auth, &club_id, OWNER).await?;
+    let p = match body.str("plan") {
+        None => plans::plan("pro"),
+        Some(_) => paid_plan(&body)?,
+    };
     let now = Utc::now();
     let end = now
         .checked_add_months(chrono::Months::new(1))
@@ -241,10 +323,11 @@ async fn sim_complete(
         .and_then(|a| a.customer)
         .unwrap_or_else(|| short("cus"));
     let mut tx = state.db.begin().await?;
-    let before = db::set_pro(
+    let before = db::set_paid(
         &mut *tx,
         m.club_id,
-        Pro {
+        Paid {
+            plan: Some(&p.id),
             customer: Some(&customer),
             subscription: Some(&short("sub")),
             status: Some("active"),
@@ -253,12 +336,16 @@ async fn sim_complete(
         },
     )
     .await?;
+    let seats = runflow_db::clubs::subscription_row(&mut *tx, m.club_id)
+        .await?
+        .ok_or_else(Problem::club_not_found)?;
     db::upsert_invoice(
         &mut *tx,
         Invoice {
             club_id: m.club_id,
             stripe_invoice_id: &short("in"),
-            amount_cents: 2000,
+            amount_cents: plans::monthly_cents(p, seats.active_students, seats.active_trainers)
+                as i32,
             currency: "BRL",
             status: "paid",
             period_start: now,
@@ -267,22 +354,22 @@ async fn sim_complete(
         },
     )
     .await?;
-    if before.as_deref() != Some("pro") {
-        db::notify_owners(&mut tx, m.club_id, Notice::Upgraded).await?;
-        db::audit(
-            &mut *tx,
-            m.club_id,
-            Some(auth.user_id),
-            "subscription.upgraded",
-            &json!({ "plan": "pro" }),
-        )
-        .await?;
+    if before.as_deref() != Some(p.id.as_str()) {
+        db::notify_owners(&mut tx, m.club_id, Notice::Welcome(p)).await?;
     }
+    db::audit(
+        &mut *tx,
+        m.club_id,
+        Some(auth.user_id),
+        "subscription.upgraded",
+        &json!({ "plan": p.id }),
+    )
+    .await?;
     tx.commit().await?;
-    Ok(Json(current(&state, m.club_id).await?))
+    Ok(Json(current(&state, m.club_id, &m.role).await?))
 }
 
-/// The portal's actions and the webhooks they cause.
+/// The portal's actions and the webhooks they cause; `freeze` = a failed payment whose grace period is over.
 async fn sim_portal(
     State(state): State<AppState>,
     auth: Auth,
@@ -295,46 +382,36 @@ async fn sim_portal(
         .await?
         .ok_or_else(Problem::club_not_found)?;
     if account.subscription.is_none() {
-        return Err(Problem::new(
-            StatusCode::CONFLICT,
-            "billing.no_subscription",
-            "Nenhuma assinatura ativa",
-            "Assine o Pro primeiro.",
-        ));
+        return Err(no_subscription());
     }
-    let keep = Pro::default();
     let mut tx = state.db.begin().await?;
+    let cancel = |at_period_end| Paid {
+        cancel_at_period_end: Some(at_period_end),
+        ..Paid::default()
+    };
     match body.str("action").as_deref() {
         Some("cancel") => {
-            db::set_pro(
-                &mut *tx,
-                m.club_id,
-                Pro {
-                    cancel_at_period_end: Some(true),
-                    ..keep
-                },
-            )
-            .await?;
+            db::set_paid(&mut *tx, m.club_id, cancel(true)).await?;
         }
         Some("resume") => {
-            db::set_pro(
-                &mut *tx,
-                m.club_id,
-                Pro {
-                    cancel_at_period_end: Some(false),
-                    ..keep
-                },
-            )
-            .await?;
+            db::set_paid(&mut *tx, m.club_id, cancel(false)).await?;
         }
-        Some("fail_payment") => {
-            db::set_status(&mut *tx, m.club_id, "past_due").await?;
-            db::notify_owners(&mut tx, m.club_id, Notice::PaymentFailed).await?;
+        Some(action @ ("fail_payment" | "freeze")) => {
+            let before = if action == "freeze" {
+                db::freeze(&mut *tx, m.club_id).await?
+            } else {
+                db::set_status(&mut *tx, m.club_id, "past_due").await?
+            };
+            if before.as_deref().is_some_and(|s| s != "past_due") {
+                db::notify_owners(&mut tx, m.club_id, Notice::PaymentFailed).await?;
+            }
         }
-        Some("pay") => db::set_status(&mut *tx, m.club_id, "active").await?,
+        Some("pay") => {
+            db::set_status(&mut *tx, m.club_id, "active").await?;
+        }
         Some("expire") => db::expire(&mut *tx, m.club_id).await?,
         _ => return Err(Problem::field("action", "Ação inválida.")),
     }
     tx.commit().await?;
-    Ok(Json(current(&state, m.club_id).await?))
+    Ok(Json(current(&state, m.club_id, &m.role).await?))
 }
