@@ -1,5 +1,5 @@
 /** "Descrever com IA" for the builder: a sentence → structure. */
-import { Sparkles } from "lucide-react";
+import { CircleAlert, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { type AiWorkout, useAiFeedbackSummary, useAiWorkout } from "@/api/ai";
@@ -11,20 +11,23 @@ import { Button, Card, Textarea, cn, toast } from "@/ui";
 const EXAMPLES: Partial<Record<Sport, string>> = {
   run: "15 min de aquecimento, 6 tiros de 800 m a 4:10 com 2 min de trote e 10 min de desaquecimento",
   swim: "10x100 metros com 20 s de descanso",
+  bike: "15 min leve, 4x8 min a 95% do FTP com 4 min leve e 10 min de desaquecimento",
   strength: "agachamento 4x10 com 40 kg, remada curvada 3x12 e prancha 3x30",
 };
 
 export function AiDescribe({ clubId, sport, onResult }: { clubId: string; sport: Sport; onResult: (w: AiWorkout) => void }) {
   const ai = useAiWorkout(clubId);
   const [text, setText] = useState("");
+  const [skipped, setSkipped] = useState<string[]>([]);
   const err = ai.error instanceof ApiError ? ai.error : null;
-  const go = () => ai.mutate({ text, sport }, { onSuccess: (w) => { onResult(w); toast.success(t("Treino montado"), t("Confira as etapas e ajuste o que precisar.")); }, onError: (e) => { if (!(e instanceof ApiError && e.status === 422)) toast.error(e); } });
+  const go = () => ai.mutate({ text, sport }, { onSuccess: (w) => { onResult(w); setSkipped(w.warnings ?? []); toast.success(t("Treino montado"), t("Confira as etapas e ajuste o que precisar.")); }, onError: (e) => { setSkipped([]); if (!(e instanceof ApiError && e.status === 422)) toast.error(e); } });
   return (
     <Card edge="brand" className="grid gap-3 p-4">
       <div className="flex items-center gap-2"><Sparkles className="size-5 text-accent-text" /><h2 className="rf-text-title-sm">{t("Descrever com IA")}</h2><span className="text-xs text-fg-muted">{t("Escreva do seu jeito; a gente monta as etapas.")}</span></div>
       <Textarea aria-label={t("Descrição do treino")} rows={2} value={text} onChange={(e) => setText(e.target.value)} placeholder={EXAMPLES[sport] ?? EXAMPLES.run}
         onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && text.trim().length > 4) { e.preventDefault(); go(); } }} />
       {err?.status === 422 && <p role="alert" className="text-sm text-danger-text">{err.title}. {err.detail}</p>}
+      {!err && skipped.length > 0 && <p className="flex items-start gap-2 rf-text-body-sm text-warning-text"><CircleAlert className="mt-0.5 size-4 shrink-0" />{t("Não entendi: {x}. O resto foi aplicado.", { x: skipped.map((w) => `“${w}”`).join(", ") })}</p>}
       <div className="flex justify-end"><Button size="sm" icon={<Sparkles />} loading={ai.isPending} disabled={text.trim().length < 5} onClick={go}>{t("Montar treino")}</Button></div>
     </Card>
   );

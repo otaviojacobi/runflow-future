@@ -97,7 +97,7 @@ function WorkoutsBody({ club, onClose }: { club: Club; onClose: () => void }) {
     const name = i > 0 ? line.slice(0, i).trim() : "";
     const body = i > 0 ? line.slice(i + 1).trim() : line;
     const r = parseQuickText(body, sport);
-    return { line, name: name || body.replace(/#\S+/g, "").trim().slice(0, 40), structure: r.structure, tags: r.tags, ok: r.structure.blocks.length > 0 && !r.warnings.length, warnings: r.warnings };
+    return { line, name: name || r.name, structure: r.structure, tags: r.tags, ok: r.structure.blocks.length > 0 && !r.warnings.length, warnings: r.warnings };
   }), [text, sport]);
   const good = items.filter((x) => x.ok);
   const go = async () => {
