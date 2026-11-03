@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-03T18:14:37.518Z",
+  "generated_at": "2026-11-03T20:17:38.535Z",
   "version": 1
  },
  "users": [
@@ -3365,7 +3365,7 @@
      }
     ]
    },
-   "est_duration_s": 3180,
+   "est_duration_s": 2820,
    "est_distance_m": 9100,
    "tags": [
     "teste"

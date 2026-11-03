@@ -107,7 +107,7 @@ async fn a_description_becomes_a_workout(db: PgPool) {
     assert_eq!(w["source"], "rules");
     // Same estimate as the mock (seed.mjs `estimate`) for the same structure.
     assert_eq!(w["est_duration_s"], 3420);
-    assert_eq!(w["est_distance_m"], 11500);
+    assert_eq!(w["est_distance_m"], 11400);
     assert_eq!(w["structure"]["blocks"][1]["count"], 6);
     assert!(w["notes"].is_null());
     assert_eq!(w["warnings"], json!([]));
@@ -126,7 +126,7 @@ async fn a_description_becomes_a_workout(db: PgPool) {
     assert_eq!(partly["warnings"], json!(["blabla"]));
     assert_eq!(partly["tags"], json!(["pista"]));
     assert_eq!(partly["est_duration_s"], 2940);
-    assert_eq!(partly["est_distance_m"], 10000);
+    assert_eq!(partly["est_distance_m"], 9900);
 
     let gym = app
         .post(

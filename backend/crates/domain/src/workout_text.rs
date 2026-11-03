@@ -72,19 +72,32 @@ const SOFT_WORDS: &[&str] = &["e", "depois", "então", "entao", "seguido", "segu
 #[rustfmt::skip]
 const HR_WORDS: &[&str] = &["fc", "bpm", "frequência", "frequencia", "cardíaca", "cardiaca"];
 const POWER_WORDS: &[&str] = &["potência", "potencia", "power", "watts", "watt", "w", "ftp"];
-/// Intensity words → zone. Adjectives first (they win over nouns like "rodagem"); then in zone order.
+/// Intensity words → PSE (RPE 1–10) with the word people see: `{type: "rpe", value, label}` (docs/workout-text.md
+/// § PSE). Phrases first, then adjectives (they win over nouns like "rodagem"), in this order.
 #[rustfmt::skip]
-const INTENSITY_PHRASES: &[(&[&str], i64)] = &[(&["bem", "leve"], 1), (&["muito", "leve"], 1), (&["bem", "levinho"], 1), (&["muito", "forte"], 5), (&["ritmo", "de", "meia", "maratona"], 4), (&["ritmo", "de", "meia"], 4), (&["ritmo", "de", "maratona"], 3)];
+const INTENSITY_PHRASES: &[(&[&str], i64, &str)] = &[
+    (&["bem", "leve"], 2, "bem leve"), (&["muito", "leve"], 2, "muito leve"), (&["bem", "levinho"], 2, "bem leve"), (&["muito", "forte"], 9, "muito forte"),
+    (&["ritmo", "de", "meia", "maratona"], 7, "ritmo de meia"), (&["ritmo", "de", "meia"], 7, "ritmo de meia"), (&["ritmo", "de", "maratona"], 6, "ritmo de maratona"),
+];
 /// The nouns ("rodagem", "longão") come last.
 #[rustfmt::skip]
-const INTENSITY_WORDS: &[(&[&str], i64)] = &[
-    (&["regenerativo", "regenerativa", "regenerativos", "recuperativo", "recuperativa", "soltinho", "levinho"], 1),
-    (&["leve", "leves", "fácil", "facil", "tranquilo", "tranquila", "confortável", "confortavel", "aeróbico", "aerobico"], 2),
-    (&["moderado", "moderada", "médio", "medio", "steady"], 3),
-    (&["forte", "fortes", "limiar", "intenso", "intensa", "threshold"], 4),
-    (&["máximo", "maximo", "máxima", "maxima", "máx", "max", "sprint", "sprints", "fortíssimo", "fortissimo"], 5),
-    (&["rodagem", "longão", "longao", "longo", "longa"], 2),
+const INTENSITY_WORDS: &[(&[&str], i64, &str)] = &[
+    (&["regenerativo", "regenerativa", "regenerativos", "recuperativo", "recuperativa"], 2, "regenerativo"), (&["soltinho"], 2, "soltinho"), (&["levinho"], 2, "levinho"),
+    (&["leve", "leves"], 3, "leve"), (&["fácil", "facil"], 3, "fácil"), (&["tranquilo", "tranquila"], 3, "tranquilo"), (&["confortável", "confortavel"], 3, "confortável"), (&["aeróbico", "aerobico"], 3, "aeróbico"),
+    (&["moderado", "moderada"], 5, "moderado"), (&["médio", "medio"], 5, "médio"), (&["steady"], 5, "steady"),
+    (&["limiar", "threshold"], 7, "limiar"), (&["forte", "fortes"], 8, "forte"), (&["intenso", "intensa"], 8, "intenso"), (&["fortíssimo", "fortissimo"], 9, "fortíssimo"),
+    (&["máximo", "maximo", "máxima", "maxima", "máx", "max"], 10, "máximo"), (&["sprint", "sprints"], 10, "sprint"),
+    (&["rodagem", "longão", "longao", "longo", "longa"], 3, "leve"),
 ];
+/// Recovery words that also say how easy: "2' trote" (PSE 3), "3' andando" (PSE 2).
+fn is_jog(t: &Tok) -> bool {
+    t.k == K::Word && t.low.starts_with("trot")
+}
+fn is_walk(t: &Tok) -> bool {
+    t.k == K::Word && (t.low.starts_with("caminh") || t.low == "andando")
+}
+/// "Desc. 1'30\" & 3'": the rest after each run of the set above, and after the whole set.
+const DESC_WORDS: &[&str] = &["desc", "descanso", "pausa"];
 /// Swim strokes, most specific first (a kick or drill set wins over the base stroke).
 #[rustfmt::skip]
 const STROKES: &[(&[&str], &str)] = &[
@@ -100,7 +113,7 @@ const EQUIPMENT: &[(&[&str], &str)] = &[
 #[rustfmt::skip]
 const NOTE_WORDS: &[(&[&str], &str)] = &[
     (&["educativo", "educativos", "educativa"], "educativos"), (&["subida", "subidas", "ladeira", "ladeiras", "morro", "rampa", "rampas"], "subida"),
-    (&["esteira"], "esteira"), (&["caminhada", "caminhando", "andando", "caminhar"], "caminhada"),
+    (&["esteira"], "esteira"),
 ];
 /// Words that may sit inside "( )" and still be read as the step's target ("6x1km (4:30)", "40' (Z2)").
 #[rustfmt::skip]
@@ -530,6 +543,14 @@ fn range_e(toks: &[Tok], i: usize) -> bool {
     }
     false
 }
+/// "2' limiar/ 1' trote": a slash between a word (not a unit, not the "c" of "c/") and an amount.
+fn slash_pair(toks: &[Tok], i: usize) -> bool {
+    let (a, u) = (get(toks, i as isize - 1), toks.get(i + 2));
+    a.is_some_and(|a| a.k == K::Word && a.low.chars().count() > 1)
+        && !is_unit(a)
+        && n(toks.get(i + 1))
+        && (is_unit(u) || p(u, "'") || p(u, "\""))
+}
 fn soft_at(toks: &[Tok], i: usize) -> bool {
     let t = toks.get(i);
     let next_sp = toks.get(i + 1).is_some_and(|x| x.sp);
@@ -544,7 +565,7 @@ fn soft_at(toks: &[Tok], i: usize) -> bool {
                 && !w(toks.get(i + 2), REPEAT_WORDS));
     }
     if p(t, "/") {
-        return t.is_some_and(|t| t.sp) && next_sp;
+        return (t.is_some_and(|t| t.sp) && next_sp) || slash_pair(toks, i);
     }
     if w(t, &["e"]) {
         return !range_e(toks, i);
@@ -864,11 +885,24 @@ fn leftovers(toks: &[Tok], used: &[bool]) -> Vec<String> {
 #[derive(Clone, Debug, PartialEq)]
 enum Tgt {
     Open,
-    Zone { metric: &'static str, zone: i64 },
-    Pace { min: i64, max: i64 },
-    Hr { min: i64, max: i64 },
-    Power { min: i64, max: i64 },
-    Rpe(i64),
+    Zone {
+        metric: &'static str,
+        zone: i64,
+    },
+    Pace {
+        min: i64,
+        max: i64,
+    },
+    Hr {
+        min: i64,
+        max: i64,
+    },
+    Power {
+        min: i64,
+        max: i64,
+    },
+    /// The value and, from an intensity word, the word people see ("forte" → 8).
+    Rpe(i64, Option<&'static str>),
 }
 
 impl Tgt {
@@ -879,14 +913,15 @@ impl Tgt {
             Tgt::Pace { min, max } => json!({ "type": "pace", "min_s": min, "max_s": max }),
             Tgt::Hr { min, max } => json!({ "type": "hr", "min": min, "max": max }),
             Tgt::Power { min, max } => json!({ "type": "power", "min": min, "max": max }),
-            Tgt::Rpe(v) => json!({ "type": "rpe", "value": v }),
+            Tgt::Rpe(v, None) => json!({ "type": "rpe", "value": v }),
+            Tgt::Rpe(v, Some(label)) => json!({ "type": "rpe", "value": v, "label": label }),
         }
     }
     /// How hard a target is, to spot progressions (comparable only within one target type).
     fn level(&self) -> Option<i64> {
         match self {
             Tgt::Zone { zone, .. } => Some(*zone),
-            Tgt::Rpe(v) => Some(*v),
+            Tgt::Rpe(v, _) => Some(*v),
             Tgt::Pace { min, max } => Some(-(min + max)),
             Tgt::Hr { min, max } | Tgt::Power { min, max } => Some(min + max),
             Tgt::Open => None,
@@ -898,6 +933,8 @@ impl Tgt {
 struct Step {
     intent: &'static str,
     duration: Dur,
+    /// The upper end of a range ("60-80m": `max_m` 80, "30 a 40 min": `max_s` 2400); `duration` is the lower one.
+    dur_max: Option<i64>,
     target: Tgt,
     note: Option<String>,
     stroke: Option<&'static str>,
@@ -910,7 +947,16 @@ impl Step {
         let mut m = Map::new();
         m.insert("kind".into(), json!("step"));
         m.insert("intent".into(), json!(self.intent));
-        m.insert("duration".into(), self.duration.json());
+        let mut duration = self.duration.json();
+        if let Some(max) = self.dur_max {
+            let key = if matches!(self.duration, Dur::Distance(_)) {
+                "max_m"
+            } else {
+                "max_s"
+            };
+            duration[key] = json!(max);
+        }
+        m.insert("duration".into(), duration);
         m.insert("target".into(), self.target.json());
         if let Some(note) = &self.note {
             m.insert("note".into(), json!(note));
@@ -935,7 +981,7 @@ fn is_easy(s: &Step) -> bool {
     match s.target {
         Tgt::Open => true,
         Tgt::Zone { zone, .. } => zone <= 2,
-        Tgt::Rpe(v) => v <= 3,
+        Tgt::Rpe(v, _) => v <= 3,
         _ => false,
     }
 }
@@ -1085,6 +1131,52 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
             }
         }
         i += 1;
+    }
+    // "200m 53-58seg", "400m 1'30\"": a time (or a range of times) right after a run distance is the time for it → pace.
+    let mut rep_time: Option<(i64, i64, Option<i64>)> = None;
+    let mut i = 0;
+    while i < nn && rep_time.is_none() && sport == "run" {
+        let start = i;
+        i += 1;
+        let Some(d) = amount_at(toks, &used, start, sport, bare) else {
+            continue;
+        };
+        let Dur::Distance(m) = d.dur else {
+            continue;
+        };
+        if m <= 0 || !n(at!(d.end)) {
+            continue;
+        }
+        let j = d.end;
+        let lo = amount_at(toks, &used, j, sport, Bare::No);
+        if lo.is_some_and(|lo| !matches!(lo.dur, Dur::Time(_))) {
+            continue;
+        }
+        let c = lo.map_or(j + 1, |lo| lo.end);
+        let (mut a, mut b, mut end) = (None, None, j);
+        if (p(at!(c), "-") || w(at!(c), &["a"]))
+            && let Some(hi) = amount_at(toks, &used, c + 1, sport, Bare::No)
+            && let Dur::Time(hs) = hi.dur
+            && tv(c + 1) > 0.0
+        {
+            b = Some(hs);
+            a = Some(lo.map_or_else(
+                || whole(round(hs as f64 * tv(j) / tv(c + 1))),
+                |lo| lo.dur.amount(),
+            ));
+            end = hi.end;
+        }
+        if a.is_none()
+            && let Some(lo) = lo
+        {
+            a = Some(lo.dur.amount());
+            end = lo.end;
+        }
+        let Some(a) = a.filter(|a| *a > 0) else {
+            continue;
+        };
+        claim(&mut used, j, end);
+        rep_time = Some((m, b.map_or(a, |b| a.min(b)), b.map(|b| a.max(b))));
     }
 
     let mut ftp: Option<(f64, f64)> = None;
@@ -1254,7 +1346,7 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
             k += 2;
         }
         claim(&mut used, i, k);
-        rpe = Some(Tgt::Rpe(whole(round(a)).clamp(1, 10)));
+        rpe = Some(Tgt::Rpe(whole(round(a)).clamp(1, 10), None));
     }
     for i in 0..nn {
         if zone.is_some() {
@@ -1414,7 +1506,8 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
     }
 
     let mut dur: Option<Dur> = None;
-    // "30 a 40 min", "6 a 8 km", "1h a 1h30": the lower amount, and the range as typed in the note.
+    // "30 a 40 min", "60-80m", "1h a 1h30": a range, {s, max_s} / {m, max_m} (the lower amount first).
+    let mut dur_max: Option<i64> = None;
     for i in 0..nn {
         if dur.is_some() {
             break;
@@ -1434,16 +1527,18 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
             continue;
         }
         let f = tv(i) / tv(c + 1);
-        let low = match (lo, hi.dur) {
-            (Some(lo), _) => lo.dur,
-            (None, Dur::Distance(m)) => Dur::Distance(whole(round(m as f64 * f))),
-            (None, d) => Dur::Time(whole(round(d.amount() as f64 * f))),
-        };
-        if low.amount() > MAX_AMOUNT {
+        let hv = hi.dur.amount();
+        let lv = lo.map_or_else(|| whole(round(hv as f64 * f)), |lo| lo.dur.amount());
+        if lv > MAX_AMOUNT {
             continue;
         }
-        dur = Some(low);
-        extra_notes.push(text_of(&toks[i as usize..hi.end as usize]));
+        let (a, b) = (lv.min(hv), lv.max(hv));
+        dur = Some(if matches!(hi.dur, Dur::Distance(_)) {
+            Dur::Distance(a)
+        } else {
+            Dur::Time(a)
+        });
+        dur_max = (b > a).then_some(b);
         claim(&mut used, i, hi.end);
     }
     for i in 0..nn {
@@ -1607,6 +1702,18 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
             min: (t - 5).max(0),
             max: t + 5,
         });
+    } else if let Some((m, a, b)) = rep_time {
+        let per = |s: i64| whole(round(s as f64 * 1000.0 / m as f64));
+        target = Some(match b {
+            None => Tgt::Pace {
+                min: (per(a) - 5).max(0),
+                max: per(a) + 5,
+            },
+            Some(b) => Tgt::Pace {
+                min: per(a),
+                max: per(b),
+            },
+        });
     } else if let Some(pw) = &power {
         target = Some(pw.clone());
     } else if let Some((a, b)) = ftp {
@@ -1635,10 +1742,11 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
         };
         extra_notes.insert(0, note);
     }
+    // Intensity words → PSE with the word as its label (never a zone: zones are what the coach writes as "Z4").
     if target.is_none() {
-        let mut word_zone = None;
-        for (seq, z) in INTENSITY_PHRASES {
-            if word_zone.is_some() {
+        let mut word: Option<(i64, &'static str)> = None;
+        for (seq, v, label) in INTENSITY_PHRASES {
+            if word.is_some() {
                 break;
             }
             let len = seq.len() as isize;
@@ -1650,40 +1758,43 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
                     .all(|(k, s)| w(at!(i + k as isize), &[s]))
                 {
                     claim(&mut used, i, i + len);
-                    word_zone = Some(*z);
+                    word = Some((*v, label));
                     break;
                 }
                 i += 1;
             }
         }
-        for (ws, z) in INTENSITY_WORDS {
-            if word_zone.is_none() && words(&mut used, &|w| ws.contains(&w)) {
-                word_zone = Some(*z);
+        for (ws, v, label) in INTENSITY_WORDS {
+            if word.is_none() && words(&mut used, &|w| ws.contains(&w)) {
+                word = Some((*v, label));
             }
         }
-        if word_zone.is_none() {
+        if word.is_none() {
             for i in 0..nn {
                 if w(at!(i), &["vo"]) && n(at!(i + 1)) && tv(i + 1) == 2.0 {
                     claim(&mut used, i, i + 2);
-                    word_zone = Some(5);
+                    word = Some((9, "VO2"));
                     break;
                 }
             }
         }
-        if word_zone.is_none() {
+        if word.is_none() {
             for i in 0..nn {
                 if w(at!(i), &["tempo"]) && w(at!(i + 1), &["run"]) {
                     claim(&mut used, i, i + 2);
-                    word_zone = Some(4);
+                    word = Some((7, "tempo run"));
                     break;
                 }
             }
         }
-        if let Some(z) = word_zone {
-            target = Some(Tgt::Zone {
-                metric: default_metric(sport),
-                zone: z,
-            });
+        if word.is_none() && toks.iter().any(is_jog) {
+            word = Some((3, "trote"));
+        }
+        if word.is_none() && toks.iter().any(is_walk) {
+            word = Some((2, "caminhada"));
+        }
+        if let Some((v, label)) = word {
+            target = Some(Tgt::Rpe(v, Some(label)));
         }
     }
 
@@ -1703,9 +1814,10 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
         || !kw_notes.is_empty()
         || !extra_notes.is_empty()
         || between.is_some();
-    let make = |duration: Dur, target: Tgt| Step {
+    let make = |duration: Dur, dur_max: Option<i64>, target: Tgt| Step {
         intent,
         duration,
+        dur_max,
         target,
         note: (!note.is_empty()).then(|| note.join("; ")),
         stroke,
@@ -1715,6 +1827,7 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
 
     let mut steps = vec![make(
         dur.unwrap_or(Dur::Open),
+        dur_max,
         target.clone().unwrap_or(Tgt::Open),
     )];
     let mut expanded = false;
@@ -1762,7 +1875,7 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
                 .zip(ts)
                 .enumerate()
                 .map(|(k, (d, t))| {
-                    let mut st = make(d, t);
+                    let mut st = make(d, None, t);
                     if k > 0 {
                         st.note = None;
                     }
@@ -1840,8 +1953,34 @@ fn attach_series(steps: &mut Vec<Step>, rest: Step, last_from_inner: bool) {
 
 // ------------------------------------------------------------------------------------ repeats
 
-/// "6x", "6 vezes", "seis tiros de", "3 séries de" at depth 0 → (i, count, body start).
-fn find_anchor(toks: &[Tok]) -> Option<(usize, i64, usize)> {
+/// A count before a repeat word at `i`: "6x", "15-20x", "15 a 20 tiros" → (count, max, the word's index).
+fn count_at(toks: &[Tok], i: usize) -> Option<(i64, Option<i64>, usize)> {
+    let t = toks.get(i);
+    if !int(t) || val(t) < 1.0 || val(t) > 200.0 {
+        return None;
+    }
+    let u = toks.get(i + 2);
+    if (p(toks.get(i + 1), "-") || w(toks.get(i + 1), &["a"]))
+        && int(u)
+        && (1.0..=200.0).contains(&val(u))
+        && w(toks.get(i + 3), REPEAT_WORDS)
+    {
+        let (lo, hi) = (whole(val(t).min(val(u))), whole(val(t).max(val(u))));
+        return Some((lo, (hi > lo).then_some(hi), i + 3));
+    }
+    w(toks.get(i + 1), REPEAT_WORDS).then_some((whole(val(t)), None, i + 1))
+}
+/// Where a repeat starts.
+#[derive(Clone, Copy)]
+struct Anchor {
+    i: usize,
+    count: i64,
+    max: Option<i64>,
+    /// The body's first token.
+    j: usize,
+}
+/// "6x", "6 vezes", "seis tiros de", "3 séries de", "15-20x" at depth 0.
+fn find_anchor(toks: &[Tok]) -> Option<Anchor> {
     let mut depth = 0usize;
     for (i, t) in toks.iter().enumerate() {
         let t1 = Some(t);
@@ -1850,18 +1989,30 @@ fn find_anchor(toks: &[Tok]) -> Option<(usize, i64, usize)> {
         } else if p(t1, ")") {
             depth = depth.saturating_sub(1);
         }
-        if depth > 0 || !int(t1) || t.v < 1.0 || t.v > 200.0 || !w(toks.get(i + 1), REPEAT_WORDS) {
+        if depth > 0 {
             continue;
         }
-        let mut j = i + 2;
-        if w(toks.get(j), &["de"]) && !w(toks.get(i + 1), &["x"]) {
+        let Some((count, max, wi)) = count_at(toks, i) else {
+            continue;
+        };
+        let mut j = wi + 1;
+        if w(toks.get(j), &["de"]) && !w(toks.get(wi), &["x"]) {
             j += 1;
         }
         if j < toks.len() {
-            return Some((i, whole(t.v), j));
+            return Some(Anchor { i, count, max, j });
         }
     }
     None
+}
+/// A line that only opens a set ("3x", "15-20x", "3 séries:"): its lines follow → (count, max).
+fn repeat_header(toks: &[Tok]) -> Option<(i64, Option<i64>)> {
+    let (count, max, wi) = count_at(toks, 0)?;
+    let mut j = wi + 1;
+    while p(toks.get(j), ":") || w(toks.get(j), &["de"]) {
+        j += 1;
+    }
+    (j == toks.len()).then_some((count, max))
 }
 /// A word that says "recovery" on its own ("trote", "caminhando", "descanso", "parado"…).
 fn recovery_word(x: &Tok) -> bool {
@@ -1920,6 +2071,7 @@ fn recovery_split(body: &[Tok], sport: &str) -> Option<usize> {
 
 struct RepeatResult {
     count: i64,
+    max: Option<i64>,
     steps: Vec<Step>,
     before: Vec<Step>,
     nested: Option<i64>,
@@ -1927,15 +2079,18 @@ struct RepeatResult {
     warnings: Vec<String>,
 }
 
+/// A set's steps, `nested` (the inner count when it only holds one inner repeat) and `last_from_inner`.
+type Group = (Vec<Step>, Option<i64>, bool);
+
 /// Inside "N x ( … )": steps in order; inner repeats are flattened (the structure has one level of repeats).
-fn parse_group(
-    inner: &[Tok],
-    sport: &str,
-    warnings: &mut Vec<String>,
-) -> (Vec<Step>, Option<i64>, bool) {
+fn parse_group(inner: &[Tok], sport: &str, warnings: &mut Vec<String>) -> Group {
+    group_pieces(&segment(inner), sport, warnings)
+}
+/// The pieces of a set (in parentheses, or the lines under a "3x" line) → its steps.
+fn group_pieces(pieces: &[Piece], sport: &str, warnings: &mut Vec<String>) -> Group {
     let mut steps: Vec<Step> = Vec::new();
     let (mut nested, mut last_from_inner, mut others) = (None, false, 0);
-    for pc in segment(inner) {
+    for pc in pieces {
         match parse_repeat(&pc.toks, sport) {
             Some(Err(())) => {
                 warnings.push(text_of(&pc.toks));
@@ -1999,7 +2154,8 @@ fn parse_group(
 
 /// A repeat piece → the repeat, `Err` (not understood), or `None` (no "N x").
 fn parse_repeat(toks: &[Tok], sport: &str) -> Option<Result<RepeatResult, ()>> {
-    let (ai, count, aj) = find_anchor(toks)?;
+    let an = find_anchor(toks)?;
+    let (ai, count, aj) = (an.i, an.count, an.j);
     let (mut warnings, mut before) = (Vec::new(), Vec::new());
     let mut prefix: &[Tok] = &toks[..ai];
     let body = &toks[aj..];
@@ -2060,7 +2216,7 @@ fn parse_repeat(toks: &[Tok], sport: &str) -> Option<Result<RepeatResult, ()>> {
                 warnings.push(text_of(trailing));
             }
         }
-    } else if find_anchor(body).is_some_and(|(i, _, _)| i == 0) {
+    } else if find_anchor(body).is_some_and(|a| a.i == 0) {
         let r = match parse_repeat(body, sport) {
             Some(Ok(r)) if r.count as usize * r.steps.len() <= MAX_REPEAT_STEPS => r,
             _ => return Some(Err(())),
@@ -2099,12 +2255,393 @@ fn parse_repeat(toks: &[Tok], sport: &str) -> Option<Result<RepeatResult, ()>> {
     }
     Some(Ok(RepeatResult {
         count,
+        max: an.max,
         steps,
         before,
         nested,
         last_from_inner,
         warnings,
     }))
+}
+
+// ------------------------------------------------------------------------------------ sets written over several lines
+
+/// "Desc. 1'30\" & 3'": the rest after each run (`a`) and after the whole set (`b`).
+struct Desc {
+    a: Step,
+    b: Option<Step>,
+}
+/// One part of a "Desc." line → its step. A time alone is a rest ("1'30\""); a distance, or an intensity word,
+/// makes it an active recovery ("200m Trote": 200 m of jogging); a word can also say it ("1' parado", "2' trote").
+fn desc_part(toks: &[Tok], sport: &str) -> Option<Step> {
+    let none = vec![false; toks.len()];
+    amount_at(toks, &none, 0, sport, Bare::Recovery)?;
+    let s = parse_steps(toks, sport, "rest", Bare::Recovery);
+    if !s.understood
+        || s.steps.len() != 1
+        || !s.has_duration
+        || !s.leftovers.is_empty()
+        || s.between.is_some()
+        || s.progression
+    {
+        return None;
+    }
+    let mut st = s.steps.into_iter().next()?;
+    if !s.from_word {
+        st.intent = if matches!(st.duration, Dur::Distance(_)) || st.target != Tgt::Open {
+            rest_intent(sport)
+        } else {
+            "rest"
+        };
+    }
+    (st.intent == "rest" || st.intent == "recovery").then_some(st)
+}
+/// "Desc. 1'30\" & 3'", "Desc 1min", "Desc. 200m Trote".
+fn desc_line(toks: &[Tok], sport: &str) -> Option<Desc> {
+    if !w(toks.first(), DESC_WORDS) {
+        return None;
+    }
+    let mut i = 1;
+    while p(toks.get(i), ".") || p(toks.get(i), ":") || w(toks.get(i), &["de"]) {
+        i += 1;
+    }
+    let amp = (i..toks.len()).find(|&k| p(toks.get(k), "&"));
+    let a = desc_part(&toks[i.min(toks.len())..amp.unwrap_or(toks.len())], sport)?;
+    let b = match amp {
+        Some(k) => Some(desc_part(&toks[k + 1..], sport)?),
+        None => None,
+    };
+    Some(Desc { a, b })
+}
+/// A rest after each run of a set (a step without a rest after it), and the set's own rest last: B replaces the
+/// last A ("Desc. 1' & 2'"). Nothing to insert: the rest goes last. `None` when the set would get too long.
+fn apply_desc(steps: &[Step], d: &Desc) -> Option<Vec<Step>> {
+    let mut out: Vec<Step> = Vec::new();
+    let (mut inserted, mut last_inserted) = (false, false);
+    for (k, s) in steps.iter().enumerate() {
+        out.push(s.clone());
+        last_inserted = false;
+        if !is_rest(Some(s)) && !is_rest(steps.get(k + 1)) {
+            out.push(d.a.clone());
+            inserted = true;
+            last_inserted = true;
+        }
+    }
+    let tail = d.b.as_ref().or(if inserted { None } else { Some(&d.a) });
+    if let Some(tail) = tail {
+        if last_inserted {
+            *out.last_mut().expect("an inserted rest") = tail.clone();
+        } else {
+            out.push(tail.clone());
+        }
+    }
+    (out.len() <= MAX_REPEAT_STEPS).then_some(out)
+}
+/// An easy step after the main work is the cool-down: an easy target (PSE ≤ 3, Z1–Z2), a recovery or a cool-down.
+fn easy_step(s: &Step) -> bool {
+    s.intent == "cooldown"
+        || s.intent == "recovery"
+        || (s.intent == "active" && s.target != Tgt::Open && is_easy(s))
+}
+/// A bare number is pool meters, or (with a recovery word: "/ 200 trote") a recovery amount.
+fn bare_of(toks: &[Tok], sport: &str) -> Bare {
+    if sport == "swim" {
+        Bare::Active
+    } else if toks.iter().any(recovery_word) {
+        Bare::Recovery
+    } else {
+        Bare::No
+    }
+}
+/// A line that is one easy step ("5' leve", "3' andando").
+fn easy_line(toks: &[Tok], sport: &str) -> Option<Step> {
+    if find_anchor(toks).is_some()
+        || repeat_header(toks).is_some()
+        || desc_line(toks, sport).is_some()
+    {
+        return None;
+    }
+    let s = parse_steps(toks, sport, "active", bare_of(toks, sport));
+    (s.understood && s.steps.len() == 1 && easy_step(&s.steps[0])).then(|| s.steps[0].clone())
+}
+/// Short enough to be a set's recovery: up to 5 min or 1 km, and not a cool-down word.
+fn short_easy(s: Option<&Step>) -> bool {
+    s.is_some_and(|s| {
+        s.intent != "cooldown"
+            && match s.duration {
+                Dur::Time(t) => t <= 300,
+                Dur::Distance(m) => m <= 1000,
+                Dur::Open => false,
+            }
+    })
+}
+/// The amount of the steps when they all have the type of `like` (else `None`).
+fn steps_amount(steps: &[Step], like: Dur) -> Option<i64> {
+    let mut sum = 0;
+    for s in steps {
+        if !s.duration.same_type(like) {
+            return None;
+        }
+        sum += s.duration.amount();
+    }
+    Some(sum)
+}
+/// A named block's label and total ("Bloco do sábado", 30').
+#[derive(Clone)]
+struct Named {
+    name: String,
+    total: Dur,
+}
+/// A named block with a total ("Fartlek 28min", "Bloco do sábado 30min"): a line with only words and one amount,
+/// no target, no intent word. Any words: they are only the block's label. It only counts when the lines after it
+/// fill the total.
+fn named_header(toks: &[Tok], sport: &str) -> Option<Named> {
+    if find_anchor(toks).is_some()
+        || repeat_header(toks).is_some()
+        || desc_line(toks, sport).is_some()
+    {
+        return None;
+    }
+    let s = parse_steps(toks, sport, "active", Bare::No);
+    let st = &s.steps[0];
+    if !s.understood
+        || s.steps.len() != 1
+        || s.from_word
+        || s.between.is_some()
+        || s.progression
+        || !s.has_duration
+        || !s.leftovers.is_empty()
+    {
+        return None;
+    }
+    if st.intent != "active"
+        || st.target != Tgt::Open
+        || st.duration == Dur::Open
+        || st.note.is_some()
+        || st.stroke.is_some()
+        || !st.equipment.is_empty()
+        || st.send_off.is_some()
+        || st.dur_max.is_some()
+    {
+        return None;
+    }
+    let none = vec![false; toks.len()];
+    for i in 0..toks.len() {
+        let Some(a) = amount_at(toks, &none, i as isize, sport, Bare::No) else {
+            continue;
+        };
+        let rest: Vec<Tok> = toks[..i]
+            .iter()
+            .chain(&toks[a.end as usize..])
+            .cloned()
+            .collect();
+        let rest = trim_name(&rest);
+        if !rest.iter().any(|t| t.k == K::Word) || rest.iter().any(|t| numish(Some(t))) {
+            return None;
+        }
+        return Some(Named {
+            name: text_of(rest),
+            total: st.duration,
+        });
+    }
+    None
+}
+/// A set written over several lines: the repeat (or, for "1x", its steps), where the text goes on, and what it said.
+struct SetResult {
+    block: Option<(Block, Meta)>,
+    steps: Vec<Step>,
+    warnings: Vec<String>,
+    end: usize,
+    named: Option<Named>,
+}
+/// At a named header (pieces[k]): its block, when the lines after it fill its total. A repeat line that makes it
+/// ("7x(3' + 1')"); a "7x" line and the lines that fit (count × their sum ≤ total, stopping when it's reached); or
+/// one alternating pair "2' limiar / 1' trote" repeated as often as it fits.
+fn named_block(pieces: &[Piece], k: usize, sport: &str) -> Option<SetResult> {
+    let hdr = named_header(&pieces[k].toks, sport)?;
+    let next = pieces.get(k + 1).filter(|x| !x.soft)?;
+    let total = hdr.total.amount();
+    let rh = repeat_header(&next.toks);
+    let inline = if rh.is_some() {
+        None
+    } else {
+        parse_repeat(&next.toks, sport)
+    };
+    if let Some(Ok(r)) = inline {
+        // "Fartlek 28min" + "7x(3' + 1')": the repeat on the next line, when it makes the total.
+        let sum = steps_amount(&r.steps, hdr.total).unwrap_or(0);
+        if !r.before.is_empty() || sum == 0 || r.count * sum != total {
+            return None;
+        }
+        let block = Block::Repeat {
+            count: r.count,
+            max_count: r.max,
+            note: Some(hdr.name.clone()),
+            steps: r.steps,
+        };
+        let meta = Meta {
+            nested: r.nested,
+            last_from_inner: r.last_from_inner,
+            set: false,
+        };
+        return Some(SetResult {
+            block: Some((block, meta)),
+            steps: Vec::new(),
+            warnings: r.warnings,
+            end: k + 2,
+            named: Some(hdr),
+        });
+    }
+    if let Some((count, max)) = rh {
+        let mut best: Option<(Group, Vec<String>, usize)> = None;
+        for e in k + 2..pieces.len() {
+            let pc = &pieces[e];
+            if repeat_header(&pc.toks).is_some() || desc_line(&pc.toks, sport).is_some() {
+                break;
+            }
+            let mut ws = Vec::new();
+            let g = group_pieces(&pieces[k + 2..=e], sport, &mut ws);
+            let Some(sum) = steps_amount(&g.0, hdr.total) else {
+                break;
+            };
+            if g.0.is_empty() || count * sum > total {
+                break;
+            }
+            best = Some((g, ws, e + 1));
+            if count * sum == total {
+                break;
+            }
+        }
+        let ((steps, nested, last_from_inner), ws, end) = best?;
+        let block = Block::Repeat {
+            count,
+            max_count: max,
+            note: Some(hdr.name.clone()),
+            steps,
+        };
+        let meta = Meta {
+            nested,
+            last_from_inner,
+            set: true,
+        };
+        return Some(SetResult {
+            block: Some((block, meta)),
+            steps: Vec::new(),
+            warnings: ws,
+            end,
+            named: Some(hdr),
+        });
+    }
+    let second = pieces.get(k + 2).filter(|x| x.soft)?;
+    if pieces.get(k + 3).is_some_and(|x| x.soft) {
+        return None;
+    }
+    let one = |pc: &Piece| {
+        if find_anchor(&pc.toks).is_some() || desc_line(&pc.toks, sport).is_some() {
+            return None;
+        }
+        let s = parse_steps(&pc.toks, sport, "active", bare_of(&pc.toks, sport));
+        (s.understood && s.steps.len() == 1 && !s.progression).then_some(s)
+    };
+    let (pa, pb) = (one(next)?, one(second)?);
+    let (a, mut b) = (pa.steps[0].clone(), pb.steps[0].clone());
+    let sum = steps_amount(&[a.clone(), b.clone()], hdr.total).unwrap_or(0);
+    if sum == 0 || is_rest(Some(&a)) {
+        return None;
+    }
+    let count = total / sum;
+    if !(1..=200).contains(&count) {
+        return None;
+    }
+    if !pb.from_word && b.intent == "active" && is_easy(&b) {
+        b.intent = rest_intent(sport);
+    }
+    let block = Block::Repeat {
+        count,
+        max_count: None,
+        note: Some(hdr.name.clone()),
+        steps: vec![a, b],
+    };
+    let mut warnings = pa.leftovers;
+    warnings.extend(pb.leftovers);
+    Some(SetResult {
+        block: Some((block, Meta::default())),
+        steps: Vec::new(),
+        warnings,
+        end: k + 3,
+        named: Some(hdr),
+    })
+}
+/// At a "3x" line (pieces[k]): the set is the lines below it, up to a "Desc." line (which gives its rests), else up
+/// to the next "3x" line, else to the end of the text minus the trailing easy lines (the cool-down).
+fn header_set(pieces: &[Piece], k: usize, sport: &str) -> Option<SetResult> {
+    let (count, max) = repeat_header(&pieces[k].toks)?;
+    let (mut d, mut stop) = (None, pieces.len());
+    for (e, pc) in pieces.iter().enumerate().skip(k + 1) {
+        if repeat_header(&pc.toks).is_some() {
+            stop = e;
+            break;
+        }
+        if desc_line(&pc.toks, sport).is_some() {
+            d = Some(e);
+            break;
+        }
+    }
+    let mut end = d.unwrap_or(stop);
+    if d.is_none() && stop == pieces.len() {
+        while end > k + 1 && easy_line(&pieces[end - 1].toks, sport).is_some() {
+            end -= 1;
+        }
+        // More than one easy line: the first one, when short, is the set's recovery ("1km forte / 2' trote / 10' desaq").
+        if stop - end >= 2 && short_easy(easy_line(&pieces[end].toks, sport).as_ref()) {
+            end += 1;
+        }
+    }
+    if end == k + 1 {
+        return None;
+    }
+    let mut warnings = Vec::new();
+    let (mut steps, nested, last_from_inner) =
+        group_pieces(&pieces[k + 1..end], sport, &mut warnings);
+    if steps.is_empty() {
+        return None;
+    }
+    let mut next = end;
+    if let Some(d) = d {
+        let desc = desc_line(&pieces[d].toks, sport).expect("a desc line");
+        match apply_desc(&steps, &desc) {
+            Some(with_rest) => steps = with_rest,
+            None => warnings.push(text_of(&pieces[d].toks)),
+        }
+        next = d + 1;
+    }
+    if count == 1 && max.is_none() {
+        return Some(SetResult {
+            block: None,
+            steps,
+            warnings,
+            end: next,
+            named: None,
+        });
+    }
+    let meta = Meta {
+        nested,
+        last_from_inner: last_from_inner && d.is_none(),
+        set: true,
+    };
+    let block = Block::Repeat {
+        count,
+        max_count: max,
+        note: None,
+        steps,
+    };
+    Some(SetResult {
+        block: Some((block, meta)),
+        steps: Vec::new(),
+        warnings,
+        end: next,
+        named: None,
+    })
 }
 
 // ------------------------------------------------------------------------------------ exercises (strength, mobility)
@@ -2479,7 +3016,13 @@ fn merge_attrs(ex: &mut Exercise, at: Attrs) {
 #[derive(Clone, Debug)]
 enum Block {
     Step(Step),
-    Repeat { count: i64, steps: Vec<Step> },
+    /// `max_count`: "15-20x" (the athlete picks); `note`: a named block's label ("Bloco do sábado").
+    Repeat {
+        count: i64,
+        max_count: Option<i64>,
+        note: Option<String>,
+        steps: Vec<Step>,
+    },
     Exercise(Exercise),
 }
 
@@ -2487,18 +3030,32 @@ impl Block {
     fn json(&self) -> Value {
         match self {
             Block::Step(s) => s.json(),
-            Block::Repeat { count, steps } => {
-                json!({ "kind": "repeat", "count": count, "steps": steps.iter().map(Step::json).collect::<Vec<_>>() })
+            Block::Repeat {
+                count,
+                max_count,
+                note,
+                steps,
+            } => {
+                let mut v = json!({ "kind": "repeat", "count": count, "steps": steps.iter().map(Step::json).collect::<Vec<_>>() });
+                if let Some(max) = max_count {
+                    v["max_count"] = json!(max);
+                }
+                if let Some(note) = note {
+                    v["note"] = json!(note);
+                }
+                v
             }
             Block::Exercise(e) => e.json(),
         }
     }
 }
 
+/// `set`: a set written over several lines (named by what each round adds up to).
 #[derive(Clone, Copy, Default)]
 struct Meta {
     nested: Option<i64>,
     last_from_inner: bool,
+    set: bool,
 }
 
 struct Hints {
@@ -2506,6 +3063,7 @@ struct Hints {
     fartlek: bool,
     progressive: bool,
     progression: Option<Dur>,
+    named: Option<Named>,
 }
 
 fn assemble(
@@ -2516,7 +3074,10 @@ fn assemble(
 ) -> (Vec<Block>, Vec<Meta>) {
     let (mut blocks, mut meta): (Vec<Block>, Vec<Meta>) = (Vec::new(), Vec::new());
     let strength_like = sport == "strength" || sport == "mobility";
-    for piece in pieces {
+    let mut k = 0;
+    while k < pieces.len() {
+        let piece = &pieces[k];
+        k += 1;
         let text = text_of(&piece.toks);
         if strength_like {
             if let Some((ex, left)) = parse_exercise(&piece.toks) {
@@ -2534,6 +3095,45 @@ fn assemble(
                 continue;
             }
         } else {
+            // Sets over several lines: "Fartlek 28min" + "7x" + lines, "3x" + lines + "Desc. 1' & 2'".
+            let set = named_block(pieces, k - 1, sport).or_else(|| {
+                repeat_header(&piece.toks)
+                    .is_some()
+                    .then(|| header_set(pieces, k - 1, sport))
+                    .flatten()
+            });
+            if let Some(set) = set {
+                warnings.extend(set.warnings);
+                match set.block {
+                    Some((b, m)) => {
+                        blocks.push(b);
+                        meta.push(m);
+                    }
+                    None => {
+                        for st in set.steps {
+                            blocks.push(Block::Step(st));
+                            meta.push(Meta::default());
+                        }
+                    }
+                }
+                if hints.named.is_none() {
+                    hints.named = set.named;
+                }
+                k = set.end;
+                continue;
+            }
+            // "4x4x150m" + "Desc. 1'30\" & 2'30\"": the rests of the repeat above (when it has none).
+            if let (Some(dl), Some(Block::Repeat { steps, .. })) =
+                (desc_line(&piece.toks, sport), blocks.last_mut())
+                && !steps.iter().any(|x| is_rest(Some(x)))
+                && let Some(with_rest) = apply_desc(steps, &dl)
+            {
+                *steps = with_rest;
+                if let Some(m) = meta.last_mut() {
+                    m.last_from_inner = false;
+                }
+                continue;
+            }
             match parse_repeat(&piece.toks, sport) {
                 Some(Err(())) => {
                     warnings.push(text);
@@ -2545,7 +3145,7 @@ fn assemble(
                         blocks.push(Block::Step(st));
                         meta.push(Meta::default());
                     }
-                    if r.count == 1 {
+                    if r.count == 1 && r.max.is_none() {
                         for st in r.steps {
                             blocks.push(Block::Step(st));
                             meta.push(Meta::default());
@@ -2553,11 +3153,14 @@ fn assemble(
                     } else {
                         blocks.push(Block::Repeat {
                             count: r.count,
+                            max_count: r.max,
+                            note: None,
                             steps: r.steps,
                         });
                         meta.push(Meta {
                             nested: r.nested,
                             last_from_inner: r.last_from_inner,
+                            set: false,
                         });
                     }
                     continue;
@@ -2565,15 +3168,7 @@ fn assemble(
                 None => {}
             }
         }
-        // A bare number is pool meters, or (with a recovery word: "/ 200 trote") a recovery amount.
-        let bare = if sport == "swim" {
-            Bare::Active
-        } else if piece.toks.iter().any(recovery_word) {
-            Bare::Recovery
-        } else {
-            Bare::No
-        };
-        let mut s = parse_steps(&piece.toks, sport, "active", bare);
+        let mut s = parse_steps(&piece.toks, sport, "active", bare_of(&piece.toks, sport));
         if !s.understood {
             warnings.push(text);
             continue;
@@ -2633,9 +3228,54 @@ fn assemble(
             meta.push(Meta::default());
         }
     }
+    if !strength_like {
+        cool_down(&mut blocks);
+    }
     (blocks, meta)
 }
+/// The easy steps after the main work (a repeat, or an active step that isn't easy) are the cool-down.
+fn cool_down(blocks: &mut [Block]) {
+    let easy = |b: &Block| matches!(b, Block::Step(s) if easy_step(s));
+    let mut k = blocks.len();
+    while k > 0 && easy(&blocks[k - 1]) {
+        k -= 1;
+    }
+    let main = blocks[..k].iter().any(|b| match b {
+        Block::Repeat { .. } => true,
+        Block::Step(s) => s.intent == "active" && !easy_step(s),
+        Block::Exercise(_) => false,
+    });
+    if !main {
+        return;
+    }
+    for b in &mut blocks[k..] {
+        if let Block::Step(s) = b {
+            s.intent = "cooldown";
+        }
+    }
+}
 
+/// "8 km", "1h20", "30'"; a range shares its unit: "60–80 m", "30–40'", "800 m–1 km".
+fn amount_range(d: Dur, max: Option<i64>) -> String {
+    let a = amount_text(d);
+    let Some(max) = max else {
+        return a;
+    };
+    let b = amount_text(match d {
+        Dur::Distance(_) => Dur::Distance(max),
+        _ => Dur::Time(max),
+    });
+    for u in [" km", " m", "'", "\""] {
+        if let Some(head) = a.strip_suffix(u)
+            && b.ends_with(u)
+            && !head.is_empty()
+            && head.chars().all(|c| c.is_ascii_digit() || c == ',')
+        {
+            return format!("{head}–{b}");
+        }
+    }
+    format!("{a}–{b}")
+}
 fn amount_text(d: Dur) -> String {
     match d {
         Dur::Distance(m) if m >= 1000 => format!(
@@ -2672,11 +3312,11 @@ fn volume(d: Dur) -> i64 {
 fn zone_of(t: &Tgt) -> i64 {
     match t {
         Tgt::Zone { zone, .. } => *zone,
-        Tgt::Rpe(v) if *v >= 9 => 5,
-        Tgt::Rpe(v) if *v >= 7 => 4,
-        Tgt::Rpe(v) if *v >= 5 => 3,
-        Tgt::Rpe(v) if *v >= 3 => 2,
-        Tgt::Rpe(_) => 1,
+        Tgt::Rpe(v, _) if *v >= 9 => 5,
+        Tgt::Rpe(v, _) if *v >= 7 => 4,
+        Tgt::Rpe(v, _) if *v >= 5 => 3,
+        Tgt::Rpe(v, _) if *v >= 3 => 2,
+        Tgt::Rpe(..) => 1,
         _ => 3,
     }
 }
@@ -2711,6 +3351,9 @@ fn name_of(blocks: &[Block], meta: &[Meta], sport: &str, hints: &Hints) -> Strin
     if let Some(d) = hints.progression {
         return format!("Progressivo {}", amount_text(d));
     }
+    if let Some(named) = &hints.named {
+        return format!("{} {}", named.name, amount_text(named.total));
+    }
     let actives: Vec<&Step> = blocks
         .iter()
         .filter_map(|b| match b {
@@ -2726,7 +3369,7 @@ fn name_of(blocks: &[Block], meta: &[Meta], sport: &str, hints: &Hints) -> Strin
     }
     let (mut best, mut best_vol) = (None, -1);
     for (i, b) in blocks.iter().enumerate() {
-        if let Block::Repeat { count, steps } = b {
+        if let Block::Repeat { count, steps, .. } = b {
             let vol = count
                 * steps
                     .iter()
@@ -2740,7 +3383,12 @@ fn name_of(blocks: &[Block], meta: &[Meta], sport: &str, hints: &Hints) -> Strin
     }
     if let Some(i) = best
         && main.is_none_or(|m| best_vol >= volume(m.duration))
-        && let Block::Repeat { count, steps } = &blocks[i]
+        && let Block::Repeat {
+            count,
+            max_count,
+            steps,
+            ..
+        } = &blocks[i]
     {
         let a = steps
             .iter()
@@ -2753,9 +3401,32 @@ fn name_of(blocks: &[Block], meta: &[Meta], sport: &str, hints: &Hints) -> Strin
         } else {
             "Intervalado"
         };
+        let count = match max_count {
+            Some(max) => format!("{count}–{max}"),
+            None => count.to_string(),
+        };
+        // A set written over several lines with different runs: named by what each round adds up to ("3×1,5 km").
+        let runs: Vec<Step> = steps
+            .iter()
+            .filter(|s| s.intent == "active")
+            .cloned()
+            .collect();
+        let sum = if runs.len() > 1 {
+            steps_amount(&runs, a.duration).unwrap_or(0)
+        } else {
+            0
+        };
+        if meta[i].set && meta[i].nested.is_none() && sum > 0 {
+            let total = match a.duration {
+                Dur::Distance(_) => Dur::Distance(sum),
+                _ => Dur::Time(sum),
+            };
+            return format!("{label} {count}×{}", amount_text(total));
+        }
+        let amount = amount_range(a.duration, a.dur_max);
         return match meta[i].nested {
-            Some(inner) => format!("{label} {count}×({inner}×{})", amount_text(a.duration)),
-            None => format!("{label} {count}×{}", amount_text(a.duration)),
+            Some(inner) => format!("{label} {count}×({inner}×{amount})"),
+            None => format!("{label} {count}×{amount}"),
         };
     }
     let Some(m) = main else {
@@ -2766,12 +3437,12 @@ fn name_of(blocks: &[Block], meta: &[Meta], sport: &str, hints: &Hints) -> Strin
         let Some(any) = any else {
             return "Treino".into();
         };
-        let label = if any.note.as_deref().is_some_and(|n| n.contains("caminhada")) {
+        let label = if matches!(any.target, Tgt::Rpe(_, Some("caminhada"))) {
             "Caminhada"
         } else {
             "Treino"
         };
-        return format!("{label} {}", amount_text(any.duration))
+        return format!("{label} {}", amount_range(any.duration, any.dur_max))
             .trim()
             .to_string();
     };
@@ -2837,7 +3508,7 @@ fn name_of(blocks: &[Block], meta: &[Meta], sport: &str, hints: &Hints) -> Strin
             _ => "Ritmo forte",
         }
     };
-    format!("{label} {}", amount_text(m.duration))
+    format!("{label} {}", amount_range(m.duration, m.dur_max))
         .trim()
         .to_string()
 }
@@ -2901,6 +3572,7 @@ pub fn parse(raw: &str, sport: &str) -> Parsed {
             t.k == K::Word && (t.low.starts_with("progress") || t.low.starts_with("progredi"))
         }),
         progression: None,
+        named: None,
     };
     let mut warnings = Vec::new();
     let (blocks, meta) = assemble(&segment(&toks), sport, &mut warnings, &mut hints);

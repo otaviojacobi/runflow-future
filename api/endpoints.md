@@ -31,14 +31,15 @@ Screen IDs (A*, M*, W*, O*, C*) refer to `docs/build-plan.md`.
 | Field | Values |
 |---|---|
 | `intent` | `warmup` `active` `recovery` `rest` `cooldown` `other` |
-| `duration` | `{type:"time",s}` · `{type:"distance",m}` · `{type:"open"}` (lap button) |
-| `target` | `{type:"open"}` · `{type:"zone",metric:"hr"\|"pace"\|"power",zone:1-5}` · `{type:"pace",min_s,max_s}` (s/km; swim s/100 m) · `{type:"hr",min,max}` · `{type:"power",min,max}` · `{type:"rpe",value:1-10}` |
+| `duration` | `{type:"time",s,max_s?}` · `{type:"distance",m,max_m?}` · `{type:"open"}` (lap button). `max_s`/`max_m`: a range the athlete picks by feel ("60–80 m", `max` ≥ the lower amount) |
+| `target` | `{type:"open"}` · `{type:"zone",metric:"hr"\|"pace"\|"power",zone:1-5}` · `{type:"pace",min_s,max_s}` (s/km; swim s/100 m) · `{type:"hr",min,max}` · `{type:"power",min,max}` · `{type:"rpe",value:1-10,label?}`: PSE; `label` is the coach's word for it ("forte" → 8), shown as "PSE forte (8)". Intensity words become PSE, never zones (scale: `docs/workout-text.md` § PSE) |
+| repeat block | `{kind:"repeat", count:1-200, max_count?, note?, steps}`. `max_count`: "15–20×" (`count` ≤ `max_count` ≤ 200, the athlete picks); `note`: the block's name ("Fartlek", "Bloco do sábado"). Estimates, the intensity profile and Garmin/FIT export use the lower bounds (`count`, `s`, `m`) |
 | swim extras (on a step) | `stroke`: `free` `back` `breast` `fly` `im` `choice` `kick` `drill` · `equipment`: [`pullbuoy` `kickboard` `fins` `paddles` `snorkel`] · `send_off_s` |
 | strength block | `{kind:"exercise", name, sets, reps:"8-10", load:{type:"kg"\|"pct_1rm"\|"bodyweight"\|"rpe", value}, rest_s, tempo?, note?, exercise_id?}`. Without `exercise_id`, apps match the library by name (case-insensitive) |
 
 Blocks can carry `note`. Free text becomes this structure through one pt-BR grammar (coaching shorthand and plain sentences), shared by the web builder's quick text and `POST /ai/workout` in the mock and the backend; `api/workout-text-examples.json` holds the golden examples every implementation must match (rules: `docs/workout-text.md`). Garmin/FIT export maps from it.
 
-The backend validates every stored structure against these types (unknown extra fields are kept, wrong shapes or out-of-range values → `422`, field `structure`: "Não entendemos a estrutura do treino. Revise as etapas."; no blocks → "Adicione pelo menos uma etapa."). `est_duration_s` / `est_distance_m` come from the app (non-negative integers or null).
+The backend validates every stored structure against these types (unknown extra fields are kept, wrong shapes or out-of-range values → `422`, field `structure`: "Não entendemos a estrutura do treino. Revise as etapas."; no blocks → "Adicione pelo menos uma etapa."). `est_duration_s` / `est_distance_m` come from the app (non-negative integers or null); the mock and the backend estimate `/ai/workout` the same way (a PSE target counts as its zone's pace: 1–2 → Z1, 3–4 → Z2, 5–6 → Z3, 7–8 → Z4, 9–10 → Z5).
 
 ## Tags (workout hashtags)
 
