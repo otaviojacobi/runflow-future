@@ -1,11 +1,14 @@
 /** C1 · Notificações (D-032): what reaches each person and how. Per kind: the app center, the phone, e-mail (off, right
  * away or a daily summary); pause everything; quiet hours; staff can limit feedback and comments to their groups. */
-import { BellOff } from "lucide-react";
+import { BellOff, BellRing } from "lucide-react";
+import { useEffect, useState } from "react";
+import { usePublicConfig } from "@/api/auth";
 import { useGroups } from "@/api/members";
 import { usePrefs, useUpdatePrefs } from "@/api/account";
 import type { EmailMode, KindPref, MembershipContext, NotificationKind, NotificationPrefs } from "@/api/types";
 import { t } from "@/i18n";
-import { Field, Input, Select, Skeleton, Switch, cn, toast } from "@/ui";
+import { type DevicePush as DevicePushState, devicePushState, disableDevicePush, enableDevicePush, refreshDevicePush } from "@/lib/push";
+import { Button, Field, Input, Select, Skeleton, Switch, cn, toast } from "@/ui";
 
 const INFO: Record<NotificationKind, { label: string; hint: string }> = {
   workout_assigned: { label: "Treino novo", hint: "Um treino entrou na sua agenda" },
@@ -43,6 +46,7 @@ export function NotificationSettings({ memberships }: { memberships: MembershipC
   const digest = kinds.some((k) => p.kinds[k]?.email === "digest");
   return (
     <div className="grid gap-5">
+      <DevicePush />
       <Switch checked={p.paused} onCheckedChange={(paused) => save({ paused })} label={t("Pausar avisos")}
         description={t("Nada no celular nem por e-mail até você voltar. A central do app continua mostrando tudo.")} />
       <ul className={cn("grid divide-y divide-line-subtle rounded-lg border border-line", p.paused && "opacity-60")}>
@@ -62,6 +66,45 @@ export function NotificationSettings({ memberships }: { memberships: MembershipC
         const m = memberships.find((x) => x.membership.id === g.membership_id);
         return m ? <GroupFilter key={g.membership_id} clubId={g.club_id} clubName={m.club.name} groupIds={g.group_ids} onSave={(group_ids) => save({ groups: [{ club_id: g.club_id, group_ids }] })} /> : null;
       })}
+    </div>
+  );
+}
+
+const DEVICE_TEXT: Record<DevicePushState, string> = {
+  on: "Ativas neste aparelho: os avisos marcados com “Celular” chegam aqui.",
+  off: "Receba os avisos marcados com “Celular” como notificação deste aparelho.",
+  denied: "Bloqueadas no navegador. Libere as notificações nas configurações do site e tente de novo.",
+  install: "No iPhone, adicione o Runflow à Tela de Início e abra por lá para receber notificações.",
+  unsupported: "Este navegador não mostra notificações do Runflow.",
+  unavailable: "Notificações no aparelho ainda não estão disponíveis aqui.",
+};
+
+/** Push on this device (S7b): its own switch, separate from the per-kind choices. */
+function DevicePush() {
+  const config = usePublicConfig();
+  const key = config.data?.push_public_key;
+  const [state, setState] = useState<DevicePushState | null>(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    if (config.isPending) return;
+    let live = true;
+    devicePushState(key).then((s) => { if (!live) return; setState(s); if (s === "on") void refreshDevicePush(); });
+    return () => { live = false; };
+  }, [key, config.isPending]);
+  if (!state) return null;
+  const run = async (fn: () => Promise<DevicePushState>) => {
+    setBusy(true);
+    try { setState(await fn()); } catch { toast.error(t("Não foi possível mudar as notificações deste aparelho.")); } finally { setBusy(false); }
+  };
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line p-4">
+      <BellRing aria-hidden className="size-5 shrink-0 text-fg-muted" />
+      <div className="grid min-w-0 flex-1 basis-56 gap-0.5">
+        <p className="font-semibold">{t("Notificações neste aparelho")}</p>
+        <p className="text-sm text-fg-muted">{t(DEVICE_TEXT[state])}</p>
+      </div>
+      {state === "off" && key && <Button loading={busy} onClick={() => run(() => enableDevicePush(key))}>{t("Ativar")}</Button>}
+      {state === "on" && <Button variant="secondary" loading={busy} onClick={() => run(async () => { await disableDevicePush(); return "off"; })}>{t("Desativar")}</Button>}
     </div>
   );
 }

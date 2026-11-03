@@ -569,7 +569,10 @@ CREATE TABLE notifications (
   -- Delivery per the recipient's preferences at creation (D-032): shown in the app's center or not, and the
   -- e-mail it still owes ('instant' or 'digest', then 'sent').
   in_app      boolean NOT NULL DEFAULT true,
-  email       text NOT NULL DEFAULT 'none' CHECK (email IN ('none', 'instant', 'digest', 'sent'))
+  email       text NOT NULL DEFAULT 'none' CHECK (email IN ('none', 'instant', 'digest', 'sent')),
+  -- Push to the person's devices (S7b): when it goes out (quiet hours delay it; null = no push) and when it did.
+  push_at     timestamptz,
+  pushed_at   timestamptz
 );
 CREATE INDEX notifications_user_idx ON notifications (user_id, created_at DESC);
 CREATE INDEX notifications_email_idx ON notifications (email) WHERE email IN ('instant', 'digest');
@@ -602,14 +605,18 @@ CREATE TABLE notification_group_filters (
   updated_at     timestamptz NOT NULL DEFAULT now()
 );
 
+-- A device that receives push: web = a Web Push subscription (`token` is its endpoint URL, `keys` its p256dh and
+-- auth), ios/android = an Expo push token (X10).
 CREATE TABLE push_tokens (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id       uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   platform      text NOT NULL CHECK (platform IN ('ios', 'android', 'web')),
   token         text NOT NULL UNIQUE,
+  keys          jsonb,
   created_at    timestamptz NOT NULL DEFAULT now(),
   last_seen_at  timestamptz NOT NULL DEFAULT now()
 );
+CREATE INDEX push_tokens_user_idx ON push_tokens (user_id);
 
 -- =========================================================================== ops
 CREATE TABLE audit_log (

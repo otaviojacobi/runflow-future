@@ -182,6 +182,22 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
             "STRIPE_SECRET_KEY not set and BILLING_SIMULATION off: owners can't upgrade (D-016: no charging in the beta)",
         ),
     }
+    match &c.push {
+        Some(p) => line(
+            "push",
+            "ok",
+            format!(
+                "Web Push (VAPID {}…, contact {})",
+                &p.public_key[..p.public_key.len().min(12)],
+                p.subject
+            ),
+        ),
+        None => line(
+            "push",
+            "off",
+            "VAPID_PUBLIC_KEY + VAPID_PRIVATE_KEY not set: no push to devices (generate with `runflow vapid-keys`)",
+        ),
+    }
     match &c.storage {
         Storage::Disk { dir } => {
             let writable = std::fs::create_dir_all(dir).is_ok() && tempfile_in(dir);

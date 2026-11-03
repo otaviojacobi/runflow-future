@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.kinds AS \"kinds?\", coalesce(p.paused, false) AS \"paused!\",\n                  CASE WHEN p.user_id IS NULL THEN time '22:00' ELSE p.quiet_start END AS \"quiet_start?\",\n                  CASE WHEN p.user_id IS NULL THEN time '07:00' ELSE p.quiet_end END AS \"quiet_end?\",\n                  EXISTS (SELECT 1 FROM push_tokens t WHERE t.user_id = $1) AS \"has_device!\",\n                  (SELECT f.group_ids FROM notification_group_filters f JOIN memberships m ON m.id = f.membership_id\n                    WHERE m.user_id = $1 AND m.club_id = $2 AND m.role <> 'student' AND m.status = 'active') AS \"filter?\"\n             FROM (SELECT 1) one LEFT JOIN notification_prefs p ON p.user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kinds?",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "kinds"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "paused!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "quiet_start?",
+        "type_info": "Time",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "quiet_end?",
+        "type_info": "Time",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "has_device!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 5,
+        "name": "filter?",
+        "type_info": "UuidArray",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "b2356f92212634047e96437950d4e0ad0c513f9e3c3df90b63354e36d2e7b848"
+}

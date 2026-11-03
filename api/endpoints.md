@@ -57,7 +57,7 @@ Trainers plan ahead in private and release a week (Monday–Sunday) when it's re
 
 ## Notifications (D-032)
 
-Every user decides what reaches them and how. Per **kind**: `app` (the notification center), `push` (the phone; stored now, delivered once push lands, S7/X10) and `email`: `off`, `instant` or `digest` (one daily summary at `digest_hour`, São Paulo time). Without a saved choice a kind uses its default:
+Every user decides what reaches them and how. Per **kind**: `app` (the notification center), `push` (system notifications on the person's devices: the installed web app now, S7b; the phone app with X10) and `email`: `off`, `instant` or `digest` (one daily summary at `digest_hour`, São Paulo time). Without a saved choice a kind uses its default:
 
 | Kind | Who gets it | app | push | email |
 |---|---|---|---|---|
@@ -67,7 +67,8 @@ Every user decides what reaches them and how. Per **kind**: `app` (the notificat
 | `feedback` · `member_joined` | staff | on | off | digest |
 | `billing` | owner | on | off | instant |
 
-- `paused` holds push and e-mail (the center still fills). Quiet hours (`quiet_start`–`quiet_end`, default 22:00–07:00) hold push only.
+- `paused` holds push and e-mail (the center still fills). Quiet hours (`quiet_start`–`quiet_end`, default 22:00–07:00, São Paulo time) hold push only: it goes out when they end, unless the notification was read in the app by then.
+- Push reaches every device the person registered (`/me/push-tokens`); a device the push service no longer knows is forgotten. The payload is `{title, body, link, id}`.
 - **Group filter (staff):** per club, `feedback` and `comment` notices only about students in the chosen groups (empty = everyone).
 - A notification is created with the recipient's choices: `in_app` (shown in the center and the unread count) and `email` (`none`, `instant`, `digest`, then `sent`). E-mails go out from the worker: instant ones right away (club e-mails in the club's colors, D-036), digests once a day.
 
@@ -77,7 +78,7 @@ Every user decides what reaches them and how. Per **kind**: `app` (the notificat
 
 | Method | Path | What | Screens |
 |---|---|---|---|
-| GET | `/public/config` | What the web app needs before sign-in: `{google_client_id, strava, club}` (the web OAuth client id, or null when Google sign-in is off; whether Strava is configured; `club` `{id, slug, name, logo_url}` when the request's host is a club site, S9b: `<subdomain>` + `CLUB_HOST_SUFFIX`, e.g. `paceforte-qa.runflow.club` in QA). Mock: `google_client_id` and `club` null | A2 |
+| GET | `/public/config` | What the web app needs before sign-in: `{google_client_id, strava, club, push_public_key}` (`push_public_key`: the VAPID public key for Web Push, base64url, or null when push is off) (the web OAuth client id, or null when Google sign-in is off; whether Strava is configured; `club` `{id, slug, name, logo_url}` when the request's host is a club site, S9b: `<subdomain>` + `CLUB_HOST_SUFFIX`, e.g. `paceforte-qa.runflow.club` in QA). Mock: `google_client_id`, `club` and `push_public_key` null | A2 |
 | GET | `/health` | `{ok, version, database: {ok, latency_ms}}`; `503 health.database_unavailable` when the database is down. The mock adds `anchor_date` and `routes` | — |
 | GET / POST | `/webhooks/strava` | Strava webhook: GET answers the subscription handshake (`hub.verify_token` = `STRAVA_WEBHOOK_VERIFY_TOKEN`); POST events are recorded once and applied by the worker (activity create/update fetched from Strava, delete, athlete deauthorization = disconnect). Backend only | — |
 
@@ -93,6 +94,8 @@ Every user decides what reaches them and how. Per **kind**: `app` (the notificat
 | DELETE | `/me` | Delete account (LGPD; App Store): name/e-mail/phone anonymized, every club left, sessions and provider links revoked, sign-in identities removed (the same e-mail can start over). `409 account.owns_club` | C1 |
 | GET | `/me/export` | All my data as JSON (LGPD portability) | C1 |
 | GET / PATCH | `/me/prefs` | Notification control (§ Notifications): `{kinds: {<kind>: {app, push, email}}, digest_hour, quiet_start, quiet_end, paused, groups: [{club_id, membership_id, group_ids}]}`. GET resolves every kind with its default; `groups` lists the caller's staff memberships. PATCH takes any part: `kinds` merges per kind, `groups: [{club_id, group_ids}]` replaces a club's filter (staff only, groups of that club; `403 auth.forbidden` otherwise). `email` ∈ off/instant/digest, `digest_hour` 0–23, quiet times `"HH:MM"` or both null → `422` | C1 |
+| POST | `/me/push-tokens` `{platform, token, keys?}` | Register this device for push (S7b): `web` = the Web Push subscription (`token` its endpoint: https on a browser push service, i.e. FCM, Mozilla, Apple or Windows; `keys` `{p256dh, auth}`, both required), `ios`/`android` = an Expo push token (X10). A token already registered moves to the caller. `204`; `422` on a bad platform, token or keys | C1 |
+| DELETE | `/me/push-tokens` `{token}` | Forget this device (turning push off here, signing out). `204` even when unknown | C1 |
 | GET | `/me/consents` · POST `/me/consents` `{club_id?, kind, text_version}` · DELETE `/me/consents/{id}` | Consents (grant / revoke) | A4, C1 |
 | GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first (only `in_app` ones; the unread count too). Kinds: `workout_assigned` `workout_changed` `week_released` `comment` `feedback` `member_joined` `billing` `message` `announcement`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
 | GET | `/me/sessions` · DELETE `/me/sessions/{id}` · POST `/me/sessions/revoke-others` | Signed-in devices `{id, kind, user_agent, created_at, last_seen_at, current}` | C1 |

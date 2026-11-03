@@ -28,8 +28,8 @@ crates/
   domain/        pure rules, no I/O: the club color engine (port of design/src/color.js), workout structure and
                  estimates, week release timing, notification rules, assessment formulas, the assistant's rules engine
   jobs/          the worker: Postgres queue (FOR UPDATE SKIP LOCKED), retries with backoff; job kinds (invite e-mails)
-  integrations/  email (Resend + log with a dev outbox, token-based layout), google (ID-token verification);
-                 later Strava, Stripe
+  integrations/  email (Resend + log with a dev outbox, token-based layout), google (ID-token verification),
+                 strava, stripe (Checkout, portal, webhook signatures), webpush (RFC 8291 + VAPID), storage
 migrations/      0001_bootstrap.sql = api/schema.sql (synced; the only migration until the beta, D-030)
 assets/          synced copies: design/dist/tokens.json + color-fixtures.json, api/starter-library.json (scripts/sync-assets.sh)
 ```

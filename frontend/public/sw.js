@@ -2,7 +2,8 @@
  * - Navigations: network first, fall back to the cached app shell.
  * - Hashed assets, fonts, icons: cache first.
  * - The student's own day (/my/workouts, /my/summary, /me): network first, cached copy when offline.
- * Everything else goes to the network untouched. The app clears the API cache on sign-out. */
+ * Everything else goes to the network untouched. The app clears the API cache on sign-out.
+ * Push (S7b): `{id, title, body, link}` from the API becomes a system notification; a click opens its link. */
 const SHELL = "rf-shell-v1", ASSETS = "rf-assets-v1", API = "rf-api-v1";
 const KEEP = [SHELL, ASSETS, API];
 
@@ -46,4 +47,20 @@ self.addEventListener("fetch", (e) => {
   }
   if (req.mode === "navigate") { e.respondWith(fetch(req).then((res) => { caches.open(SHELL).then((c) => c.put("/", res.clone())); return res; }).catch(() => caches.match("/"))); return; }
   if (url.pathname.startsWith("/assets/") || url.pathname.startsWith("/icons/") || /\.(woff2?|svg|png)$/.test(url.pathname)) e.respondWith(cacheFirst(req));
+});
+
+self.addEventListener("push", (e) => {
+  let m = {};
+  try { m = e.data ? e.data.json() : {}; } catch { m = { body: e.data ? e.data.text() : "" }; }
+  // One notification per id: a repeated delivery replaces the first.
+  e.waitUntil(self.registration.showNotification(m.title || "Runflow", { body: m.body || undefined, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", tag: m.id || undefined, data: { link: m.link || "/" } }));
+});
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const link = new URL((e.notification.data && e.notification.data.link) || "/", self.location.origin).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+    const w = wins.find((c) => new URL(c.url).origin === self.location.origin);
+    if (w) return w.focus().then((f) => (f && "navigate" in f ? f.navigate(link) : undefined));
+    return self.clients.openWindow(link);
+  }));
 });

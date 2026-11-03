@@ -5,6 +5,7 @@
 mod billing_jobs;
 mod invite_email;
 mod notify_email;
+mod push_jobs;
 mod strava_jobs;
 mod week_release;
 
@@ -16,10 +17,12 @@ use runflow_db::jobs::{self, Job};
 use runflow_integrations::email::Mailer;
 use runflow_integrations::secrets::TokenCipher;
 use runflow_integrations::strava::StravaClient;
+use runflow_integrations::webpush::WebPush;
 use serde_json::Value;
 
 pub use billing_jobs::STRIPE_EVENT;
 pub use invite_email::INVITE_EMAIL;
+pub use push_jobs::PUSH_SEND;
 pub use strava_jobs::{STRAVA_EVENT, STRAVA_SYNC};
 
 const MAX_ATTEMPTS: i32 = 8;
@@ -62,6 +65,8 @@ pub struct Worker {
     public_api_url: Option<String>,
     id: String,
     strava: Option<StravaCtx>,
+    /// Web Push (VAPID keys set); none = notifications aren't pushed.
+    webpush: Option<std::sync::Arc<WebPush>>,
 }
 
 #[derive(Clone)]
@@ -93,7 +98,13 @@ impl Worker {
             public_api_url: None,
             id,
             strava: None,
+            webpush: None,
         }
+    }
+
+    pub fn with_webpush(mut self, web: std::sync::Arc<WebPush>) -> Self {
+        self.webpush = Some(web);
+        self
     }
 
     /// Enable the Strava jobs.
@@ -193,6 +204,7 @@ impl Worker {
             STRAVA_SYNC => strava_jobs::sync(self, &job.payload).await,
             STRAVA_EVENT => strava_jobs::event(self, &job.payload).await,
             STRIPE_EVENT => billing_jobs::event(self, &job.payload).await,
+            PUSH_SEND => push_jobs::send(self, &job.payload).await,
             other => Err(JobError::permanent(format!("unknown job kind {other}"))),
         }
     }

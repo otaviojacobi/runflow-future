@@ -17,6 +17,8 @@ use tower::ServiceExt;
 
 pub struct TestApp {
     pub state: AppState,
+    /// The worker's Web Push sender (`with_push`).
+    pub webpush: Option<std::sync::Arc<runflow_integrations::webpush::WebPush>>,
 }
 
 pub struct Res {
@@ -64,6 +66,7 @@ pub fn settings(dev: bool) -> ApiSettings {
             price_pro: None,
             webhook_secret: None,
         },
+        push_public_key: None,
         auth: AuthSettings {
             secret: b"test-secret-test-secret-test-secret".to_vec(),
             session_ttl: chrono::Duration::days(60),
@@ -104,6 +107,7 @@ impl TestApp {
             .with_env_filter("warn,runflow=info")
             .try_init();
         Self {
+            webpush: None,
             state: AppState::new(
                 db,
                 settings(dev),
@@ -120,6 +124,7 @@ impl TestApp {
         let mut s = settings(true);
         s.body_limit = limit;
         Self {
+            webpush: None,
             state: AppState::new(db, s, log_mailer(), None, Storage::memory(), cipher()),
         }
     }
@@ -134,6 +139,9 @@ impl TestApp {
         .with_api_url(self.state.settings.public_api_url.clone());
         if let Some(s) = &self.state.strava {
             w = w.with_strava((**s).clone(), self.state.cipher.clone());
+        }
+        if let Some(web) = &self.webpush {
+            w = w.with_webpush(web.clone());
         }
         w.run_once(500).await.unwrap()
     }
@@ -184,6 +192,18 @@ impl TestApp {
                 "sk_test_123".into(),
             ));
         app
+    }
+
+    /// Web Push on: a fresh VAPID pair, its public key in `/public/config`.
+    pub fn with_push(mut self) -> Self {
+        use runflow_integrations::webpush::{Vapid, WebPush};
+        let (public, private) = Vapid::generate().unwrap();
+        let mut s = (*self.state.settings).clone();
+        s.push_public_key = Some(public.clone());
+        self.state.settings = std::sync::Arc::new(s);
+        let vapid = Vapid::new(&public, &private, "mailto:contato@runflow.club").unwrap();
+        self.webpush = Some(std::sync::Arc::new(WebPush::new(vapid)));
+        self
     }
 
     pub fn db(&self) -> &PgPool {

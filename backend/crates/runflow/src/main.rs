@@ -64,6 +64,8 @@ enum Command {
     },
     /// Exit 0 when the local server answers /v1/health (Docker healthcheck; no curl in the image).
     Healthcheck,
+    /// Print a new VAPID key pair for Web Push (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY).
+    VapidKeys,
 }
 
 #[tokio::main]
@@ -71,6 +73,16 @@ async fn main() -> ExitCode {
     // `.env` at the repo root when running with cargo; Docker passes the variables directly.
     let _ = dotenvy::dotenv();
     let cli = Cli::parse();
+    // Needs no configuration: run it before reading the environment.
+    if let Command::VapidKeys = cli.command {
+        return match runflow_integrations::webpush::Vapid::generate() {
+            Ok((public, private)) => {
+                println!("VAPID_PUBLIC_KEY={public}\nVAPID_PRIVATE_KEY={private}");
+                ExitCode::SUCCESS
+            }
+            Err(_) => ExitCode::FAILURE,
+        };
+    }
 
     let config = match Config::from_env() {
         Ok(c) => c,
@@ -92,6 +104,7 @@ async fn main() -> ExitCode {
         Command::Doctor => doctor::run(&config).await,
         Command::EmailTest { to, preview, club } => email_test(&config, to, preview, club).await,
         Command::Healthcheck => healthcheck(&config).await,
+        Command::VapidKeys => Ok(()),
     };
     match result {
         Ok(()) => ExitCode::SUCCESS,
@@ -100,6 +113,24 @@ async fn main() -> ExitCode {
             ExitCode::FAILURE
         }
     }
+}
+
+/// The Web Push sender when VAPID keys are set.
+fn webpush(
+    config: &Config,
+) -> anyhow::Result<Option<std::sync::Arc<runflow_integrations::webpush::WebPush>>> {
+    let Some(p) = &config.push else {
+        return Ok(None);
+    };
+    let vapid = runflow_integrations::webpush::Vapid::new(
+        &p.public_key,
+        p.private_key.expose(),
+        &p.subject,
+    )
+    .map_err(|e| anyhow::anyhow!(e))?;
+    Ok(Some(std::sync::Arc::new(
+        runflow_integrations::webpush::WebPush::new(vapid),
+    )))
 }
 
 fn init_logging(format: LogFormat) {
@@ -144,6 +175,9 @@ async fn worker(config: Config) -> anyhow::Result<()> {
             ),
             token_cipher(&config)?,
         );
+    }
+    if let Some(web) = webpush(&config)? {
+        w = w.with_webpush(web);
     }
     w.run(shutdown()).await;
     pool.close().await;
@@ -193,6 +227,7 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
                 .and_then(|s| s.webhook_secret.as_ref())
                 .map(|w| w.expose().to_string()),
         },
+        push_public_key: config.push.as_ref().map(|p| p.public_key.clone()),
         auth: AuthSettings {
             secret,
             session_ttl: chrono::Duration::days(60),
@@ -262,8 +297,10 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
         google = config.google.is_some(),
         strava = config.strava.is_some(),
         stripe = config.stripe.is_some(),
+        push = config.push.is_some(),
         "runflow listening"
     );
+    let web = webpush(&config)?;
     // One signal stops both the server and the in-process worker.
     let (stop_tx, stop_rx) = tokio::sync::watch::channel(false);
     let worker = with_worker.then(|| {
@@ -275,6 +312,9 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
         .with_api_url(config.http.public_api_url.clone());
         if let Some(client) = strava.clone() {
             w = w.with_strava(client, cipher.clone());
+        }
+        if let Some(web) = web.clone() {
+            w = w.with_webpush(web);
         }
         let mut rx = stop_rx.clone();
         tokio::spawn(async move {

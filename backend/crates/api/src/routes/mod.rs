@@ -17,6 +17,7 @@ pub mod messages;
 pub mod my;
 pub mod plans;
 pub mod providers;
+pub mod push;
 pub mod races;
 pub mod reports;
 pub mod threads;
@@ -45,6 +46,7 @@ pub fn v1() -> Router<AppState> {
         .merge(reports::routes())
         .merge(ai::routes())
         .merge(billing::routes())
+        .merge(push::routes())
         .merge(my::routes())
         .merge(threads::routes())
         .merge(calendar::routes())

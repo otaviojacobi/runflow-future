@@ -54,6 +54,8 @@ pub struct ApiSettings {
     /// Also match club hosts by slug (QA: every club gets a site while subdomains are Pro and billing isn't live).
     pub club_host_by_slug: bool,
     pub billing: BillingSettings,
+    /// The VAPID public key for Web Push (`/public/config`); None = push off.
+    pub push_public_key: Option<String>,
     pub auth: AuthSettings,
 }
 

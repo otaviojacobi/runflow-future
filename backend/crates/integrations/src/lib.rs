@@ -7,3 +7,4 @@ pub mod secrets;
 pub mod storage;
 pub mod strava;
 pub mod stripe;
+pub mod webpush;

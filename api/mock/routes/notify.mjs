@@ -46,13 +46,38 @@ export default function register(h) {
     const p = row(n.user_id);
     const k = resolve(p, n.kind);
     const email = p.paused || k.email === "off" ? "none" : k.email;
-    if (!k.app && email === "none") return null; // push isn't delivered yet (S7/X10)
-    const out = { read_at: null, created_at: h.nowIso(), ...n, in_app: k.app, email };
+    // Push only to people with a registered device; the mock stores when it would go out (the backend sends it,
+    // holding it through quiet hours).
+    const push = k.push && !p.paused && (h.db.push_tokens ||= []).some((t) => t.user_id === n.user_id);
+    if (!k.app && email === "none" && !push) return null;
+    const out = { read_at: null, created_at: h.nowIso(), ...n, in_app: k.app, email, push_at: push ? h.nowIso() : null, pushed_at: null };
     h.db.notifications.push(out);
     return out;
   };
 
   h.get("/v1/me/prefs", (ctx) => h.prefsOut(ctx.user().id));
+
+  /** Devices for push (S7b): web = a Web Push subscription, ios/android = Expo tokens (X10). */
+  h.post("/v1/me/push-tokens", (ctx) => {
+    const u = ctx.user(), b = ctx.body;
+    const token = typeof b.token === "string" ? b.token.trim() : "";
+    const keys = b.keys && typeof b.keys === "object" ? b.keys : null;
+    const e = [];
+    if (!["web", "ios", "android"].includes(b.platform)) e.push({ field: "platform", message: "Plataforma inválida." });
+    if (!token || token.length > 2048 || (b.platform === "web" && !/^https:\/\//.test(token))) e.push({ field: "token", message: "Informe o token do aparelho." });
+    if (b.platform === "web" && !(typeof keys?.p256dh === "string" && keys.p256dh && typeof keys?.auth === "string" && keys.auth)) e.push({ field: "keys", message: "Chaves da inscrição inválidas." });
+    if (e.length) h.invalid(e);
+    h.db.push_tokens ||= [];
+    const now = h.nowIso();
+    const t = h.db.push_tokens.find((x) => x.token === token);
+    const k = b.platform === "web" ? { p256dh: keys.p256dh, auth: keys.auth } : null;
+    if (t) Object.assign(t, { user_id: u.id, platform: b.platform, keys: k, last_seen_at: now });
+    else h.db.push_tokens.push({ id: h.uuid("pt"), user_id: u.id, platform: b.platform, token, keys: k, created_at: now, last_seen_at: now });
+  });
+  h.delete("/v1/me/push-tokens", (ctx) => {
+    const u = ctx.user();
+    h.db.push_tokens = (h.db.push_tokens ||= []).filter((t) => !(t.user_id === u.id && t.token === ctx.body?.token));
+  });
   h.patch("/v1/me/prefs", (ctx) => {
     const u = ctx.user();
     const p = row(u.id);

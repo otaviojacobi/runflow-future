@@ -452,7 +452,7 @@ export function generate(anchor) {
   ["lucas", "marina", "sofia"].forEach((k, i) => entry(travessia, "equipemare:" + k, i === 1 ? 3000 : 1500));
 
   // ---- notifications
-  const note = (ukey, clubRow, kind, title, body, link, when, read = false) => t("notifications").push({ id: uuid(`n:${ukey}:${kind}:${when}`), user_id: U[ukey].id, club_id: clubRow ? clubRow.id : null, kind, title, body, link, read_at: read ? when : null, created_at: when, in_app: true, email: "none" });
+  const note = (ukey, clubRow, kind, title, body, link, when, read = false) => t("notifications").push({ id: uuid(`n:${ukey}:${kind}:${when}`), user_id: U[ukey].id, club_id: clubRow ? clubRow.id : null, kind, title, body, link, read_at: read ? when : null, created_at: when, in_app: true, email: "none", push_at: null, pushed_at: null });
   note("ana", PF, "workout_assigned", "Novo treino para hoje", "Intervalado 6×1 km", `/workouts/${PW["ana:" + today].id}`, at(addDays(today, -1), "20:00"));
   if (lastTue) note("ana", PF, "comment", "Marcos comentou no seu treino", "Normal nessa fase. Amanhã faz o regenerativo bem leve…", `/workouts/${lastTue.id}`, at(lastTue.date, "12:30"), true);
   if (carlaMissed) note("marcos", PF, "feedback", "Carla Mendes deixou um comentário", "Não consegui treinar, plantão no hospital…", `/feedback`, at(addDays(anchor, -1), "21:14"));

@@ -2,6 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import { clearOfflineData } from "@/lib/pwa";
+import { disableDevicePush } from "@/lib/push";
 import { applyClubTheme } from "@/lib/theme";
 import { queryClient } from "@/queryClient";
 import { fetchMe, meKey } from "./me";
@@ -19,13 +20,15 @@ export const useEmailStart = () => useMutation({ mutationFn: (email: string) => 
 export const useEmailVerify = () => useMutation({ mutationFn: (v: { email: string; code: string }) => api.post<AuthResult>("/auth/email/verify", v).then(finishSignIn) });
 export const useGoogleSignIn = () => useMutation({ mutationFn: (id_token: string) => api.post<AuthResult>("/auth/google", { id_token }).then(finishSignIn) });
 /** What the backend has switched on (Google sign-in's web client id, Strava), and the club this host serves (S9b). */
-export interface PublicConfig { google_client_id: string | null; strava: boolean; club: { id: string; slug: string; name: string; logo_url: string | null } | null }
+export interface PublicConfig { google_client_id: string | null; strava: boolean; club: { id: string; slug: string; name: string; logo_url: string | null } | null; push_public_key: string | null }
 export const usePublicConfig = () =>
   useQuery({ queryKey: ["public-config"], staleTime: 5 * 60_000, queryFn: () => api.get<PublicConfig>("/public/config") });
 export const useMockAccounts = (enabled: boolean) =>
   useQuery({ queryKey: ["mock-accounts"], enabled, queryFn: () => api.get<{ email: string; name: string; roles: { club: string; role: string }[] }[]>("/mock/accounts") });
 
 export async function signOut() {
+  // While still signed in: this device stops getting the person's pushes.
+  await disableDevicePush();
   await api.post("/auth/logout").catch(() => undefined);
   session.clear();
   clearOfflineData();

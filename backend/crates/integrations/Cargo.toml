@@ -1,6 +1,6 @@
 [package]
 name = "runflow-integrations"
-description = "Outbound integrations: e-mail (Resend, D-026), Google sign-in, Strava, Stripe, storage"
+description = "Outbound integrations: e-mail (Resend, D-026), Google sign-in, Strava, Stripe, Web Push, storage"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,6 +8,7 @@ publish.workspace = true
 
 [dependencies]
 aws-lc-rs.workspace = true
+base64.workspace = true
 chrono.workspace = true
 jsonwebtoken.workspace = true
 object_store.workspace = true

@@ -101,6 +101,14 @@ pub struct Stripe {
     pub price_pro_monthly: Option<String>,
 }
 
+/// Web Push (S7b): the VAPID key pair (`runflow vapid-keys`) and a contact for the push services.
+#[derive(Debug, Clone)]
+pub struct Push {
+    pub public_key: String,
+    pub private_key: Secret,
+    pub subject: String,
+}
+
 #[derive(Debug, Clone)]
 pub enum Storage {
     Disk {
@@ -136,6 +144,7 @@ pub struct Config {
     pub stripe: Option<Stripe>,
     /// `BILLING_SIMULATION` (default: on in development): without Stripe, owners "pay" on Runflow's test pages.
     pub billing_simulation: bool,
+    pub push: Option<Push>,
     pub storage: Storage,
     pub assistant: Assistant,
     pub sentry_dsn: Option<String>,
@@ -393,6 +402,24 @@ impl Config {
 
         let sentry_dsn = e.opt("SENTRY_DSN");
         let billing_simulation = e.parse("BILLING_SIMULATION", env == RunEnv::Development);
+        let subject = e.or("VAPID_SUBJECT", "mailto:contato@runflow.club");
+        let push = e
+            .pair("VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY")
+            .map(|(public_key, private)| Push {
+                public_key,
+                private_key: Secret(private),
+                subject: subject.clone(),
+            });
+        if let Some(p) = &push
+            && let Err(err) = runflow_integrations::webpush::Vapid::new(
+                &p.public_key,
+                p.private_key.expose(),
+                &p.subject,
+            )
+        {
+            e.errors
+                .push(format!("{err} (generate a pair with `runflow vapid-keys`)"));
+        }
         if e.errors.is_empty() {
             Ok(Config {
                 env,
@@ -405,6 +432,7 @@ impl Config {
                 strava,
                 stripe,
                 billing_simulation,
+                push,
                 storage,
                 assistant,
                 sentry_dsn,

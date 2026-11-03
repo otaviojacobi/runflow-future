@@ -21,6 +21,7 @@ pub mod my;
 pub mod notifications;
 pub mod plans;
 pub mod providers;
+pub mod push;
 pub mod races;
 pub mod reports;
 pub mod weeks;

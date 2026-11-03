@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-02T22:33:53.836Z",
+  "generated_at": "2026-11-03T10:17:01.417Z",
   "version": 1
  },
  "users": [
@@ -24518,7 +24518,9 @@
    "read_at": null,
    "created_at": "2026-11-02T23:00:00.000Z",
    "in_app": true,
-   "email": "none"
+   "email": "none",
+   "push_at": null,
+   "pushed_at": null
   },
   {
    "id": "700e0343-173e-456d-aec8-877f88d27fdd",
@@ -24531,7 +24533,9 @@
    "read_at": "2026-10-27T15:30:00.000Z",
    "created_at": "2026-10-27T15:30:00.000Z",
    "in_app": true,
-   "email": "none"
+   "email": "none",
+   "push_at": null,
+   "pushed_at": null
   },
   {
    "id": "7a3aa270-a9bb-494a-a784-f04b51d808c5",
@@ -24544,7 +24548,9 @@
    "read_at": null,
    "created_at": "2026-11-03T00:14:00.000Z",
    "in_app": true,
-   "email": "none"
+   "email": "none",
+   "push_at": null,
+   "pushed_at": null
   },
   {
    "id": "46224cf1-2597-4f99-af9f-351e68aba59b",
@@ -24557,7 +24563,9 @@
    "read_at": "2026-11-01T22:12:00.000Z",
    "created_at": "2026-11-01T22:12:00.000Z",
    "in_app": true,
-   "email": "none"
+   "email": "none",
+   "push_at": null,
+   "pushed_at": null
   },
   {
    "id": "07191f84-cab6-4938-a025-e8f13843c987",
@@ -24570,7 +24578,9 @@
    "read_at": null,
    "created_at": "2026-11-01T22:13:00.000Z",
    "in_app": true,
-   "email": "none"
+   "email": "none",
+   "push_at": null,
+   "pushed_at": null
   }
  ],
  "email_codes": [],

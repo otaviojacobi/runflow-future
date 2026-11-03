@@ -25,6 +25,9 @@ pub async fn create(
 ) -> sqlx::Result<Option<Uuid>> {
     let p = sqlx::query!(
         r#"SELECT p.kinds AS "kinds?", coalesce(p.paused, false) AS "paused!",
+                  CASE WHEN p.user_id IS NULL THEN time '22:00' ELSE p.quiet_start END AS "quiet_start?",
+                  CASE WHEN p.user_id IS NULL THEN time '07:00' ELSE p.quiet_end END AS "quiet_end?",
+                  EXISTS (SELECT 1 FROM push_tokens t WHERE t.user_id = $1) AS "has_device!",
                   (SELECT f.group_ids FROM notification_group_filters f JOIN memberships m ON m.id = f.membership_id
                     WHERE m.user_id = $1 AND m.club_id = $2 AND m.role <> 'student' AND m.status = 'active') AS "filter?"
              FROM (SELECT 1) one LEFT JOIN notification_prefs p ON p.user_id = $1"#,
@@ -46,12 +49,20 @@ pub async fn create(
         return Ok(None);
     }
     let pref = notify::resolve(&p.kinds.unwrap_or_else(|| json!({})), n.kind);
-    let Some((in_app, email)) = notify::delivery(pref, p.paused) else {
+    let Some(d) = notify::delivery(pref, p.paused, p.has_device) else {
         return Ok(None);
     };
-    sqlx::query_scalar!(
-        "INSERT INTO notifications (id, user_id, club_id, kind, title, body, link, in_app, email)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id",
+    let quiet = p.quiet_start.zip(p.quiet_end);
+    let push_at = d.push.then(|| {
+        notify::push_at(
+            Utc::now(),
+            quiet,
+            runflow_domain::week::tz("America/Sao_Paulo"),
+        )
+    });
+    let id = sqlx::query_scalar!(
+        "INSERT INTO notifications (id, user_id, club_id, kind, title, body, link, in_app, email, push_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id",
         Uuid::now_v7(),
         n.user_id,
         n.club_id,
@@ -59,13 +70,26 @@ pub async fn create(
         n.title,
         n.body,
         n.link,
-        in_app,
-        email
+        d.in_app,
+        d.email,
+        push_at
     )
     .fetch_one(&mut *db)
-    .await
-    .map(Some)
+    .await?;
+    if let Some(at) = push_at {
+        crate::jobs::enqueue(
+            &mut *db,
+            PUSH_SEND,
+            &json!({ "notification_id": id }),
+            Some(at),
+        )
+        .await?;
+    }
+    Ok(Some(id))
 }
+
+/// The worker's job that pushes a notification to the person's devices (at `push_at`).
+pub const PUSH_SEND: &str = "push.send";
 
 /// What a club notice says (the recipient comes separately).
 pub struct Notice<'a> {

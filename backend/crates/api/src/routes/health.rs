@@ -61,7 +61,7 @@ pub(crate) fn club_subdomain(host: &str, suffix: &str) -> Option<String> {
     .then(|| sub.to_string())
 }
 
-/// `{google_client_id, strava, club}`: `club` is the club this host serves (S9b), with its name and logo, or null.
+/// `{google_client_id, strava, club, push_public_key}`: `club` is the club this host serves (S9b), with its name and logo, or null.
 async fn config(
     State(state): State<AppState>,
     headers: HeaderMap,
@@ -93,6 +93,7 @@ async fn config(
         "google_client_id": state.google.as_ref().and_then(|g| g.web_client_id()),
         "strava": state.strava.is_some(),
         "club": club,
+        "push_public_key": state.settings.push_public_key,
     })))
 }
 

@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO push_tokens (id, user_id, platform, token, keys) VALUES ($1, $2, $3, $4, $5)\n         ON CONFLICT (token) DO UPDATE SET user_id = excluded.user_id, platform = excluded.platform, keys = excluded.keys,\n           last_seen_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "848e7d30c3b4e868d66c7dc8587ec0020c23d3edd50530d0ff2f5d32bcc957ab"
+}
