@@ -1,5 +1,5 @@
 import { Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { AlertTriangle, Bell, Check, ChevronsUpDown, LogOut, Menu as MenuIcon, Monitor, Moon, Plus, Search, Sun, User, WifiOff } from "lucide-react";
+import { AlertTriangle, Bell, Check, ChevronsUpDown, CreditCard, LogOut, Menu as MenuIcon, Monitor, Moon, Plus, Search, Snowflake, Sun, User, WifiOff } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { DropdownMenu } from "radix-ui";
 import { signOut } from "@/api/auth";
@@ -7,9 +7,10 @@ import type { MembershipContext, Subscription } from "@/api/types";
 import { ClubLogo } from "@/components/brand";
 import { t } from "@/i18n";
 import { ROLE_LABEL, homeFor, selectClub, useClub } from "@/lib/club";
+import { fullDate, localDate } from "@/lib/format";
 import { useOnline } from "@/lib/pwa";
 import { applyClubTheme, getColorMode, setColorMode, type ColorMode } from "@/lib/theme";
-import { Avatar, Dialog, cn } from "@/ui";
+import { Avatar, ButtonLink, Dialog, cn } from "@/ui";
 import { CommandPalette, useCommandPalette } from "./CommandPalette";
 import { moreFor, navFor, tabsFor, type NavItem } from "./nav";
 
@@ -134,18 +135,44 @@ function OfflineBanner() {
   return <div role="status" data-print="hide" className="mx-auto mb-4 flex max-w-6xl items-center gap-2 rounded-lg bg-warning-soft px-4 py-2.5 text-sm text-on-warning-soft"><WifiOff className="size-4 shrink-0" />{t("Sem internet. Mostrando o que ficou salvo no aparelho; mudanças precisam de conexão.")}</div>;
 }
 
-/** Owner-only: the club hit its student limit or a payment failed. Never shown to students. */
+/** Owner-only: a payment failed (grace period) or the club hit its student limit. Never shown to students. */
 function BillingBanner({ sub }: { sub: Subscription | null }) {
   const isActive = useIsActive();
-  if (!sub || isActive("/club/billing")) return null;
+  if (!sub || sub.frozen || isActive("/club/billing")) return null;
   const pastDue = sub.status === "past_due";
-  const full = sub.active_students >= sub.student_limit;
+  const full = sub.student_limit !== null && sub.active_students >= sub.student_limit;
   if (!pastDue && !full) return null;
   return (
     <div role="status" className={cn("mx-auto mb-5 flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border px-4 py-3 text-sm", pastDue ? "border-danger-line bg-danger-soft text-on-danger-soft" : "border-warning-line bg-warning-soft text-on-warning-soft")}>
       <AlertTriangle className="size-5 shrink-0" aria-hidden />
-      <span className="min-w-0 flex-1">{pastDue ? t("O último pagamento do plano não foi aprovado. Atualize o cartão para não perder o Pro.") : t("Limite de {n} alunos do plano atingido. Novos alunos não conseguem entrar; ninguém é removido.", { n: sub.student_limit })}</span>
+      <span className="min-w-0 flex-1">{pastDue
+        ? sub.grace_until ? t("O último pagamento do plano não foi aprovado. Atualize o cartão até {d} para o clube não ser congelado.", { d: fullDate(localDate(sub.grace_until)) }) : t("O último pagamento do plano não foi aprovado. Atualize o cartão para manter o plano.")
+        : t("Limite de {n} alunos do plano atingido. Novos alunos não conseguem entrar; ninguém é removido.", { n: sub.student_limit ?? 0 })}</span>
       <Link to="/club/billing" className="font-semibold underline underline-offset-2">{pastDue ? t("Resolver pagamento") : t("Ver planos")}</Link>
+    </div>
+  );
+}
+
+/** Frozen club (D-043), staff only: an icy layer over the screen and one way out, paying (owner) or asking the
+ * owner (trainers). Writes answer 423 anyway; students never see it. The owner lands on Plano e cobrança once. */
+function FrozenLayer({ role, clubId }: { role: "owner" | "trainer"; clubId: string }) {
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (role !== "owner") return;
+    const key = `rf.frozen-redirect.${clubId}`;
+    try { if (sessionStorage.getItem(key)) return; sessionStorage.setItem(key, "1"); } catch { /* storage unavailable: redirect anyway */ }
+    navigate({ to: "/club/billing" });
+  }, [role, clubId]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div data-print="hide" className="fixed inset-0 z-20 grid place-items-center bg-gradient-to-b from-info-soft/80 via-canvas/70 to-info-soft/80 p-4 backdrop-blur-[3px] lg:left-[248px]">
+      <div role="alertdialog" aria-labelledby="frozen-h" aria-describedby="frozen-d" className="grid max-w-md justify-items-center gap-3 rounded-2xl border border-info-line bg-surface p-6 text-center shadow-lg">
+        <span className="grid size-14 place-items-center rounded-full bg-info-soft text-on-info-soft"><Snowflake className="size-7" aria-hidden /></span>
+        <h2 id="frozen-h" className="rf-text-title-lg">{t("Clube congelado")}</h2>
+        <p id="frozen-d" className="text-fg-muted">{role === "owner"
+          ? t("O pagamento do plano está pendente. Regularize em Plano e cobrança para voltar a usar o clube. Os alunos continuam usando normalmente.")
+          : t("O pagamento do plano está pendente. Peça ao responsável pelo clube para regularizar; até lá, nada pode ser alterado.")}</p>
+        {role === "owner" && <ButtonLink to="/club/billing" icon={<CreditCard />}>{t("Regularizar pagamento")}</ButtonLink>}
+      </div>
     </div>
   );
 }
@@ -167,6 +194,8 @@ export function AppShell() {
   const groups = navFor(role, modalities).map((g) => ({ ...g, items: g.items.filter((i) => i.sidebar !== false) }));
   const tabs = tabsFor(role, modalities);
   const extra = moreFor(role, modalities);
+  // Frozen (D-043): staff only, and Plano e cobrança stays usable (the way out).
+  const frozen = role !== "student" && !!ctx.subscription?.frozen && !isActive("/club/billing");
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[248px_minmax(0,1fr)] print:block">
@@ -201,8 +230,9 @@ export function AppShell() {
       <main id="conteudo" className="min-w-0 overflow-x-clip px-4 pb-28 pt-5 sm:px-6 lg:px-10 lg:pb-12 lg:pt-8">
         <OfflineBanner />
         {role === "owner" && <BillingBanner sub={ctx.subscription} />}
-        <Outlet />
+        {frozen ? <div inert><Outlet /></div> : <Outlet />}
       </main>
+      {frozen && <FrozenLayer role={role as "owner" | "trainer"} clubId={ctx.club.id} />}
       <CommandPalette open={palette} onOpenChange={setPalette} role={role} clubId={ctx.club.id} modalities={modalities} />
       <ShortcutsDialog open={keys} onOpenChange={setKeys} />
 

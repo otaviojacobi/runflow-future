@@ -30,10 +30,18 @@ export interface Branding {
   theme: { primary: string; secondary: string; source: "default" | "derived" | "club" };
   theme_css: string;
 }
+/** The club's plan (D-043): seats per role, the monthly price and whether it's frozen for the caller (never for students). */
 export interface Subscription {
-  plan: Plan; status: "active" | "trialing" | "past_due" | "canceled"; student_limit: number; active_students: number;
+  plan: Plan; status: "active" | "trialing" | "past_due" | "canceled"; frozen: boolean; grace_until: ISOTime | null;
+  /** null = no hard limit (Max bills the seats above the included ones). */
+  student_limit: number | null; active_students: number; trainer_limit: number | null; active_trainers: number;
+  included_students: number; included_trainers: number; monthly_cents: number;
   current_period_end: ISOTime | null; cancel_at_period_end: boolean; has_billing_account?: boolean;
 }
+export type PaidPlan = Exclude<Plan, "free">;
+/** GET /public/plans (api/plans.json). */
+export interface PlanSpec { id: Plan; name: string; price_cents: number; owners: number; trainers: number; students: number; extra: { trainer_cents: number; student_cents: number } | null }
+export interface PlanCatalog { currency: string; grace_days: number; plans: PlanSpec[] }
 export interface Invoice { id: ID; club_id: ID; stripe_invoice_id: string | null; amount_cents: number; currency: string; status: "draft" | "open" | "paid" | "void" | "uncollectible"; period_start: ISOTime; period_end: ISOTime; hosted_url: string | null; created_at: ISOTime }
 export interface MembershipContext { membership: Membership; club: Club; branding: Branding | null; subscription: Subscription | null }
 /** Notification control (D-032): per kind, the app center, the phone and e-mail (off, right away or a daily summary). */

@@ -6,7 +6,9 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { IS_MOCK, useGoogleSignIn } from "@/api/auth";
-import type { Sport } from "@/api/types";
+import { usePlans } from "@/api/billing";
+import type { Plan, Sport } from "@/api/types";
+import { extraText, featuresOf, price, seatsText } from "@/components/billing/plans";
 import { RunflowWordmark } from "@/components/brand";
 import { ThemePreview } from "@/components/club/ThemePreview";
 import { SPORT_ICON, SPORT_LABEL, SportChip } from "@/components/sport";
@@ -18,7 +20,7 @@ import { activeMembership, homeFor, selectClub } from "@/lib/club";
 import { distance, duration } from "@/lib/format";
 import { session } from "@/lib/session";
 import { themeVars } from "@/lib/theme";
-import { ButtonLink, cn, toast } from "@/ui";
+import { ButtonLink, Skeleton, cn, toast } from "@/ui";
 
 const HERO_EXAMPLES = ["10' aquec + 6x1km @4:30 c/ 2' trote + 10' desaq", "15' Z2 + 3x(2km Z4 + 3' Z1) + 10' Z1", "20' Z2 + 8x400m @1:35 c/ 90\" parado + 10' Z1"];
 
@@ -225,22 +227,28 @@ function Studio() {
 }
 
 function Pricing() {
-  const plans = [
-    { name: "Free", price: "R$ 0", per: t("para sempre"), desc: t("Para começar ou para turmas pequenas."), items: [t("Até 10 alunos"), t("Todos os recursos"), t("Club Studio: logo e cores"), t("Treinadores ilimitados")], cta: t("Criar clube grátis"), hl: false },
-    { name: "Pro", price: "R$ 20", per: t("por mês"), desc: t("Para assessorias e academias em crescimento."), items: [t("Até 100 alunos"), t("Todos os recursos do plano Free"), t("Suporte prioritário")], cta: t("Começar com o Pro"), hl: true },
-    { name: "Max", price: t("Em breve"), per: "", desc: t("Para clubes grandes, com várias unidades."), items: [t("Mais de 100 alunos"), t("Todos os recursos do plano Pro"), t("Valor por aluno bem baixo"), t("Atendimento dedicado")], cta: t("Falar com a gente"), hl: false },
-  ];
+  const catalog = usePlans();
+  const copy: Record<Plan, { desc: string; cta: string; hl: boolean }> = {
+    free: { desc: t("Para começar ou para turmas pequenas."), cta: t("Criar clube grátis"), hl: false },
+    pro: { desc: t("Para assessorias e academias em crescimento."), cta: t("Começar com o Pro"), hl: true },
+    max: { desc: t("Para clubes grandes: cresça pagando só as vagas extras."), cta: t("Começar com o Max"), hl: false },
+  };
+  const plans = (catalog.data?.plans ?? []).map((p) => ({
+    name: p.name, price: price(p.price_cents), per: p.price_cents === 0 ? t("para sempre") : t("por mês"), ...copy[p.id],
+    items: [seatsText(p), ...(extraText(p) ? [extraText(p)!] : []), ...featuresOf(p.id)],
+  }));
   return (
     <section id="precos" className="scroll-mt-20 border-y border-line bg-surface">
       <div className="mx-auto grid max-w-6xl gap-10 px-5 py-20">
         <div className="mx-auto grid max-w-2xl gap-3 text-center"><span className="rf-text-overline text-brand-text">{t("Preços")}</span><h2 className="rf-text-display-md text-balance">{t("Simples e muito mais barato.")}</h2><p className="text-fg-muted">{t("Sem taxa de ativação, sem fidelidade. Alunos não pagam nada para usar.")}</p></div>
         <div className="grid gap-4 lg:grid-cols-3">
+          {!catalog.data && [0, 1, 2].map((i) => <Skeleton key={i} className="h-96 rounded-2xl" />)}
           {plans.map((p) => (
             <div key={p.name} className={cn("relative grid content-start gap-5 rounded-2xl border p-6", p.hl ? "border-brand-edge bg-canvas shadow-lg ring-2 ring-brand" : "border-line bg-canvas")}>
               {p.hl && <span className="absolute -top-3 left-6 rounded-full bg-brand px-3 py-1 text-xs font-bold text-on-brand">{t("Mais escolhido")}</span>}
               <div><div className="rf-text-title-lg">{p.name}</div><p className="text-sm text-fg-muted">{p.desc}</p></div>
               <div className="flex items-baseline gap-2"><span className="font-display text-[40px] font-extrabold leading-none tracking-tight [font-stretch:110%]">{p.price}</span><span className="text-fg-muted">{p.per}</span></div>
-              <ul className="grid gap-2">{p.items.map((x) => <li key={x} className="flex items-center gap-2"><Check className="size-4 text-success-text" />{x}</li>)}</ul>
+              <ul className="grid gap-2">{p.items.map((x) => <li key={x} className="flex items-start gap-2"><Check className="mt-1 size-4 shrink-0 text-success-text" />{x}</li>)}</ul>
               <ButtonLink to="/login" variant={p.hl ? "primary" : "secondary"} block>{p.cta}</ButtonLink>
             </div>
           ))}

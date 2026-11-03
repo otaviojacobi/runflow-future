@@ -66,7 +66,7 @@ export function DashboardScreen() {
             <Kpi label={t("Treinos hoje")} value={`${x.today.done}/${x.today.planned}`} sub={x.today.planned ? t("feitos até agora") : t("nenhum treino hoje")} to="/planning" />
             <Kpi label={t("Aderência da semana")} value={x.week.compliance_pct != null ? `${x.week.compliance_pct}%` : "–"} sub={t("{done} de {planned} treinos", { done: x.week.done, planned: x.week.planned })} />
             <Kpi label={t("Feedbacks para ver")} value={String(x.feedback.length)} sub={t("últimos 7 dias")} to="/feedback" />
-            <Kpi label={t("Alunos ativos")} value={String(x.students)} sub={t("de {n} no plano", { n: x.subscription.student_limit })} to="/students" />
+            <Kpi label={t("Alunos ativos")} value={String(x.students)} sub={x.subscription.student_limit === null ? t("{n} incluídos no plano", { n: x.subscription.included_students }) : t("de {n} no plano", { n: x.subscription.student_limit })} to="/students" />
           </div>
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
             <div className="grid content-start gap-6">

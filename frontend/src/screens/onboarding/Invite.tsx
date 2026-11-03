@@ -71,7 +71,7 @@ export function InviteScreen() {
             </div>
             <div className="grid w-full gap-3 border-t border-line-subtle bg-sunken px-6 py-5">
               {!d.valid && d.reason ? (
-                <div className="grid gap-1 text-left"><p className="flex items-center gap-2 font-semibold text-danger-text"><CircleAlert className="size-5" />{t(REASON[d.reason]![0])}</p><p className="text-sm text-fg-muted">{t(REASON[d.reason]![1])}</p></div>
+                <div className="grid gap-1 text-left"><p className="flex items-center gap-2 font-semibold text-danger-text"><CircleAlert className="size-5" />{t(REASON[d.reason]![0])}</p><p className="text-sm text-fg-muted">{d.reason === "club_full" && d.role === "trainer" ? t("O clube atingiu o limite de treinadores do plano. Avise quem te convidou.") : t(REASON[d.reason]![1])}</p></div>
               ) : d.already_member ? (
                 <Button size="lg" block onClick={join} loading={accept.isPending}>{t("Você já participa. Abrir o clube")}</Button>
               ) : signedIn && d.email_matches === false ? (

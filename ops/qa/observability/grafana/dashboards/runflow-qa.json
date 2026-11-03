@@ -30,7 +30,7 @@
     {
       "id": 2,
       "type": "timeseries",
-      "title": "Pedidos por segundo, por status",
+      "title": "Requests per second, by status",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -63,7 +63,7 @@
     {
       "id": 3,
       "type": "timeseries",
-      "title": "Latência p95 por rota",
+      "title": "p95 latency by route",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -96,7 +96,7 @@
     {
       "id": 4,
       "type": "stat",
-      "title": "Erros 5xx (5 min)",
+      "title": "5xx errors (5 min)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -150,7 +150,7 @@
     {
       "id": 5,
       "type": "stat",
-      "title": "Pedidos na última hora",
+      "title": "Requests in the last hour",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -190,7 +190,7 @@
     {
       "id": 6,
       "type": "bargauge",
-      "title": "Rotas mais chamadas (1 h)",
+      "title": "Busiest routes (1 h)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -233,7 +233,7 @@
     {
       "id": 7,
       "type": "row",
-      "title": "Worker e banco",
+      "title": "Worker and database",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -246,7 +246,7 @@
     {
       "id": 8,
       "type": "timeseries",
-      "title": "Jobs por tipo e resultado",
+      "title": "Jobs by kind and outcome",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -279,7 +279,7 @@
     {
       "id": 9,
       "type": "timeseries",
-      "title": "Fila de jobs",
+      "title": "Job queue",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -298,7 +298,7 @@
             "uid": "prometheus"
           },
           "expr": "max(runflow_jobs_due)",
-          "legendFormat": "na fila"
+          "legendFormat": "queued"
         },
         {
           "refId": "B",
@@ -307,7 +307,7 @@
             "uid": "prometheus"
           },
           "expr": "max(runflow_jobs_oldest_due_seconds)",
-          "legendFormat": "espera do mais antigo (s)"
+          "legendFormat": "oldest wait (s)"
         }
       ],
       "fieldConfig": {
@@ -321,7 +321,7 @@
     {
       "id": 10,
       "type": "timeseries",
-      "title": "Conexões do banco",
+      "title": "Database connections",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -354,7 +354,7 @@
     {
       "id": 11,
       "type": "row",
-      "title": "Servidor",
+      "title": "Host",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -400,7 +400,7 @@
     {
       "id": 13,
       "type": "timeseries",
-      "title": "Memória",
+      "title": "Memory",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -419,7 +419,7 @@
             "uid": "prometheus"
           },
           "expr": "100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)",
-          "legendFormat": "usada"
+          "legendFormat": "used"
         }
       ],
       "fieldConfig": {
@@ -433,7 +433,7 @@
     {
       "id": 14,
       "type": "timeseries",
-      "title": "Disco (/)",
+      "title": "Disk (/)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -452,7 +452,7 @@
             "uid": "prometheus"
           },
           "expr": "100 * (1 - node_filesystem_avail_bytes{mountpoint=\"/\"} / node_filesystem_size_bytes{mountpoint=\"/\"})",
-          "legendFormat": "usado"
+          "legendFormat": "used"
         }
       ],
       "fieldConfig": {
@@ -466,7 +466,7 @@
     {
       "id": 15,
       "type": "timeseries",
-      "title": "Temperatura",
+      "title": "Temperature",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -512,7 +512,7 @@
     {
       "id": 17,
       "type": "timeseries",
-      "title": "Volume de logs por serviço",
+      "title": "Log volume by service",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -551,7 +551,7 @@
     {
       "id": 18,
       "type": "logs",
-      "title": "Erros e avisos da API",
+      "title": "API errors and warnings",
       "datasource": {
         "type": "loki",
         "uid": "loki"
@@ -586,7 +586,7 @@
     {
       "id": 19,
       "type": "logs",
-      "title": "Logs da API",
+      "title": "API logs",
       "datasource": {
         "type": "loki",
         "uid": "loki"

@@ -4,10 +4,10 @@ import { Ban, Copy, FileSpreadsheet, Mail, MoreHorizontal, Plus, RotateCcw, Send
 import { useState } from "react";
 import { useInvites, useResendInvite, useRevokeInvite } from "@/api/clubs";
 import { useMembers, useRemoveMember, useUpdateMember } from "@/api/members";
-import type { Invitation, Member } from "@/api/types";
+import type { Invitation, Member, Subscription } from "@/api/types";
 import { InviteDialog } from "@/components/club/InviteDialog";
 import { ImportStudentsDialog } from "@/components/ImportDialogs";
-import { t } from "@/i18n";
+import { t, tn } from "@/i18n";
 import { ROLE_LABEL, useClub } from "@/lib/club";
 import { ago, fullDate, localDate } from "@/lib/format";
 import { Avatar, Badge, Button, Card, Dialog, EmptyState, IconButton, Menu, PageHeader, ProgressBar, Skeleton, Tabs, toast, type Tone } from "@/ui";
@@ -54,8 +54,8 @@ export function MembersScreen() {
       <ImportStudentsDialog club={club} open={importing} onOpenChange={setImporting} />
       {sub && (
         <Card className="flex flex-wrap items-center gap-4 p-4">
-          <div className="min-w-48 flex-1"><div className="flex items-baseline justify-between text-sm"><span className="font-semibold">{t("{n} de {limit} alunos", { n: sub.active_students, limit: sub.student_limit })}</span><span className="text-fg-muted">{t("Plano {plan}", { plan: sub.plan === "free" ? "Free" : sub.plan === "pro" ? "Pro" : "Max" })}</span></div><ProgressBar className="mt-2" value={sub.active_students} max={sub.student_limit} tone={sub.active_students >= sub.student_limit ? "danger" : sub.active_students / sub.student_limit >= 0.8 ? "warning" : "brand"} label={t("Alunos no plano")} /></div>
-          {sub.plan === "free" && <Link to="/club/billing" className="text-sm font-semibold text-brand-text hover:underline">{t("Ver planos")}</Link>}
+          <SeatsSummary sub={sub} />
+          {sub.plan !== "max" && <Link to="/club/billing" className="text-sm font-semibold text-brand-text hover:underline">{t("Ver planos")}</Link>}
         </Card>
       )}
       <Tabs.Root defaultValue="students">
@@ -106,5 +106,21 @@ function InviteRow({ i, onResend, onCancel }: { i: Invitation; onResend: () => v
         ]} />
       )}
     </li>
+  );
+}
+
+/** Students and trainers against the plan's seats (D-043); Max has included seats instead of a limit. */
+function SeatsSummary({ sub }: { sub: Subscription }) {
+  const cap = sub.student_limit ?? sub.included_students;
+  const pct = sub.active_students / Math.max(1, cap);
+  const plan = sub.plan === "free" ? "Free" : sub.plan === "pro" ? "Pro" : "Max";
+  return (
+    <div className="min-w-48 flex-1">
+      <div className="flex items-baseline justify-between gap-3 text-sm">
+        <span className="font-semibold">{sub.student_limit === null ? t("{n} alunos ({limit} incluídos)", { n: sub.active_students, limit: cap }) : t("{n} de {limit} alunos", { n: sub.active_students, limit: cap })}</span>
+        <span className="text-fg-muted">{sub.trainer_limit === null ? tn(sub.active_trainers, "{n} treinador", "{n} treinadores") : t("{n} de {limit} treinadores", { n: sub.active_trainers, limit: sub.trainer_limit })} · {t("Plano {plan}", { plan })}</span>
+      </div>
+      <ProgressBar className="mt-2" value={Math.min(sub.active_students, cap)} max={cap} tone={sub.student_limit === null ? "brand" : pct >= 1 ? "danger" : pct >= 0.8 ? "warning" : "brand"} label={t("Alunos no plano")} />
+    </div>
   );
 }
