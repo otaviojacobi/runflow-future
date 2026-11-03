@@ -79,12 +79,8 @@ export const useSaveGroup = (clubId: string) =>
 export const useDeleteGroup = (clubId: string) =>
   useMutation({ mutationFn: (id: string) => api.del(`/clubs/${clubId}/groups/${id}`), onSuccess: () => refreshClub(clubId) });
 
-// ---------- W6 library (read: assigning from it; editing templates is X12)
-export const useTemplates = (clubId: string | undefined, f: { sport?: Sport; q?: string } = {}) =>
-  useQuery({
-    queryKey: [...staffKeys.templates(clubId ?? ""), f], enabled: !!clubId, placeholderData: (p) => p,
-    queryFn: () => api.get<{ items: WorkoutTemplate[] }>(`/clubs/${clubId}/templates${qs({ sport: f.sport, q: f.q, limit: 200 })}`).then((r) => r.items),
-  });
+// ---------- W6 library: api/library.ts (the same key, so staff lists refresh with it)
+export { useTemplates } from "./library";
 
 // ---------- W4 planned workouts and week release
 export const usePlanned = (clubId: string | undefined, f: { from: string; to: string; athlete_id?: string; group_id?: string }) =>
@@ -105,7 +101,7 @@ export const useCopyWeek = (clubId: string) =>
   });
 export const useUpdatePlanned = (clubId: string) =>
   useMutation({
-    mutationFn: ({ id, ...v }: { id: string } & Partial<Pick<PlannedWorkout, "date" | "title" | "notes">>) => api.patch<PlannedWorkout>(`/clubs/${clubId}/planned-workouts/${id}`, v),
+    mutationFn: ({ id, ...v }: { id: string } & Partial<Pick<PlannedWorkout, "date" | "title" | "notes" | "structure" | "est_duration_s" | "est_distance_m">>) => api.patch<PlannedWorkout>(`/clubs/${clubId}/planned-workouts/${id}`, v),
     onSuccess: () => refreshClub(clubId),
   });
 export const useDeletePlanned = (clubId: string) =>

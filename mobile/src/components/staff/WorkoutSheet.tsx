@@ -1,7 +1,7 @@
 /**
  * A planned workout in a bottom sheet (the web's planning DetailDialog + the feedback thread, phone-sized): structure,
  * notes, how it went, the synced activity; quick edits (move to another day, title and note, remove after a
- * confirmation) and the conversation with the student. Building or changing the steps stays on the web (X8).
+ * confirmation; the steps through the builder, X12) and the conversation with the student.
  */
 import { useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
@@ -12,15 +12,15 @@ import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
 import { addDays, dayMonth, distance, duration, longDate, mondayOf, pace, shortDate, timeOf, today as todayFn, weekdayShort } from "@/lib/format";
-import { hasWeb, openOnWeb } from "@/lib/web";
 import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Badge, Button, Dialog, Field, IconButton, Input, ListItem, Skeleton, Text, Textarea, toast } from "@/ui";
-import { CalendarArrowUp, ChevronLeft, ChevronRight, ExternalLink, EyeOff, MessageSquare, Pencil, Send, Trash2 } from "@/ui/icons";
+import { CalendarArrowUp, ChevronLeft, ChevronRight, EyeOff, MessageSquare, Pencil, Send, Trash2 } from "@/ui/icons";
 import { Bubbles } from "@/components/workout/Thread";
 import { IntensityProfile, Stat, StatusBadge, feelingLabel } from "@/components/workout/workout";
 import { WorkoutSteps } from "@/components/workout/WorkoutSteps";
-import { estimateText } from "@/domain/workout";
+import { WorkoutBuilder } from "@/components/builder/WorkoutBuilder";
+import { estimate, estimateText, type Structure } from "@/domain/workout";
 
 export type SheetMode = "view" | "move" | "edit" | "remove" | "thread";
 /** What the list already knows, so the sheet opens instantly; `mode` picks the first view (Feedbacks: the thread). */
@@ -38,12 +38,13 @@ export function WorkoutSheet({ seed, onClose }: { seed: WorkoutSeed | null; onCl
   const [week, setWeek] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
+  const [structure, setStructure] = useState<Structure | null>(null);
   const [text, setText] = useState("");
   const [titleError, setTitleError] = useState<string | null>(null);
   // A new workout resets the sheet (the last one stays rendered while the sheet slides away).
   if (seed && seed !== last) {
     setLast(seed); setMode(seed.mode ?? "view"); setMoveTo(null); setWeek(null);
-    setTitle(seed.workout.title); setNotes(seed.workout.notes ?? ""); setText(""); setTitleError(null);
+    setTitle(seed.workout.title); setNotes(seed.workout.notes ?? ""); setStructure(null); setText(""); setTitleError(null);
   }
   const s = seed ?? last;
   const clubId = club?.id ?? "";
@@ -68,7 +69,9 @@ export function WorkoutSheet({ seed, onClose }: { seed: WorkoutSeed | null; onCl
   });
   const save = () => {
     if (!title.trim()) return setTitleError(t("Informe o nome do treino."));
-    update.mutate({ id: w.id, title: title.trim(), notes: notes.trim() || null }, {
+    if (structure && !structure.blocks.length) return toast.error(new ApiError(422, "structure", t("Adicione pelo menos uma etapa."), t("Escreva o treino ou adicione uma etapa.")));
+    const steps = structure ? (() => { const est = estimate(structure, w.sport); return { structure, est_duration_s: est.duration_s || null, est_distance_m: est.distance_m }; })() : {};
+    update.mutate({ id: w.id, title: title.trim(), notes: notes.trim() || null, ...steps }, {
       onSuccess: () => { toast.success(t("Treino atualizado"), w.visible ? t("O aluno foi avisado.") : t("O aluno vê quando a semana for liberada.")); onClose(); },
       onError: (e) => { const f = e instanceof ApiError ? e.fieldError("title") : undefined; if (f) setTitleError(f); else toast.error(e); },
     });
@@ -90,7 +93,7 @@ export function WorkoutSheet({ seed, onClose }: { seed: WorkoutSeed | null; onCl
     : mode === "view" ? (
       <>
         <Button variant="secondary" icon={CalendarArrowUp} onPress={() => { setWeek(mondayOf(w.date)); setMode("move"); }} style={styles.flex}>{t("Mover")}</Button>
-        <Button variant="secondary" icon={Pencil} onPress={() => { setTitle(w.title); setNotes(w.notes ?? ""); setTitleError(null); setMode("edit"); }} style={styles.flex}>{t("Editar")}</Button>
+        <Button variant="secondary" icon={Pencil} onPress={() => { setTitle(w.title); setNotes(w.notes ?? ""); setStructure(w.structure); setTitleError(null); setMode("edit"); }} style={styles.flex}>{t("Editar")}</Button>
       </>
     ) : mode === "move" ? (
       <>
@@ -192,10 +195,7 @@ export function WorkoutSheet({ seed, onClose }: { seed: WorkoutSeed | null; onCl
           <Field label={t("Recado para o aluno")} optional hint={t("Aparece junto do treino para o aluno.")}>
             {(a) => <Textarea {...a} value={notes} onChangeText={setNotes} placeholder={t("Ex.: foco nos últimos tiros, braço solto")} maxLength={1000} />}
           </Field>
-          <View style={{ gap: theme.space[2] }}>
-            <Text variant="bodySm" tone="muted">{t("As etapas do treino se editam no computador, no construtor.")}</Text>
-            {hasWeb && <Button variant="ghost" size="sm" icon={ExternalLink} onPress={() => openOnWeb("/planning")} style={styles.start}>{t("Abrir na web")}</Button>}
-          </View>
+          {structure && <WorkoutBuilder compact sport={w.sport} structure={structure} onChange={setStructure} />}
         </View>
       ) : mode === "remove" ? (
         <View style={{ gap: theme.space[3] }}>

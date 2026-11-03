@@ -2,22 +2,25 @@
  * W4 · "Atribuir treino" on the phone (the web's planning AssignDialog as a two-step bottom sheet): first a workout
  * from the library (search by name or #tag), then who (groups as shortcuts, a searchable student list) and which days
  * (a week strip with arrows; days in other weeks stay listed), plus a note. One workout per student × day; drafts
- * (D-031) wait for the week's release. Building a new workout is the builder's job (X12): until then it opens the web.
+ * (D-031) wait for the week's release. "Montar agora" builds a one-off workout right here (quick text or steps, X12),
+ * like the web's "build now".
  */
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { useAssign, useAthletes, useGroups, useTemplates } from "@/api/staff";
-import type { Club, WorkoutTemplate } from "@/api/types";
+import { useAssign, useAthletes, useGroups, useTemplates, type AssignInput } from "@/api/staff";
+import type { Club, Sport, WorkoutTemplate } from "@/api/types";
+import { SportPicker } from "@/components/builder/parts";
+import { WorkoutBuilder } from "@/components/builder/WorkoutBuilder";
+import { emptyStructure } from "@/domain/builder";
 import { SportChip } from "@/components/sport";
 import { IntensityProfile } from "@/components/workout/workout";
-import { estimateText } from "@/domain/workout";
+import { estimate, estimateText, type Structure } from "@/domain/workout";
 import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { addDays, dayMonth, shortDate, weekdayShort } from "@/lib/format";
-import { hasWeb, openOnWeb } from "@/lib/web";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Avatar, Button, Field, IconButton, Input, Skeleton, Text, Textarea, Dialog, toast } from "@/ui";
-import { Check, ChevronLeft, ChevronRight, ExternalLink, Search, X } from "@/ui/icons";
+import { Avatar, Button, Field, IconButton, Input, Segmented, Skeleton, Text, Textarea, Dialog, toast } from "@/ui";
+import { Check, ChevronLeft, ChevronRight, Library, Search, Wand2, X } from "@/ui/icons";
 
 export interface AssignPrefill { athleteIds?: string[]; dates?: string[] }
 
@@ -38,6 +41,10 @@ function AssignBody({ club, monday, open, onClose, prefill }: { club: Club; mond
   const [step, setStep] = useState<"workout" | "who">("workout");
   const [q, setQ] = useState("");
   const [template, setTemplate] = useState<WorkoutTemplate | null>(null);
+  const [source, setSource] = useState<"library" | "build">("library");
+  const [sport, setSport] = useState<Sport>(club.modalities[0] ?? "run");
+  const [title, setTitle] = useState("");
+  const [structure, setStructure] = useState<Structure>(emptyStructure);
   const [athletes, setAthletes] = useState<Set<string>>(new Set(prefill?.athleteIds ?? []));
   const [dates, setDates] = useState<Set<string>>(new Set(prefill?.dates ?? []));
   const [shown, setShown] = useState(monday);
@@ -60,9 +67,14 @@ function AssignBody({ club, monday, open, onClose, prefill }: { club: Club; mond
   const count = athletes.size * dates.size;
   const everyone = (list.data?.length ?? 0) > 0 && athletes.size === list.data?.length;
 
+  const built = !!title.trim() && structure.blocks.length > 0;
+  const ready = source === "library" ? !!template : built;
   const submit = () => {
-    if (!template) return;
-    assign.mutate({ template_id: template.id, athlete_ids: [...athletes], dates: [...dates].sort(), notes: notes.trim() || null }, {
+    const base = { athlete_ids: [...athletes], dates: [...dates].sort(), notes: notes.trim() || null };
+    let v: AssignInput;
+    if (source === "library") { if (!template) return; v = { ...base, template_id: template.id }; }
+    else { const est = estimate(structure, sport); v = { ...base, sport, title: title.trim(), structure, est_duration_s: est.duration_s || null, est_distance_m: est.distance_m }; }
+    assign.mutate(v, {
       onSuccess: (r) => {
         const seen = r.items.filter((w) => w.visible).length;
         const detail = seen === r.items.length ? t("Os alunos já veem na agenda.") : seen === 0 ? t("Ficam em rascunho até a semana ser liberada.") : t("Os da semana em andamento já aparecem; os outros ficam em rascunho até a liberação.");
@@ -73,10 +85,14 @@ function AssignBody({ club, monday, open, onClose, prefill }: { club: Club; mond
     });
   };
 
+  const sourcePicker = (
+    <Segmented<"library" | "build"> label={t("Origem do treino")} value={source} onChange={setSource} style={styles.stretch}
+      options={[{ value: "library", label: t("Da biblioteca"), icon: Library }, { value: "build", label: t("Montar agora"), icon: Wand2 }]} />
+  );
   const footer = step === "workout" ? (
     <>
       <Button variant="secondary" onPress={onClose}>{t("Cancelar")}</Button>
-      <Button iconRight={ChevronRight} disabled={!template} onPress={() => setStep("who")}>{t("Continuar")}</Button>
+      <Button iconRight={ChevronRight} disabled={!ready} onPress={() => setStep("who")}>{t("Continuar")}</Button>
     </>
   ) : (
     <View style={[styles.full, { gap: theme.space[2] }]}>
@@ -90,9 +106,23 @@ function AssignBody({ club, monday, open, onClose, prefill }: { club: Club; mond
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()} footer={footer}
-      title={t("Atribuir treino")} description={step === "workout" ? t("Escolha um treino da biblioteca.") : template?.name ?? null}>
-      {step === "workout" ? (
+      title={t("Atribuir treino")} description={step === "workout" ? (source === "library" ? t("Escolha um treino da biblioteca.") : t("Monte um treino só para estes alunos.")) : (source === "library" ? template?.name : title.trim()) ?? null}>
+      {step === "workout" && source === "build" ? (
+        <View style={{ gap: theme.space[4] }}>
+          {sourcePicker}
+          <Field label={t("Nome do treino")}>
+            {(f) => <Input {...f} value={title} onChangeText={setTitle} placeholder={t("Ex.: Intervalado 6×1 km")} maxLength={120} />}
+          </Field>
+          <View style={{ gap: theme.space[2] }}>
+            <Text variant="labelSm">{t("Modalidade")}</Text>
+            <SportPicker value={sport} allowed={club.modalities} onChange={(x) => { setSport(x); if (x === "strength" || sport === "strength") setStructure(emptyStructure()); }} />
+          </View>
+          <WorkoutBuilder compact sport={sport} structure={structure} onChange={setStructure} />
+          {!built && <Text variant="caption" tone="muted">{t("Dê um nome e pelo menos uma etapa para continuar.")}</Text>}
+        </View>
+      ) : step === "workout" ? (
         <View style={{ gap: theme.space[3] }}>
+          {sourcePicker}
           <View style={styles.search}>
             <Input value={q} onChangeText={setQ} placeholder={t("Buscar por nome ou #tag")} accessibilityLabel={t("Buscar na biblioteca")} autoCapitalize="none" autoCorrect={false}
               returnKeyType="search" style={{ paddingLeft: theme.space[10] }} />
@@ -123,10 +153,6 @@ function AssignBody({ club, monday, open, onClose, prefill }: { club: Club; mond
           ) : (
             <Text tone="muted">{q.trim() ? t("Nenhum treino com esse nome ou tag.") : t("A biblioteca do clube ainda está vazia.")}</Text>
           )}
-          <View style={{ gap: theme.space[1], paddingTop: theme.space[2] }}>
-            <Text variant="bodySm" tone="muted">{t("Para montar um treino novo, use o construtor no computador.")}</Text>
-            {hasWeb && <Button variant="ghost" size="sm" icon={ExternalLink} onPress={() => openOnWeb("/library/new")} style={styles.start}>{t("Montar na web")}</Button>}
-          </View>
         </View>
       ) : (
         <View style={{ gap: theme.space[5] }}>
@@ -225,6 +251,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
   full: { flexBasis: "100%" },
   start: { alignSelf: "flex-start" },
+  stretch: { alignSelf: "stretch" },
   day: { flex: 1, alignItems: "center", justifyContent: "center" },
   chip: { borderWidth: 1 },
   box: { alignItems: "center", justifyContent: "center", borderWidth: 2 },

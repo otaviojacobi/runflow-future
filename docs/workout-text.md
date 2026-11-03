@@ -8,6 +8,8 @@ workout structure (`api/endpoints.md` § Workout structure). Deterministic rules
 backend's `POST /ai/workout` (`backend/crates/domain/src/workout_text.rs`). They are kept identical by the golden
 examples in **`api/workout-text-examples.json`**: each port's tests parse every example and must give exactly its
 structure, name, warnings and tags. Change the grammar in all three, in the same commit, and add examples for it.
+The phone app parses quick text on the device too, with a verbatim copy of the web's file (`mobile/src/domain/quicktext.ts`,
+copy it again after a change); `npm run check -w @runflow/mobile` checks that copy against the same golden examples.
 
 **Adding examples** (the founder sends more over time): see `api/CLAUDE.md` § Workout text examples.
 

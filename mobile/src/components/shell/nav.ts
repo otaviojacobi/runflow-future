@@ -23,7 +23,7 @@ const STAFF_MAIN: NavItem[] = [
   { to: "/messages", label: "Mensagens", icon: MessageCircle, app: true },
 ];
 const STAFF_TRAINING: NavItem[] = [
-  { to: "/library", label: "Biblioteca", icon: Library },
+  { to: "/library", label: "Biblioteca", icon: Library, app: true },
   { to: "/plans", label: "Planilhas", icon: ClipboardList },
   { to: "/exercises", label: "Exercícios", icon: Dumbbell, gym: true, app: true },
   { to: "/assessments", label: "Avaliações", icon: Gauge, app: true },

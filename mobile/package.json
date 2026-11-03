@@ -52,7 +52,8 @@
     "web": "expo start --web --port 8082",
     "typecheck": "node scripts/typed-routes.mjs && tsc --noEmit -p tsconfig.json",
     "lint": "expo lint",
-    "check": "npm run typecheck"
+    "check": "npm run typecheck && npm run check:workout-text",
+    "check:workout-text": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-workout-text.mjs"
   },
   "private": true,
   "description": "Runflow mobile app (Expo / React Native). One app for every role; see mobile/CLAUDE.md."

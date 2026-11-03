@@ -7,7 +7,7 @@ The Runflow app for Android and iOS: Expo SDK 58 (React Native 0.88, new archite
 | From the repo root | What |
 |---|---|
 | `npm run dev:mobile` | Expo dev server with the web preview on **:8082** (`r` reload, `a` Android emulator, QR for Expo Go). Needs the mock API (`npm run dev`) |
-| `npm run check -w @runflow/mobile` | Typecheck (part of `npm run check`); it first writes the typed routes (`scripts/typed-routes.mjs`), so no dev server is needed |
+| `npm run check -w @runflow/mobile` | Typecheck (part of `npm run check`; it first writes the typed routes with `scripts/typed-routes.mjs`, so no dev server is needed) + the quick-text golden examples (`scripts/check-workout-text.mjs`, plain Node: it strips the types itself) |
 | `cd mobile && npx expo install <pkg>` | Add a dependency with the SDK-compatible version. Never plain `npm i` for Expo/RN packages |
 | `cd mobile && npx expo export --platform android` | Bundle check without a device |
 
@@ -28,7 +28,10 @@ src/
               dev/components = the UI kit preview
   api/        TanStack Query hooks per area + types.ts (wire types, identical to the contract), like the web's src/api
   domain/     pure logic copied from the web's src/domain (keep in sync): workout.ts = the workout structure types,
-              zones, intensity segments, step texts, estimates; assessments.ts = test formulas and the zones they make
+              zones, intensity segments, step texts, estimates; assessments.ts = test formulas and the zones they make;
+              quicktext.ts + tags.ts = verbatim copies of the web's
+              free-text grammar and hashtag rules (scripts/check-workout-text.mjs checks them against
+              api/workout-text-examples.json in `npm run check`); builder.ts = editing helpers (new blocks, ranges, moves)
   components/ domain components shared by screens (brand: Runflow mark/wordmark + ClubLogo; sport chips; ComingSoon;
               workout/ = intensity profile, steps, status, week strip, month grid, workout card, feedback sheet, thread
               and its message bubbles; staff/ = the trainer's pieces: workout row, compliance, filter chips,
@@ -37,6 +40,8 @@ src/
               messages/ = conversation rows, the chat thread and composer, announcement cards, the stack's top bar;
               activity.tsx = an activity row; connections/StravaConnect = the "Conectar com Strava" hook + mock sheet;
               club/ = color picker, theme preview (a phone in a club's colors), the one-by-one invite form;
+              builder/ = the workout builder (quick text, block list, step/series/exercise sheets, summary, tags,
+              "Descrever com IA", .FIT) and the template editor;
               races.tsx = race labels, distances, countdown, date tile, entry badge;
               assessments.ts = the test protocols, names and result headlines);
               shell/ = nav.ts (copy of the web's nav per role, `app` = has a screen here, the rest opens the web) and
@@ -46,7 +51,8 @@ src/
               format (copy of the web's), storage (sync kv: native kv-store / web localStorage), secure (token),
               offline (the student's week saved on the device for the person signed in + the connection state),
               links (a notification's web path → the app's route when a screen matches), avatar (photo library →
-              ≤ 512 px JPEG data URL), files (a text file through the share sheet; `.web.ts` downloads it),
+              ≤ 512 px JPEG data URL), files (a text or binary file through the share sheet; `.web.ts` downloads
+              it), fit (the .FIT workout encoder, a copy of the web's),
               strava (connect: auth session or the deep link, the callback posted once per code), logo (photo
               library → ≤ 512 px PNG data URL), push (this phone's push: permission, Expo token, register/forget,
               badge; `.web.ts` no-ops), csv (";", decimal comma, BOM → share sheet), pdf (HTML → PDF with
