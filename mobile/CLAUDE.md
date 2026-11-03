@@ -10,6 +10,8 @@ The Runflow app for Android and iOS: Expo SDK 58 (React Native 0.88, new archite
 | `npm run check -w @runflow/mobile` | Typecheck (part of `npm run check`; it first writes the typed routes with `scripts/typed-routes.mjs`, so no dev server is needed) + the quick-text golden examples (`scripts/check-workout-text.mjs`, plain Node: it strips the types itself) |
 | `cd mobile && npx expo install <pkg>` | Add a dependency with the SDK-compatible version. Never plain `npm i` for Expo/RN packages |
 | `cd mobile && npx expo export --platform android` | Bundle check without a device |
+| `npm run apk` | An installable Android APK pointed at QA, built on Expo's servers (EAS, `eas.json` profile `preview`; project `@otaviorunflows-team/runflow`); prints the install link and QR. Needs `EXPO_TOKEN` in the root `.env` |
+| `npm run eas -- <args>` | Any EAS CLI command with that token (`build:list`, `credentials`, …) |
 
 On a physical phone, point the app at your computer: `EXPO_PUBLIC_API_URL=http://<your-ip>:8787/v1 npm run dev:mobile`.
 `EXPO_PUBLIC_WEB_URL` is the web app, opened for what has no screen in the app yet; without it the app derives it from

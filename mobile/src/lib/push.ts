@@ -21,6 +21,8 @@ const write = (s: Saved) => storage.set(KEY, JSON.stringify(s));
 
 /** A real device in a build that can receive remote push (not Expo Go, not a simulator). */
 const capable = () => Device.isDevice && Constants.executionEnvironment !== ExecutionEnvironment.StoreClient;
+/** Android delivers through Firebase: a build without the founder's google-services.json can't get a token (§ 2). */
+const fcmReady = () => Platform.OS !== "android" || !!(Constants.expoConfig?.android as { googleServicesFile?: string } | undefined)?.googleServicesFile;
 /** The Expo project (EAS); without it there's no push token (docs/ops/push-notifications.md § 0). */
 const projectId = (): string | undefined =>
   (Constants.expoConfig?.extra as { eas?: { projectId?: string } } | undefined)?.eas?.projectId ?? Constants.easConfig?.projectId;
@@ -35,7 +37,7 @@ export function configurePush() {
 
 export async function pushState(): Promise<PushState> {
   if (!capable()) return "unsupported";
-  if (!projectId()) return "unconfigured";
+  if (!projectId() || !fcmReady()) return "unconfigured";
   const p = await Notifications.getPermissionsAsync();
   if (!p.granted) return p.canAskAgain ? "off" : "denied";
   const s = read();
@@ -78,7 +80,7 @@ export async function disablePush(): Promise<PushState> {
 /** On launch and after signing in: keep the registration fresh (tokens change; another person may have used the phone). */
 export async function refreshPush() {
   try {
-    if (!capable() || !projectId() || read().off) return;
+    if (!capable() || !projectId() || !fcmReady() || read().off) return;
     if (!(await Notifications.getPermissionsAsync()).granted) return;
     await register();
   } catch {

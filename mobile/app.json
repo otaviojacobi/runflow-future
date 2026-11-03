@@ -89,6 +89,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "0cf5163c-fd88-4dae-ae8f-0fdd63368d92"
+      }
+    },
+    "owner": "otaviorunflows-team"
   }
 }

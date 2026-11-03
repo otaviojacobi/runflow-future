@@ -111,3 +111,7 @@ QA is live at **https://qa.runflow.club**:
 | Health of everything | `docker compose run --rm api doctor` |
 | Drop the edge copy of the app | `./purge-edge.sh` |
 | Start over with an empty database and storage (D-030) | `./reset-db.sh --yes` (nothing is kept, D-039) |
+
+## Testing
+- **Full manual test round** (owner, trainer, student with your Strava; web and the Android app): [docs/ops/full-manual-test-round.md](docs/ops/full-manual-test-round.md).
+- **Database viewer:** http://runflow-qa.local:8091 (LAN, read-only; user `runflow`, password `PGWEB_PASSWORD` in QA's `.env`).
