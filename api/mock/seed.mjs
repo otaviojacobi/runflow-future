@@ -459,7 +459,7 @@ export function generate(anchor) {
   if (lastTue) note("ana", PF, "comment", "Marcos comentou no seu treino", "Normal nessa fase. Amanhã faz o regenerativo bem leve…", `/workouts/${lastTue.id}`, at(lastTue.date, "12:30"), true);
   if (carlaMissed) note("marcos", PF, "feedback", "Carla Mendes deixou um comentário", "Não consegui treinar, plantão no hospital…", `/feedback`, at(addDays(anchor, -1), "21:14"));
   note("marcos", PF, "member_joined", "Isabela Freitas entrou no clube", null, "/students", at(addDays(anchor, -2), "19:12"), true);
-  note("marcos", PF, "billing", "9 de 10 alunos no plano Free", "Faça upgrade para o Pro e tenha até 100 alunos.", "/club/billing", at(addDays(anchor, -2), "19:13"));
+  note("marcos", PF, "billing", "9 de 10 alunos no plano Free", "Faça upgrade para o Pro e tenha até 30 alunos.", "/club/billing", at(addDays(anchor, -2), "19:13"));
 
   // empty tables (present so the mock and the check know them)
   for (const k of ["sessions", "assets", "plan_assignments", "webhook_events", "push_tokens", "audit_log", "jobs"]) t(k);
