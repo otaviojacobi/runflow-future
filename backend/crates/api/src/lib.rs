@@ -21,6 +21,7 @@ use runflow_integrations::google::GoogleVerifier;
 use runflow_integrations::secrets::TokenCipher;
 use runflow_integrations::storage::Storage;
 use runflow_integrations::strava::StravaClient;
+use runflow_integrations::stripe::StripeClient;
 use tower::ServiceBuilder;
 use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::compression::CompressionLayer;
@@ -52,7 +53,33 @@ pub struct ApiSettings {
     pub club_host_suffix: Option<String>,
     /// Also match club hosts by slug (QA: every club gets a site while subdomains are Pro and billing isn't live).
     pub club_host_by_slug: bool,
+    pub billing: BillingSettings,
     pub auth: AuthSettings,
+}
+
+/// Billing (D-016): Stripe when its key and Pro price are set; otherwise the simulation (dev and QA, like the
+/// mock's `/dev/stripe` pages) when allowed, or no checkout at all.
+#[derive(Clone, Default)]
+pub struct BillingSettings {
+    /// `BILLING_SIMULATION`: owners "pay" on Runflow's own test pages, nothing is charged.
+    pub simulation: bool,
+    /// `STRIPE_PRICE_PRO_MONTHLY`.
+    pub price_pro: Option<String>,
+    /// `STRIPE_WEBHOOK_SECRET`: without it `/webhooks/stripe` answers 404.
+    pub webhook_secret: Option<String>,
+}
+
+impl std::fmt::Debug for BillingSettings {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BillingSettings")
+            .field("simulation", &self.simulation)
+            .field("price_pro", &self.price_pro)
+            .field(
+                "webhook_secret",
+                &self.webhook_secret.as_ref().map(|_| "***"),
+            )
+            .finish()
+    }
 }
 
 #[derive(Clone)]
@@ -99,6 +126,8 @@ pub struct AppState {
     pub strava: Option<Arc<StravaClient>>,
     /// Encrypts provider tokens at rest (`ENCRYPTION_KEY`).
     pub cipher: TokenCipher,
+    /// `None` when Stripe isn't configured (`STRIPE_SECRET_KEY`).
+    pub stripe: Option<Arc<StripeClient>>,
 }
 
 impl AppState {
@@ -118,7 +147,13 @@ impl AppState {
             storage,
             strava: None,
             cipher,
+            stripe: None,
         }
+    }
+
+    pub fn with_stripe(mut self, client: StripeClient) -> Self {
+        self.stripe = Some(Arc::new(client));
+        self
     }
 
     pub fn with_strava(mut self, client: StravaClient) -> Self {

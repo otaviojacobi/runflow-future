@@ -8,6 +8,7 @@ pub mod assessments;
 pub mod assistant;
 pub mod athletes;
 pub mod auth;
+pub mod billing;
 pub mod clubs;
 pub mod invites;
 pub mod jobs;

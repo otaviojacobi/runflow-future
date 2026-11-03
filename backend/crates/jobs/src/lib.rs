@@ -2,6 +2,7 @@
 //! backoff; after `MAX_ATTEMPTS` the job is closed with its last error. Runs inside `runflow all` or alone as
 //! `runflow worker`.
 
+mod billing_jobs;
 mod invite_email;
 mod notify_email;
 mod strava_jobs;
@@ -17,6 +18,7 @@ use runflow_integrations::secrets::TokenCipher;
 use runflow_integrations::strava::StravaClient;
 use serde_json::Value;
 
+pub use billing_jobs::STRIPE_EVENT;
 pub use invite_email::INVITE_EMAIL;
 pub use strava_jobs::{STRAVA_EVENT, STRAVA_SYNC};
 
@@ -190,6 +192,7 @@ impl Worker {
             INVITE_EMAIL => invite_email::run(self, &job.payload).await,
             STRAVA_SYNC => strava_jobs::sync(self, &job.payload).await,
             STRAVA_EVENT => strava_jobs::event(self, &job.payload).await,
+            STRIPE_EVENT => billing_jobs::event(self, &job.payload).await,
             other => Err(JobError::permanent(format!("unknown job kind {other}"))),
         }
     }

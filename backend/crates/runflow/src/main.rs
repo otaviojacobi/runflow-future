@@ -9,7 +9,7 @@ use std::time::Duration;
 
 use anyhow::Context;
 use clap::{Parser, Subcommand};
-use runflow_api::{ApiSettings, AppState, AuthSettings};
+use runflow_api::{ApiSettings, AppState, AuthSettings, BillingSettings};
 use runflow_integrations::email::{
     Action, ClubFrame, Email, Mailer, Provider, club_layout, escape_html, layout, paragraph,
 };
@@ -17,6 +17,7 @@ use runflow_integrations::google::{GOOGLE_JWKS_URL, GoogleVerifier};
 use runflow_integrations::secrets::TokenCipher;
 use runflow_integrations::storage::{Storage, StorageSettings};
 use runflow_integrations::strava::{STRAVA_BASE, StravaClient};
+use runflow_integrations::stripe::{STRIPE_BASE, StripeClient};
 use tracing_subscriber::EnvFilter;
 
 use crate::config::{Config, LogFormat, RunEnv};
@@ -180,6 +181,18 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
             .as_ref()
             .and_then(|s| s.webhook_verify_token.as_ref())
             .map(|t| t.expose().to_string()),
+        billing: BillingSettings {
+            simulation: config.billing_simulation,
+            price_pro: config
+                .stripe
+                .as_ref()
+                .and_then(|s| s.price_pro_monthly.clone()),
+            webhook_secret: config
+                .stripe
+                .as_ref()
+                .and_then(|s| s.webhook_secret.as_ref())
+                .map(|w| w.expose().to_string()),
+        },
         auth: AuthSettings {
             secret,
             session_ttl: chrono::Duration::days(60),
@@ -230,6 +243,12 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
     );
     if let Some(client) = strava.clone() {
         state = state.with_strava(client);
+    }
+    if let Some(st) = &config.stripe {
+        state = state.with_stripe(StripeClient::new(
+            STRIPE_BASE,
+            st.secret_key.expose().to_string(),
+        ));
     }
     let app = runflow_api::router(state);
     let listener = tokio::net::TcpListener::bind(config.http.bind)

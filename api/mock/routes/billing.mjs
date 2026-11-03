@@ -62,7 +62,10 @@ export default function register(h) {
     const action = ctx.body.action;
     if (action === "cancel") s.cancel_at_period_end = true;
     else if (action === "resume") s.cancel_at_period_end = false;
-    else if (action === "fail_payment") s.status = "past_due";
+    else if (action === "fail_payment") {
+      s.status = "past_due";
+      for (const m of h.db.memberships.filter((x) => x.club_id === clubId && x.is_billing_owner)) h.notify({ id: h.uuid("n"), user_id: m.user_id, club_id: clubId, kind: "billing", title: "Não conseguimos cobrar a assinatura", body: "Atualize o cartão em Plano e cobrança para manter o Pro.", link: "/club/billing", read_at: null, created_at: h.nowIso() });
+    }
     else if (action === "pay") { s.status = "active"; }
     else if (action === "expire") { s.current_period_end = h.addDays(h.today(), -1) + "T03:00:00.000Z"; s.cancel_at_period_end = true; }
     else h.invalid([{ field: "action", message: "Ação inválida." }]);

@@ -171,10 +171,15 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
                 s.price_pro_monthly.as_deref().unwrap_or("missing")
             ),
         ),
+        None if c.billing_simulation => line(
+            "stripe",
+            "off",
+            "STRIPE_SECRET_KEY not set: billing uses the built-in simulation (BILLING_SIMULATION, no charging, D-016)",
+        ),
         None => line(
             "stripe",
             "off",
-            "STRIPE_SECRET_KEY not set: billing uses the built-in simulation (no charging in the beta, D-016)",
+            "STRIPE_SECRET_KEY not set and BILLING_SIMULATION off: owners can't upgrade (D-016: no charging in the beta)",
         ),
     }
     match &c.storage {

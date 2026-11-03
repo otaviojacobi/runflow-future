@@ -6,3 +6,4 @@ pub mod google;
 pub mod secrets;
 pub mod storage;
 pub mod strava;
+pub mod stripe;

@@ -47,10 +47,12 @@ const invite = createRoute({ getParentRoute: () => root, path: "/invite/$token",
 const devComponents = createRoute({ getParentRoute: () => root, path: "/dev/components", component: lazyRouteComponent(() => import("./screens/dev/Components"), "ComponentsScreen") });
 const devLogo = createRoute({ getParentRoute: () => root, path: "/dev/logo", component: lazyRouteComponent(() => import("./screens/dev/Logo"), "LogoScreen") });
 const devStatus = createRoute({ getParentRoute: () => root, path: "/dev/status", component: lazyRouteComponent(() => import("./screens/dev/Status"), "StatusScreen") });
-// Mock-only stand-ins (the dev e-mail outbox, fake Stripe): left out of builds for the real backend (S9).
+// The billing simulation's checkout and portal (mock, and the backend without Stripe: BILLING_SIMULATION). A lazy
+// chunk; with Stripe configured the API never links here and its /mock/stripe routes don't exist.
+const devStripe = createRoute({ getParentRoute: () => root, path: "/dev/stripe/$kind", component: lazyRouteComponent(() => import("./screens/dev/StripeMock"), "StripeMockScreen") });
+// Mock-only stand-ins (the dev e-mail outbox): left out of builds for the real backend (S9).
 const mockOnly = import.meta.env.VITE_MOCK !== "false" ? [
   createRoute({ getParentRoute: () => root, path: "/dev/outbox", component: lazyRouteComponent(() => import("./screens/dev/Outbox"), "OutboxScreen") }),
-  createRoute({ getParentRoute: () => root, path: "/dev/stripe/$kind", component: lazyRouteComponent(() => import("./screens/dev/StripeMock"), "StripeMockScreen") }),
 ] : [];
 
 // ---------------------------------------------------------------- signed in, outside the shell
@@ -123,6 +125,7 @@ const commonRoutes = [
 
 const routeTree = root.addChildren([
   index, appHome, signIn, invite, devComponents, devStatus, devLogo,
+  devStripe,
   ...mockOnly,
   authed.addChildren([
     clubs, createClub, welcome,

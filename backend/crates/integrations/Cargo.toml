@@ -1,6 +1,6 @@
 [package]
 name = "runflow-integrations"
-description = "Outbound integrations: e-mail (Resend, D-026), Google sign-in; later Strava, Stripe"
+description = "Outbound integrations: e-mail (Resend, D-026), Google sign-in, Strava, Stripe, storage"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

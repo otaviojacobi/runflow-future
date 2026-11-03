@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE club_subscriptions SET current_period_end = now() - interval '1 day', cancel_at_period_end = true, updated_at = now()\n          WHERE club_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e8d1a67043aa118110830623052bc76fd2fb4d33c809e7b75f2ea9c837ea239e"
+}

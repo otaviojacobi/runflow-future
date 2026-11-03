@@ -134,6 +134,8 @@ pub struct Config {
     pub google: Option<Google>,
     pub strava: Option<Strava>,
     pub stripe: Option<Stripe>,
+    /// `BILLING_SIMULATION` (default: on in development): without Stripe, owners "pay" on Runflow's test pages.
+    pub billing_simulation: bool,
     pub storage: Storage,
     pub assistant: Assistant,
     pub sentry_dsn: Option<String>,
@@ -390,6 +392,7 @@ impl Config {
         };
 
         let sentry_dsn = e.opt("SENTRY_DSN");
+        let billing_simulation = e.parse("BILLING_SIMULATION", env == RunEnv::Development);
         if e.errors.is_empty() {
             Ok(Config {
                 env,
@@ -401,6 +404,7 @@ impl Config {
                 google,
                 strava,
                 stripe,
+                billing_simulation,
                 storage,
                 assistant,
                 sentry_dsn,

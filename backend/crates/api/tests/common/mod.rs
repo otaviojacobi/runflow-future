@@ -6,7 +6,7 @@ use std::time::Duration;
 use axum::body::Body;
 use axum::http::{HeaderMap, Method, Request, StatusCode, header};
 use http_body_util::BodyExt;
-use runflow_api::{ApiSettings, AppState, AuthSettings, router};
+use runflow_api::{ApiSettings, AppState, AuthSettings, BillingSettings, router};
 use runflow_integrations::email::{EmailSettings, Mailer, Provider};
 use runflow_integrations::google::GoogleVerifier;
 use runflow_integrations::secrets::TokenCipher;
@@ -59,6 +59,11 @@ pub fn settings(dev: bool) -> ApiSettings {
         club_host_suffix: Some("-qa.runflow.club".into()),
         club_host_by_slug: false,
         strava_verify_token: Some("verify-me".into()),
+        billing: BillingSettings {
+            simulation: true,
+            price_pro: None,
+            webhook_secret: None,
+        },
         auth: AuthSettings {
             secret: b"test-secret-test-secret-test-secret".to_vec(),
             session_ttl: chrono::Duration::days(60),
@@ -155,6 +160,30 @@ impl TestApp {
                 "secret".into(),
             ));
         self
+    }
+
+    /// Other billing settings (simulation off, Stripe price and webhook secret).
+    pub fn with_billing(mut self, billing: BillingSettings) -> Self {
+        let mut s = (*self.state.settings).clone();
+        s.billing = billing;
+        self.state.settings = std::sync::Arc::new(s);
+        self
+    }
+
+    /// Stripe pointed at a fake server (`base`), with a Pro price and a webhook secret.
+    pub fn with_stripe(self, base: &str) -> Self {
+        let mut app = self.with_billing(BillingSettings {
+            simulation: false,
+            price_pro: Some("price_pro".into()),
+            webhook_secret: Some("whsec_test".into()),
+        });
+        app.state = app
+            .state
+            .with_stripe(runflow_integrations::stripe::StripeClient::new(
+                base,
+                "sk_test_123".into(),
+            ));
+        app
     }
 
     pub fn db(&self) -> &PgPool {
