@@ -70,7 +70,7 @@ QA is live at **https://qa.runflow.club**:
 | Step | What you'll do |
 |---|---|
 | ~~B1 Logo~~ | ~~Pick one of the concepts~~ Done: Ritmo |
-| S12 Sentry | sentry.io → org → two projects (Rust: `runflow-api`, React: `runflow-web`) → their DSNs: `SENTRY_DSN` in the Pi's `.env`, GitHub variable `VITE_SENTRY_DSN` |
+| S12 Sentry (ready) | sentry.io → org → two projects (Rust: `runflow-api`, React: `runflow-web`) → their DSNs in the Pi's `.env`: `SENTRY_DSN` (Rust), `SENTRY_WEB_DSN` (React), `SENTRY_ENVIRONMENT=qa`, then `./update.sh`. No GitHub variable: the web app gets its DSN from the API |
 | S13 Grafana | Decided: Grafana Cloud's free tier (D-040). Create a stack at grafana.com, then send me its OTLP endpoint and an access token (or put `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_HEADERS` in the Pi's `.env`) |
 
 ## Handy (on the Pi, in `~/runflow/ops/qa`)

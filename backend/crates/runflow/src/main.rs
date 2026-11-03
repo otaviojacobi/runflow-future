@@ -2,6 +2,7 @@
 
 mod config;
 mod doctor;
+mod errors;
 
 use std::process::ExitCode;
 use std::sync::LazyLock;
@@ -94,7 +95,8 @@ async fn main() -> ExitCode {
             return ExitCode::from(2);
         }
     };
-    init_logging(config.log_format);
+    let _sentry = errors::init(&config, *VERSION);
+    init_logging(config.log_format, _sentry.is_some());
 
     let result = match cli.command {
         Command::All => run(config, true, true).await,
@@ -133,14 +135,22 @@ fn webpush(
     )))
 }
 
-fn init_logging(format: LogFormat) {
+fn init_logging(format: LogFormat, sentry: bool) {
+    use tracing_subscriber::prelude::*;
     let filter =
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info,runflow=debug"));
-    let builder = tracing_subscriber::fmt().with_env_filter(filter);
-    match format {
-        LogFormat::Json => builder.json().flatten_event(true).init(),
-        LogFormat::Pretty => builder.compact().init(),
-    }
+    let fmt = match format {
+        LogFormat::Json => tracing_subscriber::fmt::layer()
+            .json()
+            .flatten_event(true)
+            .boxed(),
+        LogFormat::Pretty => tracing_subscriber::fmt::layer().compact().boxed(),
+    };
+    tracing_subscriber::registry()
+        .with(filter)
+        .with(fmt)
+        .with(sentry.then(errors::layer))
+        .init();
 }
 
 async fn connect(config: &Config) -> anyhow::Result<runflow_db::Pool> {
@@ -228,6 +238,14 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
                 .map(|w| w.expose().to_string()),
         },
         push_public_key: config.push.as_ref().map(|p| p.public_key.clone()),
+        web_sentry: config
+            .sentry_web_dsn
+            .as_ref()
+            .map(|dsn| runflow_api::WebSentry {
+                dsn: dsn.clone(),
+                environment: config.sentry_environment.clone(),
+                release: (*VERSION).to_string(),
+            }),
         auth: AuthSettings {
             secret,
             session_ttl: chrono::Duration::days(60),

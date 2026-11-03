@@ -281,8 +281,21 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
     );
     line(
         "sentry",
-        if c.sentry_dsn.is_some() { "on" } else { "off" },
-        "",
+        if c.sentry_dsn.is_some() { "ok" } else { "off" },
+        format!(
+            "API {} · web {} · environment {}",
+            if c.sentry_dsn.is_some() {
+                "SENTRY_DSN set"
+            } else {
+                "SENTRY_DSN not set"
+            },
+            if c.sentry_web_dsn.is_some() {
+                "SENTRY_WEB_DSN set"
+            } else {
+                "SENTRY_WEB_DSN not set"
+            },
+            c.sentry_environment
+        ),
     );
 
     anyhow::ensure!(ok, "some checks failed");

@@ -146,6 +146,13 @@ impl FromRequestParts<AppState> for MaybeAuth {
             runflow_db::auth::touch_session(&state.db, s.id, state.settings.auth.session_ttl)
                 .await?;
         }
+        // Errors in this request carry the user id only (S12, D-033: no personal data in Sentry).
+        sentry::configure_scope(|scope| {
+            scope.set_user(Some(sentry::User {
+                id: Some(s.user_id.to_string()),
+                ..Default::default()
+            }));
+        });
         Ok(Self(Some(Auth {
             user_id: s.user_id,
             session_id: s.id,

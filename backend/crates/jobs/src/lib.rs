@@ -131,7 +131,11 @@ impl Worker {
                                 (30_i64 << (job.attempts - 1).clamp(0, 7)).min(3600),
                             )
                     });
-                    tracing::warn!(job = job.id, kind = %job.kind, attempts = job.attempts, error = %e.message, retry = retry_at.is_some(), "job failed");
+                    if retry_at.is_some() {
+                        tracing::warn!(job = job.id, kind = %job.kind, attempts = job.attempts, error = %e.message, "job failed, will retry");
+                    } else {
+                        tracing::error!(job = job.id, kind = %job.kind, attempts = job.attempts, error = %e.message, "job failed for good");
+                    }
                     jobs::fail(&self.db, job.id, &e.message, retry_at).await?;
                 }
             }

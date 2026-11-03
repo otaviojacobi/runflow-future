@@ -9,6 +9,8 @@ import { queryClient } from "./queryClient";
 import { router } from "./router";
 import { setupPwa } from "./lib/pwa";
 import { installPrintTheme, promoteClubTheme } from "./lib/theme";
+import { publicConfigQuery } from "./api/auth";
+import { startSentry } from "./lib/sentry";
 
 // Dev injects CSS at runtime; make sure the cached club theme still comes last (§7.8).
 promoteClubTheme();
@@ -22,3 +24,6 @@ createRoot(document.getElementById("root")!).render(
     </QueryClientProvider>
   </StrictMode>,
 );
+
+// Errors to Sentry when the API turns it on (S12): after the first render, never in the initial bundle.
+queryClient.fetchQuery(publicConfigQuery).then((c) => c.sentry && startSentry(c.sentry)).catch(() => undefined);

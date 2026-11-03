@@ -22,10 +22,15 @@ chrono.workspace = true
 clap.workspace = true
 dotenvy.workspace = true
 reqwest.workspace = true
+sentry.workspace = true
 sqlx.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+sentry = { workspace = true, features = ["test"] }
 
 [lints]
 workspace = true

@@ -148,6 +148,10 @@ pub struct Config {
     pub storage: Storage,
     pub assistant: Assistant,
     pub sentry_dsn: Option<String>,
+    /// The web app's DSN (`SENTRY_WEB_DSN`), handed to it by `/public/config` (browser DSNs are public).
+    pub sentry_web_dsn: Option<String>,
+    /// `SENTRY_ENVIRONMENT` (default `development` or `production` from `RUNFLOW_ENV`; QA sets `qa`).
+    pub sentry_environment: String,
 }
 
 /// Reads variables through a function so tests don't touch the process environment.
@@ -401,6 +405,27 @@ impl Config {
         };
 
         let sentry_dsn = e.opt("SENTRY_DSN");
+        let sentry_web_dsn = e.opt("SENTRY_WEB_DSN");
+        for (name, dsn) in [
+            ("SENTRY_DSN", &sentry_dsn),
+            ("SENTRY_WEB_DSN", &sentry_web_dsn),
+        ] {
+            if let Some(d) = dsn
+                && d.parse::<sentry::types::Dsn>().is_err()
+            {
+                e.errors.push(format!(
+                    "{name} isn't a Sentry DSN (https://<key>@<host>/<project>)"
+                ));
+            }
+        }
+        let sentry_environment = e.or(
+            "SENTRY_ENVIRONMENT",
+            if env == RunEnv::Development {
+                "development"
+            } else {
+                "production"
+            },
+        );
         let billing_simulation = e.parse("BILLING_SIMULATION", env == RunEnv::Development);
         let subject = e.or("VAPID_SUBJECT", "mailto:contato@runflow.club");
         let push = e
@@ -436,6 +461,8 @@ impl Config {
                 storage,
                 assistant,
                 sentry_dsn,
+                sentry_web_dsn,
+                sentry_environment,
             })
         } else {
             Err(e.errors)

@@ -8,6 +8,7 @@ import { ApiError } from "@/lib/api";
 import { session } from "@/lib/session";
 import { holdRunflowBrand } from "@/lib/theme";
 import { Button, buttonClass } from "@/ui";
+import { reportError } from "@/lib/sentry";
 
 function Frame({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
@@ -38,6 +39,8 @@ export function NotFoundScreen() {
 
 export function ErrorScreen({ error, reset }: { error: unknown; reset?: () => void }) {
   const router = useRouter();
+  // Expected API answers (4xx with a pt-BR message) aren't bugs; everything else is reported.
+  useEffect(() => { if (!(error instanceof ApiError && error.status < 500)) reportError(error); }, [error]);
   const [details, setDetails] = useState(false);
   const api = error instanceof ApiError ? error : null;
   const message = api ? `${api.title}. ${api.detail}` : error instanceof Error ? error.message : String(error);

@@ -56,7 +56,17 @@ pub struct ApiSettings {
     pub billing: BillingSettings,
     /// The VAPID public key for Web Push (`/public/config`); None = push off.
     pub push_public_key: Option<String>,
+    /// The web app's Sentry settings (`/public/config`); None = off.
+    pub web_sentry: Option<WebSentry>,
     pub auth: AuthSettings,
+}
+
+/// What the web app needs to report its errors to Sentry (browser DSNs are public by design).
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct WebSentry {
+    pub dsn: String,
+    pub environment: String,
+    pub release: String,
 }
 
 /// Billing (D-016): Stripe when its key and Pro price are set; otherwise the simulation (dev and QA, like the
@@ -200,6 +210,9 @@ pub fn router(state: AppState) -> Router {
         .method_not_allowed_fallback(method_not_allowed)
         .layer(
             ServiceBuilder::new()
+                // Errors to Sentry (S12): one hub per request (its user and request), off without SENTRY_DSN.
+                .layer(sentry::integrations::tower::NewSentryLayer::<Request>::new_from_top())
+                .layer(sentry::integrations::tower::SentryHttpLayer::new())
                 .layer(SetRequestIdLayer::new(REQUEST_ID, MakeRequestUuid))
                 .layer(TraceLayer::new_for_http().make_span_with(|req: &Request| {
                     let id = req.headers().get(REQUEST_ID).and_then(|v| v.to_str().ok()).unwrap_or("-");
