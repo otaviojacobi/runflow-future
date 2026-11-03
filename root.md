@@ -501,6 +501,7 @@ flowchart LR
 - 2026-11-03. Founder: club sites/custom domains removed entirely (D-042, F38); plan wording "Todos os recursos do plano Free/Pro". R1 merged; mobile X1–X3 merged, X4/X4b/X7/X8 running in parallel.
 - 2026-11-03. Session paused by the founder. Queued: B2 plans v2 (seats per role), B3 Stripe for real on QA, B4 club freezing for unpaid subscriptions. Mobile X4, X4b, X7, X8 paused mid-work on local branches (`docs/build-plan.md`).
 - 2026-11-03. Founder queued N1 (notifications push only, a simple on/off per kind; no notification e-mails) and F39 (remove calendar sync).
+- 2026-11-03. **R2 workout text engine v2** from the founder's real workouts: sets over several lines with `Desc. A & B`, named blocks with a total (any words, no list of names), alternating pairs, rep times, ranges (`15-20x`, `60-80m`), trailing easy lines as the cool-down; intensity words are now PSE with the word as label, never zones (contract: `rpe.label`, `max_count`, `max_s`/`max_m`, repeat `note`); 184 golden examples in all three ports (`docs/workout-text.md`).
 - 2026-11-01. Founder decisions: design-first Phase 0 with the full UI mocked before implementation (D-015); Stripe, no charging during the beta, NFS-e outside the product (D-016); trainers see all students (D-017); Runflow is the app and clubs only theme it (D-018); Apple and Garmin developer programs deferred (D-007, D-011); no guardian accounts. Added the screen inventory (§6.1) and `CLAUDE.md`. Roadmap renumbered: Phase 0 is now design and validation, and **D1 is next**.
 
 ---
