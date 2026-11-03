@@ -92,7 +92,7 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 | Step | Scope | Status |
 |---|---|---|
 | X0 | Expo + TS scaffold in the workspace, tokens → RN theme, club theme cache (sync kv-store, D-022) behind the splash (§7.8), API client against the mock | [x] |
-| X1 | RN UI kit mirroring `frontend/src/ui` names and variants | [ ] |
+| X1 | RN UI kit mirroring `frontend/src/ui` names and variants (`src/ui`: Button/IconButton/ButtonLink, Field, Input, Textarea, Select as a sheet, Checkbox, Switch, Segmented, Badge, Card, Avatar, Skeleton, ProgressBar, EmptyState, PageHeader, Tabs, Dialog = bottom sheet, Menu = action sheet, toasts; mobile adds Text, Screen, ListItem, Divider, Spinner), tokens only, 44 pt targets, Lucide icons imported one file each; `/dev/components` previews every component in light and dark with demo club themes | [x] |
 | X2 | Sign-in (Google, email code) + deep links for invites | [ ] |
 | X3 | Tabs per role + club switcher | [ ] |
 | X4 | Student: Today, workout detail, feedback, schedule (offline cache) | [ ] |

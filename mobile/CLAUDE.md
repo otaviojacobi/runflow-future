@@ -1,6 +1,6 @@
 # mobile/: CLAUDE.md
 
-The Runflow app for Android and iOS: Expo SDK 58 (React Native 0.88, new architecture) + TypeScript + Expo Router. One app for every role (D-005). Read `../root.md` (§7.5, §7.8) and `../docs/build-plan.md` (Phase 2) first, and `AGENTS.md` (Expo's own guidance: check the versioned docs, never trust memory for Expo APIs). Future standalone repo: `runflow-mobile`.
+The Runflow app for Android and iOS: Expo SDK 58 (React Native 0.88, new architecture) + TypeScript + Expo Router. One app for every role (D-005). Read `../root.md` (§7.5, §7.8) and `../docs/build-plan.md` (Phase 3) first, and `AGENTS.md` (Expo's own guidance: check the versioned docs, never trust memory for Expo APIs). Future standalone repo: `runflow-mobile`.
 
 ## Commands
 
@@ -17,11 +17,19 @@ On a physical phone, point the app at your computer: `EXPO_PUBLIC_API_URL=http:/
 
 ```
 src/
-  app/        Expo Router routes only (_layout.tsx = splash + providers)
+  app/        Expo Router routes only (_layout.tsx = splash + providers); dev/components = the UI kit preview
   lib/        api (ApiError, session), storage (sync kv: native kv-store / web localStorage), secure (token)
-  theme/      theme.ts (tokens → RN theme, club roles via @runflow/design/color), ThemeProvider (cached club colors, color mode)
+  theme/      theme.ts (tokens → RN theme, club roles via @runflow/design/color), ThemeProvider (cached club colors,
+              color mode) + ThemeScope (re-theme a subtree: Runflow's colors, forced light/dark)
+  ui/         the UI kit: same names/variants as frontend/src/ui (index.ts lists them); icons.ts = Lucide icons, one
+              import per icon (add new ones there, never import the lucide-react-native barrel)
   i18n.ts     t()/tn(), same contract as the web app
 ```
+
+UI kit notes: components read `useTheme().theme` (colors, space, radius, size, motion, shadow); `Text` takes a token
+`variant` and a `tone`; `Field` hands its control `accessibilityLabel`/`accessibilityHint`/`invalid` (render prop);
+`Dialog` is a bottom sheet and `Menu` an action sheet; `toast.error(err)` shows the API's pt-BR title/detail.
+Preview every change at `/dev/components` (light and dark side by side, demo club themes).
 
 ## Rules
 

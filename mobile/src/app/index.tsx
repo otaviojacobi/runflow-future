@@ -2,6 +2,7 @@
  * X0 · status screen: proves the scaffold end to end (theme from tokens, club theme cache, API client).
  * Replaced by sign-in (X2) and the role tabs (X3).
  */
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -69,6 +70,7 @@ export default function Index() {
         </Pressable>
         <View style={[styles.badge, { backgroundColor: c.accent.solid }]}><Text style={[textStyle("labelSm"), { color: c.accent.onSolid }]}>{t("Recorde")}</Text></View>
       </View>
+      {__DEV__ && <Pressable accessibilityRole="link" onPress={() => router.push("/dev/components")} style={({ pressed }) => [styles.btnGhost, { borderColor: c.lineStrong, opacity: pressed ? 0.7 : 1 }]}><Text style={[textStyle("labelMd"), { color: c.fg }]}>{t("Ver os componentes")}</Text></Pressable>}
     </ScrollView>
   );
 }

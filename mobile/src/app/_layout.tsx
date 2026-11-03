@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { session } from "@/lib/api";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
+import { Toaster } from "@/ui";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -15,6 +16,7 @@ function Shell() {
     <>
       <StatusBar style={theme.mode === "dark" ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: theme.color.canvas } }} />
+      <Toaster />
     </>
   );
 }
