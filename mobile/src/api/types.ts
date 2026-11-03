@@ -37,6 +37,11 @@ export interface Subscription {
   included_students: number; included_trainers: number; monthly_cents: number;
   current_period_end: ISOTime | null; cancel_at_period_end: boolean; has_billing_account?: boolean;
 }
+export type PaidPlan = Exclude<Plan, "free">;
+/** GET /public/plans (api/plans.json). */
+export interface PlanSpec { id: Plan; name: string; price_cents: number; owners: number; trainers: number; students: number; extra: { trainer_cents: number; student_cents: number } | null }
+export interface PlanCatalog { currency: string; grace_days: number; plans: PlanSpec[] }
+export interface Invoice { id: ID; club_id: ID; stripe_invoice_id: string | null; amount_cents: number; currency: string; status: "draft" | "open" | "paid" | "void" | "uncollectible"; period_start: ISOTime; period_end: ISOTime; hosted_url: string | null; created_at: ISOTime }
 export interface MembershipContext { membership: Membership; club: Club; branding: Branding | null; subscription: Subscription | null }
 /** Push control (D-045): every notification lands in the app; per kind, push to the person's devices on or off, and
  * `paused` stops every push. */
@@ -192,3 +197,5 @@ export interface TrainingReport {
 // ---- exercise library (W18)
 export type ExerciseCategory = "strength" | "core" | "mobility" | "stretch" | "plyometrics" | "drill";
 export interface LibraryExercise { id: ID; club_id: ID | null; scope: "club" | "global"; name: string; category: ExerciseCategory; muscles: string[]; equipment: string[]; cues: string | null; video_url: string | null; created_at: ISOTime; archived_at: ISOTime | null }
+
+export interface Member { membership: Membership; user: User; group_ids: ID[] }

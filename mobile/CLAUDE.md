@@ -39,7 +39,9 @@ src/
               account/ = C1/M7 sections, confirm sheet, stepper, zones table, notification settings, pt-BR labels;
               messages/ = conversation rows, the chat thread and composer, announcement cards, the stack's top bar;
               activity.tsx = an activity row; connections/StravaConnect = the "Conectar com Strava" hook + mock sheet;
-              club/ = color picker, theme preview (a phone in a club's colors), the one-by-one invite form;
+              club/ = color picker, theme preview (a phone in a club's colors), the one-by-one invite form,
+              contrast report, the spreadsheet import; billing/ = plan copy (copy of the web's plans.ts), seat meters,
+              the mock's Stripe checkout and portal sheets; shell/FrozenLayer = the frozen club's icy layer, D-043;
               builder/ = the workout builder (quick text, block list, step/series/exercise sheets, summary, tags,
               "Descrever com IA", .FIT) and the template editor;
               races.tsx = race labels, distances, countdown, date tile, entry badge;
@@ -55,8 +57,9 @@ src/
               it), fit (the .FIT workout encoder, a copy of the web's),
               strava (connect: auth session or the deep link, the callback posted once per code), logo (photo
               library → ≤ 512 px PNG data URL), push (this phone's push: permission, Expo token, register/forget,
-              badge; `.web.ts` no-ops), csv (";", decimal comma, BOM → share sheet), pdf (HTML → PDF with
-              expo-print → share sheet; `.web.ts` prints), video (YouTube/Vimeo links, thumbnails);
+              badge; `.web.ts` no-ops), csv (";", decimal comma, BOM → share sheet; `parseCsv` reads one in), pdf
+              (HTML → PDF with expo-print → share sheet; `.web.ts` prints), video (YouTube/Vimeo links, thumbnails),
+              textfile (pick a text file: the document picker; `.web.ts` reads the browser's File);
               components/PushBridge = opens a tapped push in its club
   theme/      theme.ts (tokens → RN theme, club roles via @runflow/design/color), ThemeProvider (Runflow's theme,
               color mode) + ThemeScope (re-theme a subtree: a club's colors, forced light/dark)

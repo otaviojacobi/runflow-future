@@ -38,3 +38,26 @@ export const useCreateInvite = (clubId: string) =>
     mutationFn: (v: { email: string; role: "student" | "trainer"; name?: string; group_ids?: string[] }) => api.post<Invitation>(`/clubs/${clubId}/invites`, v),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: clubKeys.invites(clubId) }),
   });
+
+// ---------- the owner's club (O1–O3, X15)
+/** Club data, modalities, the trainer label, timezone and week release (PATCH takes only what's sent). */
+export const useUpdateClub = (clubId: string) =>
+  useMutation({ mutationFn: (v: Partial<Club>) => api.patch<Club>(`/clubs/${clubId}`, v), onSuccess: () => queryClient.invalidateQueries({ queryKey: meKey }) });
+/** Close the club (owner): soft delete, plan canceled, invites revoked; `confirm_name` must match. */
+export const useCloseClub = (clubId: string) =>
+  useMutation({ mutationFn: (confirm_name: string) => api.del(`/clubs/${clubId}`, { confirm_name }), onSuccess: () => queryClient.invalidateQueries({ queryKey: meKey }) });
+
+export const useInvites = (clubId: string | undefined) =>
+  useQuery({ queryKey: clubKeys.invites(clubId ?? ""), enabled: !!clubId, queryFn: () => api.get<{ items: Invitation[] }>(`/clubs/${clubId}/invites`).then((r) => r.items) });
+/** A new link, valid 7 more days; the old one stops working. */
+export const useResendInvite = (clubId: string) =>
+  useMutation({ mutationFn: (id: string) => api.post<Invitation>(`/clubs/${clubId}/invites/${id}/resend`), onSuccess: () => queryClient.invalidateQueries({ queryKey: clubKeys.invites(clubId) }) });
+export const useRevokeInvite = (clubId: string) =>
+  useMutation({ mutationFn: (id: string) => api.del(`/clubs/${clubId}/invites/${id}`), onSuccess: () => queryClient.invalidateQueries({ queryKey: clubKeys.invites(clubId) }) });
+export interface BulkResult { created: number; items: { email: string; url: string; name: string | null }[]; skipped: { row: number; email: string; reason: string }[]; over_limit: number }
+/** Invite many students from a spreadsheet: one personal invite e-mailed per valid row. */
+export const useBulkInvites = (clubId: string) =>
+  useMutation({
+    mutationFn: (rows: { name: string; email: string; groups: string }[]) => api.post<BulkResult>(`/clubs/${clubId}/invites/bulk`, { rows }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: clubKeys.invites(clubId) }),
+  });

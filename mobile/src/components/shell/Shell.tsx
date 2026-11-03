@@ -114,6 +114,8 @@ export function backFallback(name: string, role: Role): Href {
   const parent = parentOf(name);
   // A workout opens from Hoje, Agenda or an activity; there's no /workouts list to go up to.
   if (parent === "workouts") return homeFor(role);
+  // The owner's club tools (club/studio…) are reached from "Mais"; there's no /club screen.
+  if (parent === "club") return hrefOf("/more");
   if (parent) return hrefOf(`/${parent}`);
   if (profileLinksFor(role).some((i) => routeName(i.to) === name)) return "/account";
   return role === "student" ? homeFor(role) : hrefOf("/more");

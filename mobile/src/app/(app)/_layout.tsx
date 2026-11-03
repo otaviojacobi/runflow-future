@@ -9,6 +9,7 @@ import { StyleSheet } from "react-native";
 import { Tabs } from "expo-router/js-tabs";
 import type { Role, Sport } from "@/api/types";
 import { signOut } from "@/api/auth";
+import { FrozenScope } from "@/components/shell/FrozenLayer";
 import { BackHeader, ShellHeader, TabBar, backFallback, isTabRoot } from "@/components/shell/Shell";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
@@ -27,17 +28,19 @@ export default function AppLayout() {
   if (!ctx || !role) return <Redirect href="/clubs" />;
   return (
     <ThemeScope club={clubColors(ctx.branding)}>
-      <ClubTabs role={role} modalities={ctx.club.modalities} />
+      <ClubTabs role={role} modalities={ctx.club.modalities} clubId={ctx.club.id} frozen={!!ctx.subscription?.frozen} />
     </ThemeScope>
   );
 }
 
-function ClubTabs({ role, modalities }: { role: Role; modalities: Sport[] }) {
+function ClubTabs({ role, modalities, clubId, frozen }: { role: Role; modalities: Sport[]; clubId: string; frozen: boolean }) {
   const { theme } = useTheme();
   const staff = role !== "student";
   return (
     <Tabs
       backBehavior="history"
+      // A frozen club (D-043) covers the staff's screens, not the top bar or the tabs.
+      screenLayout={({ children, route }) => <FrozenScope route={route.name} role={role} clubId={clubId} frozen={frozen}>{children}</FrozenScope>}
       tabBar={(p) => <TabBar {...p} role={role} modalities={modalities} />}
       screenOptions={({ route }) => ({
         sceneStyle: { backgroundColor: theme.color.canvas },
@@ -69,6 +72,12 @@ function ClubTabs({ role, modalities }: { role: Role; modalities: Sport[] }) {
       {/* The exercise library is for clubs that teach musculação (D-035). */}
       <Tabs.Protected guard={staff && modalities.includes("strength")} redirectTo={homeFor(role)}>
         <Tabs.Screen name="exercises" options={{ title: t("Exercícios") }} />
+      </Tabs.Protected>
+      <Tabs.Protected guard={role === "owner"} redirectTo={homeFor(role)}>
+        <Tabs.Screen name="club/studio" options={{ title: t("Club Studio") }} />
+        <Tabs.Screen name="club/members" options={{ title: t("Membros e convites") }} />
+        <Tabs.Screen name="club/settings" options={{ title: t("Configurações do clube") }} />
+        <Tabs.Screen name="club/billing" options={{ title: t("Plano e cobrança") }} />
       </Tabs.Protected>
       <Tabs.Screen name="messages" options={{ title: t("Mensagens") }} />
       <Tabs.Screen name="account" options={{ title: staff ? t("Minha conta") : t("Perfil") }} />

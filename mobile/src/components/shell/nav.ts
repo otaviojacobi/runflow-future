@@ -33,10 +33,10 @@ const STAFF_TEAM: NavItem[] = [
   { to: "/races/manage", label: "Provas", icon: Flag, app: true },
 ];
 const OWNER: NavItem[] = [
-  { to: "/club/studio", label: "Club Studio", icon: Palette },
-  { to: "/club/members", label: "Membros", icon: UserCog },
-  { to: "/club/settings", label: "Configurações", icon: Settings },
-  { to: "/club/billing", label: "Plano e cobrança", icon: CreditCard },
+  { to: "/club/studio", label: "Club Studio", icon: Palette, app: true },
+  { to: "/club/members", label: "Membros", icon: UserCog, app: true },
+  { to: "/club/settings", label: "Configurações", icon: Settings, app: true },
+  { to: "/club/billing", label: "Plano e cobrança", icon: CreditCard, app: true },
 ];
 const STUDENT: NavItem[] = [
   { to: "/today", label: "Hoje", icon: Sun, tab: true, app: true },
