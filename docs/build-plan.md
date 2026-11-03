@@ -173,7 +173,7 @@ Goal (founder, 2026-11-03): the app does everything the web app does, on the rea
 - **W4 Planning**: week grid (students × days), group filter, search, today highlight, chips with status/comments, drag to move, detail (structure, notes, completion, activity, thread), edit, duplicate, remove, assign dialog (library or build now, students/groups, many days, notes), copy week, week totals per student. *More:* multi-select chips, move between students, month view, undo.
 - **W5 Builder**: quick text ⇄ structured editor, hashtags (`#tag` in the text or the tag editor), run/swim/bike/strength/mobility, series, targets, swim extras, live summary, examples. *More:* preview with a student's personal zones, AI templates, exercise videos.
 - **W6 Library**: search (name or `#tag`), sport and tag filters, cards with profile and tags, duplicate, archive. *More:* folders, usage count.
-- **W7 Planilhas**: weeks × days editor reusing the builder, phases (base/build/peak/taper), weekly volume chart, apply to students/groups with a start date, active assignments, unassign future workouts.
+- **W7 Planilhas**: weeks × days editor reusing the builder, weekly volume chart, apply to students/groups with a start date, active assignments, unassign future workouts. *Later:* phases per week (base/build/peak/taper): not in the contract or either app yet.
 - **W8 Feedback**: inbox of completions + comments, unread/flagged filters, quick replies, mark as read, jump to workout.
 - **M1 Today**: greeting, today's workout(s) with personal targets, mark done + feedback, week strip, last activity, streak (accent), offline.
 - **M2 Workout**: steps with personal paces/zones, notes, send to watch (Garmin, later), mark done, feedback (M5), thread with trainer, linked activity.
