@@ -29,7 +29,8 @@ src/
               zones, intensity segments, step texts, estimates
   components/ domain components shared by screens (brand: Runflow mark/wordmark + ClubLogo; sport chips; ComingSoon;
               workout/ = intensity profile, steps, status, week strip, workout card, feedback sheet, thread;
-              account/ = C1/M7 sections, confirm sheet, stepper, zones table, notification settings, pt-BR labels);
+              account/ = C1/M7 sections, confirm sheet, stepper, zones table, notification settings, pt-BR labels;
+              messages/ = conversation rows, the chat thread and composer, announcement cards, the stack's top bar);
               shell/ = nav.ts (copy of the web's nav per role, `app` = has a screen here, the rest opens the web) and
               Shell.tsx (top bar with the club switcher and bell, back bar, bottom tab bar)
   lib/        api (ApiError, WEB_URL), session (token in the keychain + cached `/me` and active club in the sync store,

@@ -117,13 +117,16 @@ export function backFallback(name: string, role: Role): Href {
 }
 
 /** The bottom tabs (the web's phone bar): the role's tabs, plus "Mais" for staff, lit for anything reached from it. */
-export function TabBar({ state, navigateToTab, role, modalities }: BottomTabBarProps & { role: Role; modalities: Sport[] }) {
+export function TabBar({ state, descriptors, navigateToTab, role, modalities }: BottomTabBarProps & { role: Role; modalities: Sport[] }) {
   const { theme } = useTheme();
   const c = theme.color;
   const insets = useSafeAreaInsets();
+  const route = state.routes[state.index];
   // A nested route ("account/privacy") belongs to its parent screen's tab.
-  const current = state.routes[state.index]?.name ?? "";
+  const current = route?.name ?? "";
   const focused = parentOf(current) ?? current;
+  // A screen can hide the bar like React Navigation's own: options.tabBarStyle = { display: "none" } (a chat, a form).
+  if (route && StyleSheet.flatten(descriptors[route.key]?.options.tabBarStyle)?.display === "none") return null;
   const tabs = tabsFor(role, modalities).map((i) => ({ name: routeName(i.to), label: i.label, icon: i.icon }));
   if (role !== "student") tabs.push({ name: MORE, label: "Mais", icon: MenuIcon });
   // A screen without a tab lights the tab it belongs to: Perfil's links → Perfil; staff extras and the account → "Mais".

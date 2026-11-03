@@ -100,3 +100,19 @@ export type AssessmentKind = "body" | "cooper" | "run_3k" | "css" | "ftp" | "one
 export type AssessmentData = Partial<{ weight_kg: number; height_cm: number; body_fat_pct: number; waist_cm: number; resting_hr: number; distance_m: number; time_s: number; t400_s: number; t200_s: number; avg_power_w: number; exercise: string; reps: number; max_hr: number }>;
 export type AssessmentResult = Partial<{ bmi: number; vo2max: number; threshold_pace_s_per_km: number; css_s_per_100m: number; ftp_w: number; one_rm_kg: number; max_hr: number }>;
 export interface Assessment { id: ID; club_id: ID; membership_id: ID; kind: AssessmentKind; date: ISODate; data: AssessmentData; result: AssessmentResult; notes: string | null; created_at: ISOTime }
+
+/** A club group (GET /clubs/{id}/groups). */
+export interface Group { id: ID; club_id: ID; name: string; description: string | null; created_at: ISOTime; member_ids: ID[] }
+
+// ---- messages and announcements (M10, W13)
+export interface MessageAuthor { membership_id: ID; role?: Role; user: User }
+export interface Message { id: ID; conversation_id: ID; author_membership_id: ID; body: string; created_at: ISOTime; deleted_at: ISOTime | null; author: MessageAuthor }
+export interface ConversationSummary {
+  id: ID | null; club_id: ID; student_membership_id: ID; last_message_at: ISOTime | null; created_at: ISOTime | null;
+  student: { membership_id: ID; user: User }; last_message: Message | null; unread_count: number;
+}
+export interface ConversationDetail extends ConversationSummary { id: ID; messages: Message[]; reads: { membership_id: ID; user: User; role?: Role; last_read_at: ISOTime }[] }
+export interface Announcement {
+  id: ID; club_id: ID; author_membership_id: ID; title: string; body: string; group_ids: ID[]; pinned: boolean; created_at: ISOTime; edited_at: ISOTime | null; deleted_at: ISOTime | null;
+  author: { membership_id: ID; user: User }; read_at: ISOTime | null; audience_count?: number; reads_count?: number;
+}
