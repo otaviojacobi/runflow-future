@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT to_jsonb(a) || jsonb_build_object(\n                  'athlete', jsonb_build_object('membership_id', a.membership_id, 'user', user_json(u)),\n                  'zones', to_jsonb(z)) AS \"x!\"\n             FROM assessments a\n             JOIN memberships m ON m.id = a.membership_id\n             JOIN users u ON u.id = m.user_id\n             LEFT JOIN zones z ON z.id = a.zones_id\n            WHERE a.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "2fc703a000111cc5f851b0aa7d6f169a1177ef31fb504fcd509ec9efcf449f8f"
+}

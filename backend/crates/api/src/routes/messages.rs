@@ -123,7 +123,7 @@ async fn open(
             "Escolha o aluno.",
         )]));
     };
-    if !db::is_active_student(&state.db, m.club_id, student).await? {
+    if !runflow_db::members::is_active_student(&state.db, m.club_id, student).await? {
         return Err(Problem::invalid(vec![fail(
             "student_membership_id",
             "Escolha o aluno.",

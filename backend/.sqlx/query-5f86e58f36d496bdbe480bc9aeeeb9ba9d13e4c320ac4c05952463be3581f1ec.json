@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE athlete_profiles SET resting_hr = $2, updated_at = now() WHERE membership_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5f86e58f36d496bdbe480bc9aeeeb9ba9d13e4c320ac4c05952463be3581f1ec"
+}

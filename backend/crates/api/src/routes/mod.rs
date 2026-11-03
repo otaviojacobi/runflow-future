@@ -1,5 +1,6 @@
 //! Routes, one module per section of `api/endpoints.md`.
 
+pub mod assessments;
 pub mod athletes;
 pub mod auth;
 pub mod calendar;
@@ -37,6 +38,7 @@ pub fn v1() -> Router<AppState> {
         .merge(weeks::routes())
         .merge(plans::routes())
         .merge(races::routes())
+        .merge(assessments::routes())
         .merge(my::routes())
         .merge(threads::routes())
         .merge(calendar::routes())

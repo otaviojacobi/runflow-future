@@ -196,20 +196,6 @@ pub async fn staff(db: impl PgExecutor<'_>, club_id: Uuid) -> sqlx::Result<Vec<U
     .await
 }
 
-pub async fn is_active_student(
-    db: impl PgExecutor<'_>,
-    club_id: Uuid,
-    membership_id: Uuid,
-) -> sqlx::Result<bool> {
-    sqlx::query_scalar!(
-        r#"SELECT EXISTS (SELECT 1 FROM memberships WHERE id = $1 AND club_id = $2 AND role = 'student' AND status = 'active') AS "x!""#,
-        membership_id,
-        club_id
-    )
-    .fetch_one(db)
-    .await
-}
-
 // ------------------------------------------------------------------------------------ announcements (mural)
 
 /// The mural as `viewer` sees it: students only club-wide ones and their groups'; staff also get

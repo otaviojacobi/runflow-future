@@ -299,7 +299,7 @@ async fn sign_up(
             .and_then(|s| Uuid::parse_str(&s).ok())
     };
     let target = match target {
-        Some(t) if db::is_active_student(&state.db, m.club_id, t).await? => t,
+        Some(t) if runflow_db::members::is_active_student(&state.db, m.club_id, t).await? => t,
         _ => {
             return Err(Problem::invalid(vec![fail(
                 "membership_id",

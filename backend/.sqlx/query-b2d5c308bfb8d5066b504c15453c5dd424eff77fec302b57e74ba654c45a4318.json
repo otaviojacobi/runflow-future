@@ -1,0 +1,18 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO athlete_profiles (membership_id, threshold_pace_s_per_km, css_s_per_100m, ftp_w, max_hr)\n         VALUES ($1, $2, $3, $4, $5)\n         ON CONFLICT (membership_id) DO UPDATE SET\n           threshold_pace_s_per_km = coalesce($2, athlete_profiles.threshold_pace_s_per_km),\n           css_s_per_100m = coalesce($3, athlete_profiles.css_s_per_100m),\n           ftp_w = coalesce($4, athlete_profiles.ftp_w),\n           max_hr = coalesce($5, athlete_profiles.max_hr),\n           updated_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b2d5c308bfb8d5066b504c15453c5dd424eff77fec302b57e74ba654c45a4318"
+}

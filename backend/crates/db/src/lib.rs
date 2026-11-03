@@ -4,6 +4,7 @@
 //! `api/schema.sql` (D-030); from the beta on, every contract change lands as a new migration **and** in
 //! `api/schema.sql`, and `tests/contract.rs` proves both produce the same database.
 
+pub mod assessments;
 pub mod athletes;
 pub mod auth;
 pub mod clubs;

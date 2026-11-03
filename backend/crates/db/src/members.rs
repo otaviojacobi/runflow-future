@@ -243,3 +243,18 @@ pub async fn set_group_members(
     .await?;
     Ok(())
 }
+
+/// An active student of the club (staff act on students: sign-ups, assessments, conversations).
+pub async fn is_active_student(
+    db: impl PgExecutor<'_>,
+    club_id: Uuid,
+    membership_id: Uuid,
+) -> sqlx::Result<bool> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM memberships WHERE id = $1 AND club_id = $2 AND role = 'student' AND status = 'active') AS "x!""#,
+        membership_id,
+        club_id
+    )
+    .fetch_one(db)
+    .await
+}
