@@ -1,0 +1,101 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.id, e.race_id, e.membership_id, e.distance_m, e.is_goal, e.status, e.result_time_s\n           FROM race_entries e JOIN races r ON r.id = e.race_id WHERE e.id = $1 AND r.club_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "race_entries",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "race_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "race_entries",
+            "name": "race_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "race_entries",
+            "name": "membership_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "distance_m",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "race_entries",
+            "name": "distance_m"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "is_goal",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "race_entries",
+            "name": "is_goal"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "race_entries",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "result_time_s",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "race_entries",
+            "name": "result_time_s"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "a2608c41864ea38a68673c402f643ddc300eb5888fe12075f03ba9984660d73d"
+}

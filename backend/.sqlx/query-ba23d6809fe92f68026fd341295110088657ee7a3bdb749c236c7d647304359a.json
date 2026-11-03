@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO athlete_profiles (membership_id, goal, goal_date) VALUES ($1, $2, $3)\n         ON CONFLICT (membership_id) DO UPDATE SET goal = coalesce($2, athlete_profiles.goal), goal_date = $3, updated_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "ba23d6809fe92f68026fd341295110088657ee7a3bdb749c236c7d647304359a"
+}

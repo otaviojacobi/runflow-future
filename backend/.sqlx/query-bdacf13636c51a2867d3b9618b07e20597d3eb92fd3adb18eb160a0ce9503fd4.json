@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO race_entries (id, race_id, membership_id, distance_m, goal_time_s, is_goal)\n           VALUES ($1, $2, $3, $4, $6, coalesce($7, false))\n           ON CONFLICT (race_id, membership_id) DO UPDATE SET\n             distance_m = excluded.distance_m,\n             goal_time_s = CASE WHEN $5 THEN $6 ELSE race_entries.goal_time_s END,\n             is_goal = coalesce($7, race_entries.is_goal),\n             updated_at = now()\n           RETURNING id, is_goal, (xmax = 0) AS \"created!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "race_entries",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "is_goal",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "race_entries",
+            "name": "is_goal"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "created!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int4",
+        "Bool",
+        "Int4",
+        "Bool"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "bdacf13636c51a2867d3b9618b07e20597d3eb92fd3adb18eb160a0ce9503fd4"
+}

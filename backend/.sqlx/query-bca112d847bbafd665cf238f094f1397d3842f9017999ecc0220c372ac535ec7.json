@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE races SET\n            name = coalesce($2, name), sport = coalesce($3, sport), date = coalesce($4, date),\n            start_time = CASE WHEN $5 THEN $6 ELSE start_time END,\n            city = CASE WHEN $7 THEN $8 ELSE city END,\n            state = CASE WHEN $9 THEN $10 ELSE state END,\n            url = CASE WHEN $11 THEN $12 ELSE url END,\n            distances_m = coalesce($13, distances_m),\n            notes = CASE WHEN $14 THEN $15 ELSE notes END\n          WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Date",
+        "Bool",
+        "Time",
+        "Bool",
+        "Text",
+        "Bool",
+        "Bpchar",
+        "Bool",
+        "Text",
+        "Int4Array",
+        "Bool",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bca112d847bbafd665cf238f094f1397d3842f9017999ecc0220c372ac535ec7"
+}

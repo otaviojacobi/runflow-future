@@ -1,0 +1,39 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO races (id, club_id, name, sport, date, start_time, city, state, url, distances_m, notes, created_by)\n         VALUES ($1, $2, $3, coalesce($4, 'run'), $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "races",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Date",
+        "Time",
+        "Text",
+        "Bpchar",
+        "Text",
+        "Int4Array",
+        "Text",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f401eb474a6c703bbcacfdb498984db4f4a4a35e894306dd4b3c52f489bea1a5"
+}

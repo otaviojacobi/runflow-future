@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO athlete_profiles (membership_id, recent_race) VALUES ($1, $2)\n         ON CONFLICT (membership_id) DO UPDATE SET recent_race = $2, updated_at = now()\n          WHERE athlete_profiles.recent_race IS NULL OR (athlete_profiles.recent_race->>'date') IS NULL\n             OR (athlete_profiles.recent_race->>'date')::date <= $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "85a26d275473c1ec47da05dbc5e339c14c3de7dc3b535828aa99e7e2100f08b7"
+}

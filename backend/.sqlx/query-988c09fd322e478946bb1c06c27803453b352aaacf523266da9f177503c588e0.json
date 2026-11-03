@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT e.membership_id, e.distance_m, r.sport, r.date FROM race_entries e JOIN races r ON r.id = e.race_id WHERE e.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "race_entries",
+            "name": "membership_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "distance_m",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "race_entries",
+            "name": "distance_m"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "sport",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "races",
+            "name": "sport"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "races",
+            "name": "date"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "988c09fd322e478946bb1c06c27803453b352aaacf523266da9f177503c588e0"
+}

@@ -18,6 +18,7 @@ pub mod my;
 pub mod notifications;
 pub mod plans;
 pub mod providers;
+pub mod races;
 pub mod weeks;
 pub mod workouts;
 

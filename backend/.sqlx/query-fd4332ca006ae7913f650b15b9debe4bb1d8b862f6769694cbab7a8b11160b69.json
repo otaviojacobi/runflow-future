@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT to_jsonb(r) || jsonb_build_object(\n                  'start_time', to_char(r.start_time, 'HH24:MI'),\n                  'entries_count', (SELECT count(*) FROM race_entries e WHERE e.race_id = r.id),\n                  'my_entry', (SELECT to_jsonb(e) FROM race_entries e WHERE e.race_id = r.id AND e.membership_id = $2))\n                || CASE WHEN $3 THEN jsonb_build_object('entries', coalesce((\n                     SELECT jsonb_agg(to_jsonb(e) || jsonb_build_object('athlete', jsonb_build_object('membership_id', m.id, 'user', user_json(u)))\n                                      ORDER BY e.distance_m, u.name)\n                       FROM race_entries e JOIN memberships m ON m.id = e.membership_id JOIN users u ON u.id = m.user_id\n                      WHERE e.race_id = r.id), '[]'::jsonb))\n                   ELSE '{}'::jsonb END AS \"x!\"\n             FROM races r\n            WHERE r.club_id = $1 AND r.archived_at IS NULL\n              AND ($4::date IS NULL OR r.date >= $4) AND ($5::date IS NULL OR r.date <= $5)\n              AND ($6::uuid IS NULL OR r.id = $6)\n            ORDER BY r.date, r.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Date",
+        "Date",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "fd4332ca006ae7913f650b15b9debe4bb1d8b862f6769694cbab7a8b11160b69"
+}

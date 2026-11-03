@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE race_entries SET is_goal = false WHERE membership_id = $1 AND id <> $2 AND is_goal",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "99adcae5cc95cea566126b152dd65f70f53408418f59456bf0e718b6b538698d"
+}
