@@ -33,7 +33,7 @@ export default function register(h) {
     const recipients = m.role === "student"
       ? h.db.memberships.filter((x) => x.club_id === p.club_id && x.role !== "student" && x.status === "active").map((x) => x.user_id)
       : [h.db.memberships.find((x) => x.id === p.athlete_membership_id)?.user_id].filter(Boolean);
-    for (const uid of recipients) h.db.notifications.push({ id: h.uuid("n"), user_id: uid, club_id: p.club_id, kind: "comment", title: `${author.name} comentou no treino`, body: body.slice(0, 120), link: m.role === "student" ? "/feedback" : `/workouts/${p.id}`, read_at: null, created_at: c.created_at });
+    for (const uid of recipients) h.notify({ id: h.uuid("n"), user_id: uid, club_id: p.club_id, kind: "comment", title: `${author.name} comentou no treino`, body: body.slice(0, 120), link: m.role === "student" ? "/feedback" : `/workouts/${p.id}`, read_at: null, created_at: c.created_at }, { about: p.athlete_membership_id });
     return { __status: 201, data: out(c) };
   });
 }

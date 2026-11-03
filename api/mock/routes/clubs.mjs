@@ -281,7 +281,7 @@ export default function register(h) {
     Object.assign(i, { accepted_at: now, accepted_by: u.id });
     for (const g of i.group_ids || []) if (h.db.groups.some((x) => x.id === g) && !h.db.group_members.some((x) => x.group_id === g && x.membership_id === m.id)) h.db.group_members.push({ group_id: g, membership_id: m.id, added_at: now });
     for (const staff of h.db.memberships.filter((x) => x.club_id === c.id && x.role !== "student" && x.status === "active"))
-      h.db.notifications.push({ id: h.uuid("n"), user_id: staff.user_id, club_id: c.id, kind: "member_joined", title: `${u.name} entrou no clube`, body: i.role === "trainer" ? "Novo treinador na equipe." : null, link: i.role === "trainer" ? "/club/members" : `/students/${m.id}`, created_at: now, read_at: null });
+      h.notify({ id: h.uuid("n"), user_id: staff.user_id, club_id: c.id, kind: "member_joined", title: `${u.name} entrou no clube`, body: i.role === "trainer" ? "Novo treinador na equipe." : null, link: i.role === "trainer" ? "/club/members" : `/students/${m.id}`, created_at: now, read_at: null });
     return { __status: 201, data: { membership: m, club: c, already_member: false } };
   });
 }

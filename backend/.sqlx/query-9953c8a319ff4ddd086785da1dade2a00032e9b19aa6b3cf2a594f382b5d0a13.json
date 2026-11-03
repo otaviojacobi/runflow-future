@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO notification_prefs (user_id, last_digest_on) VALUES ($1, $2)\n         ON CONFLICT (user_id) DO UPDATE SET last_digest_on = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9953c8a319ff4ddd086785da1dade2a00032e9b19aa6b3cf2a594f382b5d0a13"
+}

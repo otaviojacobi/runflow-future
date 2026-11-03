@@ -1,0 +1,66 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT kinds, digest_hour, to_char(quiet_start, 'HH24:MI') AS quiet_start, to_char(quiet_end, 'HH24:MI') AS quiet_end, paused\n             FROM notification_prefs WHERE user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kinds",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "kinds"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "digest_hour",
+        "type_info": "Int2",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "digest_hour"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "quiet_start",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "quiet_end",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "paused",
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "paused"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      null,
+      false
+    ]
+  },
+  "hash": "138d146ce4cfc7108d03066736fd75dfc93ca48ec3a73a537c94ea18cd9575c1"
+}

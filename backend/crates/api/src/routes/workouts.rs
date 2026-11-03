@@ -272,14 +272,17 @@ async fn assign(
         } else {
             "Novo treino na sua agenda".to_string()
         };
-        db::notify_member(
-            &mut *tx,
+        runflow_db::notifications::to_member(
+            &mut tx,
             *athlete,
-            m.club_id,
-            "workout_assigned",
-            &title,
-            Some(content.title),
-            &format!("/workouts/{first}"),
+            runflow_db::notifications::Notice {
+                club_id: m.club_id,
+                kind: "workout_assigned",
+                title: &title,
+                body: Some(content.title),
+                link: &format!("/workouts/{first}"),
+            },
+            None,
         )
         .await?;
     }
@@ -392,14 +395,17 @@ async fn update(
         } else {
             "Seu treinador ajustou um treino"
         };
-        db::notify_member(
-            &state.db,
+        runflow_db::notifications::to_member(
+            &mut *state.db.acquire().await?,
             w.athlete_membership_id,
-            m.club_id,
-            "workout_changed",
-            what,
-            Some(&title),
-            &format!("/workouts/{}", w.id),
+            runflow_db::notifications::Notice {
+                club_id: m.club_id,
+                kind: "workout_changed",
+                title: what,
+                body: Some(&title),
+                link: &format!("/workouts/{}", w.id),
+            },
+            None,
         )
         .await?;
     }

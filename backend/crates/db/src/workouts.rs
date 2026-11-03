@@ -331,29 +331,3 @@ pub async fn released(
     .fetch_one(db)
     .await
 }
-
-/// A notification for the student behind a membership (W11).
-pub async fn notify_member(
-    db: impl PgExecutor<'_>,
-    membership_id: Uuid,
-    club_id: Uuid,
-    kind: &str,
-    title: &str,
-    body: Option<&str>,
-    link: &str,
-) -> sqlx::Result<()> {
-    sqlx::query!(
-        "INSERT INTO notifications (id, user_id, club_id, kind, title, body, link)
-         SELECT $1, user_id, $3, $4, $5, $6, $7 FROM memberships WHERE id = $2",
-        Uuid::now_v7(),
-        membership_id,
-        club_id,
-        kind,
-        title,
-        body,
-        link
-    )
-    .execute(db)
-    .await?;
-    Ok(())
-}

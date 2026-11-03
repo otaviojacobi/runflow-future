@@ -542,9 +542,14 @@ CREATE TABLE notifications (
   body        text,
   link        text,                      -- in-app path, e.g. /treinos/<id>
   read_at     timestamptz,
-  created_at  timestamptz NOT NULL DEFAULT now()
+  created_at  timestamptz NOT NULL DEFAULT now(),
+  -- Delivery per the recipient's preferences at creation (D-032): shown in the app's center or not, and the
+  -- e-mail it still owes ('instant' or 'digest', then 'sent').
+  in_app      boolean NOT NULL DEFAULT true,
+  email       text NOT NULL DEFAULT 'none' CHECK (email IN ('none', 'instant', 'digest', 'sent'))
 );
 CREATE INDEX notifications_user_idx ON notifications (user_id, created_at DESC);
+CREATE INDEX notifications_email_idx ON notifications (email) WHERE email IN ('instant', 'digest');
 
 -- Personal calendar feed (F29): a secret URL per user, served as text/calendar (planned workouts, booked
 -- classes, races). Only the token's hash is stored; regenerating revokes the old URL.
@@ -553,13 +558,25 @@ CREATE TABLE calendar_feeds (
   token_hash  text NOT NULL UNIQUE,
   created_at  timestamptz NOT NULL DEFAULT now()
 );
+-- Notification control (D-032). `kinds` overrides the defaults per kind (endpoints.md § Notifications):
+-- {"<kind>": {"app": bool, "push": bool, "email": "off" | "instant" | "digest"}}. Quiet hours (club-agnostic,
+-- São Paulo time) hold push; `paused` holds push and e-mail. `last_digest_on` = the day the last summary went out.
 CREATE TABLE notification_prefs (
   user_id         uuid PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
-  push_workouts   boolean NOT NULL DEFAULT true,
-  push_comments   boolean NOT NULL DEFAULT true,
-  push_classes    boolean NOT NULL DEFAULT true,
-  email_weekly    boolean NOT NULL DEFAULT true,
+  kinds           jsonb NOT NULL DEFAULT '{}',
+  digest_hour     smallint NOT NULL DEFAULT 7 CHECK (digest_hour BETWEEN 0 AND 23),
+  quiet_start     time DEFAULT '22:00',
+  quiet_end       time DEFAULT '07:00',
+  paused          boolean NOT NULL DEFAULT false,
+  last_digest_on  date,
   updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
+-- Staff: feedback and comment notices only about students in these groups (empty = everyone), per club (D-032).
+CREATE TABLE notification_group_filters (
+  membership_id  uuid PRIMARY KEY REFERENCES memberships (id) ON DELETE CASCADE,
+  group_ids      uuid[] NOT NULL DEFAULT '{}',
+  updated_at     timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE TABLE push_tokens (

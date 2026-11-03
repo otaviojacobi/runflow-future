@@ -14,6 +14,7 @@ pub mod me;
 pub mod members;
 pub mod models;
 pub mod my;
+pub mod notifications;
 pub mod plans;
 pub mod providers;
 pub mod weeks;

@@ -79,7 +79,7 @@ export default function register(h) {
       // Announced now only if the first week is already visible; otherwise its release does it (D-031).
       if (!h.isReleased(p.club_id, athlete, start)) continue;
       const u = h.db.memberships.find((x) => x.id === athlete);
-      h.db.notifications.push({ id: h.uuid("n"), user_id: u.user_id, club_id: p.club_id, kind: "workout_assigned", title: `Nova planilha: ${p.name}`, body: `${p.weeks} semanas a partir de ${start.split("-").reverse().slice(0, 2).join("/")}`, link: "/schedule", read_at: null, created_at: now });
+      h.notify({ id: h.uuid("n"), user_id: u.user_id, club_id: p.club_id, kind: "workout_assigned", title: `Nova planilha: ${p.name}`, body: `${p.weeks} semanas a partir de ${start.split("-").reverse().slice(0, 2).join("/")}`, link: "/schedule", read_at: null, created_at: now });
     }
     return { __status: 201, data: { assignments: ids.length, workouts: created } };
   });

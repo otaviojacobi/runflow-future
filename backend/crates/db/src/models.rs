@@ -81,16 +81,6 @@ pub struct MembershipContext {
 }
 
 #[derive(Debug, Clone, Serialize)]
-pub struct NotificationPrefs {
-    pub user_id: Uuid,
-    pub push_workouts: bool,
-    pub push_comments: bool,
-    pub push_classes: bool,
-    pub email_weekly: bool,
-    pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Clone, Serialize)]
 pub struct Consent {
     pub id: Uuid,
     pub user_id: Uuid,

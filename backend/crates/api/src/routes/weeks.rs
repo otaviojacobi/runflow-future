@@ -161,14 +161,17 @@ async fn release(
             .filter(|(a, _)| athletes.is_empty() || athletes.contains(a))
         {
             let (title, text) = week::release_notice(week_start, *n);
-            workouts::notify_member(
-                &mut *tx,
+            runflow_db::notifications::to_member(
+                &mut tx,
                 *athlete,
-                m.club_id,
-                "week_released",
-                &title,
-                Some(&text),
-                "/schedule",
+                runflow_db::notifications::Notice {
+                    club_id: m.club_id,
+                    kind: "week_released",
+                    title: &title,
+                    body: Some(&text),
+                    link: "/schedule",
+                },
+                None,
             )
             .await?;
         }

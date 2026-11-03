@@ -62,14 +62,10 @@ pub(crate) async fn run(w: &Worker, payload: &Value) -> Result<(), JobError> {
             invite.email
         ),
     ];
-    let theme = clubs::branding(&w.db, club.id)
-        .await?
-        .map(|b| b.theme)
-        .unwrap_or(Value::Null);
-    let logo = match (&w.public_api_url, clubs::email_logo(&w.db, club.id).await?) {
-        (Some(api), Some(id)) => Some(format!("{api}/v1/assets/{id}")),
-        _ => None,
-    };
+    let (_, theme, logo) =
+        w.club_frame(club.id)
+            .await?
+            .unwrap_or((club.name.clone(), Value::Null, None));
     let frame = ClubFrame {
         name: &club.name,
         logo_url: logo.as_deref(),

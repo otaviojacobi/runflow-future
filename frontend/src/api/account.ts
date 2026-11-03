@@ -2,7 +2,7 @@ import { useInfiniteQuery, useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { queryClient } from "@/queryClient";
 import { meKey } from "./me";
-import type { AppNotification, AthleteProfile, Consent, ConsentKind, Me, NotificationPrefs, ProviderStatus, User, UserSession } from "./types";
+import type { AppNotification, AthleteProfile, Consent, ConsentKind, Me, NotificationPrefs, PrefsPatch, ProviderStatus, User, UserSession } from "./types";
 
 export const accountKeys = { connections: ["me", "connections"] as const, consents: ["me", "consents"] as const, myProfile: (clubId: string) => ["clubs", clubId, "my-profile"] as const };
 
@@ -40,7 +40,7 @@ export const useMarkNotificationsRead = () =>
 
 // ---- account (C1)
 export const usePrefs = () => useQuery({ queryKey: ["me", "prefs"], queryFn: () => api.get<NotificationPrefs>("/me/prefs") });
-export const useUpdatePrefs = () => useMutation({ mutationFn: (v: Partial<Omit<NotificationPrefs, "user_id">>) => api.patch<NotificationPrefs>("/me/prefs", v), onSuccess: (p) => queryClient.setQueryData(["me", "prefs"], p) });
+export const useUpdatePrefs = () => useMutation({ mutationFn: (v: PrefsPatch) => api.patch<NotificationPrefs>("/me/prefs", v), onSuccess: (p) => queryClient.setQueryData(["me", "prefs"], p) });
 export const useSessions = () => useQuery({ queryKey: ["me", "sessions"], queryFn: () => api.get<{ items: UserSession[] }>("/me/sessions").then((r) => r.items) });
 export const useRevokeSession = () => useMutation({ mutationFn: (id: string) => api.del(`/me/sessions/${id}`), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me", "sessions"] }) });
 export const useRevokeOtherSessions = () => useMutation({ mutationFn: () => api.post<{ revoked: number }>("/me/sessions/revoke-others"), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me", "sessions"] }) });

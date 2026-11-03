@@ -107,14 +107,17 @@ async fn create(
     };
     let preview: String = text.chars().take(120).collect();
     for r in recipients {
-        workouts::notify_member(
-            &mut *tx,
+        runflow_db::notifications::to_member(
+            &mut tx,
             r,
-            m.club_id,
-            "comment",
-            &format!("{} comentou no treino", author.name),
-            Some(&preview),
-            &link,
+            runflow_db::notifications::Notice {
+                club_id: m.club_id,
+                kind: "comment",
+                title: &format!("{} comentou no treino", author.name),
+                body: Some(&preview),
+                link: &link,
+            },
+            Some(w.athlete_membership_id),
         )
         .await?;
     }

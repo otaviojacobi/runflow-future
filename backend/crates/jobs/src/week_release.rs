@@ -3,7 +3,7 @@
 //! everyone is skipped), so a late or repeated tick is harmless.
 
 use chrono::{DateTime, Utc};
-use runflow_db::{weeks, workouts};
+use runflow_db::weeks;
 use runflow_domain::week;
 
 use crate::Worker;
@@ -23,14 +23,17 @@ pub async fn run(worker: &Worker, now: DateTime<Utc>) -> sqlx::Result<usize> {
         weeks::release(&mut tx, c.club_id, week_start, &[], None).await?;
         for (athlete, n) in &hidden {
             let (title, text) = week::release_notice(week_start, *n);
-            workouts::notify_member(
-                &mut *tx,
+            runflow_db::notifications::to_member(
+                &mut tx,
                 *athlete,
-                c.club_id,
-                "week_released",
-                &title,
-                Some(&text),
-                "/schedule",
+                runflow_db::notifications::Notice {
+                    club_id: c.club_id,
+                    kind: "week_released",
+                    title: &title,
+                    body: Some(&text),
+                    link: "/schedule",
+                },
+                None,
             )
             .await?;
         }

@@ -15,7 +15,7 @@ export default function register(h) {
   const students = (clubId) => new Set(h.db.memberships.filter((m) => m.club_id === clubId && m.role === "student" && m.status === "active").map((m) => m.id));
   const notify = (pw, kind, title) => {
     const m = h.db.memberships.find((x) => x.id === pw.athlete_membership_id);
-    if (m) h.db.notifications.push({ id: h.uuid("n"), user_id: m.user_id, club_id: pw.club_id, kind, title, body: pw.title, link: `/workouts/${pw.id}`, read_at: null, created_at: h.nowIso() });
+    if (m) h.notify({ id: h.uuid("n"), user_id: m.user_id, club_id: pw.club_id, kind, title, body: pw.title, link: `/workouts/${pw.id}`, read_at: null, created_at: h.nowIso() });
   };
   const validContent = (b) => {
     const errors = [];

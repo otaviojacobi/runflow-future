@@ -1,0 +1,57 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT u.id, u.email, coalesce(p.digest_hour, 7::smallint) AS \"digest_hour!\", p.last_digest_on\n             FROM users u LEFT JOIN notification_prefs p ON p.user_id = u.id\n            WHERE u.deleted_at IS NULL AND EXISTS (SELECT 1 FROM notifications n WHERE n.user_id = u.id AND n.email = 'digest')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "email",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "email"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "digest_hour!",
+        "type_info": "Int2",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "last_digest_on",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "notification_prefs",
+            "name": "last_digest_on"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      null,
+      true
+    ]
+  },
+  "hash": "83aa14e0631bf754e928575cf1e18890abb8985d3e0bf7efa572818911dff605"
+}

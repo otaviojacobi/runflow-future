@@ -36,7 +36,15 @@ export interface Subscription {
 }
 export interface Invoice { id: ID; club_id: ID; stripe_invoice_id: string | null; amount_cents: number; currency: string; status: "draft" | "open" | "paid" | "void" | "uncollectible"; period_start: ISOTime; period_end: ISOTime; hosted_url: string | null; created_at: ISOTime }
 export interface MembershipContext { membership: Membership; club: Club; branding: Branding | null; subscription: Subscription | null }
-export interface NotificationPrefs { user_id: ID; push_workouts: boolean; push_comments: boolean; push_classes: boolean; email_weekly: boolean }
+/** Notification control (D-032): per kind, the app center, the phone and e-mail (off, right away or a daily summary). */
+export type EmailMode = "off" | "instant" | "digest";
+export interface KindPref { app: boolean; push: boolean; email: EmailMode }
+export interface NotificationPrefs {
+  kinds: Record<NotificationKind, KindPref>; digest_hour: number; quiet_start: string | null; quiet_end: string | null; paused: boolean;
+  /** Staff memberships: feedback and comment notices only about these groups' students (empty = everyone). */
+  groups: { club_id: ID; membership_id: ID; group_ids: ID[] }[];
+}
+export type PrefsPatch = Partial<Omit<NotificationPrefs, "kinds" | "groups">> & { kinds?: Partial<Record<NotificationKind, Partial<KindPref>>>; groups?: { club_id: ID; group_ids: ID[] }[] };
 export interface Me { user: User; memberships: MembershipContext[]; prefs: NotificationPrefs | null; unread_notifications: number }
 export type NotificationKind = "workout_assigned" | "workout_changed" | "week_released" | "comment" | "feedback" | "member_joined" | "billing" | "message" | "announcement";
 export interface AppNotification { id: ID; user_id: ID; club_id: ID | null; kind: NotificationKind; title: string; body: string | null; link: string | null; read_at: ISOTime | null; created_at: ISOTime }

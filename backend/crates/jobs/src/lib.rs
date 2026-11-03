@@ -3,6 +3,7 @@
 //! `runflow worker`.
 
 mod invite_email;
+mod notify_email;
 mod strava_jobs;
 mod week_release;
 
@@ -126,9 +127,34 @@ impl Worker {
     }
 
     /// Poll until `shutdown` resolves (idle: once a second).
-    /// Time-based work, once a minute: automatic week releases (D-031).
+    /// Time-based work, once a minute: automatic week releases (D-031), then the notification e-mails they and
+    /// everything else owe (D-032). Returns how many clubs released a week.
     pub async fn tick(&self, now: DateTime<Utc>) -> sqlx::Result<usize> {
-        week_release::run(self, now).await
+        let released = week_release::run(self, now).await?;
+        notify_email::run(self, now).await?;
+        Ok(released)
+    }
+
+    /// A club's e-mail identity (D-036): name, stored theme and a logo URL e-mail clients can show.
+    pub(crate) async fn club_frame(
+        &self,
+        club_id: uuid::Uuid,
+    ) -> sqlx::Result<Option<(String, Value, Option<String>)>> {
+        let Some(club) = runflow_db::clubs::club(&self.db, club_id).await? else {
+            return Ok(None);
+        };
+        let theme = runflow_db::clubs::branding(&self.db, club_id)
+            .await?
+            .map(|b| b.theme)
+            .unwrap_or(Value::Null);
+        let logo = match (
+            &self.public_api_url,
+            runflow_db::clubs::email_logo(&self.db, club_id).await?,
+        ) {
+            (Some(api), Some(id)) => Some(format!("{api}/v1/assets/{id}")),
+            _ => None,
+        };
+        Ok(Some((club.name, theme, logo)))
     }
 
     pub async fn run(&self, shutdown: impl std::future::Future<Output = ()>) {

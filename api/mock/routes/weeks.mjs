@@ -46,7 +46,7 @@ export default function register(h) {
     for (const [aid, n] of before) {
       if (athletes.length && !athletes.includes(aid)) continue;
       const m = h.db.memberships.find((x) => x.id === aid);
-      if (m) h.db.notifications.push({ id: h.uuid("n"), user_id: m.user_id, club_id: clubId, kind: "week_released", title: "Sua semana de treinos está liberada", body: `${n === 1 ? "1 treino" : `${n} treinos`} de ${ddmm(week)} a ${ddmm(h.addDays(week, 6))}`, link: "/schedule", read_at: null, created_at: now });
+      if (m) h.notify({ id: h.uuid("n"), user_id: m.user_id, club_id: clubId, kind: "week_released", title: "Sua semana de treinos está liberada", body: `${n === 1 ? "1 treino" : `${n} treinos`} de ${ddmm(week)} a ${ddmm(h.addDays(week, 6))}`, link: "/schedule", read_at: null, created_at: now });
     }
   };
   /** The mock has no worker: a due automatic release happens on the next request that reads workouts. */

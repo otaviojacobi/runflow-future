@@ -1,0 +1,47 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.club_id, m.id, coalesce(f.group_ids, '{}') AS \"group_ids!\"\n             FROM memberships m JOIN clubs c ON c.id = m.club_id LEFT JOIN notification_group_filters f ON f.membership_id = m.id\n            WHERE m.user_id = $1 AND m.status = 'active' AND m.role <> 'student' AND c.deleted_at IS NULL\n            ORDER BY m.joined_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "club_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "memberships",
+            "name": "club_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "memberships",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "group_ids!",
+        "type_info": "UuidArray",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "661c864d3f2160d227357e25bbc5749cf9033a1a6786cbb634b220aab223d127"
+}

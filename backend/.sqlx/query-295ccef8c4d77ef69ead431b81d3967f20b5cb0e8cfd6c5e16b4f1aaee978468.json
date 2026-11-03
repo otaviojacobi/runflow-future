@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO notification_prefs (user_id, kinds, digest_hour, quiet_start, quiet_end, paused)\n         VALUES ($1, $2, $3, $4, $5, $6)\n         ON CONFLICT (user_id) DO UPDATE SET kinds = $2, digest_hour = $3, quiet_start = $4, quiet_end = $5, paused = $6, updated_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb",
+        "Int2",
+        "Time",
+        "Time",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "295ccef8c4d77ef69ead431b81d3967f20b5cb0e8cfd6c5e16b4f1aaee978468"
+}

@@ -197,28 +197,6 @@ pub async fn accept(
     Ok(m)
 }
 
-/// Tell the club's staff someone joined (W11).
-pub async fn notify_joined(
-    tx: &mut PgConnection,
-    club_id: Uuid,
-    title: &str,
-    body: Option<&str>,
-    link: &str,
-) -> sqlx::Result<()> {
-    sqlx::query!(
-        "INSERT INTO notifications (id, user_id, club_id, kind, title, body, link)
-         SELECT gen_random_uuid(), m.user_id, $1, 'member_joined', $2, $3, $4
-           FROM memberships m WHERE m.club_id = $1 AND m.role <> 'student' AND m.status = 'active'",
-        club_id,
-        title,
-        body,
-        link
-    )
-    .execute(&mut *tx)
-    .await?;
-    Ok(())
-}
-
 /// Active students now (plan limit checks).
 pub async fn active_students(db: impl PgExecutor<'_>, club_id: Uuid) -> sqlx::Result<i64> {
     sqlx::query_scalar!(

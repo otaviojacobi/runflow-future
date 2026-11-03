@@ -255,14 +255,17 @@ async fn complete(
         } else {
             "registrou o treino"
         };
-        db::notify_membership_user(
-            &mut *tx,
+        runflow_db::notifications::to_member(
+            &mut tx,
             w.created_by,
-            m.club_id,
-            "feedback",
-            &format!("{} {what}", me.name),
-            Some(comment.as_deref().unwrap_or(&w.title)),
-            "/feedback",
+            runflow_db::notifications::Notice {
+                club_id: m.club_id,
+                kind: "feedback",
+                title: &format!("{} {what}", me.name),
+                body: Some(comment.as_deref().unwrap_or(&w.title)),
+                link: "/feedback",
+            },
+            Some(m.membership_id),
         )
         .await?;
     }

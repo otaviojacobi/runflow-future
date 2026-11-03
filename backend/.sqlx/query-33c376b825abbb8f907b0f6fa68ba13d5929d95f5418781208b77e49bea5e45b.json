@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT count(*) AS \"n!\" FROM notifications WHERE user_id = $1 AND read_at IS NULL",
+  "query": "SELECT count(*) AS \"n!\" FROM notifications WHERE user_id = $1 AND read_at IS NULL AND in_app",
   "describe": {
     "columns": [
       {
@@ -19,5 +19,5 @@
       null
     ]
   },
-  "hash": "35713c34c4f1368936946d1622fb8695cb23b55f7d576fa5b54b8065ef851bad"
+  "hash": "33c376b825abbb8f907b0f6fa68ba13d5929d95f5418781208b77e49bea5e45b"
 }

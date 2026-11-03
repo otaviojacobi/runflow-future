@@ -3,15 +3,16 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { CalendarPlus, ChevronRight, Copy, Download, ImageUp, LogOut, Monitor, Moon, ShieldCheck, Smartphone, Sun, Trash2, UserRound } from "lucide-react";
 import { useRef, useState } from "react";
 import {
-  exportMyData, useCalendarFeed, useConsents, useCreateCalendarFeed, useRevokeCalendarFeed, useDeleteAccount, useGrantConsent, useLeaveClub, usePrefs, useRemoveAvatar, useRevokeConsent, useRevokeOtherSessions, useRevokeSession, useSessions, useUpdateMe, useUpdatePrefs, useUploadAvatar,
+  exportMyData, useCalendarFeed, useConsents, useCreateCalendarFeed, useRevokeCalendarFeed, useDeleteAccount, useGrantConsent, useLeaveClub, useRemoveAvatar, useRevokeConsent, useRevokeOtherSessions, useRevokeSession, useSessions, useUpdateMe, useUploadAvatar,
 } from "@/api/account";
 import { signOut } from "@/api/auth";
 import { readLogo } from "@/api/clubs";
 import { fetchMe, meKey } from "@/api/me";
-import type { ConsentKind, MembershipContext, NotificationPrefs, User, UserSession } from "@/api/types";
+import type { ConsentKind, MembershipContext, User, UserSession } from "@/api/types";
 import { ProviderConnections } from "@/components/account/StravaConnect";
 import { ClubLogo } from "@/components/brand";
 import { profileLinksFor } from "@/components/shell/nav";
+import { NotificationSettings } from "@/components/account/NotificationSettings";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { ROLE_LABEL, selectClub, useClub } from "@/lib/club";
@@ -125,18 +126,10 @@ function InstallApp() {
 }
 
 function Notifications() {
-  const prefs = usePrefs();
-  const update = useUpdatePrefs();
-  const p = prefs.data;
-  const rows: { k: keyof Omit<NotificationPrefs, "user_id">; label: string; description: string }[] = [
-    { k: "push_workouts", label: t("Treinos"), description: t("Treino novo ou alterado pelo treinador") },
-    { k: "push_comments", label: t("Comentários"), description: t("Respostas nos seus treinos e feedbacks") },
-    { k: "push_classes", label: t("Aulas"), description: t("Lembrete antes da aula, cancelamentos e vaga liberada na fila") },
-    { k: "email_weekly", label: t("Resumo semanal por e-mail"), description: t("Toda segunda, como foi a semana") },
-  ];
+  const { me } = useClub();
   return (
-    <Section id="notifications" title={t("Notificações")} description={t("Avisos no celular e por e-mail. A central de notificações do app sempre mostra tudo.")}>
-      {!p ? <Skeleton className="h-40" /> : <div className="grid gap-4">{rows.map((r) => <Switch key={r.k} label={r.label} description={r.description} checked={p[r.k]} onCheckedChange={(v) => update.mutate({ [r.k]: v }, { onError: toast.error })} />)}</div>}
+    <Section id="notifications" title={t("Notificações")} description={t("Escolha o que chega até você e por onde.")}>
+      <NotificationSettings memberships={me?.memberships ?? []} />
     </Section>
   );
 }
@@ -147,7 +140,7 @@ function CalendarFeed() {
   const [link, setLink] = useState<{ url: string; webcal_url: string } | null>(null);
   const copy = (u: string) => navigator.clipboard?.writeText(u).then(() => toast.success(t("Link copiado")));
   return (
-    <Section id="calendar" title={t("Agenda no celular")} description={t("Seus treinos, aulas reservadas e provas no Google Agenda ou no Calendário do iPhone, atualizados sozinhos.")}>
+    <Section id="calendar" title={t("Agenda no celular")} description={t("Seus treinos e provas no Google Agenda ou no Calendário do iPhone, atualizados sozinhos.")}>
       {link ? (
         <div className="grid gap-3">
           <div className="flex items-center gap-2"><Input readOnly value={link.url} aria-label={t("Link do calendário")} className="font-mono text-xs" onFocus={(e) => e.currentTarget.select()} /><Button variant="secondary" icon={<Copy />} onClick={() => copy(link.url)}>{t("Copiar")}</Button></div>

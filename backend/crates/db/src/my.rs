@@ -108,19 +108,6 @@ pub async fn upsert_completion(
     ))
 }
 
-/// Notify the staff member who planned the workout (by membership).
-pub async fn notify_membership_user(
-    db: impl PgExecutor<'_>,
-    membership_id: Uuid,
-    club_id: Uuid,
-    kind: &str,
-    title: &str,
-    body: Option<&str>,
-    link: &str,
-) -> sqlx::Result<()> {
-    crate::workouts::notify_member(db, membership_id, club_id, kind, title, body, link).await
-}
-
 /// Planned workouts per week (Monday) with how many were done (completed/partial), for one athlete.
 pub async fn weeks_done(
     db: impl PgExecutor<'_>,

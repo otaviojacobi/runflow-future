@@ -50,7 +50,7 @@ export default function register(h) {
     const end = plusMonth(now);
     Object.assign(s, { plan: "pro", status: "active", student_limit: PLANS.pro.student_limit, stripe_customer_id: s.stripe_customer_id || "cus_mock_" + clubId.slice(0, 8), stripe_subscription_id: "sub_mock_" + h.uuid("sub").slice(0, 8), current_period_end: end, cancel_at_period_end: false, updated_at: now });
     h.db.invoices.push({ id: h.uuid("inv"), club_id: clubId, stripe_invoice_id: "in_mock_" + h.uuid("in").slice(0, 8), amount_cents: PLANS.pro.amount_cents, currency: "BRL", status: "paid", period_start: now, period_end: end, hosted_url: null, created_at: now });
-    for (const m of h.db.memberships.filter((x) => x.club_id === clubId && x.is_billing_owner)) h.db.notifications.push({ id: h.uuid("n"), user_id: m.user_id, club_id: clubId, kind: "billing", title: "Bem-vindo ao Pro!", body: "Agora o clube comporta até 100 alunos e pode ter endereço próprio.", link: "/club/billing", read_at: null, created_at: now });
+    for (const m of h.db.memberships.filter((x) => x.club_id === clubId && x.is_billing_owner)) h.notify({ id: h.uuid("n"), user_id: m.user_id, club_id: clubId, kind: "billing", title: "Bem-vindo ao Pro!", body: "Agora o clube comporta até 100 alunos e pode ter endereço próprio.", link: "/club/billing", read_at: null, created_at: now });
     h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: clubId, actor_user_id: ctx.user().id, action: "subscription.upgraded", target_type: "club", target_id: clubId, data: { plan: "pro" }, created_at: now });
     return out(clubId);
   });

@@ -55,6 +55,22 @@ Trainers plan ahead in private and release a week (Monday–Sunday) when it's re
 - **Notifications.** A release sends one `week_released` notification to each newly released student who has workouts that week. Workouts added to a visible week notify as usual (`workout_assigned`).
 - **Switching modes.** Going from `immediate` to `weekly` releases every future week that already has workouts, so nothing students saw disappears.
 
+## Notifications (D-032)
+
+Every user decides what reaches them and how. Per **kind**: `app` (the notification center), `push` (the phone; stored now, delivered once push lands, S7/X10) and `email`: `off`, `instant` or `digest` (one daily summary at `digest_hour`, São Paulo time). Without a saved choice a kind uses its default:
+
+| Kind | Who gets it | app | push | email |
+|---|---|---|---|---|
+| `workout_assigned` · `workout_changed` | student | on | on | off |
+| `week_released` | student | on | on | instant |
+| `comment` · `message` · `announcement` | both | on | on | off |
+| `feedback` · `member_joined` | staff | on | off | digest |
+| `billing` | owner | on | off | instant |
+
+- `paused` holds push and e-mail (the center still fills). Quiet hours (`quiet_start`–`quiet_end`, default 22:00–07:00) hold push only.
+- **Group filter (staff):** per club, `feedback` and `comment` notices only about students in the chosen groups (empty = everyone).
+- A notification is created with the recipient's choices: `in_app` (shown in the center and the unread count) and `email` (`none`, `instant`, `digest`, then `sent`). E-mails go out from the worker: instant ones right away (club e-mails in the club's colors, D-036), digests once a day.
+
 ## Endpoints
 
 ### Operations
@@ -71,13 +87,13 @@ Trainers plan ahead in private and release a week (Monday–Sunday) when it's re
 | POST | `/auth/email/verify` `{email, code}` | → `{token, user, is_new}`. Spaces in the code are ignored. `400 auth.code_expired` (none pending), `400 auth.invalid_code`, `429 auth.too_many_attempts` (after 5 tries; ask for a new code) | A2 |
 | POST | `/auth/google` `{id_token}` | Google ID token (web: Google Identity Services; mobile: native SDK), verified against Google's keys and our client ids → `{token, user, is_new}`. Accounts match by Google id, then by e-mail (so e-mail and Google sign-in share one account). `400 auth.google_failed`, `503 auth.google_unavailable` (not configured). Mock: `id_token` = an e-mail | A2 |
 | POST | `/auth/logout` | Revoke the session and clear the cookie → `204` | shell |
-| GET | `/me` | `{user, memberships:[{membership, club, branding, subscription}], prefs, unread_notifications}` | all |
+| GET | `/me` | `{user, memberships:[{membership, club, branding, subscription}], prefs, unread_notifications}` (`prefs` as in `/me/prefs`) | all |
 | PATCH | `/me` `{name, phone, birth_date, sex, avatar_url}` | Update profile. `avatar_url` only accepts `null` or one of our `/v1/assets/{id}` paths | A4, C1 |
 | DELETE | `/me` | Delete account (LGPD; App Store): name/e-mail/phone anonymized, every club left, sessions and provider links revoked, sign-in identities removed (the same e-mail can start over). `409 account.owns_club` | C1 |
 | GET | `/me/export` | All my data as JSON (LGPD portability) | C1 |
-| GET / PATCH | `/me/prefs` | Notification preferences | C1 |
+| GET / PATCH | `/me/prefs` | Notification control (§ Notifications): `{kinds: {<kind>: {app, push, email}}, digest_hour, quiet_start, quiet_end, paused, groups: [{club_id, membership_id, group_ids}]}`. GET resolves every kind with its default; `groups` lists the caller's staff memberships. PATCH takes any part: `kinds` merges per kind, `groups: [{club_id, group_ids}]` replaces a club's filter (staff only, groups of that club; `403 auth.forbidden` otherwise). `email` ∈ off/instant/digest, `digest_hour` 0–23, quiet times `"HH:MM"` or both null → `422` | C1 |
 | GET | `/me/consents` · POST `/me/consents` `{club_id?, kind, text_version}` · DELETE `/me/consents/{id}` | Consents (grant / revoke) | A4, C1 |
-| GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first. Kinds: `workout_assigned` `workout_changed` `week_released` `comment` `feedback` `member_joined` `billing` `message` `announcement`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
+| GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first (only `in_app` ones; the unread count too). Kinds: `workout_assigned` `workout_changed` `week_released` `comment` `feedback` `member_joined` `billing` `message` `announcement`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
 | GET | `/me/sessions` · DELETE `/me/sessions/{id}` · POST `/me/sessions/revoke-others` | Signed-in devices `{id, kind, user_agent, created_at, last_seen_at, current}` | C1 |
 | POST / DELETE | `/me/avatar` `{data_url, width, height}` | Upload (PNG/JPG/WebP ≤ 5 MB, no SVG) or remove the profile photo → `/me` payload; `avatar_url` is an `/assets/{id}` path | C1 |
 

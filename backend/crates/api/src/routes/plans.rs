@@ -315,14 +315,17 @@ async fn assign(
             continue;
         }
         let body = format!("{} semanas a partir de {}", p.weeks, dd_mm(start));
-        runflow_db::workouts::notify_member(
-            &mut *tx,
+        runflow_db::notifications::to_member(
+            &mut tx,
             *athlete,
-            m.club_id,
-            "workout_assigned",
-            &format!("Nova planilha: {}", p.name),
-            Some(&body),
-            "/schedule",
+            runflow_db::notifications::Notice {
+                club_id: m.club_id,
+                kind: "workout_assigned",
+                title: &format!("Nova planilha: {}", p.name),
+                body: Some(&body),
+                link: "/schedule",
+            },
+            None,
         )
         .await?;
     }

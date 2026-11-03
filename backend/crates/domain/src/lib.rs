@@ -2,6 +2,7 @@
 //! (and is proven by shared fixtures) lives here.
 
 pub mod color;
+pub mod notify;
 pub mod tags;
 pub mod week;
 pub mod workout;

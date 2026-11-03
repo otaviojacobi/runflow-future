@@ -2,7 +2,7 @@
 export default function register(h) {
   const userOfM = (mid) => { const m = h.db.memberships.find((x) => x.id === mid); return m ? h.publicUser(h.db.users.find((u) => u.id === m.user_id)) : null; };
   const staffOf = (clubId) => h.db.memberships.filter((m) => m.club_id === clubId && h.STAFF.includes(m.role) && m.status === "active");
-  const notify = (m, clubId, kind, title, body, link) => h.db.notifications.push({ id: h.uuid("n"), user_id: m.user_id, club_id: clubId, kind, title, body, link, read_at: null, created_at: h.nowIso() });
+  const notify = (m, clubId, kind, title, body, link) => h.notify({ id: h.uuid("n"), user_id: m.user_id, club_id: clubId, kind, title, body, link, read_at: null, created_at: h.nowIso() });
   const preview = (s) => (s.length > 90 ? s.slice(0, 87) + "…" : s);
 
   // ---- conversations

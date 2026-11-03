@@ -8,8 +8,7 @@ use sqlx::{PgConnection, PgExecutor};
 use uuid::Uuid;
 
 use crate::models::{
-    Branding, Club, Consent, Membership, MembershipContext, Notification, NotificationPrefs,
-    Subscription, User,
+    Branding, Club, Consent, Membership, MembershipContext, Notification, Subscription, User,
 };
 
 /// Active memberships in clubs that still exist, with branding and plan. Oldest membership first.
@@ -115,53 +114,9 @@ pub async fn memberships(
         .collect())
 }
 
-pub async fn prefs(
-    db: impl PgExecutor<'_>,
-    user_id: Uuid,
-) -> sqlx::Result<Option<NotificationPrefs>> {
-    sqlx::query_as!(
-        NotificationPrefs,
-        "SELECT user_id, push_workouts, push_comments, push_classes, email_weekly, updated_at
-           FROM notification_prefs WHERE user_id = $1",
-        user_id
-    )
-    .fetch_optional(db)
-    .await
-}
-
-/// Patch prefs (only the given fields), creating the row with defaults if missing.
-pub async fn update_prefs(
-    db: impl PgExecutor<'_>,
-    user_id: Uuid,
-    push_workouts: Option<bool>,
-    push_comments: Option<bool>,
-    push_classes: Option<bool>,
-    email_weekly: Option<bool>,
-) -> sqlx::Result<NotificationPrefs> {
-    sqlx::query_as!(
-        NotificationPrefs,
-        "INSERT INTO notification_prefs (user_id, push_workouts, push_comments, push_classes, email_weekly)
-         VALUES ($1, coalesce($2, true), coalesce($3, true), coalesce($4, true), coalesce($5, true))
-         ON CONFLICT (user_id) DO UPDATE SET
-           push_workouts = coalesce($2, notification_prefs.push_workouts),
-           push_comments = coalesce($3, notification_prefs.push_comments),
-           push_classes  = coalesce($4, notification_prefs.push_classes),
-           email_weekly  = coalesce($5, notification_prefs.email_weekly),
-           updated_at    = now()
-         RETURNING user_id, push_workouts, push_comments, push_classes, email_weekly, updated_at",
-        user_id,
-        push_workouts,
-        push_comments,
-        push_classes,
-        email_weekly
-    )
-    .fetch_one(db)
-    .await
-}
-
 pub async fn unread_notifications(db: impl PgExecutor<'_>, user_id: Uuid) -> sqlx::Result<i64> {
     sqlx::query_scalar!(
-        r#"SELECT count(*) AS "n!" FROM notifications WHERE user_id = $1 AND read_at IS NULL"#,
+        r#"SELECT count(*) AS "n!" FROM notifications WHERE user_id = $1 AND read_at IS NULL AND in_app"#,
         user_id
     )
     .fetch_one(db)
@@ -389,7 +344,7 @@ pub async fn notifications(
     sqlx::query_as!(
         Notification,
         "SELECT id, user_id, club_id, kind, title, body, link, read_at, created_at FROM notifications
-          WHERE user_id = $1 AND ($2::timestamptz IS NULL OR (created_at, id) < ($2, $3))
+          WHERE user_id = $1 AND in_app AND ($2::timestamptz IS NULL OR (created_at, id) < ($2, $3))
           ORDER BY created_at DESC, id DESC LIMIT $4",
         user_id,
         at,

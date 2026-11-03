@@ -488,12 +488,16 @@ async fn accept(
     } else {
         (None, format!("/students/{}", m.id))
     };
-    db::notify_joined(
+    runflow_db::notifications::to_staff(
         &mut tx,
-        club.id,
-        &format!("{} entrou no clube", user.name),
-        body,
-        &link,
+        runflow_db::notifications::Notice {
+            club_id: club.id,
+            kind: "member_joined",
+            title: &format!("{} entrou no clube", user.name),
+            body,
+            link: &link,
+        },
+        None,
     )
     .await?;
     runflow_db::clubs::audit(
