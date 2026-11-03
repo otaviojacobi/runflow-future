@@ -202,6 +202,7 @@ function OverlayDemo() {
       <Dialog open={open} onOpenChange={setOpen} title={t("Feedback do treino")} description={t("Como foi o treino de hoje?")}
         footer={<><Button variant="secondary" onPress={() => setOpen(false)}>{t("Cancelar")}</Button><Button onPress={() => { setOpen(false); toast.success(t("Feedback enviado")); }}>{t("Enviar")}</Button></>}>
         <Field label={t("Comentário")} optional>{(a) => <Textarea {...a} placeholder={t("Conte para o treinador")} />}</Field>
+        <Button size="sm" variant="ghost" onPress={() => toast.info(t("Rascunho salvo"), t("O aviso aparece sobre a folha aberta."))}>{t("Toast com a folha aberta")}</Button>
       </Dialog>
     </View>
   );

@@ -1,9 +1,10 @@
 /**
  * Toasts, same API as the web kit: toast.success(t("Treino salvo")) · toast.error(err) shows the API's pt-BR
- * title/detail as they come. Render <Toaster /> once, at the root.
+ * title/detail as they come. Render <Toaster /> once, at the root; an open sheet (Dialog) hosts them while it's up,
+ * because a React Native Modal covers everything rendered at the root (useToastLayer).
  */
 import { tokens } from "@runflow/design/tokens";
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { AccessibilityInfo, Animated, Platform, Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ApiError } from "@/lib/api";
@@ -77,10 +78,29 @@ function InverseClose({ onPress }: { onPress: () => void }) {
   );
 }
 
-export function Toaster() {
+// The open sheets, innermost last: the innermost hosts the toasts (0 = the root's Toaster).
+let layers: number[] = [];
+let layerSeq = 0;
+const layerListeners = new Set<() => void>();
+const subscribeLayers = (l: () => void) => (layerListeners.add(l), () => layerListeners.delete(l));
+const topLayer = () => layers[layers.length - 1] ?? 0;
+/** A sheet that's up hosts the toasts above its dim layer; returns the `layer` for its own <Toaster />. */
+export function useToastLayer(active: boolean): number {
+  const [id] = useState(() => ++layerSeq);
+  useEffect(() => {
+    if (!active) return;
+    layers = [...layers, id];
+    layerListeners.forEach((l) => l());
+    return () => { layers = layers.filter((x) => x !== id); layerListeners.forEach((l) => l()); };
+  }, [active, id]);
+  return id;
+}
+
+export function Toaster({ layer = 0 }: { layer?: number }) {
   const list = useSyncExternalStore((l) => (listeners.add(l), () => listeners.delete(l)), () => toasts);
+  const top = useSyncExternalStore(subscribeLayers, topLayer);
   const insets = useSafeAreaInsets();
-  if (!list.length) return null;
+  if (!list.length || top !== layer) return null;
   return (
     <View pointerEvents="box-none" style={[styles.host, { top: insets.top + tokens.space[3] }]}>
       {list.map((x) => <ToastView key={x.id} x={x} />)}

@@ -13,6 +13,7 @@ import { ListItem, Divider } from "./display";
 import { X, type Icon } from "./icons";
 import { nativeDriver, useReducedMotion } from "./motion";
 import { Text } from "./Text";
+import { Toaster, useToastLayer } from "./toast";
 
 export function Dialog({ open, onOpenChange, title, description, children, footer }: { open: boolean; onOpenChange: (v: boolean) => void; title: string; description?: string | null; children?: ReactNode; footer?: ReactNode }) {
   const { theme } = useTheme();
@@ -21,6 +22,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
   const { height } = useWindowDimensions();
   const reduced = useReducedMotion();
   const [visible, setVisible] = useState(open);
+  const layer = useToastLayer(visible);
   const progress = useRef(new Animated.Value(0)).current;
   useEffect(() => {
     if (open) {
@@ -59,6 +61,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
             {footer && <View style={[styles.footer, { gap: theme.space[2], paddingHorizontal: theme.space[5], paddingVertical: theme.space[4], borderTopColor: c.lineSubtle }]}>{footer}</View>}
           </Animated.View>
         </KeyboardAvoidingView>
+        <Toaster layer={layer} />
       </View>
     </Modal>
   );
