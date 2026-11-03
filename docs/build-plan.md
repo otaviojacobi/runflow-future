@@ -38,7 +38,7 @@ Run everything: `npm install` at the repo root, then `npm run dev`. That starts 
 | F26 | ~~Club finances: student monthly fees (Stripe/Pix), status per student, reminders, receipts~~ Built, then removed in F33 (D-027); see Later | O6, M12 | [x] |
 | F27 | AI assistant: "describe the workout" → structure, weekly plan suggestions from goal and history, feedback summaries | W17 | [x] |
 | F28 | Exercise library with videos for strength/mobility, linked from exercises | W18 | [x] |
-| F29 | Import/export: students via CSV, workouts via pasted text, `.FIT` workout export, `.ics` calendar feed for students | — | [x] |
+| F29 | Import/export: students via CSV, workouts via pasted text, `.FIT` workout export, `.ics` calendar feed for students (the feed was removed in F39) | — | [x] |
 | F30 | Power features: command palette (⌘K), keyboard shortcuts in planning, PWA install, offline today, print-friendly week | — | [x] |
 | F20 | Hardening: 404 and error pages, empty states audit, accessibility pass, responsive pass, performance budget (§7.7: initial JS is ~195 KB gzip after F30, lazy-load the remaining eager screens), Playwright e2e suite in CI | — | [x] |
 | F31 | Founder revisions (2026-11-02): personal e-mail invites (D-023: 7 days, single use, only the invited e-mail; resend/cancel; dev outbox at `/dev/outbox`) and Runflow-branded public pages (D-024); the invite form sends one person at a time (e-mail + name), bulk stays in the spreadsheet import | A3, A5, O2 | [x] |
@@ -96,7 +96,7 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 | Step | Scope | Status |
 |---|---|---|
 | N1 | Notifications are push only (D-045, replaces F35's channels): no notification e-mails at all, no daily digest; e-mail stays only for sign-in codes, invites and account setup. Every notification always lands in the app (center, unread count on the icon); what a person controls is whether it also arrives as a **push on the device**: one simple on/off switch per kind (plus "pausar tudo"), on web and mobile. Contract (prefs shape, `notifications.email` column and digest fields go), mock, backend (digest/instant e-mail jobs removed), web C1 settings, mobile X7, docs | [ ] |
-| F39 | Remove "sincronizar com meu calendário" (the `.ics` calendar feed) entirely, like F33/F37: endpoints, `calendar_feeds` table, backend, web (C1 card), mobile, docs. Founder: nobody uses it | [ ] |
+| F39 | Remove "sincronizar com meu calendário" (the `.ics` calendar feed) entirely, like F33/F37: endpoints, `calendar_feeds` table, backend, web (C1 card), mobile, docs. Founder: nobody uses it. Done: `/me/calendar-feed` and `/ics/{token}.ics` gone from the contract, the mock and the backend; the C1 "Agenda no celular" card gone; the mobile app never had it | [x] |
 
 ## Production (its own session, D-040)
 

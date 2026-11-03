@@ -576,13 +576,6 @@ CREATE TABLE notifications (
 CREATE INDEX notifications_user_idx ON notifications (user_id, created_at DESC);
 CREATE INDEX notifications_email_idx ON notifications (email) WHERE email IN ('instant', 'digest');
 
--- Personal calendar feed (F29): a secret URL per user, served as text/calendar (planned workouts, booked
--- classes, races). Only the token's hash is stored; regenerating revokes the old URL.
-CREATE TABLE calendar_feeds (
-  user_id     uuid PRIMARY KEY REFERENCES users (id) ON DELETE CASCADE,
-  token_hash  text NOT NULL UNIQUE,
-  created_at  timestamptz NOT NULL DEFAULT now()
-);
 -- Notification control (D-032). `kinds` overrides the defaults per kind (endpoints.md § Notifications):
 -- {"<kind>": {"app": bool, "push": bool, "email": "off" | "instant" | "digest"}}. Quiet hours (club-agnostic,
 -- São Paulo time) hold push; `paused` holds push and e-mail. `last_digest_on` = the day the last summary went out.

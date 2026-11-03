@@ -1,6 +1,6 @@
 /** Errors to Sentry (S12, D-033). The SDK loads lazily (outside the initial-JS budget) and only when the API hands
  * out a DSN in `/public/config`, so the mock and local dev never load it. Events carry the user id only: no
- * headers, cookies or query strings, and token-like path segments (invites, calendar feeds) are masked. */
+ * headers, cookies or query strings, and token-like path segments (invites, for example) are masked. */
 import type { ErrorEvent, Breadcrumb } from "@sentry/react";
 
 type Sdk = typeof import("@sentry/react");

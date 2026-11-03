@@ -49,8 +49,3 @@ export const useRemoveAvatar = () => useMutation({ mutationFn: () => api.del<Me>
 export const useLeaveClub = () => useMutation({ mutationFn: (clubId: string) => api.post(`/clubs/${clubId}/leave`), onSuccess: () => queryClient.invalidateQueries({ queryKey: meKey }) });
 export const useDeleteAccount = () => useMutation({ mutationFn: () => api.del("/me") });
 export const exportMyData = () => api.get<unknown>("/me/export");
-
-// ---- calendar feed (F29)
-export const useCalendarFeed = () => useQuery({ queryKey: ["me", "calendar-feed"], queryFn: () => api.get<{ active: boolean; created_at: string | null }>("/me/calendar-feed") });
-export const useCreateCalendarFeed = () => useMutation({ mutationFn: () => api.post<{ url: string; webcal_url: string; created_at: string }>("/me/calendar-feed"), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me", "calendar-feed"] }) });
-export const useRevokeCalendarFeed = () => useMutation({ mutationFn: () => api.del("/me/calendar-feed"), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me", "calendar-feed"] }) });

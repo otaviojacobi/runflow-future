@@ -45,7 +45,7 @@ pub struct ApiSettings {
     pub body_limit: usize,
     /// Where people open the web app (links in e-mails).
     pub public_app_url: String,
-    /// Where the API is reachable from outside (calendar feed URLs).
+    /// Where the API is reachable from outside (absolute links to `/v1/...`).
     pub public_api_url: String,
     /// Strava webhook subscription check (`STRAVA_WEBHOOK_VERIFY_TOKEN`).
     pub strava_verify_token: Option<String>,

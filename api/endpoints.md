@@ -50,7 +50,7 @@ strip leading `#`, trim, lowercase (pt-BR), whitespace → `-`, keep only letter
 Trainers plan ahead in private and release a week (Monday–Sunday) when it's ready.
 - `release_mode`: `immediate` (students see a workout as soon as it's saved) or `weekly` (default for new clubs).
 - In `weekly` mode a workout is **visible** to its student when its week has started (club time), when the week was released to everyone, or when it was released to that student. Otherwise it's a **draft**.
-- Drafts never reach the student. They are left out of `/my/*` (including the summary), the `.ics` feed and notifications, and auto-matching skips them. The student's own detail, completion and comment routes answer `404 workout.not_found`.
+- Drafts never reach the student. They are left out of `/my/*` (including the summary) and notifications, and auto-matching skips them. The student's own detail, completion and comment routes answer `404 workout.not_found`.
 - **Automatic release.** `auto_release_weekday` (1 = Monday … 7 = Sunday) + `auto_release_time` (`"HH:MM"`, club time) releases the *following* week to everyone. The default is Sunday 18:00; both `null` turns it off. Setting one without the other → `422`.
 - **Notifications.** A release sends one `week_released` notification to each newly released student who has workouts that week. Workouts added to a visible week notify as usual (`workout_assigned`).
 - **Switching modes.** Going from `immediate` to `weekly` releases every future week that already has workouts, so nothing students saw disappears.
@@ -100,9 +100,6 @@ Every user decides what reaches them and how. Per **kind**: `app` (the notificat
 | GET | `/me/notifications?cursor` · POST `/me/notifications/read` `{ids?}` | Notification center, newest first (only `in_app` ones; the unread count too). Kinds: `workout_assigned` `workout_changed` `week_released` `comment` `feedback` `member_joined` `billing` `message` `announcement`. `link` is an in-app path; `club_id` tells the app which club to switch to | W11 |
 | GET | `/me/sessions` · DELETE `/me/sessions/{id}` · POST `/me/sessions/revoke-others` | Signed-in devices `{id, kind, user_agent, created_at, last_seen_at, current}` | C1 |
 | POST / DELETE | `/me/avatar` `{data_url, width, height}` | Upload (PNG/JPG/WebP ≤ 5 MB, no SVG) or remove the profile photo → `/me` payload; `avatar_url` is an `/assets/{id}` path | C1 |
-
-| GET / POST / DELETE | `/me/calendar-feed` | Personal calendar: POST (re)generates a secret URL → `{url, webcal_url}` (the old one stops working); GET → `{active, created_at}`; DELETE revokes | C1 |
-| GET | `/ics/{token}.ics` | Public, secret-token `text/calendar` feed (RFC 5545): released planned workouts (all-day) and race entries; −30 to +120 days | — |
 
 ### Providers and activities (user-owned)
 | Method | Path | Purpose | Screens |

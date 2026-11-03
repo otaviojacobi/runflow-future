@@ -1,8 +1,8 @@
-//! S4: the student side (/my/*), workout threads, the trainer's feedback inbox, the calendar feed.
+//! S4: the student side (/my/*), workout threads, the trainer's feedback inbox.
 
 mod common;
 
-use axum::http::{Method, header};
+use axum::http::Method;
 use chrono::{Datelike, Duration, Utc};
 use common::TestApp;
 use serde_json::json;
@@ -415,77 +415,4 @@ async fn threads_notify_the_other_side_and_feed_the_inbox(db: PgPool) {
             .status,
         204
     );
-}
-
-#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
-async fn the_calendar_feed_is_a_secret_ics_url(db: PgPool) {
-    let app = TestApp::new(db);
-    let c = setup(&app).await;
-    assign(&app, &c, &c.ana.1, &day(1), "Tiros, ritmo; forte").await;
-    assert_eq!(
-        app.get("/v1/me/calendar-feed", Some(&c.ana.0)).await.ok()["active"],
-        false
-    );
-
-    let feed = app
-        .post("/v1/me/calendar-feed", Some(&c.ana.0), json!({}))
-        .await;
-    assert_eq!(feed.status, 201);
-    let url = feed.body["url"].as_str().unwrap().to_string();
-    assert!(url.starts_with("http://localhost:3000/v1/ics/") && url.ends_with(".ics"));
-    assert!(
-        feed.body["webcal_url"]
-            .as_str()
-            .unwrap()
-            .starts_with("webcal://localhost:3000/")
-    );
-    let path = url.trim_start_matches("http://localhost:3000").to_string();
-
-    let ics = app.call(Method::GET, &path, None, None, &[]).await;
-    assert_eq!(ics.status, 200);
-    assert!(
-        ics.headers[header::CONTENT_TYPE]
-            .to_str()
-            .unwrap()
-            .starts_with("text/calendar")
-    );
-    let raw = axum::body::to_bytes(
-        tower::ServiceExt::oneshot(
-            runflow_api::router(app.state.clone()),
-            axum::http::Request::get(&path)
-                .body(axum::body::Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap()
-        .into_body(),
-        1 << 20,
-    )
-    .await
-    .unwrap();
-    let text = String::from_utf8(raw.to_vec()).unwrap();
-    assert!(text.starts_with("BEGIN:VCALENDAR\r\n") && text.ends_with("END:VCALENDAR\r\n"));
-    assert!(text.contains("SUMMARY:Tiros\\, ritmo\\; forte"));
-    assert!(text.contains(&format!("DTSTART;VALUE=DATE:{}", day(1).replace('-', ""))));
-
-    // A new link replaces the old one; revoking kills it.
-    let again = app
-        .post("/v1/me/calendar-feed", Some(&c.ana.0), json!({}))
-        .await
-        .body["url"]
-        .as_str()
-        .unwrap()
-        .to_string();
-    app.get(&path, None)
-        .await
-        .problem(404, "calendar.not_found");
-    assert_eq!(
-        app.delete("/v1/me/calendar-feed", Some(&c.ana.0))
-            .await
-            .status,
-        204
-    );
-    app.get(again.trim_start_matches("http://localhost:3000"), None)
-        .await
-        .problem(404, "calendar.not_found");
 }

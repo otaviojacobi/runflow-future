@@ -213,7 +213,7 @@ push to change it).
 Built in the real backend (S1–S5): e-mail code sign-in, account, clubs and settings, Club Studio (colors, logo),
 personal invites by e-mail (single and spreadsheet), members and groups, workout library and builder, planning,
 planilhas, the student side (today, schedule, workout with personal zones, feedback), threads and the feedback inbox,
-dashboard, students list and detail, profiles and zones, exercise library, calendar feed (.ics), manual activities,
+dashboard, students list and detail, profiles and zones, exercise library, manual activities,
 Strava (backend done; the web return page arrives in S9).
 
 ### Not yet (those screens will show errors on QA until their step lands)
