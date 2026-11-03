@@ -1,7 +1,8 @@
 /** The active club, like the web's lib/club.ts: per-club roles (§4.2), one club at a time, switched in the shell. */
 import type { Href } from "expo-router";
 import { useMe } from "@/api/me";
-import type { Me, MembershipContext, Role } from "@/api/types";
+import type { Branding, Me, MembershipContext, Role } from "@/api/types";
+import type { ClubColors } from "@/theme/theme";
 import { session, useSession } from "./session";
 
 /** The stored club if the person still belongs to it, else a staff club first, else the first. */
@@ -12,9 +13,13 @@ export function activeMembership(me: Me | null | undefined, stored: string | nul
 export function selectClub(m: MembershipContext | null) {
   session.setClubId(m?.club.id ?? null);
 }
-/** Where a role starts. Until the in-club tabs exist (X3) everyone starts on the club list. */
-export function homeFor(_role: Role | null | undefined): Href {
-  return "/clubs";
+/** Where a role starts (same as the web): staff on the Painel, students on Hoje, no club yet on the club list. */
+export function homeFor(role: Role | null | undefined): Href {
+  return role === "owner" || role === "trainer" ? "/dashboard" : role === "student" ? "/today" : "/clubs";
+}
+/** The colors the club chose (0–2), for the theme engine; null = Runflow's (D-014). */
+export function clubColors(b: Branding | null | undefined): ClubColors | null {
+  return b && (b.primary_color || b.secondary_color) ? { primary: b.primary_color, secondary: b.secondary_color } : null;
 }
 /** A safe in-app path from a `redirect` param (never another host). */
 export function safeRedirect(r: unknown): Href | null {

@@ -3,19 +3,18 @@
  * Creating a club comes to the app with X9; until then it opens the web app when the app knows where it is.
  */
 import { Redirect, router } from "expo-router";
-import * as WebBrowser from "expo-web-browser";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { signOut } from "@/api/auth";
 import type { MembershipContext } from "@/api/types";
 import { ClubLogo, RunflowWordmark } from "@/components/brand";
 import { t } from "@/i18n";
-import { WEB_URL } from "@/lib/api";
 import { ROLE_LABEL, homeFor, inviteTokenFrom, selectClub, useClub } from "@/lib/club";
 import { useSession } from "@/lib/session";
+import { hasWeb, openOnWeb } from "@/lib/web";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Badge, Button, Card, Divider, Field, Input, Screen, Skeleton, Text, toast } from "@/ui";
-import { ChevronRight, ExternalLink, LogOut, Ticket } from "@/ui/icons";
+import { Badge, Button, Card, Divider, Field, IconButton, Input, Screen, Skeleton, Text } from "@/ui";
+import { ArrowLeft, ChevronRight, ExternalLink, LogOut, Ticket } from "@/ui/icons";
 
 export default function ClubsScreen() {
   const { signedIn } = useSession();
@@ -32,7 +31,8 @@ function Clubs() {
   const list = me?.memberships ?? [];
   const open = (m: MembershipContext) => {
     selectClub(m);
-    router.replace(homeFor(m.membership.role));
+    // Back into the app when it is under this screen (opened from the club switcher), else into it.
+    router.dismissTo(homeFor(m.membership.role));
   };
   const goInvite = () => {
     const token = inviteTokenFrom(invite);
@@ -42,8 +42,12 @@ function Clubs() {
 
   return (
     <Screen insetTop insetBottom onRefresh={() => meQuery.refetch()} refreshing={meQuery.isRefetching}>
-      <View style={styles.header}>
-        <RunflowWordmark />
+      <View style={[styles.header, { gap: theme.space[2] }]}>
+        {current && (
+          <IconButton icon={ArrowLeft} label={t("Voltar")} style={{ marginLeft: -theme.space[2] }}
+            onPress={() => (router.canGoBack() ? router.back() : router.replace(homeFor(current.membership.role)))} />
+        )}
+        <RunflowWordmark style={styles.flex} />
         <Button variant="ghost" size="sm" icon={LogOut} onPress={async () => { await signOut(); router.replace("/login"); }}>{t("Sair")}</Button>
       </View>
       {!me ? (
@@ -90,8 +94,8 @@ function Clubs() {
           <Text variant="titleMd" accessibilityRole="header">{t("Criar um clube")}</Text>
           <Text variant="bodySm" tone="muted">{t("Para assessorias, academias e equipes de natação. Grátis até 10 alunos.")}</Text>
         </View>
-        {WEB_URL ? (
-          <Button icon={ExternalLink} onPress={() => WebBrowser.openBrowserAsync(`${WEB_URL}/clubs/new`).catch(() => toast.error(null))}>{t("Criar meu clube na web")}</Button>
+        {hasWeb ? (
+          <Button icon={ExternalLink} onPress={() => openOnWeb("/clubs/new")}>{t("Criar meu clube na web")}</Button>
         ) : (
           <Text variant="bodySm" tone="muted">{t("Por enquanto, o clube é criado no Runflow pelo computador.")}</Text>
         )}
@@ -101,7 +105,7 @@ function Clubs() {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  header: { flexDirection: "row", alignItems: "center" },
   club: { flexDirection: "row", alignItems: "center" },
   flex: { flex: 1, minWidth: 0 },
 });
