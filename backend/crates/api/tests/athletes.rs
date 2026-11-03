@@ -430,3 +430,95 @@ async fn the_dashboard_puts_the_day_week_feedback_and_alerts_together(db: PgPool
         .await;
     assert_eq!(earlier.ok()["today"]["planned"], 2);
 }
+
+/// D-047: the dashboard comes from Valkey while the club doesn't change; any write to the club refreshes it at once.
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn a_write_to_the_club_refreshes_the_cached_dashboard(db: PgPool) {
+    let app = TestApp::new(db);
+    let c = setup(&app).await;
+    let path = format!("/v1/clubs/{}/dashboard", c.id);
+    workout(&app, &c, &c.ana.1, &day(0), None).await;
+    let first = app.get(&path, Some(&c.owner)).await;
+    assert_eq!(
+        first.ok()["today"]["items"][0]["athlete"]["user"]["name"],
+        "Ana Souza"
+    );
+
+    // A change that doesn't go through a club route (like the worker's) waits for the 30-second TTL…
+    sqlx::query("UPDATE users SET name = 'Ana Lima' WHERE email = 'ana@email.com'")
+        .execute(app.db())
+        .await
+        .unwrap();
+    let cached = app.get(&path, Some(&c.owner)).await;
+    assert_eq!(cached.body, first.body, "the same JSON, from the cache");
+    assert_eq!(
+        cached.headers["content-type"],
+        first.headers["content-type"]
+    );
+
+    // …a failed write changes nothing, and a successful one refreshes the club's reads.
+    app.post(
+        &format!("/v1/clubs/{}/groups", c.id),
+        Some(&c.owner),
+        json!({}),
+    )
+    .await
+    .problem(422, "validation.failed");
+    assert_eq!(app.get(&path, Some(&c.owner)).await.body, first.body);
+    app.post(
+        &format!("/v1/clubs/{}/groups", c.id),
+        Some(&c.owner),
+        json!({ "name": "Iniciantes" }),
+    )
+    .await
+    .ok();
+    let fresh = app.get(&path, Some(&c.owner)).await;
+    assert_eq!(
+        fresh.ok()["today"]["items"][0]["athlete"]["user"]["name"],
+        "Ana Lima"
+    );
+    assert_eq!(fresh.body["onboarding"]["groups"], true);
+
+    // The student's own writes are club writes too (`/clubs/{id}/my/…`).
+    let today_id = fresh.body["today"]["items"][0]["workout"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    app.call(
+        Method::PUT,
+        &format!("/v1/clubs/{}/my/workouts/{today_id}/completion", c.id),
+        Some(&c.ana.0),
+        Some(json!({ "status": "completed", "rpe": 6 })),
+        &[],
+    )
+    .await
+    .ok();
+    assert_eq!(
+        app.get(&path, Some(&c.owner)).await.ok()["today"]["done"],
+        1
+    );
+
+    // The training report is cached the same way.
+    let report = format!("/v1/clubs/{}/reports/training", c.id);
+    assert_eq!(
+        app.get(&report, Some(&c.owner)).await.ok()["totals"]["athletes"],
+        2
+    );
+    app.fill_seats(&c.id, "student", 3).await;
+    assert_eq!(
+        app.get(&report, Some(&c.owner)).await.ok()["totals"]["athletes"],
+        2,
+        "cached"
+    );
+    app.post(
+        &format!("/v1/clubs/{}/groups", c.id),
+        Some(&c.owner),
+        json!({ "name": "Avançados" }),
+    )
+    .await
+    .ok();
+    assert_eq!(
+        app.get(&report, Some(&c.owner)).await.ok()["totals"]["athletes"],
+        3
+    );
+}

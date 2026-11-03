@@ -9,7 +9,27 @@ use axum::extract::{MatchedPath, Request};
 use axum::middleware::Next;
 use axum::response::Response;
 use opentelemetry::KeyValue;
-use opentelemetry::metrics::Histogram;
+use opentelemetry::metrics::{Counter, Histogram};
+
+static CACHE: LazyLock<Counter<u64>> = LazyLock::new(|| {
+    opentelemetry::global::meter("runflow.api")
+        .u64_counter("runflow.cache.lookups")
+        .with_description(
+            "Valkey cache lookups (D-047) by cache and result: hit, miss, or error (answered from Postgres)",
+        )
+        .build()
+});
+
+/// One lookup in a Valkey cache (`session`, `dashboard`, `reports`): `hit`, `miss` or `error`.
+pub fn cache_lookup(cache: &'static str, result: &'static str) {
+    CACHE.add(
+        1,
+        &[
+            KeyValue::new("cache", cache),
+            KeyValue::new("result", result),
+        ],
+    );
+}
 
 static DURATION: LazyLock<Histogram<f64>> = LazyLock::new(|| {
     opentelemetry::global::meter("runflow.api")

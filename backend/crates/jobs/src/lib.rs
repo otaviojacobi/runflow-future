@@ -1,6 +1,7 @@
 //! The worker (§7.2): claims due jobs from the Postgres queue and runs them. Failures retry with exponential
 //! backoff; after `MAX_ATTEMPTS` the job is closed with its last error. Runs inside `runflow all` or alone as
-//! `runflow worker`.
+//! `runflow worker`. It `LISTEN`s on the queue's channel, so a job starts as soon as its transaction commits; the
+//! idle poll catches retries that come due and anything sent while the listener was reconnecting (D-047).
 
 mod billing_jobs;
 mod invite_email;
@@ -27,6 +28,8 @@ pub use push_jobs::PUSH_SEND;
 pub use strava_jobs::{STRAVA_EVENT, STRAVA_SYNC};
 
 const MAX_ATTEMPTS: i32 = 8;
+/// How often an idle worker looks for due jobs without being woken (retries come due; a missed notification).
+const IDLE_POLL: Duration = Duration::from_secs(5);
 
 /// Why a job failed, and whether trying again could help.
 #[derive(Debug)]
@@ -72,6 +75,7 @@ pub struct Worker {
     expo: Option<std::sync::Arc<ExpoPush>>,
     /// Stripe (Max's seat quantities); none = billing simulation or no billing.
     stripe: Option<std::sync::Arc<runflow_integrations::stripe::StripeClient>>,
+    idle_poll: Duration,
 }
 
 #[derive(Clone)]
@@ -106,7 +110,14 @@ impl Worker {
             webpush: None,
             expo: None,
             stripe: None,
+            idle_poll: IDLE_POLL,
         }
+    }
+
+    /// Another idle poll interval (tests prove the wake-up with a long one).
+    pub fn with_idle_poll(mut self, every: Duration) -> Self {
+        self.idle_poll = every;
+        self
     }
 
     pub fn with_stripe(
@@ -197,10 +208,24 @@ impl Worker {
         Ok(Some((club.name, theme, logo)))
     }
 
-    /// Poll until `shutdown` resolves (idle: once a second).
+    /// Work until `shutdown` resolves. Idle, it waits for a `NOTIFY` from `jobs::enqueue` or the idle poll.
     pub async fn run(&self, shutdown: impl std::future::Future<Output = ()>) {
         tracing::info!(worker = %self.id, "worker started");
         tokio::pin!(shutdown);
+        // A dedicated connection; it reconnects by itself (notifications sent meanwhile are lost, the poll covers).
+        let mut listener = match sqlx::postgres::PgListener::connect_with(&self.db).await {
+            Ok(mut l) => match l.listen(jobs::CHANNEL).await {
+                Ok(()) => Some(l),
+                Err(e) => {
+                    tracing::warn!(error = %e, "worker: LISTEN failed, polling only");
+                    None
+                }
+            },
+            Err(e) => {
+                tracing::warn!(error = %e, "worker: no listener connection, polling only");
+                None
+            }
+        };
         let mut last_tick: Option<std::time::Instant> = None;
         loop {
             if last_tick.is_none_or(|t| t.elapsed() >= Duration::from_secs(60)) {
@@ -217,9 +242,21 @@ impl Worker {
                 }
             };
             if ran == 0 {
+                let woken = async {
+                    match listener.as_mut() {
+                        Some(l) => {
+                            if let Err(e) = l.recv().await {
+                                tracing::warn!(error = %e, "worker: listener lost, reconnecting");
+                                tokio::time::sleep(self.idle_poll).await;
+                            }
+                        }
+                        None => std::future::pending().await,
+                    }
+                };
                 tokio::select! {
                     _ = &mut shutdown => break,
-                    _ = tokio::time::sleep(Duration::from_secs(1)) => {}
+                    _ = woken => {}
+                    _ = tokio::time::sleep(self.idle_poll) => {}
                 }
             }
         }

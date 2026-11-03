@@ -4,6 +4,8 @@ const DEV_CODE = "000000";
 
 export default function register(h) {
   const { db } = h;
+  // Pending sign-in codes, by address. Ephemeral, like the backend's Valkey (D-047): not a table, not persisted.
+  const codes = new Map();
 
   function createUser(email, name) {
     const now = h.nowIso();
@@ -50,18 +52,18 @@ export default function register(h) {
   h.post("/v1/auth/email/start", (ctx) => {
     const email = String(ctx.body.email || "").trim().toLowerCase();
     if (!EMAIL.test(email)) h.invalid([{ field: "email", message: "Digite um e-mail válido, como nome@email.com." }]);
-    h.db.email_codes.push({ id: h.uuid("code"), email, code_hash: h.sha256(DEV_CODE), attempts: 0, expires_at: new Date(Date.now() + 10 * 60000).toISOString(), consumed_at: null, created_at: h.nowIso() });
+    codes.set(email, { code_hash: h.sha256(DEV_CODE), attempts: 0, expires_at: Date.now() + 10 * 60000 });
     return { sent: true, expires_in_s: 600, dev_code: DEV_CODE };
   });
   h.post("/v1/auth/email/verify", (ctx) => {
     const email = String(ctx.body.email || "").trim().toLowerCase();
     const code = String(ctx.body.code || "").replace(/\D/g, "");
-    const pending = h.db.email_codes.filter((c) => c.email === email && !c.consumed_at && c.expires_at > h.nowIso()).pop();
-    if (!pending) h.fail(400, "auth.code_expired", "Código expirado", "Peça um novo código para continuar.");
+    const pending = codes.get(email);
+    if (!pending || pending.expires_at <= Date.now()) h.fail(400, "auth.code_expired", "Código expirado", "Peça um novo código para continuar.");
     pending.attempts++;
     if (pending.attempts > 5) h.fail(429, "auth.too_many_attempts", "Muitas tentativas", "Peça um novo código e tente de novo.");
     if (h.sha256(code) !== pending.code_hash) h.fail(400, "auth.invalid_code", "Código incorreto", `Confira o código de 6 dígitos que enviamos para ${email}.`);
-    pending.consumed_at = h.nowIso();
+    codes.delete(email);
     return signIn("email", email, email, ctx);
   });
   h.post("/v1/auth/google", (ctx) => {

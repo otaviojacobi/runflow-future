@@ -158,6 +158,9 @@ pub struct Config {
     pub log_format: LogFormat,
     pub http: Http,
     pub db: DbSettings,
+    /// `REDIS_URL` (D-047): the Valkey server for ephemeral and cache data, as a Redis-protocol URL (the name every
+    /// client and ElastiCache use). A secret: it may carry a password.
+    pub redis_url: Secret,
     pub secrets: Secrets,
     pub email: EmailSettings,
     pub google: Option<Google>,
@@ -297,6 +300,16 @@ impl Config {
             url: e.required("DATABASE_URL", "postgres://user:password@host:5432/db"),
             max_connections: e.parse("DATABASE_MAX_CONNECTIONS", 10),
         };
+        let redis_url = Secret(e.required(
+            "REDIS_URL",
+            "the Valkey server: redis://[:password@]host:6379",
+        ));
+        if !redis_url.0.is_empty()
+            && !(redis_url.0.starts_with("redis://") || redis_url.0.starts_with("rediss://"))
+        {
+            e.errors
+                .push("REDIS_URL must start with redis:// (or rediss:// for TLS)".into());
+        }
 
         let secrets = Secrets {
             session_secret: e.secret("SESSION_SECRET"),
@@ -501,6 +514,7 @@ impl Config {
                 log_format,
                 http,
                 db,
+                redis_url,
                 secrets,
                 email,
                 google,
@@ -528,12 +542,34 @@ mod tests {
 
     use super::*;
 
+    /// The given variables, plus a `REDIS_URL` unless they set one.
     fn cfg(pairs: &[(&str, &str)]) -> Result<Config, Vec<String>> {
-        let map: HashMap<String, String> = pairs
-            .iter()
-            .map(|(k, v)| (k.to_string(), v.to_string()))
-            .collect();
+        let mut map: HashMap<String, String> =
+            HashMap::from([("REDIS_URL".into(), "redis://localhost:6380".into())]);
+        map.extend(pairs.iter().map(|(k, v)| (k.to_string(), v.to_string())));
         Config::from_fn(move |k| map.get(k).cloned())
+    }
+
+    #[test]
+    fn redis_is_required_and_secret() {
+        let errs = cfg(&[("DATABASE_URL", "postgres://x"), ("REDIS_URL", "")]).unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("REDIS_URL is required")));
+        let errs = cfg(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("REDIS_URL", "localhost:6379"),
+        ])
+        .unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("redis://")));
+        let c = cfg(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("REDIS_URL", "rediss://:hunter2@cache.example:6379"),
+        ])
+        .unwrap();
+        assert_eq!(c.redis_url.expose(), "rediss://:hunter2@cache.example:6379");
+        assert!(
+            !format!("{c:?}").contains("hunter2"),
+            "the password leaks through Debug"
+        );
     }
 
     #[test]

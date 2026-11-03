@@ -31,16 +31,7 @@ CREATE TABLE auth_identities (
   UNIQUE (provider, subject)
 );
 
-CREATE TABLE email_codes (
-  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  email        text NOT NULL,
-  code_hash    bytea NOT NULL,
-  attempts     int NOT NULL DEFAULT 0,
-  expires_at   timestamptz NOT NULL,
-  consumed_at  timestamptz,
-  created_at   timestamptz NOT NULL DEFAULT now()
-);
-CREATE INDEX email_codes_email_idx ON email_codes (lower(email), created_at DESC);
+-- E-mail sign-in codes are ephemeral: they live in Valkey with their TTL, not here (D-047).
 
 CREATE TABLE sessions (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),

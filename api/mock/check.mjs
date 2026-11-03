@@ -19,7 +19,7 @@ const fail = (msg) => { console.error("✗ " + msg); process.exit(1); };
 
 // FK-safe insert order (schema declaration order, with assets after clubs).
 const ORDER = [
-  "users", "auth_identities", "email_codes", "sessions", "clubs", "assets", "club_branding", "memberships", "invitations",
+  "users", "auth_identities", "sessions", "clubs", "assets", "club_branding", "memberships", "invitations",
   "groups", "group_members", "consents", "athlete_profiles", "zones", "exercises", "workout_templates", "training_plans", "training_plan_items",
   "plan_assignments", "planned_workouts", "week_releases", "activities", "workout_completions", "comments", "thread_reads", "provider_connections",
   "webhook_events", "assessments", "conversations", "messages", "conversation_reads", "announcements", "announcement_reads", "races", "race_entries", "club_subscriptions", "invoices",

@@ -56,7 +56,7 @@ enum Command {
     Worker,
     /// Apply pending database migrations and exit.
     Migrate,
-    /// Show what is configured (secrets hidden) and check the database and storage.
+    /// Show what is configured (secrets hidden) and check the database, Valkey and storage.
     Doctor,
     /// Send a test e-mail through the configured provider (checks the Resend setup).
     EmailTest {
@@ -215,6 +215,17 @@ async fn connect(config: &Config) -> anyhow::Result<runflow_db::Pool> {
         .context("connecting to the database (DATABASE_URL)")
 }
 
+/// Valkey (D-047), waiting for it like for the database.
+async fn connect_kv(config: &Config) -> anyhow::Result<runflow_kv::Kv> {
+    runflow_kv::Kv::connect(
+        config.redis_url.expose(),
+        runflow_kv::PREFIX,
+        Duration::from_secs(30),
+    )
+    .await
+    .context("connecting to Valkey (REDIS_URL)")
+}
+
 async fn migrate(config: &Config) -> anyhow::Result<()> {
     let pool = connect(config).await?;
     runflow_db::migrate(&pool)
@@ -257,6 +268,7 @@ async fn worker(config: Config) -> anyhow::Result<()> {
 
 async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow::Result<()> {
     let pool = connect(&config).await?;
+    let kv = connect_kv(&config).await?;
     telemetry::observe_pool(pool.clone());
     if with_migrations {
         runflow_db::migrate(&pool)
@@ -344,6 +356,7 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
     .context("file storage (STORAGE_*)")?;
     let mut state = AppState::new(
         pool.clone(),
+        kv,
         settings,
         mailer.clone(),
         google,

@@ -77,10 +77,7 @@ async fn email_code_sign_in_creates_an_account_once(db: PgPool) {
     )
     .await
     .problem(400, "auth.code_expired");
-    sqlx::query("UPDATE email_codes SET created_at = created_at - interval '1 minute'")
-        .execute(app.db())
-        .await
-        .unwrap();
+    app.skip_code_cooldown("ana.souza@email.com").await;
     let again = app.sign_in("ANA.SOUZA@email.com").await;
     assert_ne!(again, token);
     let consents = app.get("/v1/me/consents", Some(&again)).await;
@@ -175,10 +172,7 @@ async fn codes_are_rate_limited_and_attempts_capped(db: PgPool) {
 
     // At most 5 codes per hour per address.
     for _ in 0..4 {
-        sqlx::query("UPDATE email_codes SET created_at = created_at - interval '1 minute'")
-            .execute(app.db())
-            .await
-            .unwrap();
+        app.skip_code_cooldown("bia@email.com").await;
         app.post(
             "/v1/auth/email/start",
             None,
@@ -187,10 +181,7 @@ async fn codes_are_rate_limited_and_attempts_capped(db: PgPool) {
         .await
         .ok();
     }
-    sqlx::query("UPDATE email_codes SET created_at = created_at - interval '1 minute'")
-        .execute(app.db())
-        .await
-        .unwrap();
+    app.skip_code_cooldown("bia@email.com").await;
     app.post(
         "/v1/auth/email/start",
         None,
@@ -198,6 +189,36 @@ async fn codes_are_rate_limited_and_attempts_capped(db: PgPool) {
     )
     .await
     .problem(429, "auth.too_many_codes");
+}
+
+/// Codes live in Valkey (D-047): of two requests racing with the right code, exactly one signs in.
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn a_code_works_once_even_when_raced(db: PgPool) {
+    let app = TestApp::new(db);
+    let code = app
+        .post(
+            "/v1/auth/email/start",
+            None,
+            json!({ "email": "eva@email.com" }),
+        )
+        .await
+        .ok()["dev_code"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let body = json!({ "email": "eva@email.com", "code": code });
+    let (a, b) = tokio::join!(
+        app.post("/v1/auth/email/verify", None, body.clone()),
+        app.post("/v1/auth/email/verify", None, body.clone()),
+    );
+    let mut statuses = [a.status.as_u16(), b.status.as_u16()];
+    statuses.sort();
+    assert_eq!(statuses, [200, 400], "{} / {}", a.body, b.body);
+    let sessions: i64 = sqlx::query_scalar("SELECT count(*) FROM sessions")
+        .fetch_one(app.db())
+        .await
+        .unwrap();
+    assert_eq!(sessions, 1);
 }
 
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]
@@ -228,11 +249,10 @@ async fn sessions_list_revoke_and_logout(db: PgPool) {
         .problem(401, "auth.required");
 
     let phone = app.sign_in("ana@email.com").await;
-    sqlx::query("UPDATE email_codes SET created_at = created_at - interval '1 minute'")
-        .execute(app.db())
-        .await
-        .unwrap();
+    app.skip_code_cooldown("ana@email.com").await;
     let laptop = app.sign_in("ana@email.com").await;
+    // Each session is in use (so its lookup is cached in Valkey) before it ends: ending it must still be immediate.
+    app.get("/v1/me", Some(&phone)).await.ok();
 
     let list = app.get("/v1/me/sessions", Some(&laptop)).await;
     let items = list.ok()["items"].as_array().unwrap().clone();
@@ -259,11 +279,9 @@ async fn sessions_list_revoke_and_logout(db: PgPool) {
         .await
         .problem(401, "auth.required");
 
-    sqlx::query("UPDATE email_codes SET created_at = created_at - interval '1 minute'")
-        .execute(app.db())
-        .await
-        .unwrap();
+    app.skip_code_cooldown("ana@email.com").await;
     let tablet = app.sign_in("ana@email.com").await;
+    app.get("/v1/me", Some(&tablet)).await.ok();
     assert_eq!(
         app.post("/v1/me/sessions/revoke-others", Some(&laptop), json!({}))
             .await
@@ -285,6 +303,46 @@ async fn sessions_list_revoke_and_logout(db: PgPool) {
     app.get("/v1/me", Some(&laptop))
         .await
         .problem(401, "auth.required");
+}
+
+/// D-047: lookups come from Valkey for up to a minute; Postgres stays the truth for every way a session ends.
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn session_lookups_are_cached_briefly(db: PgPool) {
+    let app = TestApp::new(db);
+    let token = app.sign_in("ana@email.com").await;
+    app.get("/v1/me", Some(&token)).await.ok();
+    // Behind the cache's back (no API call ends it), the cached lookup still answers…
+    sqlx::query("UPDATE sessions SET revoked_at = now()")
+        .execute(app.db())
+        .await
+        .unwrap();
+    app.get("/v1/me", Some(&token)).await.ok();
+    // …while every route that ends sessions drops them from the cache (sessions_list_revoke_and_logout,
+    // delete_account_anonymizes_and_allows_a_fresh_start). Unknown tokens are remembered as unknown.
+    for _ in 0..2 {
+        app.get("/v1/me", Some("rf_unknown"))
+            .await
+            .problem(401, "auth.required");
+    }
+
+    // A session in use still slides (last_seen_at is written at most every 5 minutes).
+    let bia = app.sign_in("bia@email.com").await;
+    sqlx::query(
+        "UPDATE sessions SET last_seen_at = now() - interval '1 hour' WHERE revoked_at IS NULL",
+    )
+    .execute(app.db())
+    .await
+    .unwrap();
+    for _ in 0..3 {
+        app.get("/v1/me", Some(&bia)).await.ok();
+    }
+    let recent: bool = sqlx::query_scalar(
+        "SELECT last_seen_at > now() - interval '1 minute' FROM sessions WHERE revoked_at IS NULL",
+    )
+    .fetch_one(app.db())
+    .await
+    .unwrap();
+    assert!(recent, "a session in use slides");
 }
 
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]
@@ -589,10 +647,7 @@ async fn delete_account_anonymizes_and_allows_a_fresh_start(db: PgPool) {
     assert_eq!(name, "Conta excluída");
     assert!(email.starts_with("deleted+") && email.ends_with("@runflow.club"));
 
-    sqlx::query("UPDATE email_codes SET created_at = created_at - interval '1 minute'")
-        .execute(app.db())
-        .await
-        .unwrap();
+    app.skip_code_cooldown("ana@email.com").await;
     let code = app
         .post(
             "/v1/auth/email/start",

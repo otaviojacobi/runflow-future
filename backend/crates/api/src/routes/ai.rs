@@ -2,9 +2,8 @@
 //! `runflow_domain::assistant` and the free-text grammar in `runflow_domain::workout_text` behind the
 //! provider-agnostic contract (`source: "rules"`). Staff only, 20 requests a minute per user.
 
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::sync::{LazyLock, Mutex};
-use std::time::{Duration as StdDuration, Instant};
+use std::collections::HashSet;
+use std::time::Duration as StdDuration;
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
@@ -24,7 +23,7 @@ use crate::session::Auth;
 use crate::time::{club_today, monday_of, parse_date};
 use crate::{AppState, Problem};
 
-const PER_MINUTE: usize = 20;
+const PER_MINUTE: u32 = 20;
 /// The longest description `/ai/workout` reads.
 const MAX_TEXT: usize = 2000;
 
@@ -38,39 +37,36 @@ pub fn routes() -> Router<AppState> {
         )
 }
 
-/// Requests in the last minute, per user (this process; the monthly cap per plan comes with an LLM).
-static HITS: LazyLock<Mutex<HashMap<Uuid, VecDeque<Instant>>>> = LazyLock::new(Mutex::default);
-
-fn guard(user: Uuid) -> Result<(), Problem> {
-    let now = Instant::now();
-    let mut hits = HITS.lock().unwrap_or_else(|e| e.into_inner());
-    hits.retain(|_, q| {
-        q.back()
-            .is_some_and(|t| now.duration_since(*t) < StdDuration::from_secs(60))
-    });
-    let q = hits.entry(user).or_default();
-    while q
-        .front()
-        .is_some_and(|t| now.duration_since(*t) >= StdDuration::from_secs(60))
+/// Requests per user and minute, counted in Valkey so every API process shares the count (D-047; the monthly cap per
+/// plan comes with an LLM). If Valkey can't count, the request goes through: the rules engine is cheap.
+async fn guard(state: &AppState, user: Uuid) -> Result<(), Problem> {
+    match runflow_kv::rate::hit(
+        &state.kv,
+        "ai",
+        user,
+        PER_MINUTE,
+        StdDuration::from_secs(60),
+    )
+    .await
     {
-        q.pop_front();
-    }
-    if q.len() >= PER_MINUTE {
-        return Err(Problem::new(
+        Ok(None) => Ok(()),
+        Ok(Some(_)) => Err(Problem::new(
             StatusCode::TOO_MANY_REQUESTS,
             "ai.rate_limited",
             "Muitos pedidos ao assistente",
             "Espere um minuto e tente de novo.",
         )
-        .with_retry_after(60));
+        .with_retry_after(60)),
+        Err(e) => {
+            tracing::warn!(error = %e, "assistant rate limit unavailable; allowing the request");
+            Ok(())
+        }
     }
-    q.push_back(now);
-    Ok(())
 }
 
 async fn staff(state: &AppState, auth: &Auth, club_id: &str) -> Result<Member, Problem> {
     let m = member(state, auth, club_id, STAFF).await?;
-    guard(auth.user_id)?;
+    guard(state, auth.user_id).await?;
     Ok(m)
 }
 

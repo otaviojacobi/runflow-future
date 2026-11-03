@@ -179,8 +179,9 @@ pub async fn owns_a_club(db: impl PgExecutor<'_>, user_id: Uuid) -> sqlx::Result
 
 /// LGPD deletion: anonymize the person, leave every club, end every session and provider link, and
 /// drop sign-in identities (the same Google account or e-mail can start over). Training history stays
-/// with the clubs, attached to the anonymized account.
-pub async fn delete_account(tx: &mut PgConnection, user_id: Uuid) -> sqlx::Result<()> {
+/// with the clubs, attached to the anonymized account. Returns the ended sessions' token hashes (the session cache
+/// drops them).
+pub async fn delete_account(tx: &mut PgConnection, user_id: Uuid) -> sqlx::Result<Vec<Vec<u8>>> {
     sqlx::query!(
         "UPDATE users SET deleted_at = now(), updated_at = now(), email = 'deleted+' || id || '@runflow.club',
                 name = 'Conta excluída', phone = NULL, birth_date = NULL, sex = NULL, avatar_url = NULL
@@ -192,11 +193,11 @@ pub async fn delete_account(tx: &mut PgConnection, user_id: Uuid) -> sqlx::Resul
     sqlx::query!("UPDATE memberships SET status = 'left', left_at = now() WHERE user_id = $1 AND status <> 'left'", user_id)
         .execute(&mut *tx)
         .await?;
-    sqlx::query!(
-        "UPDATE sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL",
+    let ended = sqlx::query_scalar!(
+        "UPDATE sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL RETURNING token_hash",
         user_id
     )
-    .execute(&mut *tx)
+    .fetch_all(&mut *tx)
     .await?;
     sqlx::query!(
         "UPDATE provider_connections SET status = 'revoked', access_token_enc = NULL, refresh_token_enc = NULL WHERE user_id = $1",
@@ -216,7 +217,7 @@ pub async fn delete_account(tx: &mut PgConnection, user_id: Uuid) -> sqlx::Resul
     )
     .execute(&mut *tx)
     .await?;
-    Ok(())
+    Ok(ended)
 }
 
 /// Everything about this person, as JSON (LGPD portability). Provider tokens are never included.

@@ -36,6 +36,14 @@ jobs:
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30
+      valkey:
+        image: valkey/valkey:8.1.11-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 30
     env:
       CARGO_TERM_COLOR: always
       SQLX_OFFLINE: "true"
@@ -53,6 +61,7 @@ jobs:
         env:
           RUNFLOW_ENV: development
           DATABASE_URL: postgres://runflow:runflow@localhost:5432/runflow
+          REDIS_URL: redis://localhost:6379
           EMAIL_PROVIDER: log
           STORAGE_BACKEND: disk
           STORAGE_DIR: /tmp/runflow-uploads

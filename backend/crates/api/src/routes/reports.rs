@@ -1,16 +1,18 @@
 //! Reports (W16; endpoints.md § Reports), like api/mock/routes/reports.mjs: training compliance and volume per
 //! student and per week over a period of up to a year. Staff only.
 
-use axum::extract::{Path, Query, State};
+use axum::Router;
+use axum::extract::{Path, Query, RawQuery, State};
+use axum::response::Response;
 use axum::routing::get;
-use axum::{Json, Router};
 use chrono::Duration;
 use runflow_db::reports::{self as db, Period};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use uuid::Uuid;
 
-use crate::access::{STAFF, member};
+use crate::access::{Member, STAFF, member};
+use crate::cache;
 use crate::session::Auth;
 use crate::time::{club_today, monday_of, parse_date};
 use crate::{AppState, Problem};
@@ -31,13 +33,28 @@ fn score(past: i64, points2: i64) -> Option<i64> {
     (past > 0).then(|| ((points2 as f64 / 2.0 / past as f64) * 100.0 + 0.5).floor() as i64)
 }
 
+/// Cached in Valkey for a few minutes (D-047): any write to the club refreshes it at once. Every staff member sees
+/// the same report, so only the query varies.
 async fn training(
     State(state): State<AppState>,
     auth: Auth,
     Path(club_id): Path<String>,
+    RawQuery(raw): RawQuery,
     Query(q): Query<ReportQuery>,
-) -> Result<Json<Value>, Problem> {
+) -> Result<Response, Problem> {
     let m = member(&state, &auth, &club_id, STAFF).await?;
+    cache::json(
+        &state,
+        "reports",
+        m.club_id,
+        &raw.unwrap_or_default(),
+        cache::REPORTS_TTL,
+        report(&state, &m, q),
+    )
+    .await
+}
+
+async fn report(state: &AppState, m: &Member, q: ReportQuery) -> Result<Value, Problem> {
     let club = runflow_db::clubs::club(&state.db, m.club_id)
         .await?
         .ok_or_else(Problem::club_not_found)?;
@@ -109,8 +126,8 @@ async fn training(
         "distance_m": sum(|a| a.distance_m.unwrap_or(0)),
         "sharing": rows.iter().filter(|a| a.shares_data).count(),
     });
-    Ok(Json(json!({
+    Ok(json!({
         "from": from, "to": to, "group_id": group_text,
         "totals": totals, "weekly": weekly, "athletes": athletes,
-    })))
+    }))
 }

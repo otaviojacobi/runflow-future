@@ -1,31 +1,37 @@
-//! `/auth/*` (A2 Login): e-mail one-time code, Google ID token, logout. No passwords (D-007).
+//! `/auth/*` (A2 Login): e-mail one-time code, Google ID token, logout. No passwords (D-007). Pending codes and their
+//! per-address limits live in Valkey (`runflow_kv::codes`, D-047), only as keyed hashes.
+
+use std::time::Duration;
 
 use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use axum::routing::post;
 use axum::{Json, Router};
-use chrono::{Duration, Utc};
 use runflow_db::auth as db;
 use runflow_db::models::User;
 use runflow_integrations::email::{
     Email, code_block, escape_html, is_smoke_address, layout, paragraph,
 };
 use runflow_integrations::google::GoogleError;
+use runflow_kv::codes::{self, Issued, Limits};
 use serde::Serialize;
 use serde_json::json;
 
 use crate::body::{Body, is_email};
 use crate::session::{
-    MaybeAuth, clear_cookie, client_kind, code_matches, hash_code, hash_token, new_code, new_token,
-    session_cookie,
+    MaybeAuth, clear_cookie, client_kind, code_matches, forget, hash_code, hash_token, new_code,
+    new_token, session_cookie,
 };
 use crate::{AppState, Problem};
 
-const CODE_TTL_MIN: i64 = 10;
-const CODE_COOLDOWN_S: i64 = 30;
-const CODES_PER_HOUR: i64 = 5;
-const MAX_ATTEMPTS: i32 = 5;
+const CODE_TTL_MIN: u64 = 10;
+const LIMITS: Limits = Limits {
+    ttl: Duration::from_secs(CODE_TTL_MIN * 60),
+    cooldown: Duration::from_secs(30),
+    per_hour: 5,
+};
+const MAX_ATTEMPTS: u32 = 5;
 
 pub fn routes() -> Router<AppState> {
     Router::new()
@@ -68,40 +74,37 @@ async fn email_start(
     body: Body,
 ) -> Result<Json<serde_json::Value>, Problem> {
     let email = read_email(&body)?;
-    let now = Utc::now();
-    let (recent, last) = db::recent_codes(&state.db, &email, now - Duration::hours(1)).await?;
-    if let Some(wait) = last
-        .map(|l| CODE_COOLDOWN_S - (now - l).num_seconds())
-        .filter(|w| *w > 0)
-    {
-        return Err(Problem::new(
-            StatusCode::TOO_MANY_REQUESTS,
-            "auth.code_cooldown",
-            "Espere um pouco",
-            format!("Você pode pedir um novo código em {wait} segundos."),
-        )
-        .with_retry_after(wait as u64));
-    }
-    if recent >= CODES_PER_HOUR {
-        return Err(Problem::new(
-            StatusCode::TOO_MANY_REQUESTS,
-            "auth.too_many_codes",
-            "Muitos pedidos de código",
-            "Espere alguns minutos antes de pedir outro código.",
-        )
-        .with_retry_after(600));
-    }
-
     let code = new_code();
-    let mut tx = state.db.begin().await?;
-    db::create_code(
-        &mut tx,
+    // Both limits are checked and the code stored (replacing any older one) in one step.
+    match codes::issue(
+        &state.kv,
         &email,
         &hash_code(&state.settings.auth, &email, &code),
-        Duration::minutes(CODE_TTL_MIN),
+        LIMITS,
     )
-    .await?;
-    tx.commit().await?;
+    .await?
+    {
+        Issued::Stored => {}
+        Issued::Cooldown(wait) => {
+            let wait = wait.as_millis().div_ceil(1000).max(1);
+            return Err(Problem::new(
+                StatusCode::TOO_MANY_REQUESTS,
+                "auth.code_cooldown",
+                "Espere um pouco",
+                format!("Você pode pedir um novo código em {wait} segundos."),
+            )
+            .with_retry_after(wait as u64));
+        }
+        Issued::TooMany => {
+            return Err(Problem::new(
+                StatusCode::TOO_MANY_REQUESTS,
+                "auth.too_many_codes",
+                "Muitos pedidos de código",
+                "Espere alguns minutos antes de pedir outro código.",
+            )
+            .with_retry_after(600));
+        }
+    }
 
     if let Err(err) = state.mailer.send(&code_email(&email, &code)).await {
         tracing::error!(error = %err, "sign-in code e-mail failed");
@@ -161,17 +164,19 @@ async fn email_verify(
         .filter(char::is_ascii_digit)
         .collect();
 
-    let mut tx = state.db.begin().await?;
-    let Some(pending) = db::attempt_code(&mut tx, &email).await? else {
-        return Err(Problem::new(
+    let expired = || {
+        Problem::new(
             StatusCode::BAD_REQUEST,
             "auth.code_expired",
             "Código expirado",
             "Peça um novo código para continuar.",
-        ));
+        )
+    };
+    // Counts this attempt, atomically (concurrent guesses each count).
+    let Some(pending) = codes::attempt(&state.kv, &email).await? else {
+        return Err(expired());
     };
     if pending.attempts > MAX_ATTEMPTS {
-        tx.commit().await?;
         return Err(Problem::new(
             StatusCode::TOO_MANY_REQUESTS,
             "auth.too_many_attempts",
@@ -180,7 +185,6 @@ async fn email_verify(
         ));
     }
     if code.len() != 6 || !code_matches(&state.settings.auth, &email, &code, &pending.code_hash) {
-        tx.commit().await?; // the attempt counts
         return Err(Problem::new(
             StatusCode::BAD_REQUEST,
             "auth.invalid_code",
@@ -188,7 +192,11 @@ async fn email_verify(
             format!("Confira o código de 6 dígitos que enviamos para {email}."),
         ));
     }
-    db::consume_code(&mut *tx, pending.id).await?;
+    // Single use: of two requests with the right code, only one gets past this.
+    if !codes::consume(&state.kv, &email, &pending.code_hash).await? {
+        return Err(expired());
+    }
+    let mut tx = state.db.begin().await?;
     let signed = sign_in(&state, &mut tx, &headers, "email", &email, &email, None).await?;
     tx.commit().await?;
     Ok(respond(&state, &headers, signed))
@@ -329,8 +337,10 @@ async fn logout(
     State(state): State<AppState>,
     MaybeAuth(auth): MaybeAuth,
 ) -> Result<Response, Problem> {
-    if let Some(a) = auth {
-        db::revoke_session(&state.db, a.user_id, a.session_id).await?;
+    if let Some(a) = auth
+        && let Some(hash) = db::revoke_session(&state.db, a.user_id, a.session_id).await?
+    {
+        forget(&state, &[hash]).await;
     }
     Ok((
         [(header::SET_COOKIE, clear_cookie(&state.settings.auth))],

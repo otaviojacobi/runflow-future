@@ -1,5 +1,6 @@
 //! Sessions (§7.3): opaque random tokens, stored as SHA-256 hashes, revocable. Mobile sends
-//! `Authorization: Bearer <token>`; the web gets the same token in an HttpOnly cookie.
+//! `Authorization: Bearer <token>`; the web gets the same token in an HttpOnly cookie. Lookups are cached in Valkey for
+//! up to a minute (D-047); every way a session ends calls [`forget`].
 
 use aws_lc_rs::{digest, hmac, rand};
 use axum::extract::FromRequestParts;
@@ -8,14 +9,64 @@ use axum::http::{HeaderMap, HeaderValue, header};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use chrono::Utc;
+use runflow_kv::sessions::{self as cached, Lookup, Session};
 use uuid::Uuid;
 
-use crate::{AppState, AuthSettings, Problem};
+use crate::{AppState, AuthSettings, Problem, metrics};
 
 /// The default session cookie name; `COOKIE_NAME` changes it per environment (QA: `rf_session_qa`).
 pub const SESSION_COOKIE: &str = "rf_session";
 /// Don't write `last_seen_at` on every request.
 const TOUCH_EVERY: chrono::Duration = chrono::Duration::minutes(5);
+
+/// The live session behind a token hash: from the cache, else from Postgres (then cached, a miss included).
+async fn lookup(state: &AppState, token_hash: &[u8]) -> Result<Option<Session>, Problem> {
+    let now = Utc::now();
+    match cached::get(&state.kv, token_hash).await {
+        Ok(Lookup::Live(s)) if s.expires_at > now => {
+            metrics::cache_lookup("session", "hit");
+            return Ok(Some(s));
+        }
+        Ok(Lookup::Live(_) | Lookup::Gone) => {
+            metrics::cache_lookup("session", "hit");
+            return Ok(None);
+        }
+        Ok(Lookup::Unknown) => metrics::cache_lookup("session", "miss"),
+        Err(e) => {
+            metrics::cache_lookup("session", "error");
+            tracing::warn!(error = %e, "session cache unavailable, reading from Postgres");
+            return Ok(from_db(state, token_hash).await?);
+        }
+    }
+    let s = from_db(state, token_hash).await?;
+    // Never cached past the session's own expiry.
+    let ttl = s.map_or(cached::TTL, |s| {
+        (s.expires_at - now).to_std().unwrap_or_default()
+    });
+    if let Err(e) = cached::put(&state.kv, token_hash, s.as_ref(), ttl).await {
+        tracing::warn!(error = %e, "session cache: store failed");
+    }
+    Ok(s)
+}
+
+async fn from_db(state: &AppState, token_hash: &[u8]) -> sqlx::Result<Option<Session>> {
+    Ok(runflow_db::auth::session_by_token(&state.db, token_hash)
+        .await?
+        .map(|s| Session {
+            id: s.id,
+            user_id: s.user_id,
+            last_seen_at: s.last_seen_at,
+            expires_at: s.expires_at,
+        }))
+}
+
+/// These sessions ended (sign-out, revoked, account deleted; Postgres already says so): drop them from the cache.
+/// If Valkey can't be told, a cached lookup lives on for at most `runflow_kv::sessions::TTL`.
+pub async fn forget(state: &AppState, token_hashes: &[Vec<u8>]) {
+    if let Err(e) = cached::forget(&state.kv, token_hashes).await {
+        tracing::error!(error = %e, sessions = token_hashes.len(), "session cache: ended sessions not dropped");
+    }
+}
 
 /// `rf_` + 256 random bits.
 pub fn new_token() -> String {
@@ -138,11 +189,17 @@ impl FromRequestParts<AppState> for MaybeAuth {
         let Some(token) = token_from(&parts.headers, &state.settings.auth.cookie_name) else {
             return Ok(Self(None));
         };
-        let Some(s) = runflow_db::auth::session_by_token(&state.db, &hash_token(&token)).await?
-        else {
+        let hash = hash_token(&token);
+        let Some(s) = lookup(state, &hash).await? else {
             return Ok(Self(None));
         };
-        if Utc::now() - s.last_seen_at > TOUCH_EVERY {
+        // Sliding expiry, written at most once per TOUCH_EVERY (the cached `last_seen_at` can be a minute old, so
+        // Valkey also remembers when this session was last touched).
+        if Utc::now() - s.last_seen_at > TOUCH_EVERY
+            && cached::touch_due(&state.kv, &hash, TOUCH_EVERY.to_std().expect("positive"))
+                .await
+                .unwrap_or(true)
+        {
             runflow_db::auth::touch_session(&state.db, s.id, state.settings.auth.session_ttl)
                 .await?;
         }

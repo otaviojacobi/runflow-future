@@ -16,6 +16,7 @@ browser ──https──▶ Cloudflare (TLS, edge cache, redirects)
                        │  Cloudflare Tunnel (outbound from the Pi: no open ports, works behind CGNAT)
                        ▼
 Raspberry Pi 5:  cloudflared ─▶ web (Caddy: the app + /api proxy) ─▶ api (+ worker) ─▶ postgres
+                                                                      ├─▶ valkey (codes, limits, caches; D-047)
                                                                       └─▶ garage (S3: logos, avatars)
                                                                       │
                                                      Resend (e-mail), Strava, Google
@@ -154,6 +155,7 @@ sudo usermod -aG docker runflow && exit                 # log in again so the gr
 ### 7c. Runflow
 
 - Object storage is **Garage** (D-037), in the same compose: set `AWS_ACCESS_KEY_ID` (GK + `openssl rand -hex 16`), `AWS_SECRET_ACCESS_KEY` and `GARAGE_RPC_SECRET` (`openssl rand -hex 32` each) in `ops/qa/.env`; Garage creates the bucket and key on first start, and `doctor` writes a test object.
+- **Valkey** (D-047) needs no settings: the compose file runs it without persistence and hands the API `REDIS_URL`; `doctor` pings it.
 ```sh
 git clone https://github.com/otaviojacobi/runflow-future.git ~/runflow
 cd ~/runflow/ops/qa

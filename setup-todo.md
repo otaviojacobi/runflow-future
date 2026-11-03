@@ -18,6 +18,10 @@ QA is live at **https://qa.runflow.club**:
   nothing is charged (D-016). Real Stripe (test mode) is optional, see below.
 - **Push:** VAPID keys are in the Pi's `.env`. On QA, install the app (or use Chrome/Firefox on a computer), then
   Perfil → Notificações → "Notificações neste aparelho" → Ativar.
+- **Valkey** (D-047, 2026-11-03): nothing to do. QA's compose file now runs Valkey next to Postgres (no persistence,
+  128 MB) and gives the API its address; the next deploy (`update.sh`) starts it by itself. The same deploy changes the
+  schema (sign-in codes left Postgres), so QA starts over with an empty database once (D-030): sign in again.
+  `docker compose run --rm api doctor` shows a `valkey ok` line.
 
 ## Now
 

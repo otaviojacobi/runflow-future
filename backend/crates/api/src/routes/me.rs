@@ -161,8 +161,9 @@ async fn delete_account(State(state): State<AppState>, auth: Auth) -> Result<Res
             "Transfira a gestão ou encerre o clube antes de excluir sua conta.",
         ));
     }
-    db::delete_account(&mut tx, auth.user_id).await?;
+    let ended = db::delete_account(&mut tx, auth.user_id).await?;
     tx.commit().await?;
+    crate::session::forget(&state, &ended).await;
     tracing::info!(user_id = %auth.user_id, "account deleted");
     Ok((
         [(header::SET_COOKIE, clear_cookie(&state.settings.auth))],
@@ -388,16 +389,18 @@ async fn revoke_session(
         )
     };
     let id = Uuid::parse_str(&id).map_err(|_| not_found())?;
-    if !runflow_db::auth::revoke_session(&state.db, auth.user_id, id).await? {
-        return Err(not_found());
-    }
+    let hash = runflow_db::auth::revoke_session(&state.db, auth.user_id, id)
+        .await?
+        .ok_or_else(not_found)?;
+    crate::session::forget(&state, &[hash]).await;
     Ok(StatusCode::NO_CONTENT)
 }
 
 async fn revoke_others(State(state): State<AppState>, auth: Auth) -> Result<Json<Value>, Problem> {
-    let n =
+    let ended =
         runflow_db::auth::revoke_other_sessions(&state.db, auth.user_id, auth.session_id).await?;
-    Ok(Json(json!({ "revoked": n })))
+    crate::session::forget(&state, &ended).await;
+    Ok(Json(json!({ "revoked": ended.len() })))
 }
 
 #[cfg(test)]

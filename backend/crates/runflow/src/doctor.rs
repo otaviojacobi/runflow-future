@@ -76,6 +76,30 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
         }
     }
 
+    // Valkey (D-047): sign-in codes need it; the caches fall back to the database without it.
+    let redis_at = redact_url(c.redis_url.expose());
+    let checked = match runflow_kv::Kv::new(c.redis_url.expose(), runflow_kv::PREFIX) {
+        Ok(kv) => match kv.ping().await {
+            Ok(rtt) => Ok((rtt, kv.server().await.unwrap_or_else(|_| "?".into()))),
+            Err(e) => Err(e.to_string()),
+        },
+        Err(e) => Err(e.to_string()),
+    };
+    match checked {
+        Ok((rtt, server)) => line(
+            "valkey",
+            "ok",
+            format!(
+                "{redis_at} · {server} · {:.1} ms",
+                rtt.as_secs_f64() * 1000.0
+            ),
+        ),
+        Err(e) => {
+            ok = false;
+            line("valkey", "ERROR", format!("{redis_at} · {e}"));
+        }
+    }
+
     match c.email.provider {
         Provider::Resend => line(
             "e-mail",
@@ -324,4 +348,22 @@ fn tempfile_in(dir: &std::path::Path) -> bool {
     let ok = std::fs::write(&probe, b"ok").is_ok();
     let _ = std::fs::remove_file(&probe);
     ok
+}
+
+#[cfg(test)]
+mod tests {
+    use super::redact_url;
+
+    #[test]
+    fn passwords_are_hidden() {
+        assert_eq!(
+            redact_url("postgres://runflow:s3cret@db:5432/runflow"),
+            "postgres://runflow:***@db:5432/runflow"
+        );
+        assert_eq!(
+            redact_url("rediss://:s3cret@cache:6379"),
+            "rediss://:***@cache:6379"
+        );
+        assert_eq!(redact_url("redis://valkey:6379"), "redis://valkey:6379");
+    }
 }

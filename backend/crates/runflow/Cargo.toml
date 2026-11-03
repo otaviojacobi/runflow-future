@@ -16,6 +16,7 @@ runflow-db.workspace = true
 runflow-domain.workspace = true
 runflow-integrations.workspace = true
 runflow-jobs.workspace = true
+runflow-kv.workspace = true
 anyhow.workspace = true
 axum.workspace = true
 base64.workspace = true

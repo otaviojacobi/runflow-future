@@ -1,4 +1,5 @@
-//! Shared test harness: the real router on a fresh, migrated Postgres database (`#[sqlx::test]`).
+//! Shared test harness: the real router on a fresh, migrated Postgres database (`#[sqlx::test]`) and the real Valkey
+//! (`TEST_REDIS_URL`) under a random key prefix per app, so parallel tests never share keys.
 #![allow(dead_code)]
 
 use std::time::Duration;
@@ -111,6 +112,7 @@ impl TestApp {
             expo: None,
             state: AppState::new(
                 db,
+                runflow_kv::test_kv(),
                 settings(dev),
                 log_mailer(),
                 google,
@@ -127,7 +129,15 @@ impl TestApp {
         Self {
             webpush: None,
             expo: None,
-            state: AppState::new(db, s, log_mailer(), None, Storage::memory(), cipher()),
+            state: AppState::new(
+                db,
+                runflow_kv::test_kv(),
+                s,
+                log_mailer(),
+                None,
+                Storage::memory(),
+                cipher(),
+            ),
         }
     }
 
@@ -223,6 +233,13 @@ impl TestApp {
 
     pub fn db(&self) -> &PgPool {
         &self.state.db
+    }
+
+    /// Lift the 30-second cooldown between sign-in codes for an address (signing the same person in again).
+    pub async fn skip_code_cooldown(&self, email: &str) {
+        runflow_kv::codes::clear_cooldown(&self.state.kv, email)
+            .await
+            .unwrap();
     }
 
     /// Fills a club's active `role` seats up to `total` with fixture people who joined a month ago (plans by
