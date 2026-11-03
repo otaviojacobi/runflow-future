@@ -20,6 +20,7 @@ pub mod notifications;
 pub mod plans;
 pub mod providers;
 pub mod races;
+pub mod reports;
 pub mod weeks;
 pub mod workouts;
 

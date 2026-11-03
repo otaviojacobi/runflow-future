@@ -16,6 +16,7 @@ pub mod my;
 pub mod plans;
 pub mod providers;
 pub mod races;
+pub mod reports;
 pub mod threads;
 pub mod weeks;
 pub mod workouts;
@@ -39,6 +40,7 @@ pub fn v1() -> Router<AppState> {
         .merge(plans::routes())
         .merge(races::routes())
         .merge(assessments::routes())
+        .merge(reports::routes())
         .merge(my::routes())
         .merge(threads::routes())
         .merge(calendar::routes())

@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT date_trunc('week', pw.date)::date AS \"week_start!\",\n                  count(*) AS \"planned!\",\n                  count(*) FILTER (WHERE c.status IN ('completed', 'partial')) AS \"done!\",\n                  count(*) FILTER (WHERE pw.date < $5) AS \"past!\",\n                  coalesce(sum(CASE WHEN pw.date >= $5 THEN 0 WHEN c.status = 'completed' THEN 2 WHEN c.status = 'partial' THEN 1 ELSE 0 END), 0)::bigint AS \"points2!\"\n             FROM planned_workouts pw\n             JOIN memberships m ON m.id = pw.athlete_membership_id\n             LEFT JOIN workout_completions c ON c.planned_workout_id = pw.id\n            WHERE m.club_id = $1 AND m.role = 'student' AND m.status = 'active'\n              AND ($2::uuid IS NULL OR EXISTS (SELECT 1 FROM group_members g WHERE g.group_id = $2 AND g.membership_id = m.id))\n              AND pw.date BETWEEN $3 AND $4\n            GROUP BY 1 ORDER BY 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "week_start!",
+        "type_info": "Date",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "planned!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "done!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 3,
+        "name": "past!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "points2!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "hash": "a12da8814e4be2de5ce7a1349be6e119e8169a31306f88da69879b7bbb13da54"
+}
