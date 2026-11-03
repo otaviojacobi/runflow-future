@@ -3,7 +3,7 @@
  * `insetTop`/`insetBottom` add the safe-area padding when no header or tab bar already does.
  */
 import type { ReactNode } from "react";
-import { RefreshControl, ScrollView, View, type StyleProp, type ViewStyle } from "react-native";
+import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, View, type StyleProp, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/ThemeProvider";
 
@@ -18,7 +18,7 @@ export function Screen({ children, scroll = true, insetTop, insetBottom, refresh
     gap: theme.space[5], width: "100%", maxWidth: theme.size.readingMax, alignSelf: "center",
   };
   return (
-    <View style={{ flex: 1, backgroundColor: theme.color.canvas }}>
+    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1, backgroundColor: theme.color.canvas }}>
       {header}
       {scroll ? (
         <ScrollView
@@ -32,6 +32,6 @@ export function Screen({ children, scroll = true, insetTop, insetBottom, refresh
       ) : (
         <View style={[{ flex: 1 }, pad, contentStyle]}>{children}</View>
       )}
-    </View>
+    </KeyboardAvoidingView>
   );
 }

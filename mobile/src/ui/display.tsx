@@ -49,7 +49,7 @@ export function Card({ tone, edge, style, children, onPress, accessibilityRole, 
   return <View style={[...base, style]} accessibilityRole={accessibilityRole} {...p}>{body}</View>;
 }
 
-export const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");
+const initials = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]!.toUpperCase()).join("");
 export function Avatar({ name, src, size = tokens.space[8], style }: { name: string; src?: string | null; size?: number; style?: StyleProp<ViewStyle> }) {
   const { theme } = useTheme();
   const box = { width: size, height: size, borderRadius: size / 2 };

@@ -5,7 +5,7 @@
  */
 import { Platform } from "react-native";
 import { t } from "@/i18n";
-import { secure } from "./secure";
+import { session } from "./session";
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (Platform.OS === "android" ? "http://10.0.2.2:8787/v1" : "http://localhost:8787/v1");
 
@@ -16,19 +16,22 @@ export class ApiError extends Error {
   fieldError(field: string) { return this.errors.find((e) => e.field === field)?.message; }
 }
 
+/**
+ * The web app, for what lives only there for now (creating a club, desktop tools): EXPO_PUBLIC_WEB_URL, else derived
+ * from the API (same-origin deployments serve the API at <web>/api/v1; the local mock pairs :8787 with :8080).
+ */
+export const WEB_URL: string | null = process.env.EXPO_PUBLIC_WEB_URL
+  ?? (API_URL.endsWith("/api/v1") ? API_URL.slice(0, -"/api/v1".length) : /:8787\/v1$/.test(API_URL) ? API_URL.replace(/:8787\/v1$/, ":8080") : null);
+
 /** API asset paths (`/v1/assets/…`) as absolute URLs on the API's host. */
 export const assetUrl = (u: string | null | undefined) => (u ? (u.startsWith("/v1/") ? API_URL.replace(/\/v1$/, "") + u : u) : null);
 
-let token: string | null = null;
 let onUnauthorized: (() => void) | null = null;
-export const session = {
-  async load() { token = await secure.getToken(); return token; },
-  async set(t: string | null) { token = t; await secure.setToken(t); },
-  isSignedIn: () => !!token,
-  onUnauthorized: (fn: () => void) => { onUnauthorized = fn; },
-};
+/** Called when a signed-in request answers 401 (the session expired or was revoked). */
+export const setUnauthorizedHandler = (fn: () => void) => { onUnauthorized = fn; };
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  const token = session.token();
   let res: Response;
   try {
     res = await fetch(API_URL + path, {
@@ -42,7 +45,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    if (res.status === 401 && token) onUnauthorized?.();
+    if (res.status === 401 && token && token === session.token()) onUnauthorized?.();
     const err = new ApiError(res.status, data?.code ?? "unknown", data?.title ?? t("Algo deu errado"), data?.detail ?? t("Tente novamente em instantes."), data?.errors ?? []);
     const retry = Number(res.headers.get("Retry-After"));
     if (retry > 0) err.retryAfter = retry;

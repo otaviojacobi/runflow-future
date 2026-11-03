@@ -17,14 +17,27 @@ On a physical phone, point the app at your computer: `EXPO_PUBLIC_API_URL=http:/
 
 ```
 src/
-  app/        Expo Router routes only (_layout.tsx = splash + providers); dev/components = the UI kit preview
-  lib/        api (ApiError, session), storage (sync kv: native kv-store / web localStorage), secure (token)
-  theme/      theme.ts (tokens → RN theme, club roles via @runflow/design/color), ThemeProvider (cached club colors,
-              color mode) + ThemeScope (re-theme a subtree: Runflow's colors, forced light/dark)
+  app/        Expo Router routes only (_layout.tsx = splash + providers + the 401 handler): login (A2), invite/[token]
+              (A3), clubs (A6/A7); dev/components = the UI kit preview
+  api/        TanStack Query hooks per area + types.ts (wire types, identical to the contract), like the web's src/api
+  components/ domain components shared by screens (brand: Runflow mark/wordmark + ClubLogo; sport chips)
+  lib/        api (ApiError, WEB_URL), session (token in the keychain + cached `/me` and active club in the sync store,
+              one snapshot for useSession()), club (active club, homeFor, invite links), format (copy of the web's),
+              storage (sync kv: native kv-store / web localStorage), secure (token)
+  theme/      theme.ts (tokens → RN theme, club roles via @runflow/design/color), ThemeProvider (Runflow's theme,
+              color mode) + ThemeScope (re-theme a subtree: a club's colors, forced light/dark)
   ui/         the UI kit: same names/variants as frontend/src/ui (index.ts lists them); icons.ts = Lucide icons, one
               import per icon (add new ones there, never import the lucide-react-native barrel)
+  queryClient.ts  TanStack Query; returning to the foreground counts as focus (revalidates `/me` and themes)
   i18n.ts     t()/tn(), same contract as the web app
 ```
+
+Routes mirror the web's paths, so links work in both: invite e-mails link to `<PUBLIC_APP_URL>/invite/<token>`, which
+the app opens as `runflow://invite/<token>` (dev build), `exp://<ip>:8081/--/invite/<token>` (Expo Go) or, once the
+hosts serve the App Links / Universal Links files, the https link itself.
+
+Module state read during render must come from a hook snapshot (`useSession()`, queries): the React Compiler
+memoizes render output, so a plain `session.me()` call in render can go stale.
 
 UI kit notes: components read `useTheme().theme` (colors, space, radius, size, motion, shadow); `Text` takes a token
 `variant` and a `tone`; `Field` hands its control `accessibilityLabel`/`accessibilityHint`/`invalid` (render prop);
