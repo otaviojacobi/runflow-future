@@ -93,6 +93,7 @@ const ATTR_WORDS = [...KG, ...REST_WORDS, "pse", "rpe", "pc", "peso", "tempo", "
 const ATTR_FILLERS = ["com", "a", "de", "e", "carga", "do", "da"];
 const SIDE_WORDS = ["lado", "perna", "braço", "braco", "membro"];
 const MAX_REPEAT_STEPS = 50;
+const MAX_AMOUNT = 1000000;
 
 // ---------------------------------------------------------------- tokens
 const isDigit = (c) => c !== undefined && c >= "0" && c <= "9";
@@ -264,8 +265,13 @@ function takeParens(toks0) {
 }
 
 // ---------------------------------------------------------------- amounts and values
-/** A duration at `i` → {dur, end} (unused tokens only). `bare`: unitless numbers ("active": swim meters, run ≥ 100 m; "recovery": < 100 s, else m). */
+/** A duration at `i` → {dur, end} (unused tokens only), up to 1,000 km or 1,000,000 s. */
 function amountAt(toks, used, i, sport, bare) {
+  const a = rawAmountAt(toks, used, i, sport, bare);
+  return a && (a.dur.type === "distance" ? a.dur.m : a.dur.s) <= MAX_AMOUNT ? a : null;
+}
+/** `bare`: unitless numbers ("active": swim meters, run ≥ 100 m; "recovery": < 100 s, else m). */
+function rawAmountAt(toks, used, i, sport, bare) {
   const at = (j) => (used[j] ? undefined : toks[j]);
   const t = at(i);
   if (!N(t)) return null;
@@ -405,7 +411,7 @@ function parseSteps(toks0, sport, fallback, bare) {
     if (!N(at(i))) continue;
     let j = i + 1, b = null;
     if (rangeConn(at(j)) && N(at(j + 1))) { b = toks[j + 1].v; j += 2; }
-    if (!W(at(j), "w", "watts", "watt")) continue;
+    if (!W(at(j), "w", "watts", "watt") || toks[i].v > 3000 || b > 3000) continue;
     claim(i, j + 1);
     const a = round(toks[i].v);
     power = b === null ? { type: "power", min: Math.max(0, a - 5), max: a + 5 } : { type: "power", min: Math.min(a, round(b)), max: Math.max(a, round(b)) };
@@ -540,7 +546,7 @@ function parseSteps(toks0, sport, fallback, bare) {
     const a = amountAt(toks, used, i, sport, bare);
     if (a) { claim(i, a.end); dur = a.dur; }
   }
-  for (let i = 0; i < n && !dur; i++) if (at(i)?.k === "clock" && at(i).n === 3) { dur = { type: "time", s: toks[i].v }; used[i] = true; }
+  for (let i = 0; i < n && !dur; i++) if (at(i)?.k === "clock" && at(i).n === 3 && toks[i].v <= MAX_AMOUNT) { dur = { type: "time", s: toks[i].v }; used[i] = true; }
 
   // Intent words (aquecimento > desaquecimento > descanso > trote).
   let intent = null;
@@ -891,10 +897,10 @@ function parseExercise(toks0) {
     let reps, end;
     const r = toks[j];
     if (W(r, "máx", "max", "máximo", "maximo", "falha")) { reps = "máx"; end = j + 1; }
-    else if (INT(r)) {
+    else if (INT(r) && r.v <= 1000) {
       reps = String(r.v);
       end = j + 1;
-      if ((P(toks[end], "-") || W(toks[end], "a")) && INT(toks[end + 1]) && !W(toks[end + 2], ...KG) && !P(toks[end + 2], "%")) { reps += "-" + toks[end + 1].v; end += 2; }
+      if ((P(toks[end], "-") || W(toks[end], "a")) && INT(toks[end + 1]) && toks[end + 1].v <= 1000 && !W(toks[end + 2], ...KG) && !P(toks[end + 2], "%")) { reps += "-" + toks[end + 1].v; end += 2; }
       if (P(toks[end], '"') || W(toks[end], ...SECONDS)) { reps += " s"; end++; }
       else if (P(toks[end], "'") || W(toks[end], ...MINUTES)) { reps += " min"; end++; }
       else if (W(toks[end], ...REPS_WORDS)) end++;
