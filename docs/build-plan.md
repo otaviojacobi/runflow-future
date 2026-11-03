@@ -92,12 +92,12 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 | Step | Scope | Status |
 |---|---|---|
 | X0 | Expo + TS scaffold in the workspace, tokens → RN theme, club theme cache (sync kv-store, D-022) behind the splash (§7.8), API client against the mock | [x] |
-| X1 | RN UI kit mirroring `frontend/src/ui` names and variants | [ ] |
-| X2 | Sign-in (Google, email code) + deep links for invites | [ ] |
-| X3 | Tabs per role + club switcher | [ ] |
+| X1 | RN UI kit mirroring `frontend/src/ui` names and variants (`src/ui`: Button/IconButton/ButtonLink, Field, Input, Textarea, Select as a sheet, Checkbox, Switch, Segmented, Badge, Card, Avatar, Skeleton, ProgressBar, EmptyState, PageHeader, Tabs, Dialog = bottom sheet, Menu = action sheet, toasts; mobile adds Text, Screen, ListItem, Divider, Spinner), tokens only, 44 pt targets, Lucide icons imported one file each; `/dev/components` previews every component in light and dark with demo club themes | [x] |
+| X2 | Sign-in (Google, email code) + deep links for invites. Done: A2 e-mail code (start → code → verify, resend cooldown from `Retry-After`, the API's pt-BR errors as they come, dev code shown), token in the keychain, back to `redirect`; A3 invite (`runflow://invite/<token>`, the web path `/invite/<token>`, or a pasted link on A6/A7) in Runflow's theme, signing in with the invited e-mail pre-filled and locked (F36); A6/A7 club list. `app.json` declares App Links / Universal Links for `https://{app,qa}.runflow.club/invite/…`; they open the app once the web host serves `/.well-known/assetlinks.json` and `apple-app-site-association` (needs the release signing key, so with the first store build). **TODO (Google):** native Google sign-in needs a development build (the SDK isn't in Expo Go): add it with X10's dev build and send its ID token to `POST /auth/google`; until then e-mail code only | [x] |
+| X3 | Tabs per role + club switcher. Done: the signed-in shell `(app)` (only with a session and a club, else sign-in with `redirect` or the club list) in the active club's colors from the cached `/me` (first frame themed; public screens stay Runflow's, D-024); students' 4 tabs (Hoje, Agenda, Mensagens, Perfil; Atividades and Provas inside Perfil, D-035), staff the web's phone tabs (Painel, Alunos, Planejamento, Feedbacks, Mais; "Mais" groups the rest like the sidebar, desktop tools open the web app, gym tools only for musculação clubs); other-role routes redirect home; top bar with the club switcher (sheet: clubs, invite, create) and the notifications bell; back bar on screens reached from Mais/Perfil/bell; Perfil with appearance and sign out. Screen bodies say what comes in X4/X5/X7/X8 and open the same screen on the web. **Gap:** Mensagens (a student tab) has no mobile step yet; fold it into X4 or add one | [x] |
 | X4 | Student: Today, workout detail, feedback, schedule (offline cache) | [ ] |
 | X5 | Activities + Strava connect | [ ] |
-| X6 | Classes: booking, waitlist, QR check-in | [ ] |
+| ~~X6~~ | ~~Classes: booking, waitlist, QR check-in~~ Moved to Later with class scheduling (D-035, removed in F37); not a step any more | — |
 | X7 | Profile, account, notifications, privacy | [ ] |
 | X8 | Trainer on mobile: students, feedback inbox, quick edit of today's workouts | [ ] |
 | X9 | Owner/student onboarding on mobile (invite deep link → consent → profile → Strava) | [ ] |
@@ -105,7 +105,7 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 
 ## Later (TODO, not scheduled)
 
-- **Class scheduling ("Aulas") and Desafios** (D-035): venues, class types, recurring schedules, sessions, bookings, waitlist, QR check-in (W9, M6); challenges, monthly ranking and badges (W15, M11). Built in F21–F25-era steps and removed in F37 to simplify the beta; the full UI, mock and contract are in git history (the commit before F37). Bring back per club type (gyms) when clubs ask.
+- **Class scheduling ("Aulas") and Desafios** (D-035): venues, class types, recurring schedules, sessions, bookings, waitlist, QR check-in (W9, M6; on mobile it was X6); challenges, monthly ranking and badges (W15, M11). Built in F21–F25-era steps and removed in F37 to simplify the beta; the full UI, mock and contract are in git history (the commit before F37). Bring back per club type (gyms) when clubs ask.
 
 - **Club fees through Runflow** (D-027): fee plans, per-student fees with discounts, monthly charges, Pix/card checkout via Stripe Connect on the club's account, overdue reminders, receipts, payments recorded outside the app. Built in F26 and removed in F33 as too much for v1; the full UI, mock and contract are in git history (commit `24b188a` and earlier). Needs Runflow's take rate (root.md §11) and Stripe Connect onboarding.
 

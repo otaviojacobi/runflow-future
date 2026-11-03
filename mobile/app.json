@@ -10,7 +10,11 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "bundleIdentifier": "club.runflow.app",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "associatedDomains": [
+        "applinks:app.runflow.club",
+        "applinks:qa.runflow.club"
+      ]
     },
     "android": {
       "adaptiveIcon": {
@@ -20,7 +24,29 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "club.runflow.app"
+      "package": "club.runflow.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "app.runflow.club",
+              "pathPrefix": "/invite/"
+            },
+            {
+              "scheme": "https",
+              "host": "qa.runflow.club",
+              "pathPrefix": "/invite/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "output": "single",
