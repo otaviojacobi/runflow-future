@@ -44,6 +44,7 @@ export { default as CreditCard } from "lucide-react-native/icons/credit-card";
 export { default as Download } from "lucide-react-native/icons/download";
 export { default as Dumbbell } from "lucide-react-native/icons/dumbbell";
 export { default as Ellipsis } from "lucide-react-native/icons/ellipsis";
+export { default as Eraser } from "lucide-react-native/icons/eraser";
 export { default as ExternalLink } from "lucide-react-native/icons/external-link";
 export { default as Eye } from "lucide-react-native/icons/eye";
 export { default as EyeOff } from "lucide-react-native/icons/eye-off";

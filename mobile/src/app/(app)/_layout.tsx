@@ -68,6 +68,8 @@ function ClubTabs({ role, modalities, clubId, frozen }: { role: Role; modalities
         <Tabs.Screen name="library" options={{ title: t("Biblioteca") }} />
         <Tabs.Screen name="library/new" options={{ title: t("Novo treino") }} />
         <Tabs.Screen name="library/[id]" options={{ title: t("Treino") }} />
+        <Tabs.Screen name="plans" options={{ title: t("Planilhas") }} />
+        <Tabs.Screen name="plans/[id]" options={{ title: t("Planilha") }} />
       </Tabs.Protected>
       {/* The exercise library is for clubs that teach musculação (D-035). */}
       <Tabs.Protected guard={staff && modalities.includes("strength")} redirectTo={homeFor(role)}>

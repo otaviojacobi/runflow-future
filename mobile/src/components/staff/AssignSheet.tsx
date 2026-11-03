@@ -5,26 +5,24 @@
  * (D-031) wait for the week's release. "Montar agora" builds a one-off workout right here (quick text or steps, X12),
  * like the web's "build now".
  */
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { useAssign, useAthletes, useGroups, useTemplates, type AssignInput } from "@/api/staff";
+import { useAssign, type AssignInput } from "@/api/staff";
 import type { Club, Sport, WorkoutTemplate } from "@/api/types";
 import { SportPicker } from "@/components/builder/parts";
 import { WorkoutBuilder } from "@/components/builder/WorkoutBuilder";
 import { emptyStructure } from "@/domain/builder";
-import { SportChip } from "@/components/sport";
-import { IntensityProfile } from "@/components/workout/workout";
-import { estimate, estimateText, type Structure } from "@/domain/workout";
+import { AthletePicker, TemplateList } from "./pickers";
+import { estimate, type Structure } from "@/domain/workout";
 import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { addDays, dayMonth, shortDate, weekdayShort } from "@/lib/format";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Avatar, Button, Field, IconButton, Input, Segmented, Skeleton, Text, Textarea, Dialog, toast } from "@/ui";
-import { Check, ChevronLeft, ChevronRight, Library, Search, Wand2, X } from "@/ui/icons";
+import { Button, Field, IconButton, Input, Segmented, Text, Textarea, Dialog, toast } from "@/ui";
+import { ChevronLeft, ChevronRight, Library, Wand2, X } from "@/ui/icons";
 
 export interface AssignPrefill { athleteIds?: string[]; dates?: string[] }
 
-const norm = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 const toggle = <T,>(set: Set<T>, v: T) => { const n = new Set(set); if (n.has(v)) n.delete(v); else n.add(v); return n; };
 
 export function AssignSheet({ club, monday, open, onOpenChange, prefill }: { club: Club; monday: string; open: boolean; onOpenChange: (v: boolean) => void; prefill?: AssignPrefill }) {
@@ -39,7 +37,6 @@ function AssignBody({ club, monday, open, onClose, prefill }: { club: Club; mond
   const { theme } = useTheme();
   const c = theme.color;
   const [step, setStep] = useState<"workout" | "who">("workout");
-  const [q, setQ] = useState("");
   const [template, setTemplate] = useState<WorkoutTemplate | null>(null);
   const [source, setSource] = useState<"library" | "build">("library");
   const [sport, setSport] = useState<Sport>(club.modalities[0] ?? "run");
@@ -48,24 +45,13 @@ function AssignBody({ club, monday, open, onClose, prefill }: { club: Club; mond
   const [athletes, setAthletes] = useState<Set<string>>(new Set(prefill?.athleteIds ?? []));
   const [dates, setDates] = useState<Set<string>>(new Set(prefill?.dates ?? []));
   const [shown, setShown] = useState(monday);
-  const [who, setWho] = useState("");
   const [notes, setNotes] = useState("");
-  const templates = useTemplates(open ? club.id : undefined);
-  const list = useAthletes(open ? club.id : undefined);
-  const groups = useGroups(open ? club.id : undefined);
   const assign = useAssign(club.id);
   const err = assign.error instanceof ApiError ? assign.error : null;
 
-  const tpls = useMemo(() => {
-    const needle = norm(q.trim().replace(/^#/, ""));
-    const tag = q.trim().startsWith("#");
-    return (templates.data ?? []).filter((w) => !needle || (tag ? w.tags.some((x) => x.includes(needle)) : norm(w.name).includes(needle) || w.tags.some((x) => x.includes(needle))));
-  }, [templates.data, q]);
-  const people = (list.data ?? []).filter((a) => !who.trim() || norm(a.user.name).includes(norm(who.trim())));
   const week = Array.from({ length: 7 }, (_, i) => addDays(shown, i));
   const elsewhere = [...dates].filter((d) => !week.includes(d)).sort();
   const count = athletes.size * dates.size;
-  const everyone = (list.data?.length ?? 0) > 0 && athletes.size === list.data?.length;
 
   const built = !!title.trim() && structure.blocks.length > 0;
   const ready = source === "library" ? !!template : built;
@@ -123,36 +109,7 @@ function AssignBody({ club, monday, open, onClose, prefill }: { club: Club; mond
       ) : step === "workout" ? (
         <View style={{ gap: theme.space[3] }}>
           {sourcePicker}
-          <View style={styles.search}>
-            <Input value={q} onChangeText={setQ} placeholder={t("Buscar por nome ou #tag")} accessibilityLabel={t("Buscar na biblioteca")} autoCapitalize="none" autoCorrect={false}
-              returnKeyType="search" style={{ paddingLeft: theme.space[10] }} />
-            <View pointerEvents="none" style={[styles.searchIcon, { left: theme.space[3] }]}><Search size={theme.size.iconSm} color={c.fgSubtle} aria-hidden /></View>
-          </View>
-          {templates.isPending ? (
-            <View style={{ gap: theme.space[2] }}>{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} style={{ height: theme.space[16] }} />)}</View>
-          ) : tpls.length ? (
-            <View accessibilityRole="radiogroup" accessibilityLabel={t("Treinos da biblioteca")} style={{ gap: theme.space["1.5"] }}>
-              {tpls.map((w) => {
-                const on = template?.id === w.id;
-                const est = estimateText(w);
-                return (
-                  <Pressable key={w.id} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={[w.name, est, w.tags.map((x) => `#${x}`).join(" ")].filter(Boolean).join(", ")}
-                    onPress={() => setTemplate(w)}
-                    style={({ pressed }) => [{ gap: theme.space[2], padding: theme.space[3], borderRadius: theme.radius.md, borderWidth: on ? 2 : 1, borderColor: on ? c.brand.ring : c.line, backgroundColor: on ? c.brand.subtle : pressed ? c.soft : c.surface }]}>
-                    <View style={[styles.row, { gap: theme.space[2] }]}>
-                      <SportChip sport={w.sport} size="sm" />
-                      <Text variant="labelMd" numberOfLines={1} style={styles.flex}>{w.name}</Text>
-                      {on && <Check size={theme.size.iconMd} color={c.brand.subtleFg} aria-hidden />}
-                    </View>
-                    <IntensityProfile structure={w.structure} sport={w.sport} height={theme.space[5]} />
-                    {est || w.tags.length ? <Text variant="caption" tone="muted" numberOfLines={1}>{[est, w.tags.map((x) => `#${x}`).join(" ")].filter(Boolean).join(" · ")}</Text> : null}
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : (
-            <Text tone="muted">{q.trim() ? t("Nenhum treino com esse nome ou tag.") : t("A biblioteca do clube ainda está vazia.")}</Text>
-          )}
+          <TemplateList clubId={club.id} enabled={open} selectedId={template?.id ?? null} onPick={setTemplate} />
         </View>
       ) : (
         <View style={{ gap: theme.space[5] }}>
@@ -190,51 +147,7 @@ function AssignBody({ club, monday, open, onClose, prefill }: { club: Club; mond
             )}
           </View>
 
-          <View style={{ gap: theme.space[2] }}>
-            <View style={[styles.row, { gap: theme.space[2] }]}>
-              <Text variant="labelSm" accessibilityRole="header" style={styles.flex}>{t("Para quem")}{athletes.size ? ` · ${athletes.size}` : ""}</Text>
-              {(list.data?.length ?? 0) > 0 && (
-                <Button variant="ghost" size="sm" onPress={() => setAthletes(everyone ? new Set() : new Set((list.data ?? []).map((a) => a.membership.id)))}>{everyone ? t("Limpar") : t("Todos")}</Button>
-              )}
-            </View>
-            {(groups.data ?? []).length > 0 && (
-              <View style={[styles.row, styles.wrap, { gap: theme.space["1.5"] }]}>
-                {(groups.data ?? []).map((g) => {
-                  const on = g.member_ids.length > 0 && g.member_ids.every((id) => athletes.has(id));
-                  return (
-                    <Pressable key={g.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={`${g.name}, ${tn(g.member_ids.length, "{n} aluno", "{n} alunos")}`}
-                      onPress={() => { const n = new Set(athletes); g.member_ids.forEach((id) => (on ? n.delete(id) : n.add(id))); setAthletes(n); }}
-                      hitSlop={theme.space[1]}
-                      style={({ pressed }) => [styles.row, styles.chip, { gap: theme.space[1], height: theme.size.controlSm, paddingHorizontal: theme.space[3], borderRadius: theme.radius.full, borderColor: on ? c.brand.ring : c.line, backgroundColor: on ? c.brand.subtle : pressed ? c.soft : c.surface }]}>
-                      {on && <Check size={theme.size.iconSm - 2} color={c.brand.subtleFg} aria-hidden />}
-                      <Text variant="labelSm" color={on ? c.brand.subtleFg : c.fgMuted}>{g.name}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            )}
-            {(list.data?.length ?? 0) > 8 && (
-              <Input value={who} onChangeText={setWho} placeholder={t("Buscar aluno")} accessibilityLabel={t("Buscar aluno")} autoCorrect={false} />
-            )}
-            {list.isPending ? <Skeleton style={{ height: theme.space[20] }} /> : (
-              <View>
-                {people.map((a) => {
-                  const on = athletes.has(a.membership.id);
-                  return (
-                    <Pressable key={a.membership.id} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={a.user.name} onPress={() => setAthletes(toggle(athletes, a.membership.id))}
-                      style={({ pressed }) => [styles.row, { gap: theme.space[3], minHeight: theme.size.touchMin, paddingHorizontal: theme.space[1], borderRadius: theme.radius.md, backgroundColor: pressed ? c.soft : "transparent" }]}>
-                      <View style={[styles.box, { width: theme.size.iconMd, height: theme.size.iconMd, borderRadius: theme.radius.xs, borderColor: on ? c.brand.solid : c.lineStrong, backgroundColor: on ? c.brand.solid : c.surface }]}>
-                        {on && <Check size={theme.size.iconSm} color={c.brand.onSolid} strokeWidth={3} aria-hidden />}
-                      </View>
-                      <Avatar name={a.user.name} src={a.user.avatar_url} size={theme.space[6] + theme.space[1]} />
-                      <Text variant="labelMd" numberOfLines={1} style={styles.flex}>{a.user.name}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-            )}
-            {err?.fieldError("athlete_ids") ? <Text variant="caption" tone="danger">{err.fieldError("athlete_ids")}</Text> : null}
-          </View>
+          <AthletePicker clubId={club.id} enabled={open} value={athletes} onChange={setAthletes} error={err?.fieldError("athlete_ids")} />
 
           <Field label={t("Recado para os alunos")} optional>
             {(f) => <Textarea {...f} value={notes} onChangeText={setNotes} placeholder={t("Ex.: foco nos últimos tiros")} maxLength={1000} />}
@@ -250,13 +163,9 @@ const styles = StyleSheet.create({
   wrap: { flexWrap: "wrap" },
   flex: { flex: 1, minWidth: 0 },
   full: { flexBasis: "100%" },
-  start: { alignSelf: "flex-start" },
   stretch: { alignSelf: "stretch" },
   day: { flex: 1, alignItems: "center", justifyContent: "center" },
   chip: { borderWidth: 1 },
-  box: { alignItems: "center", justifyContent: "center", borderWidth: 2 },
   centerText: { textAlign: "center" },
   tabular: { fontVariant: ["tabular-nums"] },
-  search: { justifyContent: "center" },
-  searchIcon: { position: "absolute" },
 });

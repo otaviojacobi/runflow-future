@@ -199,3 +199,9 @@ export type ExerciseCategory = "strength" | "core" | "mobility" | "stretch" | "p
 export interface LibraryExercise { id: ID; club_id: ID | null; scope: "club" | "global"; name: string; category: ExerciseCategory; muscles: string[]; equipment: string[]; cues: string | null; video_url: string | null; created_at: ISOTime; archived_at: ISOTime | null }
 
 export interface Member { membership: Membership; user: User; group_ids: ID[] }
+
+// ---- planilhas (W7): `TrainingPlan`, never a bare "plan" (root.md §4.7)
+export interface TrainingPlan { id: ID; club_id: ID; author_membership_id: ID; name: string; description: string | null; weeks: number; created_at: ISOTime; updated_at: ISOTime; items_count: number; weekly_duration_s: number[]; active_assignments: number }
+export interface PlanItem { id: ID; plan_id?: ID; week: number; weekday: number; template_id: ID | null; sport: Sport; title: string; structure: import("@/domain/workout").Structure; est_duration_s: number | null; est_distance_m: number | null; notes: string | null }
+export interface PlanAssignment { id: ID; plan_id: ID; athlete_membership_id: ID; start_date: ISODate; created_at: ISOTime; athlete: AthleteRef; workouts: number; done: number }
+export interface TrainingPlanDetail extends TrainingPlan { items: PlanItem[]; assignments: PlanAssignment[] }
