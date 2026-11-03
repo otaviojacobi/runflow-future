@@ -1,4 +1,7 @@
-# Hosting: one Raspberry Pi 5 + Cloudflare Tunnel, deploy on push (S8 plan)
+# Hosting: one Raspberry Pi 5 + Cloudflare Tunnel, deploy on push (QA)
+
+> **2026-11-03 (D-039, D-040):** the Pi only runs QA, which is disposable (no backups). Production is AWS Lambda +
+> Cloudflare Pages + Aurora, set up in its own session (P1). The background below is kept for the record.
 
 This file is the background; the step-by-step for QA is `docs/ops/qa-pi.md` (open items: `setup-todo.md`) (D-028: QA at `qa.runflow.club`, `runflow.club` redirects there).
 **Recommended:** Raspberry Pi OS + Docker + the root `docker-compose.yaml` + `cloudflared`, deployed by GitHub Actions over
@@ -69,4 +72,4 @@ The repo is public, so: arm64 images build on GitHub's free native arm64 runners
   - `cloudflared` service: `cloudflare/cloudflared`, `command: tunnel --no-autoupdate run`, `TUNNEL_TOKEN` variable;
   - no published ports at all (cloudflared reaches `api` on the compose network);
   - `depends_on: [postgres]`: the API already retries the database for 30 s at start.
-- Backups are still ours (S8): nightly `pg_dump`/base backup + WAL to off-site storage, monthly restore drill. balena does not back up volumes.
+- Backups: none for QA (D-039). balena does not back up volumes either.

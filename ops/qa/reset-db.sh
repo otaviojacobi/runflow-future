@@ -1,16 +1,15 @@
 #!/usr/bin/env bash
-# Start QA over with an empty database and empty object storage (D-030: data is disposable until the beta).
-# Takes a backup first, then the API migrates a fresh database when it starts again.
+# Start QA over with an empty database and empty object storage (D-030, D-039: QA is disposable, no backups).
+# The API migrates the fresh database when it starts again.
 # Usage (on the Pi, in ~/runflow/ops/qa): ./reset-db.sh --yes
 set -euo pipefail
 cd "$(dirname "$0")"
 
 if [ "${1:-}" != "--yes" ]; then
-  echo "This deletes every account, club and upload on QA (a backup is taken first). Run: ./reset-db.sh --yes"
+  echo "This deletes every account, club and upload on QA (nothing is kept). Run: ./reset-db.sh --yes"
   exit 1
 fi
 
-./backup.sh
 docker compose stop api
 docker compose exec -T postgres sh -c '
   psql -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 -q \

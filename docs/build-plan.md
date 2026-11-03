@@ -75,9 +75,17 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 | S6c | Races and entries, assessments + zones from tests, the training report, the assistant (rules engine, same contract; LLM later per §11.4) on the backend | [x] |
 | S7 | Billing: Stripe Checkout, Billing Portal, signed webhooks applied by the worker (plan, status, period, invoices, billing notices); without Stripe the billing simulation (`BILLING_SIMULATION`, dev and QA) runs the app's `/dev/stripe` pages like the mock; neither → `503 billing.unavailable` | [x] |
 | S7b | Push: Web Push for the installed web app (VAPID, `push_tokens` platform `web`, service worker), delivered by the worker and honoring the F35 preferences (per-kind `push`, pause, quiet hours); Expo push joins with X10 | [x] |
-| S8 | `ops/`: Pi deployment with deploy on push (recommended: Raspberry Pi OS + Docker + Tailscale + GitHub Actions; alternative: balena), DNS on Cloudflare keeping the GoDaddy mailboxes, tunnel hostnames incl. `*.runflow.club`, arm64 images to GHCR, backups (off-site copy, e.g. Cloudflare R2), restore drill. Checklist: `docs/hosting.md` | [ ] |
+| S8 | QA is disposable (D-039): no backups, restore drills or off-site copies; the nightly backup script and timer are gone and `reset-db.sh` just starts over. Durability moves to production (Aurora backups, P1) | [x] |
 | S12 | Errors to Sentry (D-033): backend (`sentry` + tower layer, release = commit), web (`@sentry/react`, loaded lazily, outside the initial-JS budget), user id only; `SENTRY_DSN` / `VITE_SENTRY_DSN` from the founder | [ ] |
-| S13 | Metrics and logs (D-033): Prometheus `/metrics` on an internal port (requests, latency, jobs, DB pool), Loki for the JSON logs, Grafana dashboards and alerts (API down, errors, job backlog, disk); compose profile `observability` on the Pi or Grafana Cloud's free tier | [ ] |
+| S13 | Telemetry (D-033, D-040): OpenTelemetry pushed over OTLP (works the same on the Pi and on Lambda): traces and metrics from the API and the worker (requests by route and status, latency, jobs run/failed/backlog, DB pool), JSON logs with trace ids; off without `OTEL_EXPORTER_OTLP_ENDPOINT`. Grafana Cloud (free tier): dashboards and alerts (API down, error rate, job backlog) once the founder's stack exists | [ ] |
+| S16 | Lambda-ready (D-040): the same binary runs as an AWS Lambda when the Lambda runtime is present (HTTP through the same router); `runflow tick` runs one worker pass (due jobs, then the minute's scheduled work) for a scheduled invocation; the assistant's per-user limit moves from memory to Postgres; `docs/ops/production.md` lists what P1 sets up and which settings it needs | [ ] |
+| R1 | Free-text workouts, done well with rules (founder, 2026-11-03): one pt-BR parser for the builder's quick text and the assistant's descriptions (coaching shorthand and plain sentences: warm-up/cool-down, reps × distance or time, rests, paces, zones, RPE, progressions, swim strokes and equipment, strength sets × reps × load), golden examples in `api/workout-text-examples.json` that the web app, the mock and the backend must all match; the founder adds examples over time | [ ] |
+
+## Production (its own session, D-040)
+
+| Step | Scope | Status |
+|---|---|---|
+| P1 | Production on AWS (sa-east-1) and Cloudflare: the API as a Lambda (HTTP + scheduled worker pass), the web app on Cloudflare Pages, Aurora PostgreSQL (automated backups, point-in-time restore), S3 for uploads, secrets, domains (`runflow.club`, the API host, club subdomains), Stripe live, Sentry, Grafana Cloud, Resend, Web Push keys; smoke tests against production after each deploy | [ ] |
 
 ## Phase 3: mobile app (`mobile/`) on the real API
 

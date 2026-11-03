@@ -11,9 +11,13 @@ QA is live at **https://qa.runflow.club**:
 - **E-mail:** Resend sends from `contato@`. Sign-in codes arrive, and club e-mails go out in the club's colors.
 - **Strava:** the webhook is subscribed (id 382315).
 - **Deploys:** each one arrives within 5 minutes of a push (`runflow-update` timer). When the database schema changes, QA
-  starts over with an empty database by itself (D-030). The nightly backup runs at 03:30 (database and storage).
+  starts over with an empty database by itself (D-030). QA keeps no backups (D-039): it's disposable.
 - **Speed:** the API answers in about 1 ms on the Pi and about 30 ms more through the tunnel. Bundles are served by Cloudflare's edge.
 - **Storage:** uploads (logos, avatars) live in Garage, a self-hosted S3, next to the API. Production will point the same settings at any S3.
+- **Billing:** QA runs the billing simulation (`BILLING_SIMULATION=true`): "Assinar o Pro" opens Runflow's own test checkout,
+  nothing is charged (D-016). Real Stripe (test mode) is optional, see below.
+- **Push:** VAPID keys are in the Pi's `.env`. On QA, install the app (or use Chrome/Firefox on a computer), then
+  Perfil → Notificações → "Notificações neste aparelho" → Ativar.
 
 ## Now
 
@@ -31,10 +35,8 @@ QA is live at **https://qa.runflow.club**:
     On the Pi, add `CF_CACHE_PURGE_TOKEN=<token>` and `CF_ZONE_ID=<runflow.club → Overview, right column>` to
     `~/runflow/ops/qa/.env` (or send them to me and I'll put them there), then `./purge-edge.sh`.
   - Check: `curl -sI https://qa.runflow.club/ | grep cf-cache-status` says `HIT` (the first request after a purge says `MISS`).
-- [ ] **Change the Pi's password**: `ssh runflow@runflow-qa.local`, then `passwd`. The current one was shared in chat.
-  Tell me if you want me to keep root access. If so, the cleanest way is a sudoers rule only for `apt` and `systemctl`.
-- [ ] **Keep a copy of the Pi's secrets** in your password manager: `scp runflow@runflow-qa.local:runflow/ops/qa/.env ~/runflow-qa.env`.
-  It holds the only copy of the database password, `ENCRYPTION_KEY` (unlocks the stored Strava tokens) and Garage's keys.
+- [x] ~~**Change the Pi's password** / **keep a copy of the Pi's secrets**~~ Not needed (D-039): QA is disposable and its
+  security can stay simple. If the Pi's `.env` is lost, write a new one and run `./reset-db.sh --yes`.
 - [ ] **Club sites** (`paceforte-qa.runflow.club`, S9b): Cloudflare Zero Trust → the tunnel → Routes → Add route →
   Published application: subdomain `*`, domain `runflow.club`, service `http://web:80`. If Cloudflare doesn't create it,
   add a proxied DNS record `*` CNAME → `<tunnel-id>.cfargotunnel.com`. Explicit records (`qa`, `www`, mail) keep winning.
@@ -46,13 +48,19 @@ QA is live at **https://qa.runflow.club**:
 - [ ] **Strava**: strava.com/settings/api → Authorization Callback Domain = `qa.runflow.club`. "Conectar com Strava" is live on QA
   (S9a) and fails at Strava until this is set.
 
+- [ ] *(Optional)* **Stripe in test mode**, to see the real Checkout instead of the simulation: dashboard.stripe.com →
+  Test mode → a product "Runflow Pro" with a recurring price R$ 20/month (its `price_…`), API key `sk_test_…`, and a webhook
+  endpoint `https://qa.runflow.club/api/v1/webhooks/stripe` with the events listed in `.env.example` (its `whsec_…`). Send
+  me the three values (or put `STRIPE_SECRET_KEY`, `STRIPE_PRICE_PRO_MONTHLY`, `STRIPE_WEBHOOK_SECRET` in the Pi's `.env`)
+  and run `./update.sh`. The simulation switches itself off when Stripe is set.
+
 ## Before the private beta
 
-- [ ] **Off-site backups.** Today the dumps sit on the same SD card as the database. Create a Cloudflare R2 bucket
-  `runflow-backups` (10 GB free) and an R2 API token with Object Read & Write on that bucket only. I'll make `backup.sh`
-  copy every dump there and add a restore drill (S8).
-- [ ] **An SSD for the Pi** (M.2 HAT + NVMe, or a USB 3 SSD). SD cards wear out under a database. Today's card is fine while
-  data is disposable (D-030).
+- [x] ~~**Off-site backups** / **an SSD for the Pi**~~ Not needed (D-039): the beta runs on production (D-040), whose
+  database (Aurora) has its own backups.
+- [ ] **Production setup (P1, its own session).** AWS account (sa-east-1) for Lambda, Aurora and S3; Cloudflare Pages for
+  the web app; Stripe live keys; Sentry and Grafana Cloud projects; Resend's production domain. I'll prepare the list of
+  accounts and values before that session (`docs/ops/production.md`, S16).
 - [ ] **Strava app review** with the coaching use case: students consent to share with their club's trainers. Keep the
   written reply on file (`root.md` §11.2).
 - [ ] **Terms and privacy policy (LGPD)** naming the processors: Cloudflare, Resend, Strava, Google, and Sentry once S12 lands.
@@ -63,7 +71,7 @@ QA is live at **https://qa.runflow.club**:
 |---|---|
 | ~~B1 Logo~~ | ~~Pick one of the concepts~~ Done: Ritmo |
 | S12 Sentry | sentry.io → org → two projects (Rust: `runflow-api`, React: `runflow-web`) → their DSNs: `SENTRY_DSN` in the Pi's `.env`, GitHub variable `VITE_SENTRY_DSN` |
-| S13 Grafana | Choose between Grafana Cloud's free tier (nothing to run) and the stack on the Pi (no account, uses ~1 GB RAM) |
+| S13 Grafana | Decided: Grafana Cloud's free tier (D-040). Create a stack at grafana.com, then send me its OTLP endpoint and an access token (or put `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_HEADERS` in the Pi's `.env`) |
 
 ## Handy (on the Pi, in `~/runflow/ops/qa`)
 
@@ -74,4 +82,4 @@ QA is live at **https://qa.runflow.club**:
 | Pin or roll back | `RUNFLOW_TAG=sha-<commit>` in `.env`, then `./update.sh` |
 | Health of everything | `docker compose run --rm api doctor` |
 | Drop the edge copy of the app | `./purge-edge.sh` |
-| Start over with an empty database and storage (D-030) | `./reset-db.sh --yes` (takes a backup first) |
+| Start over with an empty database and storage (D-030) | `./reset-db.sh --yes` (nothing is kept, D-039) |

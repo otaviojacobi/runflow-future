@@ -133,8 +133,8 @@ Your DMARC is `quarantine`: mail from Resend lands in spam until DKIM verifies, 
 
 ### 7a. The card
 
-You're starting on a memory card: fine for QA, but SD cards wear out under a database. Use a good one
-(A2 / "high endurance", 64 GB+), keep the off-Pi backups (step 8), and move to an NVMe SSD before real clubs depend on it (§7.6).
+A memory card is fine: QA is disposable (D-039) and production runs elsewhere (D-040). Use a decent one
+(A2 / "high endurance", 64 GB+); if it dies, flash a new one and follow this guide again.
 
 - [ ] **Raspberry Pi Imager** → Raspberry Pi 5 → **Raspberry Pi OS Lite (64-bit)** → your card → Edit settings:
   hostname `runflow-qa`, username **`runflow`** (the systemd units assume it), your SSH public key, time zone `America/Sao_Paulo`,
@@ -169,23 +169,21 @@ nano .env    # paste TUNNEL_TOKEN, RESEND_API_KEY, GOOGLE_CLIENT_ID, STRAVA_CLIE
 - [ ] Start: `docker compose up -d` then `docker compose ps` (all `healthy`/`running` after ~1 minute).
 - [ ] Check the setup: `docker compose run --rm api doctor` (database ok, e-mail resend, google ok, strava ok, secrets set).
 - [ ] Test e-mail: `docker compose run --rm api email-test --to contato@runflow.club`
-- [ ] Auto-deploy and backups:
+- [ ] Auto-deploy:
 
   ```sh
   sudo cp ~/runflow/ops/qa/runflow-*.service ~/runflow/ops/qa/runflow-*.timer /etc/systemd/system/
   sudo systemctl daemon-reload
-  sudo systemctl enable --now runflow-update.timer runflow-backup.timer
+  sudo systemctl enable --now runflow-update.timer
   systemctl list-timers 'runflow-*'
   ```
 
 ---
 
-## 8. Backups (the Pi is one card away from losing everything)
+## 8. Backups: none (D-039)
 
-- [ ] Nightly at 03:30: `~/runflow-backups/` gets a database dump + a copy of Garage's storage (14 days kept).
-- [ ] Copy them **off the Pi** at least weekly (to your laptop: `scp -r runflow@runflow-qa.local:runflow-backups ~/`; or rclone to a cloud drive).
-- [ ] Once a month, try a restore on your laptop: `gunzip -c runflow-YYYYMMDD-HHMM.sql.gz | docker compose exec -T postgres psql -U runflow -d runflow`
-  (with the repo-root `docker-compose.yaml`, an empty database).
+QA keeps no backups: its data is disposable, `./reset-db.sh --yes` starts it over, and a schema change does that by
+itself. Production's durability comes from Aurora (automated backups, point-in-time restore; D-040, P1).
 
 ---
 
@@ -236,7 +234,5 @@ When it lands you'll add, in the tunnel, a public hostname `*.runflow.club` → 
 | Roll back / pin a version | set `RUNFLOW_TAG=sha-<commit>` in `.env`, then `./update.sh` |
 | Configuration check | `docker compose run --rm api doctor` |
 | Database shell | `docker compose exec postgres psql -U runflow -d runflow` |
-| Backup now | `./backup.sh` |
 
-After the beta: the same images run anywhere (cloud VM, ECS, k8s); move the database with a `pg_dump`/restore and the
-object storage (Garage → the cloud's S3: same S3 settings, new endpoint and keys), point the DNS and the tunnel (or a load balancer) at the new place, and change the redirect target.
+Production doesn't run here: it's AWS Lambda + Cloudflare Pages + Aurora (D-040), set up in its own session (P1).
