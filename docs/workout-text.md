@@ -11,6 +11,10 @@ structure, name, warnings and tags. Change the grammar in all three, in the same
 
 **Adding examples** (the founder sends more over time): see `api/CLAUDE.md` § Workout text examples.
 
+**Beyond the examples**, `node api/mock/workout-text-examples.mjs --corpus /tmp/c.json` writes random texts with the
+mock's answers; `WORKOUT_TEXT_CORPUS=/tmp/c.json cargo test -p runflow-domain --test workout_text -- --ignored`
+compares the backend (`backend/CLAUDE.md`). Run it after changing the grammar.
+
 ## What it understands
 
 | | Examples |
