@@ -28,13 +28,16 @@ src/
   domain/     pure logic copied from the web's src/domain (keep in sync): workout.ts = the workout structure types,
               zones, intensity segments, step texts, estimates
   components/ domain components shared by screens (brand: Runflow mark/wordmark + ClubLogo; sport chips; ComingSoon;
-              workout/ = intensity profile, steps, status, week strip, workout card, feedback sheet, thread);
+              workout/ = intensity profile, steps, status, week strip, workout card, feedback sheet, thread;
+              account/ = C1/M7 sections, confirm sheet, stepper, zones table, notification settings, pt-BR labels);
               shell/ = nav.ts (copy of the web's nav per role, `app` = has a screen here, the rest opens the web) and
               Shell.tsx (top bar with the club switcher and bell, back bar, bottom tab bar)
   lib/        api (ApiError, WEB_URL), session (token in the keychain + cached `/me` and active club in the sync store,
               one snapshot for useSession()), club (active club, homeFor, clubColors, invite links), web (openOnWeb),
               format (copy of the web's), storage (sync kv: native kv-store / web localStorage), secure (token),
-              offline (the student's week saved on the device for the person signed in + the connection state)
+              offline (the student's week saved on the device for the person signed in + the connection state),
+              links (a notification's web path → the app's route when a screen matches), avatar (photo library →
+              ≤ 512 px JPEG data URL), files (a text file through the share sheet; `.web.ts` downloads it)
   theme/      theme.ts (tokens → RN theme, club roles via @runflow/design/color), ThemeProvider (Runflow's theme,
               color mode) + ThemeScope (re-theme a subtree: a club's colors, forced light/dark)
   ui/         the UI kit: same names/variants as frontend/src/ui (index.ts lists them); icons.ts = Lucide icons, one

@@ -161,9 +161,12 @@ export function Checkbox({ checked, onCheckedChange, label, description, disable
 export function Switch({ checked, onCheckedChange, label, description, disabled }: { checked: boolean; onCheckedChange: (v: boolean) => void; label: string; description?: string; disabled?: boolean }) {
   const { theme } = useTheme();
   const c = theme.color;
+  const thumb = theme.mode === "dark" ? c.fg : c.surface;
+  // react-native-web colors the "on" thumb with its own `activeThumbColor` (teal by default).
+  const web = Platform.OS === "web" ? ({ activeThumbColor: thumb } as object) : {};
   const control = (
     <RNSwitch value={checked} onValueChange={onCheckedChange} disabled={disabled}
-      trackColor={{ false: c.lineStrong, true: c.brand.solid }} thumbColor={theme.mode === "dark" ? c.fg : c.surface} ios_backgroundColor={c.lineStrong} />
+      trackColor={{ false: c.lineStrong, true: c.brand.solid }} thumbColor={thumb} ios_backgroundColor={c.lineStrong} {...web} />
   );
   return <ToggleRow role="switch" checked={checked} onCheckedChange={onCheckedChange} label={label} description={description} disabled={disabled} control={control} />;
 }

@@ -60,6 +60,15 @@ function ClubTabs({ role, modalities }: { role: Role; modalities: Sport[] }) {
       </Tabs.Protected>
       <Tabs.Screen name="messages" options={{ title: t("Mensagens") }} />
       <Tabs.Screen name="account" options={{ title: staff ? t("Minha conta") : t("Perfil") }} />
+      {/* Every route must be declared here: an undeclared one redirects to the first tab (SDK 58 tabs). */}
+      <Tabs.Screen name="account/personal" options={{ title: t("Dados pessoais") }} />
+      <Tabs.Screen name="account/notifications" options={{ title: t("Notificações") }} />
+      <Tabs.Screen name="account/privacy" options={{ title: t("Privacidade e dados") }} />
+      <Tabs.Screen name="account/devices" options={{ title: t("Aparelhos conectados") }} />
+      <Tabs.Screen name="account/connections" options={{ title: t("Relógios e apps") }} />
+      <Tabs.Protected guard={!staff} redirectTo="/account">
+        <Tabs.Screen name="account/profile" options={{ title: t("Perfil de atleta") }} />
+      </Tabs.Protected>
       <Tabs.Screen name="notifications" options={{ title: t("Notificações") }} />
     </Tabs>
   );

@@ -105,8 +105,13 @@ export function BackHeader({ title, fallback }: { title: string; fallback: Href 
   );
 }
 
-/** Where a back bar returns to without history: Perfil's links → Perfil, the rest → "Mais" (staff) or home. */
+/** A nested route's parent screen: "account/notifications" → "account" (null for a top-level route). */
+const parentOf = (name: string) => (name.includes("/") ? name.slice(0, name.indexOf("/")) : null);
+
+/** Where a back bar returns to without history: a nested route → its parent, Perfil's links → Perfil, the rest → "Mais" (staff) or home. */
 export function backFallback(name: string, role: Role): Href {
+  const parent = parentOf(name);
+  if (parent) return hrefOf(`/${parent}`);
   if (profileLinksFor(role).some((i) => routeName(i.to) === name)) return "/account";
   return role === "student" ? homeFor(role) : hrefOf("/more");
 }
@@ -116,7 +121,9 @@ export function TabBar({ state, navigateToTab, role, modalities }: BottomTabBarP
   const { theme } = useTheme();
   const c = theme.color;
   const insets = useSafeAreaInsets();
-  const focused = state.routes[state.index]?.name ?? "";
+  // A nested route ("account/privacy") belongs to its parent screen's tab.
+  const current = state.routes[state.index]?.name ?? "";
+  const focused = parentOf(current) ?? current;
   const tabs = tabsFor(role, modalities).map((i) => ({ name: routeName(i.to), label: i.label, icon: i.icon }));
   if (role !== "student") tabs.push({ name: MORE, label: "Mais", icon: MenuIcon });
   // A screen without a tab lights the tab it belongs to: Perfil's links → Perfil; staff extras and the account → "Mais".

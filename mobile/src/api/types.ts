@@ -9,6 +9,8 @@ export type Role = "owner" | "trainer" | "student";
 export type Sport = "run" | "swim" | "bike" | "strength" | "mobility" | "other";
 export type Plan = "free" | "pro" | "max";
 
+export interface Page<T> { items: T[]; next_cursor: string | null }
+
 export interface User {
   id: ID; email: string; name: string; avatar_url: string | null; phone: string | null;
   birth_date: ISODate | null; sex: "female" | "male" | "other" | null; locale: string; created_at: ISOTime;
@@ -36,7 +38,15 @@ export interface Subscription {
   current_period_end: ISOTime | null; cancel_at_period_end: boolean; has_billing_account?: boolean;
 }
 export interface MembershipContext { membership: Membership; club: Club; branding: Branding | null; subscription: Subscription | null }
-export interface Me { user: User; memberships: MembershipContext[]; prefs: unknown; unread_notifications: number }
+/** Push control (D-045): every notification lands in the app; per kind, push to the person's devices on or off, and
+ * `paused` stops every push. */
+export interface KindPref { push: boolean }
+export interface NotificationPrefs { kinds: Record<NotificationKind, KindPref>; paused: boolean }
+export type PrefsPatch = { kinds?: Partial<Record<NotificationKind, KindPref>>; paused?: boolean };
+export interface Me { user: User; memberships: MembershipContext[]; prefs: NotificationPrefs | null; unread_notifications: number }
+export type NotificationKind = "workout_assigned" | "workout_changed" | "week_released" | "comment" | "feedback" | "member_joined" | "billing" | "message" | "announcement";
+export interface AppNotification { id: ID; user_id: ID; club_id: ID | null; kind: NotificationKind; title: string; body: string | null; link: string | null; read_at: ISOTime | null; created_at: ISOTime }
+export interface UserSession { id: ID; kind: "web" | "mobile"; user_agent: string | null; created_at: ISOTime; last_seen_at: ISOTime; current: boolean }
 export interface AuthResult { token: string; user: User; is_new: boolean }
 
 /** Personal invite page data (D-023): GET /public/invites/{token}. */
@@ -69,3 +79,24 @@ export interface Activity {
   laps: { distance_m: number; duration_s: number; avg_hr: number | null; avg_pace_s_per_km?: number }[] | null; polyline: string | null; created_at: ISOTime;
 }
 export interface Comment { id: ID; planned_workout_id: ID; author_membership_id: ID; body: string; created_at: ISOTime; edited_at: ISOTime | null; author: { membership_id: ID; role: Role; user: User } }
+
+export type Goal = "health" | "5k" | "10k" | "21k" | "42k" | "trail" | "triathlon" | "swim" | "strength" | "other";
+export type Level = "beginner" | "intermediate" | "advanced";
+export interface AthleteProfile {
+  membership_id: ID; goal: Goal | null; goal_note: string | null; goal_date: ISODate | null; level: Level | null; weekly_sessions: number | null;
+  max_hr: number | null; resting_hr: number | null; threshold_pace_s_per_km: number | null; css_s_per_100m: number | null; ftp_w: number | null;
+  recent_race: { distance_m: number; time_s: number; date?: ISODate } | null; trainer_notes?: string | null; updated_at: ISOTime;
+  /** Only on the student's own profile (GET /my/profile): latest pace + HR zones, read-only. */
+  zones?: Zone[];
+}
+export interface Connection { id: ID; provider: "strava" | "garmin"; athlete_name: string | null; status: "active" | "error" | "revoked"; connected_at: ISOTime; last_sync_at: ISOTime | null }
+export interface ProviderStatus { provider: "strava" | "garmin"; available: boolean; connection: Connection | null }
+export type ConsentKind = "terms" | "privacy" | "share_training_data" | "share_strava" | "share_garmin";
+export interface Consent { id: ID; user_id: ID; club_id: ID | null; kind: ConsentKind; text_version: string; granted_at: ISOTime; revoked_at: ISOTime | null }
+export interface Zone { id: ID; membership_id: ID; kind: "hr" | "pace" | "swim_pace" | "power"; source: "test" | "race" | "manual" | "estimated"; bounds: { zone: number; min: number; max: number }[]; valid_from: ISODate; created_at: ISOTime }
+
+/** Assessments and tests (api/endpoints.md § Assessments): `data` in, `result` computed by the server. */
+export type AssessmentKind = "body" | "cooper" | "run_3k" | "css" | "ftp" | "one_rm" | "hr_max";
+export type AssessmentData = Partial<{ weight_kg: number; height_cm: number; body_fat_pct: number; waist_cm: number; resting_hr: number; distance_m: number; time_s: number; t400_s: number; t200_s: number; avg_power_w: number; exercise: string; reps: number; max_hr: number }>;
+export type AssessmentResult = Partial<{ bmi: number; vo2max: number; threshold_pace_s_per_km: number; css_s_per_100m: number; ftp_w: number; one_rm_kg: number; max_hr: number }>;
+export interface Assessment { id: ID; club_id: ID; membership_id: ID; kind: AssessmentKind; date: ISODate; data: AssessmentData; result: AssessmentResult; notes: string | null; created_at: ISOTime }
