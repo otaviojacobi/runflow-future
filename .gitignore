@@ -10,3 +10,4 @@ api/mock/.data/
 *.tsbuildinfo
 frontend/test-results/
 frontend/playwright-report/
+.claude/worktrees/
