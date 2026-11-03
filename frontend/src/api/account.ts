@@ -18,7 +18,7 @@ export const useRevokeConsent = () =>
 export const useConnections = () => useQuery({ queryKey: accountKeys.connections, queryFn: () => api.get<{ items: ProviderStatus[] }>("/me/connections").then((r) => r.items) });
 export const useStravaStart = () => useMutation({ mutationFn: () => api.post<{ authorize_url: string; state: string }>("/me/connections/strava/start") });
 export const useStravaCallback = () =>
-  useMutation({ mutationFn: (code: string) => api.post("/me/connections/strava/callback", { code }), onSuccess: () => { queryClient.invalidateQueries({ queryKey: accountKeys.connections }); queryClient.invalidateQueries({ queryKey: ["me", "activities"] }); } });
+  useMutation({ mutationFn: (v: { code: string; state?: string; scope?: string }) => api.post("/me/connections/strava/callback", v), onSuccess: () => { queryClient.invalidateQueries({ queryKey: accountKeys.connections }); queryClient.invalidateQueries({ queryKey: ["me", "activities"] }); } });
 export const useDisconnect = () =>
   useMutation({ mutationFn: (provider: string) => api.del(`/me/connections/${provider}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: accountKeys.connections }); queryClient.invalidateQueries({ queryKey: accountKeys.consents }); } });
 

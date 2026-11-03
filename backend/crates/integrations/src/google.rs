@@ -56,6 +56,11 @@ impl std::fmt::Debug for GoogleVerifier {
 }
 
 impl GoogleVerifier {
+    /// The web OAuth client id (the first audience): what the browser's Google button uses.
+    pub fn web_client_id(&self) -> Option<&str> {
+        self.audiences.first().map(String::as_str)
+    }
+
     pub fn new(jwks_url: impl Into<String>, audiences: Vec<String>) -> Self {
         let http = reqwest::Client::builder()
             .timeout(Duration::from_secs(5))

@@ -6,6 +6,11 @@ import { t } from "@/i18n";
 import { ago } from "@/lib/format";
 import { Badge, Button, Card, Dialog, toast } from "@/ui";
 
+/** Where to go back after Strava's page (the welcome flow or Minha conta), kept across the redirect. */
+export const stravaReturn = {
+  remember: () => { try { sessionStorage.setItem("rf.stravaReturn", window.location.pathname + window.location.hash); } catch { /* storage blocked: back to Minha conta */ } },
+  take: (): string => { try { const v = sessionStorage.getItem("rf.stravaReturn"); return v && v.startsWith("/") ? v : "/account"; } catch { return "/account"; } },
+};
 /** Strava connect/disconnect card (+ Garmin "em breve"). Mock: an in-app authorization dialog stands in for Strava's page. */
 export function ProviderConnections({ onConnected }: { onConnected?: () => void }) {
   const conns = useConnections();
@@ -17,11 +22,11 @@ export function ProviderConnections({ onConnected }: { onConnected?: () => void 
 
   const connect = () =>
     start.mutate(undefined, {
-      onSuccess: (r) => { if (IS_MOCK) setAuthorize(true); else window.location.href = r.authorize_url; },
+      onSuccess: (r) => { if (IS_MOCK) setAuthorize(true); else { stravaReturn.remember(); window.location.href = r.authorize_url; } },
       onError: toast.error,
     });
   const finish = () =>
-    callback.mutate("mock-code", {
+    callback.mutate({ code: "mock-code" }, {
       onSuccess: () => { setAuthorize(false); toast.success(t("Strava conectado"), t("Suas atividades recentes já foram importadas.")); onConnected?.(); },
       onError: toast.error,
     });

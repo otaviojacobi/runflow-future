@@ -16,6 +16,29 @@ async fn health_reports_database(db: PgPool) {
 }
 
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn public_config_tells_the_web_app_what_is_on(db: PgPool) {
+    let off = TestApp::new(db.clone())
+        .get("/v1/public/config", None)
+        .await;
+    assert_eq!(off.ok()["google_client_id"], serde_json::Value::Null);
+    assert_eq!(off.body["strava"], false);
+    let google = runflow_integrations::google::GoogleVerifier::new(
+        "http://127.0.0.1:9/jwks",
+        vec![
+            "web-client.apps.googleusercontent.com".into(),
+            "android".into(),
+        ],
+    );
+    let on = TestApp::with(db, true, Some(google))
+        .get("/v1/public/config", None)
+        .await;
+    assert_eq!(
+        on.ok()["google_client_id"],
+        "web-client.apps.googleusercontent.com"
+    );
+}
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
 async fn unknown_routes_are_pt_br_problems(db: PgPool) {
     let res = TestApp::new(db).get("/v1/nada", None).await;
     res.problem(404, "route.not_found");

@@ -2,7 +2,8 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, CalendarCheck, Mail, Users, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { IS_MOCK, useEmailStart, useEmailVerify, useGoogleSignIn, useMockAccounts } from "@/api/auth";
+import { IS_MOCK, useEmailStart, useEmailVerify, useGoogleSignIn, useMockAccounts, usePublicConfig } from "@/api/auth";
+import { GoogleButton } from "./GoogleButton";
 import type { Me } from "@/api/types";
 import { RunflowWordmark } from "@/components/brand";
 import { IntensityProfile } from "@/components/workout";
@@ -36,6 +37,8 @@ export function SignInScreen() {
   const verify = useEmailVerify();
   const google = useGoogleSignIn();
   const accounts = useMockAccounts(chooser);
+  const config = usePublicConfig();
+  const googleId = IS_MOCK ? null : config.data?.google_client_id ?? null;
   const codeRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -65,7 +68,7 @@ export function SignInScreen() {
         <RunflowWordmark />
         <div className="grid max-w-md gap-8">
           <h1 className="rf-text-display-lg">{t("Treinos que fluem.")}</h1>
-          <p className="rf-text-body-lg text-fg-muted">{t("Planilhas, aulas e o relógio do aluno no mesmo lugar, com a cara do seu clube.")}</p>
+          <p className="rf-text-body-lg text-fg-muted">{t("Planilhas, a semana do aluno e o relógio no mesmo lugar, com a cara do seu clube.")}</p>
           <div className="grid gap-3 rounded-xl border border-line bg-surface p-5">
             <div className="flex items-center justify-between text-sm"><span className="font-semibold">Intervalado 6×1 km</span><span className="text-fg-muted">≈ 59 min</span></div>
             <IntensityProfile structure={HERO} sport="run" height={56} />
@@ -89,10 +92,14 @@ export function SignInScreen() {
                 <p className="text-fg-muted">{t("Use sua conta Google ou receba um código por e-mail. Sem senha para lembrar.")}</p>
               </div>
               <div className="grid gap-4">
-                <Button variant="secondary" size="lg" block icon={<GoogleIcon />} loading={google.isPending} onClick={() => setChooser(true)}>
-                  {t("Continuar com Google")}
-                </Button>
-                <div className="flex items-center gap-3 text-sm text-fg-subtle"><span className="h-px flex-1 bg-line" />{t("ou")}<span className="h-px flex-1 bg-line" /></div>
+                {IS_MOCK ? (
+                  <Button variant="secondary" size="lg" block icon={<GoogleIcon />} loading={google.isPending} onClick={() => setChooser(true)}>
+                    {t("Continuar com Google")}
+                  </Button>
+                ) : googleId ? (
+                  <GoogleButton clientId={googleId} onCredential={(idToken) => google.mutate(idToken, { onSuccess: done, onError: toast.error })} />
+                ) : null}
+                {(IS_MOCK || googleId) && <div className="flex items-center gap-3 text-sm text-fg-subtle"><span className="h-px flex-1 bg-line" />{t("ou")}<span className="h-px flex-1 bg-line" /></div>}
                 <form onSubmit={sendCode} className="grid gap-3" noValidate>
                   <Field label={t("E-mail")} error={emailError} hint={locked ? t("O convite é para este e-mail.") : undefined}>
                     {(id, d) => <Input id={id} aria-describedby={d} type="email" inputMode="email" autoComplete="email" placeholder="nome@email.com" value={email} onChange={(e) => setEmail(e.target.value)} invalid={!!emailError} readOnly={locked} required />}

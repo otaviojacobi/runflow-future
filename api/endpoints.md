@@ -77,6 +77,7 @@ Every user decides what reaches them and how. Per **kind**: `app` (the notificat
 
 | Method | Path | What | Screens |
 |---|---|---|---|
+| GET | `/public/config` | What the web app needs before sign-in: `{google_client_id, strava}` (the web OAuth client id, or null when Google sign-in is off; whether Strava is configured). Mock: `google_client_id` null (its own account chooser) | A2 |
 | GET | `/health` | `{ok, version, database: {ok, latency_ms}}`; `503 health.database_unavailable` when the database is down. The mock adds `anchor_date` and `routes` | — |
 | GET / POST | `/webhooks/strava` | Strava webhook: GET answers the subscription handshake (`hub.verify_token` = `STRAVA_WEBHOOK_VERIFY_TOKEN`); POST events are recorded once and applied by the worker (activity create/update fetched from Strava, delete, athlete deauthorization = disconnect). Backend only | — |
 

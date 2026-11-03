@@ -47,8 +47,11 @@ const invite = createRoute({ getParentRoute: () => root, path: "/invite/$token",
 const devComponents = createRoute({ getParentRoute: () => root, path: "/dev/components", component: lazyRouteComponent(() => import("./screens/dev/Components"), "ComponentsScreen") });
 const devLogo = createRoute({ getParentRoute: () => root, path: "/dev/logo", component: lazyRouteComponent(() => import("./screens/dev/Logo"), "LogoScreen") });
 const devStatus = createRoute({ getParentRoute: () => root, path: "/dev/status", component: lazyRouteComponent(() => import("./screens/dev/Status"), "StatusScreen") });
-const devOutbox = createRoute({ getParentRoute: () => root, path: "/dev/outbox", component: lazyRouteComponent(() => import("./screens/dev/Outbox"), "OutboxScreen") });
-const devStripe = createRoute({ getParentRoute: () => root, path: "/dev/stripe/$kind", component: lazyRouteComponent(() => import("./screens/dev/StripeMock"), "StripeMockScreen") });
+// Mock-only stand-ins (the dev e-mail outbox, fake Stripe): left out of builds for the real backend (S9).
+const mockOnly = import.meta.env.VITE_MOCK !== "false" ? [
+  createRoute({ getParentRoute: () => root, path: "/dev/outbox", component: lazyRouteComponent(() => import("./screens/dev/Outbox"), "OutboxScreen") }),
+  createRoute({ getParentRoute: () => root, path: "/dev/stripe/$kind", component: lazyRouteComponent(() => import("./screens/dev/StripeMock"), "StripeMockScreen") }),
+] : [];
 
 // ---------------------------------------------------------------- signed in, outside the shell
 const authed = createRoute({
@@ -77,6 +80,7 @@ const staff = gate("staff", ["owner", "trainer"]);
 const owner = gate("owner", ["owner"]);
 const student = gate("student", ["student"]);
 const S = () => staff, O = () => owner, St = () => student, Sh = () => shell;
+const str = (v: unknown) => (typeof v === "string" ? v : undefined);
 
 const staffRoutes = [
   r(S, "/dashboard", lazyRouteComponent(() => import("./screens/staff/Dashboard"), "DashboardScreen")),
@@ -113,10 +117,13 @@ const commonRoutes = [
   r(Sh, "/messages", lazyRouteComponent(() => import("./screens/common/messages/Messages"), "MessagesScreen")),
   r(Sh, "/notifications", lazyRouteComponent(() => import("./screens/common/Notifications"), "NotificationsScreen")),
   r(Sh, "/account", lazyRouteComponent(() => import("./screens/common/Account"), "AccountScreen")),
+  createRoute({ getParentRoute: Sh, path: "/connect/strava", component: lazyRouteComponent(() => import("./screens/common/ConnectStrava"), "ConnectStravaScreen"),
+    validateSearch: (s: Record<string, unknown>): { code?: string; state?: string; scope?: string; error?: string } => ({ code: str(s.code), state: str(s.state), scope: str(s.scope), error: str(s.error) }) }),
 ];
 
 const routeTree = root.addChildren([
-  index, appHome, signIn, invite, devComponents, devStatus, devLogo, devStripe, devOutbox,
+  index, appHome, signIn, invite, devComponents, devStatus, devLogo,
+  ...mockOnly,
   authed.addChildren([
     clubs, createClub, welcome,
     shell.addChildren([staff.addChildren(staffRoutes), owner.addChildren(ownerRoutes), student.addChildren(studentRoutes), ...commonRoutes]),

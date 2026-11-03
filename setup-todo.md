@@ -34,8 +34,10 @@ QA is live at **https://qa.runflow.club**:
 - [ ] **Keep a copy of the Pi's secrets** in your password manager: `scp runflow@runflow-qa.local:runflow/ops/qa/.env ~/runflow-qa.env`.
   It holds the only copy of the database password and `ENCRYPTION_KEY`, which unlocks the stored Strava tokens.
 - [ ] **Google sign-in**: Google Cloud → APIs & Services → Credentials → the Web client → Authorized JavaScript origins:
-  `https://qa.runflow.club` and `http://localhost:8080`. The button itself ships in S9.
-- [ ] **Strava**: strava.com/settings/api → Authorization Callback Domain = `qa.runflow.club` (needed when "Conectar Strava" goes live in S9).
+  `https://qa.runflow.club` and `http://localhost:8080`. The "Continuar com Google" button is live on QA now (S9a); until the
+  origin is added, Google answers it with an error.
+- [ ] **Strava**: strava.com/settings/api → Authorization Callback Domain = `qa.runflow.club`. "Conectar com Strava" is live on QA
+  now (S9a) and fails at Strava until this is set.
 
 ## Before the private beta
 
@@ -53,7 +55,7 @@ QA is live at **https://qa.runflow.club**:
 | Step | What you'll do |
 |---|---|
 | B1 Logo | Pick one of the concepts (or redirect) |
-| S9 Web on the real backend | Tunnel → Routes → add `*.runflow.club` → `http://web:80` and a proxied DNS record `*` (club sites `<club>-qa.runflow.club`, D-029); add the Google client id as GitHub repo variable `VITE_GOOGLE_CLIENT_ID` |
+| S9b Club subdomains | Tunnel → Routes → add `*.runflow.club` → `http://web:80` and a proxied DNS record `*` (club sites `<club>-qa.runflow.club`, D-029) |
 | S11 Smoke tests | One random secret, `openssl rand -hex 32`, saved twice: as GitHub secret `SMOKE_KEY` and as `SMOKE_KEY=` in the Pi's `.env` |
 | S12 Sentry | sentry.io → org → two projects (Rust: `runflow-api`, React: `runflow-web`) → their DSNs: `SENTRY_DSN` in the Pi's `.env`, GitHub variable `VITE_SENTRY_DSN` |
 | S13 Grafana | Choose between Grafana Cloud's free tier (nothing to run) and the stack on the Pi (no account, uses ~1 GB RAM) |

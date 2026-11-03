@@ -1,4 +1,5 @@
 //! `GET /v1/health`: liveness plus a database round trip. Used by Docker, the apps and uptime checks.
+//! `GET /v1/public/config`: what the web app needs before sign-in (the Google client id, Strava on/off).
 
 use axum::extract::State;
 use axum::http::StatusCode;
@@ -22,7 +23,9 @@ struct Database {
 }
 
 pub fn routes() -> Router<AppState> {
-    Router::new().route("/health", get(health))
+    Router::new()
+        .route("/health", get(health))
+        .route("/public/config", get(config))
 }
 
 async fn health(State(state): State<AppState>) -> Result<Json<Health>, Problem> {
@@ -45,4 +48,11 @@ async fn health(State(state): State<AppState>) -> Result<Json<Health>, Problem> 
             ))
         }
     }
+}
+
+async fn config(State(state): State<AppState>) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "google_client_id": state.google.as_ref().and_then(|g| g.web_client_id()),
+        "strava": state.strava.is_some(),
+    }))
 }
