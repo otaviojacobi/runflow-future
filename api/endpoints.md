@@ -179,7 +179,7 @@ Every user decides what reaches them and how. Per **kind**: `app` (the notificat
 | PATCH / DELETE | `/clubs/{club_id}/exercises/{id}` | Club exercises only; global ones → `403 exercise.global` (create a club version instead) | W18 |
 
 ### Assistant (AI)
-Staff only. Responses carry `source` (`rules` in the mock; the backend's model name). Limits: `429 ai.rate_limited` (20/min per user in the mock; the backend adds a monthly cap per plan). Provider, model and budget: root.md §11.
+Staff only. Responses carry `source`: `rules` (the deterministic rules engine, in the mock and the backend) until an LLM is chosen (root.md §11), then the model name. Limits: `429 ai.rate_limited` at 20 requests a minute per user, rejected ones included (an LLM adds a monthly cap per plan). Provider, model and budget: root.md §11.
 
 | Method | Path | Purpose | Screens |
 |---|---|---|---|

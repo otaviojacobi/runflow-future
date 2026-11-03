@@ -25,7 +25,8 @@ crates/
                  session.rs (tokens, cookies, Auth extractor), routes/ (one module per contract section)
   db/            pool, migrations (embedded), models.rs (JSON row shapes), one query module per area,
                  tests/contract.rs (migrations == api/schema.sql)
-  domain/        pure rules, no I/O: the club color engine (port of design/src/color.js)
+  domain/        pure rules, no I/O: the club color engine (port of design/src/color.js), workout structure and
+                 estimates, week release timing, notification rules, assessment formulas, the assistant's rules engine
   jobs/          the worker: Postgres queue (FOR UPDATE SKIP LOCKED), retries with backoff; job kinds (invite e-mails)
   integrations/  email (Resend + log with a dev outbox, token-based layout), google (ID-token verification);
                  later Strava, Stripe

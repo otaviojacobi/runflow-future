@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.status AS \"status?\" FROM planned_workouts p\n             LEFT JOIN workout_completions c ON c.planned_workout_id = p.id\n            WHERE p.athlete_membership_id = $1 AND p.date >= $2 AND p.date < $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "status"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "a15cca6a8ae8e976b78db45c8d55fc78a5942b5cd725923c702b489f012d6e09"
+}

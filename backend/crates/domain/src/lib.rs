@@ -2,6 +2,7 @@
 //! (and is proven by shared fixtures) lives here.
 
 pub mod assessment;
+pub mod assistant;
 pub mod color;
 pub mod notify;
 pub mod tags;

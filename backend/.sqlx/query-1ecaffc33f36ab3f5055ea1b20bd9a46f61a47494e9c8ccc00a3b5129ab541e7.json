@@ -1,0 +1,104 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.id AS membership_id, p.id AS planned_workout_id, u.name, p.title,\n                  c.status AS \"status?\", c.rpe AS \"rpe?\", c.comment AS \"comment?\"\n             FROM planned_workouts p\n             JOIN memberships m ON m.id = p.athlete_membership_id\n             JOIN users u ON u.id = m.user_id\n             LEFT JOIN workout_completions c ON c.planned_workout_id = p.id\n            WHERE m.club_id = $1 AND m.role = 'student' AND m.status = 'active'\n              AND ($2::uuid IS NULL OR EXISTS (SELECT 1 FROM group_members g WHERE g.group_id = $2 AND g.membership_id = m.id))\n              AND p.date BETWEEN $3 AND $4 AND p.date < $5\n            ORDER BY p.date, p.position, p.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "memberships",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "planned_workout_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "planned_workouts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "title",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "planned_workouts",
+            "name": "title"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "status?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "rpe?",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "rpe"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "comment?",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "comment"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Date",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "1ecaffc33f36ab3f5055ea1b20bd9a46f61a47494e9c8ccc00a3b5129ab541e7"
+}

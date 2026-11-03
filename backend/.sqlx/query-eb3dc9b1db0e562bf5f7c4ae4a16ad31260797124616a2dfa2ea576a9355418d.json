@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT u.name FROM memberships m JOIN users u ON u.id = m.user_id\n          WHERE m.id = $1 AND m.club_id = $2 AND m.role = 'student' AND m.status = 'active'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "eb3dc9b1db0e562bf5f7c4ae4a16ad31260797124616a2dfa2ea576a9355418d"
+}

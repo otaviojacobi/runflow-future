@@ -238,6 +238,79 @@ pub fn resolve_targets(structure: &Value, zones: &[(String, Value)]) -> Value {
     out
 }
 
+/// Planned pace (s/km) per zone when a step only says "zone N" (the mock's `ZONE_PACE`).
+const ZONE_PACE: [f64; 5] = [390.0, 345.0, 310.0, 285.0, 260.0];
+
+fn number(v: &Value, k: &str) -> f64 {
+    v.get(k).and_then(Value::as_f64).unwrap_or(0.0)
+}
+
+/// Seconds per meter at a step's target.
+fn per_meter(sport: &str, target: &Value) -> f64 {
+    let kind = target.get("type").and_then(Value::as_str);
+    let mid = (number(target, "min_s") + number(target, "max_s")) / 2.0;
+    match (sport, kind) {
+        ("swim", Some("pace")) => mid / 100.0,
+        ("swim", _) => 1.25,
+        (_, Some("pace")) => mid / 1000.0,
+        (_, Some("zone")) => {
+            let z = target.get("zone").and_then(Value::as_u64).unwrap_or(0) as usize;
+            ZONE_PACE.get(z.wrapping_sub(1)).copied().unwrap_or(330.0) / 1000.0
+        }
+        _ => 0.33,
+    }
+}
+
+/// Adds `blocks` (each `mult` times) to the running `(seconds, meters)`.
+fn walk(sport: &str, blocks: &[Value], mult: f64, total: &mut (f64, f64)) {
+    for b in blocks {
+        match b.get("kind").and_then(Value::as_str) {
+            Some("repeat") => {
+                let steps = b.get("steps").and_then(Value::as_array);
+                walk(
+                    sport,
+                    steps.map_or(&[], Vec::as_slice),
+                    mult * number(b, "count"),
+                    total,
+                );
+            }
+            Some("exercise") => {
+                let rest = Some(number(b, "rest_s"))
+                    .filter(|r| *r != 0.0)
+                    .unwrap_or(60.0);
+                total.0 += mult * number(b, "sets") * (45.0 + rest);
+            }
+            _ => {
+                let (d, target) = (&b["duration"], &b["target"]);
+                match d.get("type").and_then(Value::as_str) {
+                    Some("time") => {
+                        total.0 += mult * number(d, "s");
+                        if sport == "run" || sport == "swim" {
+                            total.1 += mult * number(d, "s") / per_meter(sport, target);
+                        }
+                    }
+                    Some("distance") => {
+                        total.1 += mult * number(d, "m");
+                        total.0 += mult * number(d, "m") * per_meter(sport, target);
+                    }
+                    _ => total.0 += mult * 300.0,
+                }
+            }
+        }
+    }
+}
+
+/// `(est_duration_s, est_distance_m)` for a structure, like `estimate` in api/mock/seed.mjs: whole minutes, and a
+/// distance rounded to 100 m for run, swim and bike (`None` otherwise).
+pub fn estimate(sport: &str, structure: &Value) -> (i64, Option<i64>) {
+    let mut total = (0.0, 0.0);
+    let blocks = structure.get("blocks").and_then(Value::as_array);
+    walk(sport, blocks.map_or(&[], Vec::as_slice), 1.0, &mut total);
+    let round = |x: f64| (x + 0.5).floor() as i64;
+    let distance = matches!(sport, "run" | "swim" | "bike").then(|| round(total.1 / 100.0) * 100);
+    (round(total.0 / 60.0) * 60, distance)
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;
@@ -273,5 +346,28 @@ mod tests {
                 "{bad}"
             );
         }
+    }
+
+    // Expected values: `estimate` in api/mock/seed.mjs on the same structures.
+    #[test]
+    fn estimates_match_the_mock() {
+        let intervals = json!({ "v": 1, "blocks": [
+            { "kind": "step", "intent": "warmup", "duration": { "type": "time", "s": 900 }, "target": { "type": "zone", "metric": "pace", "zone": 2 } },
+            { "kind": "repeat", "count": 6, "steps": [
+                { "kind": "step", "intent": "active", "duration": { "type": "distance", "m": 800 }, "target": { "type": "pace", "min_s": 245, "max_s": 255 } },
+                { "kind": "step", "intent": "recovery", "duration": { "type": "time", "s": 120 }, "target": { "type": "open" } } ] },
+            { "kind": "step", "intent": "cooldown", "duration": { "type": "time", "s": 600 }, "target": { "type": "zone", "metric": "pace", "zone": 1 } }
+        ] });
+        assert_eq!(estimate("run", &intervals), (3420, Some(11100)));
+        let strength = json!({ "v": 1, "blocks": [
+            { "kind": "exercise", "name": "Agachamento", "sets": 4, "reps": "10", "rest_s": 60 },
+            { "kind": "exercise", "name": "Remada", "sets": 3, "reps": "12", "rest_s": 60 },
+            { "kind": "exercise", "name": "Prancha", "sets": 3, "reps": "30", "rest_s": 60 }
+        ] });
+        assert_eq!(estimate("strength", &strength), (1080, None));
+        let swim = json!({ "v": 1, "blocks": [{ "kind": "repeat", "count": 8, "steps": [
+            { "kind": "step", "intent": "active", "duration": { "type": "distance", "m": 100 }, "target": { "type": "zone", "metric": "pace", "zone": 3 } },
+            { "kind": "step", "intent": "rest", "duration": { "type": "time", "s": 20 }, "target": { "type": "open" } } ] }] });
+        assert_eq!(estimate("swim", &swim), (1140, Some(900)));
     }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "runflow-domain"
-description = "Pure types and rules (no I/O): the club color engine, workout structure, tags, week release timing"
+description = "Pure types and rules (no I/O): the club color engine, workout structure, tags, week release timing, assessments, the assistant's rules engine"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -9,6 +9,7 @@ publish.workspace = true
 [dependencies]
 chrono.workspace = true
 chrono-tz.workspace = true
+regex.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 

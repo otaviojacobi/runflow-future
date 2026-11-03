@@ -5,6 +5,7 @@
 //! `api/schema.sql`, and `tests/contract.rs` proves both produce the same database.
 
 pub mod assessments;
+pub mod assistant;
 pub mod athletes;
 pub mod auth;
 pub mod clubs;

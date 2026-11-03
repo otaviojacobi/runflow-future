@@ -26,6 +26,7 @@ dotenvy = "0.15"
 http-body-util = "0.1"
 object_store = { version = "0.14", features = ["aws"] }
 jsonwebtoken = { version = "11", default-features = false, features = ["aws_lc_rs", "use_pem"] }
+regex = "1"
 reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "http2", "form", "query"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

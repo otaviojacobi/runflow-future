@@ -110,7 +110,7 @@ export default function register(h) {
     const longKm = (LONG_KM[p.goal] || LONG_KM.health)[li];
     const items = SLOTS[n].map((wd, i) => ({ date: h.addDays(monday, wd - 1), kind: KINDS[n][i] }))
       .filter((x) => !taken.has(x.date))
-      .map((x) => { const ses = session(daysToGoal != null && daysToGoal <= 6 && x.kind === "long" ? "easy" : x.kind, li, longKm, factor); return { date: x.date, sport: "run", title: ses.title, structure: ses.s, ...estimate("run", ses.s), reason: ses.why }; });
+      .map((x) => { const ses = session(daysToGoal != null && daysToGoal >= 0 && daysToGoal <= 6 && x.kind === "long" ? "easy" : x.kind, li, longKm, factor); return { date: x.date, sport: "run", title: ses.title, structure: ses.s, ...estimate("run", ses.s), reason: ses.why }; });
     const goalTxt = { "5k": "5 km", "10k": "10 km", "21k": "meia maratona", "42k": "maratona", trail: "trail", health: "saúde" }[p.goal] || "condicionamento";
     return { membership_id: m.id, week_start: monday, rationale: [`${user.name.split(" ")[0]}: objetivo ${goalTxt}, nível ${{ beginner: "iniciante", intermediate: "intermediário", advanced: "avançado" }[level]}, ${n} treinos por semana.`, ...notes], items, source: "rules" };
   });
