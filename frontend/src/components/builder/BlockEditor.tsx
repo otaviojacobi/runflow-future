@@ -32,22 +32,40 @@ export const newStep = (sport: Sport, intent: Intent = "active"): Step =>
     ? { kind: "step", intent, duration: { type: "distance", m: 100 }, target: { type: "open" }, stroke: "free" }
     : { kind: "step", intent, duration: intent === "active" ? { type: "distance", m: 1000 } : { type: "time", s: intent === "recovery" ? 120 : 600 }, target: intent === "active" ? { type: "zone", metric: "pace", zone: 3 } : { type: "zone", metric: "pace", zone: intent === "recovery" || intent === "cooldown" ? 1 : 2 } };
 export const newRepeat = (sport: Sport): Repeat => ({ kind: "repeat", count: 4, steps: [newStep(sport, "active"), newStep(sport, "recovery")] });
+/** "15 a 20 vezes": the upper count stays while it's above the lower one. */
+const withCount = (r: Repeat, count: number, max?: number): Repeat => {
+  const { max_count: _drop, ...rest } = r;
+  void _drop;
+  return max !== undefined && max > count ? { ...rest, count, max_count: max } : { ...rest, count };
+};
 export const newExercise = (): Exercise => ({ kind: "exercise", name: "", sets: 3, reps: "10", load: { type: "bodyweight" }, rest_s: 60 });
 
 // ---------------------------------------------------------------- step row
+/** A range ("30–40 min", "60–80 m": the athlete picks) keeps its upper end while it stays above the lower one. */
+const timeWithMax = (s: number, max?: number): Duration => (max !== undefined && max > s ? { type: "time", s, max_s: max } : { type: "time", s });
+const distanceWithMax = (m: number, max?: number): Duration => (max !== undefined && max > m ? { type: "distance", m, max_m: max } : { type: "distance", m });
 function DurationInput({ d, sport, onChange }: { d: Duration; sport: Sport; onChange: (d: Duration) => void }) {
   const km = sport !== "swim";
+  const kmIn = (m: number) => (km ? String(m / 1000).replace(".", ",") : String(m));
+  const kmOut = (v: string) => { const x = Number(v.replace(",", ".")); return x > 0 ? Math.round(km ? x * 1000 : x) : null; };
   return (
     <div className="flex items-center gap-1.5">
       <select aria-label={t("Tipo de duração")} className={sel} value={d.type} onChange={(e) => onChange(e.target.value === "time" ? { type: "time", s: 600 } : e.target.value === "distance" ? { type: "distance", m: km ? 1000 : 100 } : { type: "open" })}>
         <option value="time">{t("Tempo")}</option><option value="distance">{t("Distância")}</option><option value="open">{t("Até a volta")}</option>
       </select>
-      {d.type === "time" && <input aria-label={t("Tempo (min ou mm:ss)")} className={cn(field, "w-20 tabular-nums")} defaultValue={clockIn(d.s)} key={d.s} onBlur={(e) => { const s = parseClock(e.target.value); if (s && s > 0) onChange({ type: "time", s }); else e.target.value = clockIn(d.s); }} />}
+      {d.type === "time" && (
+        <span className="flex items-center gap-1 text-xs text-fg-muted">
+          <input aria-label={t("Tempo (min ou mm:ss)")} className={cn(field, "w-20 tabular-nums")} defaultValue={clockIn(d.s)} key={d.s} onBlur={(e) => { const s = parseClock(e.target.value); if (s && s > 0) onChange(timeWithMax(s, d.max_s)); else e.target.value = clockIn(d.s); }} />
+          {d.max_s !== undefined && <>–<input aria-label={t("Tempo máximo (min ou mm:ss)")} className={cn(field, "w-20 tabular-nums")} defaultValue={clockIn(d.max_s)} key={"max" + d.max_s} onBlur={(e) => { const v = e.target.value.trim() ? parseClock(e.target.value) : null; onChange(timeWithMax(d.s, v ?? undefined)); }} /></>}
+        </span>
+      )}
       {d.type === "distance" && (
-        <span className="flex items-center gap-1">
-          <input aria-label={km ? t("Distância em km") : t("Distância em metros")} inputMode="decimal" className={cn(field, "w-20 tabular-nums")} defaultValue={km ? String(d.m / 1000).replace(".", ",") : String(d.m)} key={d.m}
-            onBlur={(e) => { const v = Number(e.target.value.replace(",", ".")); if (v > 0) onChange({ type: "distance", m: Math.round(km ? v * 1000 : v) }); else e.target.value = km ? String(d.m / 1000) : String(d.m); }} />
-          <span className="text-xs text-fg-muted">{km ? "km" : "m"}</span>
+        <span className="flex items-center gap-1 text-xs text-fg-muted">
+          <input aria-label={km ? t("Distância em km") : t("Distância em metros")} inputMode="decimal" className={cn(field, "w-20 tabular-nums")} defaultValue={kmIn(d.m)} key={d.m}
+            onBlur={(e) => { const m = kmOut(e.target.value); if (m) onChange(distanceWithMax(m, d.max_m)); else e.target.value = kmIn(d.m); }} />
+          {d.max_m !== undefined && <>–<input aria-label={km ? t("Distância máxima em km") : t("Distância máxima em metros")} inputMode="decimal" className={cn(field, "w-20 tabular-nums")} defaultValue={kmIn(d.max_m)} key={"max" + d.max_m}
+            onBlur={(e) => onChange(distanceWithMax(d.m, kmOut(e.target.value) ?? undefined))} /></>}
+          <span>{km ? "km" : "m"}</span>
         </span>
       )}
     </div>
@@ -84,7 +102,9 @@ function TargetInput({ tg, sport, onChange }: { tg: Target; sport: Sport; onChan
           <input aria-label={t("FC máxima")} type="number" className={cn(field, "w-16")} value={tg.max} onChange={(e) => onChange({ ...tg, max: Number(e.target.value) })} />bpm
         </span>
       )}
+      {/* A new number drops the coach's word ("forte" is PSE 8 only). */}
       {tg.type === "rpe" && <select aria-label={t("PSE")} className={sel} value={tg.value} onChange={(e) => onChange({ type: "rpe", value: Number(e.target.value) })}>{Array.from({ length: 10 }, (_, i) => <option key={i} value={i + 1}>{i + 1}</option>)}</select>}
+      {tg.type === "rpe" && tg.label && <span className="text-xs text-fg-muted">{tg.label}</span>}
     </div>
   );
 }
@@ -184,8 +204,10 @@ export function BlockEditor({ blocks, sport, onChange }: { blocks: Block[]; spor
             <div className="flex flex-wrap items-center gap-2">
               <RepeatIcon className="size-4 text-fg-muted" />
               <span className="text-sm font-semibold">{t("Série: repetir")}</span>
-              <input aria-label={t("Repetições da série")} type="number" min={1} max={99} className={cn(field, "w-16 text-center font-bold")} value={r.count} onChange={(e) => set(i, { ...r, count: Math.max(1, Math.min(99, Number(e.target.value))) })} />
+              <input aria-label={t("Repetições da série")} type="number" min={1} max={99} className={cn(field, "w-16 text-center font-bold")} value={r.count} onChange={(e) => set(i, withCount(r, Math.max(1, Math.min(99, Number(e.target.value))), r.max_count))} />
+              {r.max_count !== undefined && <><span className="text-sm text-fg-muted">{t("a")}</span><input aria-label={t("Máximo de repetições da série")} type="number" min={1} max={200} className={cn(field, "w-16 text-center font-bold")} value={r.max_count} onChange={(e) => set(i, withCount(r, r.count, Math.min(200, Number(e.target.value))))} /></>}
               <span className="text-sm text-fg-muted">{t("vezes")}</span>
+              <input aria-label={t("Nome da série")} placeholder={t("Nome (opcional)")} className={cn(field, "w-40 min-w-0")} value={r.note ?? ""} onChange={(e) => set(i, { ...r, note: e.target.value || undefined })} />
               <div className="ml-auto flex items-center">{actions(i, t("série"))}</div>
             </div>
             {r.steps.map((s, j) => (

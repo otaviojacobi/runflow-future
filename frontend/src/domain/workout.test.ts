@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estimate, segments, stepText, type Structure } from "./workout";
+import { countText, estimate, segments, stepText, type Repeat, type Step, type Structure } from "./workout";
 
 const intervals: Structure = { v: 1, blocks: [
   { kind: "step", intent: "warmup", duration: { type: "time", s: 600 }, target: { type: "zone", metric: "pace", zone: 2 } },
@@ -26,5 +26,14 @@ describe("workout structure", () => {
     expect(stepText(intervals.blocks[0] as never, "run")).toBe("10′ aquecimento · Z2");
     const rep = intervals.blocks[1] as unknown as { steps: never[] };
     expect(stepText(rep.steps[0], "run")).toBe("1 km · 4:25–4:35 /km");
+  });
+  it("shows the coach's PSE word and ranges, and estimates with the lower bound (R2)", () => {
+    const hill: Step = { kind: "step", intent: "active", duration: { type: "distance", m: 60, max_m: 80 }, target: { type: "rpe", value: 3, label: "leve" } };
+    expect(stepText(hill, "run")).toBe("60–80 m · PSE leve (3)");
+    expect(stepText({ ...hill, duration: { type: "time", s: 1800, max_s: 2400 }, target: { type: "rpe", value: 8 } }, "run")).toBe("30–40′ · PSE 8");
+    expect(stepText({ ...hill, duration: { type: "distance", m: 800, max_m: 1000 } }, "run")).toBe("800 m–1 km · PSE leve (3)");
+    const set: Repeat = { kind: "repeat", count: 15, max_count: 20, steps: [hill] };
+    expect(countText(set)).toBe("15–20");
+    expect(estimate({ v: 1, blocks: [set] }, "run").distance_m).toBe(900);
   });
 });

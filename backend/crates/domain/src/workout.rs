@@ -31,9 +31,12 @@ pub struct Step {
     pub send_off_s: Option<u32>,
 }
 
+/// `max_count`: "15–20×" (the athlete picks; estimates use `count`). `note`: the block's name ("Cruise Interval").
 #[derive(Debug, Deserialize)]
 pub struct Repeat {
     pub count: u32,
+    pub max_count: Option<u32>,
+    pub note: Option<String>,
     pub steps: Vec<Step>,
 }
 
@@ -60,14 +63,16 @@ pub enum Intent {
     Other,
 }
 
+/// `max_s` / `max_m`: a range the athlete picks by feel ("60–80 m"); estimates use the lower bound.
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum Duration {
-    Time { s: u32 },
-    Distance { m: u32 },
+    Time { s: u32, max_s: Option<u32> },
+    Distance { m: u32, max_m: Option<u32> },
     Open,
 }
 
+/// `Rpe.label`: the coach's word for it ("forte" → 8).
 #[derive(Debug, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum Target {
@@ -76,7 +81,7 @@ pub enum Target {
     Pace { min_s: u32, max_s: u32 },
     Hr { min: u32, max: u32 },
     Power { min: u32, max: u32 },
-    Rpe { value: u8 },
+    Rpe { value: u8, label: Option<String> },
 }
 
 #[derive(Debug, Deserialize)]
@@ -137,11 +142,24 @@ pub enum StructureError {
 }
 
 fn check_step(s: &Step) -> Result<(), String> {
+    match s.duration {
+        Duration::Time {
+            s: lo,
+            max_s: Some(hi),
+        }
+        | Duration::Distance {
+            m: lo,
+            max_m: Some(hi),
+        } if hi < lo => {
+            return Err("duration max < min".into());
+        }
+        _ => {}
+    }
     match s.target {
         Target::Zone { zone, .. } if !(1..=5).contains(&zone) => {
             return Err(format!("zone {zone} out of 1..5"));
         }
-        Target::Rpe { value } if !(1..=10).contains(&value) => {
+        Target::Rpe { value, .. } if !(1..=10).contains(&value) => {
             return Err(format!("rpe {value} out of 1..10"));
         }
         Target::Pace { min_s, max_s }
@@ -177,6 +195,11 @@ pub fn validate(value: &Value) -> Result<Structure, StructureError> {
                 if r.count == 0 || r.count > 200 || r.steps.is_empty() {
                     return Err(StructureError::Invalid(
                         "repeat needs 1..200 rounds and steps".into(),
+                    ));
+                }
+                if r.max_count.is_some_and(|m| m < r.count || m > 200) {
+                    return Err(StructureError::Invalid(
+                        "repeat max_count out of count..200".into(),
                     ));
                 }
                 for st in &r.steps {
@@ -257,6 +280,18 @@ fn per_meter(sport: &str, target: &Value) -> f64 {
             let z = target.get("zone").and_then(Value::as_u64).unwrap_or(0) as usize;
             ZONE_PACE.get(z.wrapping_sub(1)).copied().unwrap_or(330.0) / 1000.0
         }
+        // PSE → the zone it stands for (1–2 → Z1 … 9–10 → Z5), like the mock and the web app.
+        (_, Some("rpe")) => {
+            let v = target.get("value").and_then(Value::as_u64).unwrap_or(0);
+            let z = match v {
+                9.. => 5,
+                7..=8 => 4,
+                5..=6 => 3,
+                3..=4 => 2,
+                _ => 1,
+            };
+            ZONE_PACE[z - 1] / 1000.0
+        }
         _ => 0.33,
     }
 }
@@ -330,16 +365,31 @@ mod tests {
         if let Err(e) = validate(&ok) {
             panic!("{e:?}");
         }
+        // Ranges the athlete picks, a named block, PSE with the coach's word (R2).
+        let ranges = json!({ "v": 1, "blocks": [
+            { "kind": "repeat", "count": 15, "max_count": 20, "note": "Bloco do sábado", "steps": [
+                { "kind": "step", "intent": "active", "duration": { "type": "distance", "m": 60, "max_m": 80 }, "target": { "type": "rpe", "value": 3, "label": "leve" }, "note": "subida" },
+                { "kind": "step", "intent": "rest", "duration": { "type": "time", "s": 60, "max_s": 90 }, "target": { "type": "open" } } ] }
+        ] });
+        if let Err(e) = validate(&ranges) {
+            panic!("{e:?}");
+        }
         assert_eq!(
             validate(&json!({ "v": 1, "blocks": [] })).unwrap_err(),
             StructureError::Empty
         );
+        let step = |duration: Value| json!({ "kind": "step", "intent": "active", "duration": duration, "target": { "type": "open" } });
         for bad in [
             json!({ "v": 2, "blocks": [] }),
             json!({ "blocks": [] }),
             json!({ "v": 1, "blocks": [{ "kind": "jump" }] }),
             json!({ "v": 1, "blocks": [{ "kind": "step", "intent": "active", "duration": { "type": "time", "s": 60 }, "target": { "type": "zone", "metric": "hr", "zone": 7 } }] }),
             json!({ "v": 1, "blocks": [{ "kind": "repeat", "count": 0, "steps": [] }] }),
+            json!({ "v": 1, "blocks": [{ "kind": "repeat", "count": 15, "max_count": 10, "steps": [step(json!({ "type": "time", "s": 60 }))] }] }),
+            json!({ "v": 1, "blocks": [{ "kind": "repeat", "count": 15, "max_count": 201, "steps": [step(json!({ "type": "time", "s": 60 }))] }] }),
+            json!({ "v": 1, "blocks": [step(json!({ "type": "distance", "m": 80, "max_m": 60 }))] }),
+            json!({ "v": 1, "blocks": [step(json!({ "type": "time", "s": 600, "max_s": 300 }))] }),
+            json!({ "v": 1, "blocks": [{ "kind": "step", "intent": "active", "duration": { "type": "time", "s": 60 }, "target": { "type": "rpe", "value": 8, "label": 8 } }] }),
         ] {
             assert!(
                 matches!(validate(&bad), Err(StructureError::Invalid(_))),
@@ -359,6 +409,13 @@ mod tests {
             { "kind": "step", "intent": "cooldown", "duration": { "type": "time", "s": 600 }, "target": { "type": "zone", "metric": "pace", "zone": 1 } }
         ] });
         assert_eq!(estimate("run", &intervals), (3420, Some(11100)));
+        // PSE counts as the zone it stands for (8 → Z4, 285 s/km); ranges use the lower bound.
+        let pse = json!({ "v": 1, "blocks": [
+            { "kind": "repeat", "count": 15, "max_count": 20, "steps": [
+                { "kind": "step", "intent": "active", "duration": { "type": "distance", "m": 60, "max_m": 80 }, "target": { "type": "rpe", "value": 3, "label": "leve" } } ] },
+            { "kind": "step", "intent": "active", "duration": { "type": "distance", "m": 5000 }, "target": { "type": "rpe", "value": 8, "label": "forte" } }
+        ] });
+        assert_eq!(estimate("run", &pse), (1740, Some(5900)));
         let strength = json!({ "v": 1, "blocks": [
             { "kind": "exercise", "name": "Agachamento", "sets": 4, "reps": "10", "rest_s": 60 },
             { "kind": "exercise", "name": "Remada", "sets": 3, "reps": "12", "rest_s": 60 },

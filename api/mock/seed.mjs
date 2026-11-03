@@ -73,6 +73,8 @@ export function estimate(sport, structure) {
     if (sport === "swim") return t && t.type === "pace" ? (t.min_s + t.max_s) / 2 / 100 : 1.25;
     if (t && t.type === "pace") return (t.min_s + t.max_s) / 2 / 1000;
     if (t && t.type === "zone") return ZONE_PACE[t.zone] / 1000;
+    // PSE → the zone it stands for (1–2 → Z1 … 9–10 → Z5), like the frontend's zoneOf.
+    if (t && t.type === "rpe") return ZONE_PACE[t.value >= 9 ? 5 : t.value >= 7 ? 4 : t.value >= 5 ? 3 : t.value >= 3 ? 2 : 1] / 1000;
     return 330 / 1000;
   };
   const walk = (blocks, mult) => {

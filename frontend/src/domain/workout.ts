@@ -4,19 +4,22 @@ import { clock, distance as fmtDistance, pace as fmtPace } from "@/lib/format";
 import { t } from "@/i18n";
 
 export type ZoneN = 1 | 2 | 3 | 4 | 5;
-export type Duration = { type: "time"; s: number } | { type: "distance"; m: number } | { type: "open" };
+/** `max_s` / `max_m`: a range the athlete picks by feel ("60–80 m"); estimates and exports use the lower bound. */
+export type Duration = { type: "time"; s: number; max_s?: number } | { type: "distance"; m: number; max_m?: number } | { type: "open" };
+/** `rpe.label`: the word the coach wrote ("forte" → PSE 8), shown instead of the bare number. */
 export type Target =
   | { type: "open" }
   | { type: "zone"; metric: "hr" | "pace" | "power"; zone: ZoneN; resolved?: { min_s?: number; max_s?: number; min?: number; max?: number } }
   | { type: "pace"; min_s: number; max_s: number }
   | { type: "hr"; min: number; max: number }
   | { type: "power"; min: number; max: number }
-  | { type: "rpe"; value: number };
+  | { type: "rpe"; value: number; label?: string };
 export type Intent = "warmup" | "active" | "recovery" | "rest" | "cooldown" | "other";
 export type Stroke = "free" | "back" | "breast" | "fly" | "im" | "choice" | "kick" | "drill";
 export type Equipment = "pullbuoy" | "kickboard" | "fins" | "paddles" | "snorkel";
 export interface Step { kind: "step"; intent: Intent; duration: Duration; target: Target; note?: string; stroke?: Stroke; equipment?: Equipment[]; send_off_s?: number }
-export interface Repeat { kind: "repeat"; count: number; steps: Step[] }
+/** `max_count`: "15–20×" (the athlete picks; estimates use `count`). `note`: the block's name ("Cruise Interval"). */
+export interface Repeat { kind: "repeat"; count: number; max_count?: number; note?: string; steps: Step[] }
 export interface Load { type: "kg" | "pct_1rm" | "bodyweight" | "rpe"; value?: number }
 export interface Exercise { kind: "exercise"; name: string; sets: number; reps: string; load?: Load; rest_s?: number; tempo?: string; note?: string; exercise_id?: string }
 export type Block = Step | Repeat | Exercise;
@@ -87,11 +90,21 @@ export function estimate(structure: Structure, sport: Sport): { duration_s: numb
 }
 
 const minutes = (s: number) => (s % 60 === 0 ? `${s / 60}′` : clock(s));
+/** "60 m" + "80 m" → "60–80 m"; "30′" + "40′" → "30–40′"; "800 m" + "1 km" → "800 m–1 km". */
+const range = (a: string, b: string) => {
+  for (const u of [" km", " m", "′"]) if (a.endsWith(u) && b.endsWith(u)) return `${a.slice(0, -u.length)}–${b}`;
+  return `${a}–${b}`;
+};
 export function durationText(d: Duration, sport: Sport): string {
-  if (d.type === "time") return minutes(d.s);
-  if (d.type === "distance") return fmtDistance(d.m, { swim: sport === "swim" });
+  if (d.type === "time") return d.max_s !== undefined ? range(minutes(d.s), minutes(d.max_s)) : minutes(d.s);
+  if (d.type === "distance") {
+    const a = fmtDistance(d.m, { swim: sport === "swim" });
+    return d.max_m !== undefined ? range(a, fmtDistance(d.max_m, { swim: sport === "swim" })) : a;
+  }
   return t("até apertar a volta");
 }
+/** "6×", "15–20×". */
+export const countText = (r: Repeat) => (r.max_count !== undefined ? `${r.count}–${r.max_count}` : String(r.count));
 export function targetText(tg: Target, sport: Sport): string | null {
   switch (tg.type) {
     case "open": return null;
@@ -105,7 +118,8 @@ export function targetText(tg: Target, sport: Sport): string | null {
     case "pace": return `${fmtPace(tg.min_s)}–${fmtPace(tg.max_s)} ${sport === "swim" ? "/100 m" : "/km"}`;
     case "hr": return `${tg.min}–${tg.max} bpm`;
     case "power": return `${tg.min}–${tg.max} W`;
-    case "rpe": return t("PSE {n}", { n: tg.value });
+    // The coach's word leads ("PSE forte (8)"); the number alone when there's none.
+    case "rpe": return tg.label ? t("PSE {label} ({n})", { label: tg.label, n: tg.value }) : t("PSE {n}", { n: tg.value });
   }
 }
 /** "10′ aquecimento · Z2" / "1 km · 4:25–4:35 /km" / "100 m crawl · saída 2:00". */
