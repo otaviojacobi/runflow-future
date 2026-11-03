@@ -170,6 +170,11 @@
   :focus-visible { outline: 2px solid var(--rf-brand-ring); outline-offset: 2px; }
   ::selection { background: var(--rf-brand-subtle); color: var(--rf-brand-subtle-fg); }
   .tnum { font-variant-numeric: tabular-nums; }
+  /* F40: Tailwind v4 leaves buttons with the default arrow; everything clickable gets the pointer, disabled the "not allowed". */
+  button, [role="button"], [role="tab"], [role="menuitem"], [role="option"], [role="switch"], [role="checkbox"], [role="radio"],
+  [type="button"], [type="submit"], [type="reset"], select, summary, label:has(> input[type="checkbox"]), label:has(> input[type="radio"]),
+  input[type="checkbox"], input[type="radio"], input[type="file"] { cursor: pointer; }
+  :disabled, [aria-disabled="true"], [data-disabled] { cursor: not-allowed; }
 }
 
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
