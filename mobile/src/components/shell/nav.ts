@@ -30,7 +30,7 @@ const STAFF_TRAINING: NavItem[] = [
   { to: "/reports", label: "Relatórios", icon: BarChart3 },
 ];
 const STAFF_TEAM: NavItem[] = [
-  { to: "/races/manage", label: "Provas", icon: Flag },
+  { to: "/races/manage", label: "Provas", icon: Flag, app: true },
 ];
 const OWNER: NavItem[] = [
   { to: "/club/studio", label: "Club Studio", icon: Palette },

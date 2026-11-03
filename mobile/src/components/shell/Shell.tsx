@@ -109,6 +109,8 @@ const parentOf = (name: string) => (name.includes("/") ? name.slice(0, name.inde
 
 /** Where a back bar returns to without history: a nested route → its parent, Perfil's links → Perfil, the rest → "Mais" (staff) or home. */
 export function backFallback(name: string, role: Role): Href {
+  // A staff tool listed in "Mais" (e.g. "races/manage") goes back to "Mais", not to a student-only parent route.
+  if (role !== "student" && moreFor(role).some((g) => g.items.some((i) => routeName(i.to) === name))) return hrefOf("/more");
   const parent = parentOf(name);
   // A workout opens from Hoje, Agenda or an activity; there's no /workouts list to go up to.
   if (parent === "workouts") return homeFor(role);
@@ -133,7 +135,7 @@ export function TabBar({ state, descriptors, navigateToTab, role, modalities }: 
   // A screen without a tab lights the tab it belongs to: Perfil's links → Perfil; staff extras and the account → "Mais".
   const owner = tabs.some((x) => x.name === focused) ? focused
     : profileLinksFor(role).some((i) => routeName(i.to) === focused) ? "account"
-    : role !== "student" && (focused === "account" || moreFor(role, modalities).some((g) => g.items.some((i) => routeName(i.to) === focused))) ? MORE : "";
+    : role !== "student" && (focused === "account" || moreFor(role, modalities).some((g) => g.items.some((i) => routeName(i.to) === focused || routeName(i.to) === current))) ? MORE : "";
   const go = (name: string) => {
     const route = state.routes.find((r) => r.name === name);
     if (route) navigateToTab(route.key);

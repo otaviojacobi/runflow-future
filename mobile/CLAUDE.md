@@ -36,7 +36,8 @@ src/
               account/ = C1/M7 sections, confirm sheet, stepper, zones table, notification settings, pt-BR labels;
               messages/ = conversation rows, the chat thread and composer, announcement cards, the stack's top bar;
               activity.tsx = an activity row; connections/StravaConnect = the "Conectar com Strava" hook + mock sheet;
-              club/ = color picker, theme preview (a phone in a club's colors), the one-by-one invite form);
+              club/ = color picker, theme preview (a phone in a club's colors), the one-by-one invite form;
+              races.tsx = race labels, distances, countdown, date tile, entry badge);
               shell/ = nav.ts (copy of the web's nav per role, `app` = has a screen here, the rest opens the web) and
               Shell.tsx (top bar with the club switcher and bell, back bar, bottom tab bar)
   lib/        api (ApiError, WEB_URL), session (token in the keychain + cached `/me` and active club in the sync store,

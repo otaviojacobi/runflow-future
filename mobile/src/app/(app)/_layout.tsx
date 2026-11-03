@@ -59,6 +59,7 @@ function ClubTabs({ role, modalities }: { role: Role; modalities: Sport[] }) {
         <Tabs.Screen name="planning" options={{ title: t("Planejamento") }} />
         <Tabs.Screen name="feedback" options={{ title: t("Feedbacks") }} />
         <Tabs.Screen name="more" options={{ title: t("Mais") }} />
+        <Tabs.Screen name="races/manage" options={{ title: t("Provas e eventos") }} />
       </Tabs.Protected>
       <Tabs.Screen name="messages" options={{ title: t("Mensagens") }} />
       <Tabs.Screen name="account" options={{ title: staff ? t("Minha conta") : t("Perfil") }} />
