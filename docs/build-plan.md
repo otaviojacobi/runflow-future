@@ -106,7 +106,7 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 
 | Step | Scope | Status |
 |---|---|---|
-| P1 | Production on AWS (sa-east-1) and Cloudflare, including what makes the binary run there (founder, 2026-11-03: all production work waits for this session): the API as a Lambda (HTTP through the same router + a scheduled worker pass, telemetry flushed per invocation, the assistant's per-user limit out of memory), the web app on Cloudflare Pages, Aurora PostgreSQL (automated backups, point-in-time restore), S3 for uploads, secrets, domains (`runflow.club`, the API host, club subdomains), Stripe live, Sentry, Grafana Cloud, Resend, Web Push keys; smoke tests against production after each deploy | [ ] |
+| P1 | (Under review, founder 2026-11-03: free tiers first; options and a proposed P1a–P1c split in `docs/next-steps.md`.) Production on AWS (sa-east-1) and Cloudflare, including what makes the binary run there (founder, 2026-11-03: all production work waits for this session): the API as a Lambda (HTTP through the same router + a scheduled worker pass, telemetry flushed per invocation, the assistant's per-user limit out of memory), the web app on Cloudflare Pages, Aurora PostgreSQL (automated backups, point-in-time restore), S3 for uploads, secrets, domains (`runflow.club`, the API host, club subdomains), Stripe live, Sentry, Grafana Cloud, Resend, Web Push keys; smoke tests against production after each deploy | [ ] |
 
 ## Phase 3: mobile app (`mobile/`) on the real API
 
