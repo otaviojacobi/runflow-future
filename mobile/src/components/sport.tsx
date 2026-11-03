@@ -7,7 +7,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { Text } from "@/ui";
 import { Activity, Bike, Dumbbell, Footprints, PersonStanding, Waves, type Icon } from "@/ui/icons";
 
-export const SPORT_LABEL: Record<Sport, string> = { run: "Corrida", swim: "Natação", bike: "Ciclismo", strength: "Musculação", mobility: "Mobilidade", other: "Outro" };
+export const SPORT_LABEL: Record<Sport, string> = { run: "Corrida", swim: "Natação", bike: "Ciclismo", strength: "Musculação", mobility: "Funcional", other: "Outro" };
 export const SPORT_ICON: Record<Sport, Icon> = { run: Footprints, swim: Waves, bike: Bike, strength: Dumbbell, mobility: PersonStanding, other: Activity };
 
 export function SportChip({ sport, size = "md" }: { sport: Sport; size?: "sm" | "md" }) {

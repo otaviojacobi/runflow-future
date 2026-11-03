@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { IS_MOCK, useEmailStart, useEmailVerify, useGoogleSignIn, useMockAccounts, usePublicConfig } from "@/api/auth";
 import { GoogleButton } from "./GoogleButton";
 import type { Me } from "@/api/types";
-import { RunflowWordmark } from "@/components/brand";
+import { RunflowHomeLink } from "@/components/brand";
 import { IntensityProfile } from "@/components/workout";
 import type { Structure } from "@/domain/workout";
 import { t } from "@/i18n";
@@ -65,7 +65,7 @@ export function SignInScreen() {
   return (
     <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       <aside data-theme="dark" className="relative hidden flex-col justify-between overflow-hidden bg-canvas p-12 text-fg lg:flex">
-        <RunflowWordmark />
+        <RunflowHomeLink />
         <div className="grid max-w-md gap-8">
           <h1 className="rf-text-display-lg">{t("Treinos que fluem.")}</h1>
           <p className="rf-text-body-lg text-fg-muted">{t("Planilhas, a semana do aluno e o relógio no mesmo lugar, com a cara do seu clube.")}</p>
@@ -83,7 +83,7 @@ export function SignInScreen() {
       </aside>
 
       <main className="flex flex-col px-5 py-8 sm:px-10">
-        <div className="lg:hidden"><RunflowWordmark /></div>
+        <div className="lg:hidden"><RunflowHomeLink /></div>
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 py-10">
           {step === "start" ? (
             <>

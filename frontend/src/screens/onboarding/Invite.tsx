@@ -4,7 +4,7 @@ import { CircleAlert, LogIn, LogOut, Mail, MapPin, Users } from "lucide-react";
 import { useAcceptInvite, usePublicInvite } from "@/api/clubs";
 import { fetchMe, meKey, useMe } from "@/api/me";
 import { signOut } from "@/api/auth";
-import { ClubLogo, RunflowWordmark } from "@/components/brand";
+import { ClubLogo, RunflowHomeLink } from "@/components/brand";
 import { SportChip } from "@/components/sport";
 import { t, tn } from "@/i18n";
 import { fullDate, localDate } from "@/lib/format";
@@ -46,7 +46,7 @@ export function InviteScreen() {
   const notFound = inv.error instanceof ApiError && inv.error.status === 404;
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="mx-auto flex w-full max-w-lg items-center px-5 py-4"><RunflowWordmark className="opacity-80" /></header>
+      <header className="mx-auto flex w-full max-w-lg items-center px-5 py-4"><RunflowHomeLink className="opacity-80" /></header>
       <main className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-5 pb-16">
         {inv.isPending ? (
           <Card className="grid justify-items-center gap-4 p-8"><Skeleton className="size-20 rounded-2xl" /><Skeleton className="h-7 w-64" /><Skeleton className="h-4 w-48" /></Card>

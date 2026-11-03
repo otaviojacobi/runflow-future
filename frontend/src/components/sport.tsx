@@ -4,7 +4,7 @@ import { t } from "@/i18n";
 import { cn } from "@/ui";
 
 export const SPORTS: Sport[] = ["run", "swim", "bike", "strength", "mobility", "other"];
-export const SPORT_LABEL: Record<Sport, string> = { run: "Corrida", swim: "Natação", bike: "Ciclismo", strength: "Musculação", mobility: "Mobilidade", other: "Outro" };
+export const SPORT_LABEL: Record<Sport, string> = { run: "Corrida", swim: "Natação", bike: "Ciclismo", strength: "Musculação", mobility: "Funcional", other: "Outro" };
 export const SPORT_ICON: Record<Sport, LucideIcon> = { run: Footprints, swim: Waves, bike: Bike, strength: Dumbbell, mobility: PersonStanding, other: Activity };
 const SOFT: Record<Sport, string> = {
   run: "bg-run-soft text-on-run-soft", swim: "bg-swim-soft text-on-swim-soft", bike: "bg-bike-soft text-on-bike-soft",

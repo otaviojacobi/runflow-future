@@ -8,7 +8,7 @@ import { readLogo, useCreateClub, useSaveBranding, useUploadAsset } from "@/api/
 import { useTemplates } from "@/api/library";
 import { fetchMe, meKey } from "@/api/me";
 import type { Club, Sport } from "@/api/types";
-import { RunflowWordmark } from "@/components/brand";
+import { RunflowHomeLink } from "@/components/brand";
 import { ColorPicker, PRIMARY_PRESETS, SECONDARY_PRESETS } from "@/components/club/ColorPicker";
 import { InviteForm } from "@/components/club/InviteDialog";
 import { ThemePreview } from "@/components/club/ThemePreview";
@@ -54,7 +54,7 @@ export function CreateClubScreen() {
     <div className="min-h-dvh">
       <header className="sticky top-0 z-20 border-b border-line bg-canvas/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-4xl items-center gap-4 px-5 py-3">
-          <RunflowWordmark />
+          <RunflowHomeLink />
           <div className="ml-auto"><Button variant="ghost" size="sm" icon={<X />} onClick={() => navigate({ to: club ? "/dashboard" : "/clubs" })}>{club ? t("Terminar depois") : t("Cancelar")}</Button></div>
         </div>
       </header>

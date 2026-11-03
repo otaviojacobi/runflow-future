@@ -5,7 +5,7 @@ import { useState } from "react";
 import { signOut } from "@/api/auth";
 import { useMe } from "@/api/me";
 import type { MembershipContext } from "@/api/types";
-import { ClubLogo, RunflowWordmark } from "@/components/brand";
+import { ClubLogo, RunflowHomeLink } from "@/components/brand";
 import { t } from "@/i18n";
 import { ROLE_LABEL, activeMembership, homeFor, selectClub } from "@/lib/club";
 import { Badge, Button, ButtonLink, Card, Field, Input, Skeleton } from "@/ui";
@@ -40,7 +40,7 @@ export function ClubsScreen() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-lg flex-col gap-8 px-5 py-8">
       <header className="flex items-center justify-between">
-        <RunflowWordmark />
+        <RunflowHomeLink />
         <Button variant="ghost" size="sm" icon={<LogOut />} onClick={async () => { await signOut(); navigate({ to: "/login" }); }}>{t("Sair")}</Button>
       </header>
       {me.isPending ? (

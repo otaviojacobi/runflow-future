@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import Color from "@runflow/design/color";
 import Logo from "@runflow/design/logo";
@@ -19,6 +20,15 @@ export function RunflowMark({ size = 32, className, mono }: { size?: number; cla
     </svg>
   );
 }
+/** The wordmark as a link to the landing page (`/`): top left on public pages (sign-in, invite, clubs, club creation). */
+export function RunflowHomeLink({ className }: { className?: string }) {
+  return (
+    <Link to="/" aria-label="Runflow" className={cn("inline-flex rounded-md focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-brand-ring", className)}>
+      <RunflowWordmark />
+    </Link>
+  );
+}
+
 export function RunflowWordmark({ className, mark }: { className?: string; mark?: ReactNode }) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>

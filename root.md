@@ -182,6 +182,7 @@ Auth is **Sign in with Google** or an **email one-time code**. There are no pass
 | class / booking / waitlist | aula / reserva / lista de espera | |
 | drill / kickboard / paddles / fins | educativo / prancha / palmar / nadadeira | swimming |
 | sets / reps / load / rest | séries / repetições / carga / intervalo | strength |
+| mobility (sport) | funcional | Founder (2026-11-03): the `mobility` sport is shown as "Funcional"; the key stays `mobility`. The landing lists Corrida, Natação, Ciclismo, Funcional |
 
 ---
 

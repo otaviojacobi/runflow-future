@@ -1,5 +1,5 @@
 /** A1 · Landing (runflow.club). Public. Every visual is a live product component. Route: / */
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight, BadgeCheck, CalendarCheck, CalendarClock, Check, ChevronDown, ClipboardList, Gauge, Library, MessageSquare,
   Smartphone, Sparkles, Users, Wallet, Wand2, Zap,
@@ -9,7 +9,8 @@ import { IS_MOCK, useGoogleSignIn } from "@/api/auth";
 import { usePlans } from "@/api/billing";
 import type { Plan, Sport } from "@/api/types";
 import { extraText, featuresOf, price, seatsText } from "@/components/billing/plans";
-import { RunflowWordmark } from "@/components/brand";
+import flagBr from "@/assets/flag-br.svg";
+import { RunflowHomeLink } from "@/components/brand";
 import { ThemePreview } from "@/components/club/ThemePreview";
 import { SPORT_ICON, SPORT_LABEL, SportChip } from "@/components/sport";
 import { IntensityProfile, zoneBg } from "@/components/workout";
@@ -68,7 +69,7 @@ function Header() {
   return (
     <header className="sticky top-0 z-30 border-b border-line/60 bg-canvas/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-5">
-        <Link to="/" aria-label="Runflow"><RunflowWordmark /></Link>
+        <RunflowHomeLink />
         <nav className="hidden gap-6 text-sm font-semibold text-fg-muted md:flex" aria-label={t("Seções")}>
           <a href="#treinos" className="hover:text-fg">{t("Treinos")}</a><a href="#recursos" className="hover:text-fg">{t("Recursos")}</a>
           <a href="#clube" className="hover:text-fg">{t("Seu clube")}</a><a href="#precos" className="hover:text-fg">{t("Preços")}</a><a href="#faq" className="hover:text-fg">{t("Dúvidas")}</a>
@@ -124,14 +125,14 @@ function Modalities() {
   const items: { s: Sport; text: string }[] = [
     { s: "run", text: "Planilhas, tiros, longões e zonas de pace por aluno." },
     { s: "swim", text: "Séries com saída, estilos, educativos e material." },
-    { s: "strength", text: "Fichas com séries, carga em kg ou % 1RM e descanso." },
     { s: "bike", text: "Treinos por zona, potência ou frequência cardíaca." },
+    { s: "mobility", text: "Circuitos, core e mobilidade, com séries, tempos e descanso." },
   ];
   return (
     <section className="border-b border-line bg-surface">
       <div className="mx-auto grid max-w-6xl gap-4 px-5 py-10 sm:grid-cols-2 lg:grid-cols-4">
         {items.map(({ s, text }) => { const I = SPORT_ICON[s]; return (
-          <div key={s} className="flex gap-3"><span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", { run: "bg-run text-on-run", swim: "bg-swim text-on-swim", strength: "bg-strength text-on-strength", bike: "bg-bike text-on-bike" }[s as "run"])}><I className="size-5" /></span>
+          <div key={s} className="flex gap-3"><span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", { run: "bg-run text-on-run", swim: "bg-swim text-on-swim", bike: "bg-bike text-on-bike", mobility: "bg-mobility text-on-mobility" }[s as "run"])}><I className="size-5" /></span>
             <div><div className="font-bold">{t(SPORT_LABEL[s])}</div><p className="text-sm text-fg-muted">{t(text)}</p></div></div>
         ); })}
       </div>
@@ -321,14 +322,14 @@ export function LandingScreen() {
             <h2 className="rf-text-display-md text-balance">{t("Seu clube no Runflow em 5 minutos.")}</h2>
             <p className="max-w-xl text-lg text-fg-muted">{t("Crie o clube, coloque o logo, convide os alunos por e-mail. Pronto.")}</p>
             <div className="flex flex-wrap justify-center gap-3"><ButtonLink to="/login" size="lg" iconRight={<ArrowRight />}>{t("Criar meu clube grátis")}</ButtonLink><ButtonLink to="/login" size="lg" variant="secondary">{t("Já tenho conta")}</ButtonLink></div>
-            <div className="flex flex-wrap justify-center gap-2 pt-2">{(["run", "swim", "strength", "bike", "mobility"] as Sport[]).map((s) => <SportChip key={s} sport={s} size="sm" />)}</div>
+            <div className="flex flex-wrap justify-center gap-2 pt-2">{(["run", "swim", "bike", "mobility"] as Sport[]).map((s) => <SportChip key={s} sport={s} size="sm" />)}</div>
           </div>
         </section>
       </main>
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-5 py-8 text-sm text-fg-muted">
-          <RunflowWordmark />
-          <span>© 2026 Runflow · {t("Feito no Brasil")}</span>
+          <RunflowHomeLink />
+          <span className="inline-flex items-center gap-1.5">© 2026 Runflow · {t("Feito no Brasil")}<img src={flagBr} alt="" aria-hidden width={20} height={14} className="h-3.5 w-5" /></span>
           <span className="ml-auto flex gap-5"><a href="#" className="hover:text-fg">{t("Termos de uso")}</a><a href="#" className="hover:text-fg">{t("Privacidade")}</a><a href="mailto:contato@runflow.club" className="hover:text-fg">contato@runflow.club</a></span>
         </div>
       </footer>

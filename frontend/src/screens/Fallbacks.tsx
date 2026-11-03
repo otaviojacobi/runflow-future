@@ -2,7 +2,7 @@
 import { Link, useRouter } from "@tanstack/react-router";
 import { Compass, RotateCcw, TriangleAlert } from "lucide-react";
 import { useEffect, useState } from "react";
-import { RunflowWordmark } from "@/components/brand";
+import { RunflowHomeLink } from "@/components/brand";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { session } from "@/lib/session";
@@ -14,7 +14,7 @@ function Frame({ icon, title, children }: { icon: React.ReactNode; title: string
   return (
     <main className="grid min-h-dvh place-items-center bg-canvas px-5 py-10 text-fg">
       <div className="grid max-w-md justify-items-center gap-5 text-center">
-        <RunflowWordmark />
+        <RunflowHomeLink />
         <span className="grid size-16 place-items-center rounded-full bg-brand-soft text-on-brand-soft">{icon}</span>
         <h1 className="rf-text-display-sm">{title}</h1>
         {children}
