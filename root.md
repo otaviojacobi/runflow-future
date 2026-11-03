@@ -496,6 +496,7 @@ flowchart LR
 - 2026-11-03. Sentry projects created (org `runflow-zw`): backend and frontend for QA and production; QA reports errors now, production keys wait for P1.
 - 2026-11-03. **R1 free-text workouts:** one rules grammar for coaching shorthand and plain pt-BR sentences (repeats and series, recoveries, paces and rep times, zones and intensity words, RPE, heart rate, power/FTP, progressions, swim strokes/equipment/send-offs, strength sets × reps × load), ported identically to the web builder (TS), the mock and the backend (Rust); 171 golden examples in `api/workout-text-examples.json` checked by all three (plus a random corpus for the backend). What isn't understood becomes a warning; `/ai/workout` now returns `warnings` and `tags`. Grammar and known gaps: `docs/workout-text.md`; how the founder adds examples: `api/CLAUDE.md`.
 - 2026-11-03. Founder: club sites/custom domains removed entirely (D-042, F38); plan wording "Todos os recursos do plano Free/Pro". R1 merged; mobile X1–X3 merged, X4/X4b/X7/X8 running in parallel.
+- 2026-11-03. Session paused by the founder. Queued: B2 plans v2 (seats per role), B3 Stripe for real on QA, B4 club freezing for unpaid subscriptions. Mobile X4, X4b, X7, X8 paused mid-work on local branches (`docs/build-plan.md`).
 - 2026-11-01. Founder decisions: design-first Phase 0 with the full UI mocked before implementation (D-015); Stripe, no charging during the beta, NFS-e outside the product (D-016); trainers see all students (D-017); Runflow is the app and clubs only theme it (D-018); Apple and Garmin developer programs deferred (D-007, D-011); no guardian accounts. Added the screen inventory (§6.1) and `CLAUDE.md`. Roadmap renumbered: Phase 0 is now design and validation, and **D1 is next**.
 
 ---
@@ -503,7 +504,7 @@ flowchart LR
 ## 11. Open questions and deferred items
 
 **Open**
-1. **Max plan.** Student cap, price, and per-student fee.
+1. **Plans v2 (B2–B4, founder 2026-11-03).** Seats per role are set (Free 1+1+10, Pro 1+2+30, Max 1+5+100 included); to confirm: Max base price (proposal R$ 59/month), per-seat prices above Max (founder suggested R$ 5 per trainer, R$ 0,50 per student), the grace period before freezing an unpaid club (proposal 7 days).
 2. **Strava written confirmation.** In Strava's app review, describe the coaching use case (students consent to share with their club's trainers) and keep the reply on file. Do this before inviting real clubs.
 3. **Brand.** Palette and type approved in D1; logo "Ritmo" chosen (D-038, 2026-11-03) and applied everywhere (B1b).
 4. **AI provider and budget (F27).** The assistant runs on deterministic rules in the mock and the backend (`source: "rules"`, no student data leaves the server). Founder (2026-11-03): make free-text parsing excellent with rules first (R1 done: one grammar in the web builder, the mock and the backend, golden examples in `api/workout-text-examples.json` that the founder keeps adding to, `docs/workout-text.md`); an LLM may plug in later behind the same contract, with a per-club monthly cap per plan and only the club's own data (LGPD: never health notes without consent).
