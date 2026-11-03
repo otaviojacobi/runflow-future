@@ -7,7 +7,7 @@ The Runflow app for Android and iOS: Expo SDK 58 (React Native 0.88, new archite
 | From the repo root | What |
 |---|---|
 | `npm run dev:mobile` | Expo dev server with the web preview on **:8082** (`r` reload, `a` Android emulator, QR for Expo Go). Needs the mock API (`npm run dev`) |
-| `npm run check -w @runflow/mobile` | Typecheck (part of `npm run check`) |
+| `npm run check -w @runflow/mobile` | Typecheck (part of `npm run check`); it first writes the typed routes (`scripts/typed-routes.mjs`), so no dev server is needed |
 | `cd mobile && npx expo install <pkg>` | Add a dependency with the SDK-compatible version. Never plain `npm i` for Expo/RN packages |
 | `cd mobile && npx expo export --platform android` | Bundle check without a device |
 

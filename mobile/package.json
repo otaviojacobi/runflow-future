@@ -42,7 +42,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web --port 8082",
-    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "typecheck": "node scripts/typed-routes.mjs && tsc --noEmit -p tsconfig.json",
     "lint": "expo lint",
     "check": "npm run typecheck"
   },
