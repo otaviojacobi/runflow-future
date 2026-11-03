@@ -84,6 +84,9 @@ QA is live at **https://qa.runflow.club**:
   accounts and values at the start of that session.
 - [ ] **Strava app review** with the coaching use case: students consent to share with their club's trainers. Keep the
   written reply on file (`root.md` §11.2).
+- [ ] **Phone push credentials (X10, before TestFlight / Play testing builds):** Expo account and project, Apple
+  Developer Program + an APNs key, a Firebase project + an FCM v1 service account key, all uploaded to EAS. Step by
+  step: [docs/ops/push-notifications.md](docs/ops/push-notifications.md).
 - [ ] **Terms and privacy policy (LGPD)** naming the processors: Cloudflare, Resend, Strava, Google, and Sentry once S12 lands.
 
 ## When these steps land (I'll ping you)
@@ -94,7 +97,7 @@ QA is live at **https://qa.runflow.club**:
 | ~~S12 Sentry~~ | Done (2026-11-03): org `runflow-zw`, projects `runflow-backend-qa`, `runflow-frontend-qa`, `runflow-backend-prod`, `runflow-frontend-prod` (errors only, free features). QA keys are in the Pi's `.env` and your `.env.qa`; production keys wait in your local `.env.prod` (git-ignored) for P1 |
 | S13 Grafana Cloud | Production only (D-040, D-041), in the production session (P1): a free stack's OTLP endpoint and token |
 
-## Handy (on the Pi, in `~/runflow/ops/qa`)
+## Handy (on the NUC, in `~/runflow/ops/qa`)
 
 | Task | Command |
 |---|---|
