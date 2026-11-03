@@ -37,8 +37,8 @@ pub const TIMEZONES: [&str; 8] = [
     "America/Boa_Vista",
     "America/Rio_Branco",
 ];
-/// Never a club's subdomain (ours, or used by e-mail/DNS; docs/hosting.md).
-pub const RESERVED_SUBDOMAINS: [&str; 22] = [
+/// Never a club's subdomain (ours, used by e-mail/DNS, or infrastructure like QA's grafana-qa; docs/hosting.md).
+pub const RESERVED_SUBDOMAINS: [&str; 34] = [
     "app",
     "api",
     "www",
@@ -61,6 +61,18 @@ pub const RESERVED_SUBDOMAINS: [&str; 22] = [
     "dev",
     "runflow",
     "staging",
+    "grafana",
+    "prometheus",
+    "loki",
+    "alloy",
+    "metrics",
+    "logs",
+    "monitor",
+    "sentry",
+    "auth",
+    "login",
+    "qa",
+    "prod",
 ];
 
 /// Runflow's theme inputs, from the synced design tokens.

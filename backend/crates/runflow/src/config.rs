@@ -118,6 +118,11 @@ pub struct Otel {
     pub traces_ratio: f64,
     /// `OTEL_METRIC_EXPORT_INTERVAL` in ms (default 60000).
     pub metrics_interval: std::time::Duration,
+    /// `OTEL_TRACES_EXPORTER`, `OTEL_METRICS_EXPORTER`, `OTEL_LOGS_EXPORTER`: `otlp` (default) or `none`. QA reads the
+    /// containers' logs itself and keeps no traces, so it sends metrics only.
+    pub traces: bool,
+    pub metrics: bool,
+    pub logs: bool,
 }
 
 /// Web Push (S7b): the VAPID key pair (`runflow vapid-keys`) and a contact for the push services.
@@ -431,12 +436,28 @@ impl Config {
         let otel_ratio: f64 = e.parse("OTEL_TRACES_SAMPLER_ARG", 1.0);
         let otel_interval: u64 = e.parse("OTEL_METRIC_EXPORT_INTERVAL", 60_000);
         let otel_headers = e.secret("OTEL_EXPORTER_OTLP_HEADERS");
+        let mut signal = |name: &str| match e.or(name, "otlp").as_str() {
+            "otlp" => true,
+            "none" => false,
+            other => {
+                e.errors.push(format!("{name}={other:?}: use otlp or none"));
+                false
+            }
+        };
+        let (traces, metrics, logs) = (
+            signal("OTEL_TRACES_EXPORTER"),
+            signal("OTEL_METRICS_EXPORTER"),
+            signal("OTEL_LOGS_EXPORTER"),
+        );
         let otel = e.opt("OTEL_EXPORTER_OTLP_ENDPOINT").map(|endpoint| Otel {
             endpoint,
             headers: otel_headers,
             service_name: otel_service,
             traces_ratio: otel_ratio.clamp(0.0, 1.0),
             metrics_interval: std::time::Duration::from_millis(otel_interval.max(1000)),
+            traces,
+            metrics,
+            logs,
         });
         let sentry_dsn = e.opt("SENTRY_DSN");
         let sentry_web_dsn = e.opt("SENTRY_WEB_DSN");

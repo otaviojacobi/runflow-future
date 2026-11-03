@@ -24,9 +24,9 @@ use crate::config::Otel;
 const QUIET: &str = "info,hyper=off,hyper_util=off,reqwest=off,h2=off,opentelemetry=off,opentelemetry_sdk=off,opentelemetry_otlp=off";
 
 pub struct Telemetry {
-    tracer: SdkTracerProvider,
-    meter: SdkMeterProvider,
-    logger: SdkLoggerProvider,
+    tracer: Option<SdkTracerProvider>,
+    meter: Option<SdkMeterProvider>,
+    logger: Option<SdkLoggerProvider>,
 }
 
 /// `k1=v1,k2=v2` (values URL-decoded), as in `OTEL_EXPORTER_OTLP_HEADERS`.
@@ -70,49 +70,66 @@ impl Telemetry {
             .build();
         let timeout = Duration::from_secs(10);
 
-        let spans = SpanExporter::builder()
-            .with_http()
-            .with_endpoint(format!("{base}/v1/traces"))
-            .with_headers(headers.clone())
-            .with_timeout(timeout)
-            .build()
-            .context("OTLP trace exporter")?;
-        let tracer = SdkTracerProvider::builder()
-            .with_batch_exporter(spans)
-            .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(
-                o.traces_ratio,
-            ))))
-            .with_resource(resource.clone())
-            .build();
-
-        let metrics = MetricExporter::builder()
-            .with_http()
-            .with_endpoint(format!("{base}/v1/metrics"))
-            .with_headers(headers.clone())
-            .with_timeout(timeout)
-            .build()
-            .context("OTLP metric exporter")?;
-        let meter = SdkMeterProvider::builder()
-            .with_reader(
-                PeriodicReader::builder(metrics)
-                    .with_interval(o.metrics_interval)
+        let tracer = if o.traces {
+            let spans = SpanExporter::builder()
+                .with_http()
+                .with_endpoint(format!("{base}/v1/traces"))
+                .with_headers(headers.clone())
+                .with_timeout(timeout)
+                .build()
+                .context("OTLP trace exporter")?;
+            Some(
+                SdkTracerProvider::builder()
+                    .with_batch_exporter(spans)
+                    .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(
+                        o.traces_ratio,
+                    ))))
+                    .with_resource(resource.clone())
                     .build(),
             )
-            .with_resource(resource.clone())
-            .build();
-        opentelemetry::global::set_meter_provider(meter.clone());
+        } else {
+            None
+        };
 
-        let logs = LogExporter::builder()
-            .with_http()
-            .with_endpoint(format!("{base}/v1/logs"))
-            .with_headers(headers)
-            .with_timeout(timeout)
-            .build()
-            .context("OTLP log exporter")?;
-        let logger = SdkLoggerProvider::builder()
-            .with_batch_exporter(logs)
-            .with_resource(resource)
-            .build();
+        let meter = if o.metrics {
+            let metrics = MetricExporter::builder()
+                .with_http()
+                .with_endpoint(format!("{base}/v1/metrics"))
+                .with_headers(headers.clone())
+                .with_timeout(timeout)
+                .build()
+                .context("OTLP metric exporter")?;
+            let meter = SdkMeterProvider::builder()
+                .with_reader(
+                    PeriodicReader::builder(metrics)
+                        .with_interval(o.metrics_interval)
+                        .build(),
+                )
+                .with_resource(resource.clone())
+                .build();
+            opentelemetry::global::set_meter_provider(meter.clone());
+            Some(meter)
+        } else {
+            None
+        };
+
+        let logger = if o.logs {
+            let logs = LogExporter::builder()
+                .with_http()
+                .with_endpoint(format!("{base}/v1/logs"))
+                .with_headers(headers)
+                .with_timeout(timeout)
+                .build()
+                .context("OTLP log exporter")?;
+            Some(
+                SdkLoggerProvider::builder()
+                    .with_batch_exporter(logs)
+                    .with_resource(resource)
+                    .build(),
+            )
+        } else {
+            None
+        };
 
         Ok(Self {
             tracer,
@@ -126,13 +143,16 @@ impl Telemetry {
     where
         S: tracing::Subscriber + for<'a> LookupSpan<'a>,
     {
-        let traces = tracing_opentelemetry::layer()
-            .with_tracer(self.tracer.tracer("runflow"))
-            .with_filter(EnvFilter::new(QUIET));
-        let logs =
-            opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge::new(&self.logger)
-                .with_filter(EnvFilter::new(QUIET));
-        traces.and_then(logs)
+        let traces = self.tracer.as_ref().map(|t| {
+            tracing_opentelemetry::layer()
+                .with_tracer(t.tracer("runflow"))
+                .with_filter(EnvFilter::new(QUIET))
+        });
+        let logs = self.logger.as_ref().map(|l| {
+            opentelemetry_appender_tracing::layer::OpenTelemetryTracingBridge::new(l)
+                .with_filter(EnvFilter::new(QUIET))
+        });
+        Layer::and_then(traces, logs)
     }
 }
 
@@ -158,15 +178,15 @@ impl Telemetry {
     /// Sends what's buffered now (tests; a Lambda would call it after each invocation).
     #[cfg(test)]
     pub fn flush(&self) {
-        let _ = self.tracer.force_flush();
-        let _ = self.meter.force_flush();
-        let _ = self.logger.force_flush();
+        self.tracer.as_ref().map(SdkTracerProvider::force_flush);
+        self.meter.as_ref().map(SdkMeterProvider::force_flush);
+        self.logger.as_ref().map(SdkLoggerProvider::force_flush);
     }
 
     pub fn shutdown(self) {
-        let _ = self.tracer.shutdown();
-        let _ = self.meter.shutdown();
-        let _ = self.logger.shutdown();
+        self.tracer.as_ref().map(SdkTracerProvider::shutdown);
+        self.meter.as_ref().map(SdkMeterProvider::shutdown);
+        self.logger.as_ref().map(SdkLoggerProvider::shutdown);
     }
 }
 
@@ -221,6 +241,9 @@ mod tests {
             service_name: "runflow-test".into(),
             traces_ratio: 1.0,
             metrics_interval: Duration::from_secs(60),
+            traces: true,
+            metrics: true,
+            logs: true,
         };
         let t = Telemetry::init(&otel, "0.1.0+test", "test", "all").unwrap();
         let subscriber = tracing_subscriber::registry().with(t.layer());

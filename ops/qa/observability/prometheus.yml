@@ -1,0 +1,16 @@
+# Runflow QA metrics (D-041). Alloy remote-writes the API's OTLP metrics and the Pi's host metrics here
+# (--web.enable-remote-write-receiver); these jobs only watch the stack itself.
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+  - job_name: alloy
+    static_configs:
+      - targets: ["alloy:12345"]
+  - job_name: loki
+    static_configs:
+      - targets: ["loki:3100"]

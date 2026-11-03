@@ -41,6 +41,12 @@ QA is live at **https://qa.runflow.club**:
   Published application: subdomain `*`, domain `runflow.club`, service `http://web:80`. If Cloudflare doesn't create it,
   add a proxied DNS record `*` CNAME → `<tunnel-id>.cfargotunnel.com`. Explicit records (`qa`, `www`, mail) keep winning.
   Then `https://<club-slug>-qa.runflow.club` opens that club's sign-in. The Pi is already configured.
+- [ ] **Grafana for QA** (D-041, 2 minutes): Cloudflare Zero Trust → Networks → Tunnels → the QA tunnel → Public hostnames
+  (or Routes) → Add: subdomain `grafana-qa`, domain `runflow.club`, service `http://grafana:3000`. Then open
+  https://grafana-qa.runflow.club and sign in with `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` from your `.env.qa`
+  (the same values are in the Pi's `.env`). The "Runflow QA" dashboard is the home page: API requests, latency and
+  errors, jobs, database connections, the Pi's CPU/memory/disk/temperature, and the logs (Explore → Loki for searches,
+  e.g. `{service="api"} |= "error"`).
 - [ ] **Smoke tests on QA** (S11): one random secret saved in two places, so CI can run the main loop on QA after each deploy.
   `K=$(openssl rand -hex 32)`, then `gh secret set SMOKE_KEY --body "$K"` (or GitHub → Settings → Secrets → Actions) and,
   on the Pi, `SMOKE_KEY=<same value>` in `~/runflow/ops/qa/.env` followed by `./update.sh`. Until then the QA job skips
@@ -71,7 +77,7 @@ QA is live at **https://qa.runflow.club**:
 |---|---|
 | ~~B1 Logo~~ | ~~Pick one of the concepts~~ Done: Ritmo |
 | S12 Sentry (ready) | Org `runflow-zw`; only free features (errors; no tracing, replay, profiling or logs). The Sentry plugin is installed in Claude Code (restart it to load). Two projects (Rust: `runflow-api`, React: `runflow-web`) → their DSNs in the Pi's `.env`: `SENTRY_DSN` (Rust), `SENTRY_WEB_DSN` (React), `DEPLOYMENT_ENV=qa`, then `./update.sh`. Either paste the two DSNs to me or let me create the projects through the plugin after the restart. No GitHub variable: the web app gets its DSN from the API |
-| S13 Grafana | Decided: Grafana Cloud's free tier (D-040). Create a stack at grafana.com, then send me its OTLP endpoint and an access token (or put `OTEL_EXPORTER_OTLP_ENDPOINT` / `OTEL_EXPORTER_OTLP_HEADERS` in the Pi's `.env`) |
+| S13 Grafana Cloud | Production only (D-040, D-041), in the production session (P1): a free stack's OTLP endpoint and token |
 
 ## Handy (on the Pi, in `~/runflow/ops/qa`)
 

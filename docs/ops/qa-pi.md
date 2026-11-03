@@ -187,6 +187,20 @@ itself. Production's durability comes from Aurora (automated backups, point-in-t
 
 ---
 
+## 8b. Observability (D-041)
+
+`docker-compose.yaml` also runs **Loki** (logs, 7 days), **Prometheus** (metrics, 15 days, 2 GB max), **Grafana Alloy**
+(collects) and **Grafana** (UI). Alloy reads every container's logs through the Docker socket, receives the API's
+metrics over OTLP (`OTEL_*` settings in the compose file) and adds the Pi's host metrics. Configs live in
+`ops/qa/observability/`; the data sources and the "Runflow QA" dashboard are provisioned from there (edit the JSON and
+push to change it).
+
+- [ ] Tunnel route: `grafana-qa.runflow.club` → `http://grafana:3000` (Zero Trust → the tunnel → Public hostnames).
+- [ ] Sign in with `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` from `.env` (set on Grafana's first start; to change
+  it later: `docker compose exec grafana grafana cli admin reset-admin-password <new>`).
+
+---
+
 ## 9. First run
 
 - [ ] Open **https://qa.runflow.club** → Entrar → your e-mail → the 6-digit code arrives → create your club.

@@ -1,0 +1,81 @@
+// Runflow QA observability (D-041): Alloy collects, Loki keeps logs, Prometheus keeps metrics, Grafana shows them
+// at https://grafana-qa.runflow.club. Production uses Grafana Cloud instead (D-040).
+
+logging {
+  level = "warn"
+}
+
+// ---------------------------------------------------------------- logs: every container's output → Loki
+discovery.docker "containers" {
+  host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "containers" {
+  targets = []
+
+  // The compose service name (api, web, postgres, garage, cloudflared…) is the label to search by.
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+  rule {
+    source_labels = ["__meta_docker_container_name"]
+    regex         = "/(.*)"
+    target_label  = "container"
+  }
+}
+
+loki.source.docker "containers" {
+  host          = "unix:///var/run/docker.sock"
+  targets       = discovery.docker.containers.targets
+  relabel_rules = discovery.relabel.containers.rules
+  labels        = {environment = "qa"}
+  forward_to    = [loki.write.local.receiver]
+}
+
+// Loki detects each line's level by itself (`detected_level`), including the API's JSON logs.
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}
+
+// ---------------------------------------------------------------- metrics: the API pushes OTLP → Prometheus
+otelcol.receiver.otlp "api" {
+  http {
+    endpoint = "0.0.0.0:4318"
+  }
+
+  output {
+    metrics = [otelcol.processor.batch.api.input]
+  }
+}
+
+otelcol.processor.batch "api" {
+  output {
+    metrics = [otelcol.exporter.prometheus.api.input]
+  }
+}
+
+otelcol.exporter.prometheus "api" {
+  forward_to = [prometheus.remote_write.local.receiver]
+}
+
+// The Pi itself: CPU, memory, disk, network, temperature.
+prometheus.exporter.unix "pi" {
+  procfs_path = "/host/proc"
+  sysfs_path  = "/host/sys"
+  rootfs_path = "/host/root"
+}
+
+prometheus.scrape "pi" {
+  targets         = prometheus.exporter.unix.pi.targets
+  scrape_interval = "30s"
+  forward_to      = [prometheus.remote_write.local.receiver]
+}
+
+prometheus.remote_write "local" {
+  endpoint {
+    url = "http://prometheus:9090/api/v1/write"
+  }
+}

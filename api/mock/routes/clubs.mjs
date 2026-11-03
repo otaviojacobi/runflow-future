@@ -8,7 +8,7 @@ const STARTER = starterLibrary();
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const TIMEZONES = ["America/Noronha", "America/Sao_Paulo", "America/Manaus", "America/Cuiaba", "America/Campo_Grande", "America/Porto_Velho", "America/Boa_Vista", "America/Rio_Branco"];
-const RESERVED = new Set("app api www mail email smtp imap pop autodiscover send status docs admin assets static cdn blog ajuda suporte dev runflow staging".split(" "));
+const RESERVED = new Set("app api www mail email smtp imap pop autodiscover send status docs admin assets static cdn blog ajuda suporte dev runflow staging grafana prometheus loki alloy metrics logs monitor sentry auth login qa prod".split(" "));
 
 export default function register(h) {
   const slugify = (name) => {

@@ -1,5 +1,6 @@
 # Runflow QA (Raspberry Pi 5): everything behind one Cloudflare Tunnel, nothing exposed on the network.
 #   qa.runflow.club → web (static app + /api proxy) → api (+ worker) → postgres
+#   grafana-qa.runflow.club → grafana (logs in Loki, metrics in Prometheus, both collected by Alloy; D-041)
 # Images are built for arm64 by GitHub Actions (.github/workflows/images.yml) and pulled from GHCR.
 # Setup: docs/ops/qa-pi.md (open items: setup-todo.md). Settings: ops/qa/.env (from ops/qa/.env.example).
 
@@ -55,6 +56,12 @@ services:
       S3_ENDPOINT: http://garage:3900
       S3_REGION: garage
       S3_BUCKET: ${S3_BUCKET:-runflow}
+      DEPLOYMENT_ENV: qa
+      # Metrics to Alloy (→ Prometheus); Alloy reads the logs from Docker itself, and QA keeps no traces (D-041).
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://alloy:4318
+      OTEL_TRACES_EXPORTER: none
+      OTEL_LOGS_EXPORTER: none
+      OTEL_METRIC_EXPORT_INTERVAL: "30000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -83,6 +90,73 @@ services:
     depends_on:
       - web
 
+  # ---------------------------------------------------------------- observability (D-041): QA only; production
+  # sends to Grafana Cloud (D-040). Configs in ops/qa/observability/.
+  loki:
+    image: grafana/loki:3.7.9
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./observability/loki.yaml:/etc/loki/loki.yaml:ro
+      - loki:/loki
+    mem_limit: 512m
+
+  prometheus:
+    image: prom/prometheus:v3.15.1
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+      - --storage.tsdb.retention.size=2GB
+      - --web.enable-remote-write-receiver
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus:/prometheus
+    mem_limit: 768m
+
+  # Collects every container's logs (Docker socket, read-only), the API's OTLP metrics and the Pi's host metrics.
+  alloy:
+    image: grafana/alloy:v1.21.3
+    restart: unless-stopped
+    command: ["run", "--server.http.listen-addr=0.0.0.0:12345", "--storage.path=/var/lib/alloy/data", "/etc/alloy/config.alloy"]
+    volumes:
+      - ./observability/alloy.alloy:/etc/alloy/config.alloy:ro
+      - alloy:/var/lib/alloy/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+      - /run/udev:/run/udev:ro
+    depends_on: [loki, prometheus]
+    mem_limit: 512m
+
+  # https://grafana-qa.runflow.club (a tunnel route to http://grafana:3000). Sign in with GRAFANA_ADMIN_USER /
+  # GRAFANA_ADMIN_PASSWORD from .env; the "Runflow QA" dashboard and both data sources are provisioned.
+  grafana:
+    image: grafana/grafana:13.2.5
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD in ops/qa/.env (openssl rand -hex 16)}
+      GF_SERVER_ROOT_URL: https://grafana-qa.runflow.club
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/runflow-qa.json
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana:/var/lib/grafana
+    depends_on: [loki, prometheus]
+    mem_limit: 512m
+
 volumes:
   pgdata:
   garage:
+  loki:
+  prometheus:
+  alloy:
+  grafana:

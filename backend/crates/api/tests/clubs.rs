@@ -202,6 +202,7 @@ async fn settings_follow_roles_plan_and_subdomain_rules(db: PgPool) {
         .unwrap();
     for (sub, msg) in [
         ("app", "Este endereço é reservado. Escolha outro."),
+        ("grafana", "Este endereço é reservado. Escolha outro."),
         ("-x-", "Use de 3 a 32 letras, números ou hífens."),
         ("ab", "Use de 3 a 32 letras, números ou hífens."),
         (
