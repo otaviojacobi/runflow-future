@@ -1,56 +1,22 @@
 /**
- * Assistant (F27). The backend will call an LLM (provider and budget: root.md §11). The mock is a deterministic
- * rules engine with the same contract, so the UI can be built and tested without sending data anywhere.
+ * Assistant (F27). A deterministic rules engine, like the backend's (an LLM may come later behind the same contract:
+ * root.md §11). Workouts from text use the free-text grammar shared with the web builder and the backend
+ * (lib/workout-text.mjs, golden examples in api/workout-text-examples.json).
  */
 import { estimate } from "../seed.mjs";
+import { parseWorkoutText } from "../lib/workout-text.mjs";
 
-const num = (s) => Number(String(s).replace(",", "."));
-const minutes = (n, unit) => (/^(h|hora)/.test(unit) ? n * 3600 : /^(s|seg)/.test(unit) ? n : n * 60);
-const ZONE_WORDS = [[/regenerativ|bem leve|soltinho/, 1], [/\bleve|rodagem|confort|z2|longão|longao/, 2], [/moderad|z3|ritmo de maratona/, 3], [/forte|limiar|z4|tempo run/, 4], [/tiro|máxim|maxim|z5|vo2/, 5]];
-const zoneOf = (s, fallback) => { const z = /\b(?:z|zona\s*)([1-5])\b/i.exec(s); if (z) return +z[1]; for (const [re, n] of ZONE_WORDS) if (re.test(s)) return n; return fallback; };
-const paceOf = (s) => { const p = /(?:@|a\s|ritmo\s*(?:de)?\s*|pace\s*(?:de)?\s*)(\d{1,2}):(\d{2})/i.exec(s); if (!p) return null; const v = +p[1] * 60 + +p[2]; return { type: "pace", min_s: v - 5, max_s: v + 5 }; };
 const step = (intent, duration, target) => ({ kind: "step", intent, duration, target });
 
-/** Natural pt-BR description → Structure v1 (or null). */
-export function parseDescription(text, sport) {
-  const s = text.toLowerCase().replace(/\s+/g, " ");
-  const blocks = [];
-  if (sport === "strength" || sport === "mobility") {
-    for (const m of s.matchAll(/([a-zà-ú][a-zà-ú ]{2,40}?)\s+(\d+)\s*[x×]\s*(\d+(?:-\d+)?)(?:\s*(?:com|a|@)\s*(\d+(?:[.,]\d+)?)\s*kg)?/g)) blocks.push({ kind: "exercise", name: m[1].trim().replace(/^(e|depois|mais)\s+/, "").replace(/^\w/, (c) => c.toUpperCase()), sets: +m[2], reps: m[3], ...(m[4] && { load: { type: "kg", value: num(m[4]) } }), rest_s: 60 });
-    return blocks.length ? { v: 1, blocks } : null;
-  }
-  const warm = /(\d+)\s*(min|minutos|')\s*(?:de\s*)?aquec|aquec\w*\s*(?:de\s*)?(\d+)\s*(min|minutos|')/.exec(s);
-  if (warm) blocks.push(step("warmup", { type: "time", s: minutes(+(warm[1] || warm[3]), warm[2] || warm[4]) }, { type: "zone", metric: "pace", zone: 2 }));
-  const reps = /(\d+)\s*(?:x|×|vezes|tiros de|tiros|séries de|series de)\s*(?:de\s*)?(\d+(?:[.,]\d+)?)\s*(km|m\b|metros|min|minutos|')/.exec(s);
-  if (reps) {
-    const unit = reps[3], v = num(reps[2]);
-    const work = /km/.test(unit) ? { type: "distance", m: Math.round(v * 1000) } : /^m\b|metros/.test(unit) ? { type: "distance", m: Math.round(v) } : { type: "time", s: minutes(v, unit) };
-    const target = paceOf(s) ?? { type: "zone", metric: "pace", zone: zoneOf(s.slice(reps.index), sport === "swim" ? 3 : 5) };
-    const rec = /(\d+(?:[.,]\d+)?)\s*(min|minutos|'|s\b|seg\w*)\s*(?:de\s*)?(?:trote|descanso|recupera\w*|pausa|parado|caminhada)|(?:trote|descanso|recupera\w*|pausa|intervalo)\s*(?:de\s*)?(\d+(?:[.,]\d+)?)\s*(min|minutos|'|s\b|seg\w*)/.exec(s);
-    const steps = [step("active", work, target)];
-    if (rec) steps.push(step(sport === "swim" ? "rest" : "recovery", { type: "time", s: Math.round(minutes(num(rec[1] || rec[3]), rec[2] || rec[4])) }, { type: "open" }));
-    blocks.push({ kind: "repeat", count: +reps[1], steps });
-  } else {
-    const cont = /(\d+(?:[.,]\d+)?)\s*(km|metros|m\b|min|minutos|h\b|hora\w*)/.exec(s.replace(/(\d+)\s*(min|minutos|')\s*(?:de\s*)?(aquec|desaquec)\w*/g, ""));
-    if (cont) {
-      const v = num(cont[1]), u = cont[2];
-      const d = /km/.test(u) ? { type: "distance", m: Math.round(v * 1000) } : /metros|^m\b/.test(u) ? { type: "distance", m: Math.round(v) } : { type: "time", s: minutes(v, u) };
-      blocks.push(step("active", d, paceOf(s) ?? { type: "zone", metric: "pace", zone: zoneOf(s, 2) }));
-    }
-  }
-  const cool = /(\d+)\s*(min|minutos|')\s*(?:de\s*)?(?:desaquec|volta à calma|soltar)|desaquec\w*\s*(?:de\s*)?(\d+)\s*(min|minutos|')/.exec(s);
-  if (cool) blocks.push(step("cooldown", { type: "time", s: minutes(+(cool[1] || cool[3]), cool[2] || cool[4]) }, { type: "zone", metric: "pace", zone: 1 }));
-  return blocks.some((b) => b.kind === "repeat" || b.intent === "active") ? { v: 1, blocks } : null;
-}
-function nameOf(structure, sport) {
-  const r = structure.blocks.find((b) => b.kind === "repeat");
-  const dist = (d) => (d.type === "distance" ? (d.m >= 1000 ? `${String(d.m / 1000).replace(".", ",")} km` : `${d.m} m`) : `${Math.round(d.s / 60)}'`);
-  if (r) return `Intervalado ${r.count}×${dist(r.steps[0].duration)}`;
-  const a = structure.blocks.find((b) => b.kind === "step" && b.intent === "active");
-  if (a) { const z = a.target.type === "zone" ? a.target.zone : 3; return `${sport === "swim" ? "Nado contínuo" : z <= 1 ? "Regenerativo" : z === 2 ? (a.duration.type === "distance" && a.duration.m >= 16000 ? "Longão" : "Rodagem") : z >= 4 ? "Ritmo forte" : "Corrida moderada"} ${dist(a.duration)}`; }
-  const ex = structure.blocks.filter((b) => b.kind === "exercise");
-  return ex.length ? `Força: ${ex.slice(0, 2).map((e) => e.name).join(" + ")}` : "Treino";
-}
+/** The 422 example per sport (each one is a golden example in api/workout-text-examples.json). */
+const EXAMPLE = {
+  run: "15 min de aquecimento, 6 tiros de 800 m a 4:10 com 2 min de trote e 10 min de desaquecimento.",
+  swim: "400 m de aquecimento, 10x100 crawl saída 1:45 com palmar e 200 m solto.",
+  bike: "15 min leve, 4x8 min a 95% do FTP com 4 min leve e 10 min de desaquecimento.",
+  strength: "agachamento 4x10 com 40 kg, remada 3x12, prancha 3x30.",
+  mobility: "Mobilidade de quadril 90/90 2x10, rotação torácica 2x10 por lado, prancha 3x30 s.",
+};
+const MAX_TEXT = 2000;
 
 // ---- week plan (rules)
 const SLOTS = { 2: [3, 6], 3: [2, 4, 6], 4: [2, 3, 5, 7], 5: [1, 2, 4, 5, 7], 6: [1, 2, 3, 5, 6, 7] };
@@ -80,9 +46,10 @@ export default function register(h) {
     ctx.staff(ctx.params.club_id); guard(ctx);
     const text = String(ctx.body.text || "").trim(), sport = ctx.body.sport || "run";
     if (text.length < 5) h.invalid([{ field: "text", message: "Descreva o treino em uma frase." }]);
-    const structure = parseDescription(text, sport);
-    if (!structure) h.fail(422, "ai.not_understood", "Não entendi o treino", sport === "strength" ? "Tente algo como: agachamento 4x10 com 40 kg, remada 3x12, prancha 3x30." : "Tente algo como: 15 min de aquecimento, 6 tiros de 800 m a 4:10 com 2 min de trote e 10 min de desaquecimento.");
-    return { name: nameOf(structure, sport), sport, structure, ...estimate(sport, structure), notes: null, source: "rules" };
+    if ([...text].length > MAX_TEXT) h.invalid([{ field: "text", message: "Use até 2.000 caracteres." }]);
+    const { structure, name, warnings, tags } = parseWorkoutText(text, sport);
+    if (!structure.blocks.length) h.fail(422, "ai.not_understood", "Não entendi o treino", `Tente algo como: ${EXAMPLE[sport] ?? EXAMPLE.run}`);
+    return { name, sport, structure, ...estimate(sport, structure), notes: null, warnings, tags, source: "rules" };
   });
 
   h.post("/v1/clubs/:club_id/ai/week-plan", (ctx) => {
