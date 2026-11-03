@@ -76,7 +76,7 @@ QA is live at **https://qa.runflow.club**:
 | Step | What you'll do |
 |---|---|
 | ~~B1 Logo~~ | ~~Pick one of the concepts~~ Done: Ritmo |
-| S12 Sentry (ready) | Org `runflow-zw`; only free features (errors; no tracing, replay, profiling or logs). The Sentry plugin is installed in Claude Code (restart it to load). Two projects (Rust: `runflow-api`, React: `runflow-web`) → their DSNs in the Pi's `.env`: `SENTRY_DSN` (Rust), `SENTRY_WEB_DSN` (React), `DEPLOYMENT_ENV=qa`, then `./update.sh`. Either paste the two DSNs to me or let me create the projects through the plugin after the restart. No GitHub variable: the web app gets its DSN from the API |
+| ~~S12 Sentry~~ | Done (2026-11-03): org `runflow-zw`, projects `runflow-backend-qa`, `runflow-frontend-qa`, `runflow-backend-prod`, `runflow-frontend-prod` (errors only, free features). QA keys are in the Pi's `.env` and your `.env.qa`; production keys wait in your local `.env.prod` (git-ignored) for P1 |
 | S13 Grafana Cloud | Production only (D-040, D-041), in the production session (P1): a free stack's OTLP endpoint and token |
 
 ## Handy (on the Pi, in `~/runflow/ops/qa`)

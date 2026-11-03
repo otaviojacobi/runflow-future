@@ -493,6 +493,7 @@ flowchart LR
 - 2026-11-03. **S12 Sentry:** backend and web report errors with the user id only (scrubbed URLs, no headers, cookies, bodies or queries); off until the founder sets `SENTRY_DSN` / `SENTRY_WEB_DSN`. The web SDK loads lazily and only when the API turns it on.
 - 2026-11-03. **S13 telemetry:** traces, metrics (requests by route, jobs, backlog, DB pool) and logs pushed over OTLP, off until the Grafana Cloud stack exists. Founder: skip S16 (Lambda work moves into P1) and go to the app (Phase 3).
 - 2026-11-03. **QA observability (D-041):** Grafana, Loki, Prometheus and Alloy on the Pi (logs of every container, API metrics, Pi host metrics, a provisioned dashboard) at `grafana-qa.runflow.club`; Grafana Cloud stays for production. Sentry projects per environment come through the Sentry plugin.
+- 2026-11-03. Sentry projects created (org `runflow-zw`): backend and frontend for QA and production; QA reports errors now, production keys wait for P1.
 - 2026-11-01. Founder decisions: design-first Phase 0 with the full UI mocked before implementation (D-015); Stripe, no charging during the beta, NFS-e outside the product (D-016); trainers see all students (D-017); Runflow is the app and clubs only theme it (D-018); Apple and Garmin developer programs deferred (D-007, D-011); no guardian accounts. Added the screen inventory (§6.1) and `CLAUDE.md`. Roadmap renumbered: Phase 0 is now design and validation, and **D1 is next**.
 
 ---
