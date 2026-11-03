@@ -194,8 +194,8 @@ export function generate(anchor) {
     t("club_subscriptions").push({ club_id: c.id, stripe_customer_id: null, stripe_subscription_id: null, current_period_end: null, cancel_at_period_end: false, updated_at: createdLongAgo, ...sub });
     return c;
   };
-  const PF = club("paceforte", { slug: "paceforte", name: "Pace Forte Assessoria", city: "São Paulo", state: "SP", modalities: ["run", "strength", "mobility"], trainer_label: "treinador", subdomain: null }, ["#D62828", "#FFB703"], { plan: "free", status: "active", student_limit: 10 });
-  const MARE = club("mare", { slug: "equipemare", name: "Equipe Maré Natação", city: "Santos", state: "SP", modalities: ["swim"], trainer_label: "professor", subdomain: "equipemare", release_mode: "immediate", auto_release_weekday: null, auto_release_time: null }, ["#0096C7", null], { plan: "pro", status: "active", student_limit: 100, stripe_customer_id: "cus_mock_mare", stripe_subscription_id: "sub_mock_mare", current_period_end: at(addDays(anchor, 18), "00:00") });
+  const PF = club("paceforte", { slug: "paceforte", name: "Pace Forte Assessoria", city: "São Paulo", state: "SP", modalities: ["run", "strength", "mobility"], trainer_label: "treinador" }, ["#D62828", "#FFB703"], { plan: "free", status: "active", student_limit: 10 });
+  const MARE = club("mare", { slug: "equipemare", name: "Equipe Maré Natação", city: "Santos", state: "SP", modalities: ["swim"], trainer_label: "professor", release_mode: "immediate", auto_release_weekday: null, auto_release_time: null }, ["#0096C7", null], { plan: "pro", status: "active", student_limit: 100, stripe_customer_id: "cus_mock_mare", stripe_subscription_id: "sub_mock_mare", current_period_end: at(addDays(anchor, 18), "00:00") });
   for (let i = 3; i >= 1; i--) {
     const start = addDays(anchor, 18 - 30 * (i + 1)), end = addDays(anchor, 18 - 30 * i);
     t("invoices").push({ id: uuid("inv:mare:" + i), club_id: MARE.id, stripe_invoice_id: "in_mock_mare_" + i, amount_cents: 2000, currency: "BRL", status: "paid", period_start: at(start, "00:00"), period_end: at(end, "00:00"), hosted_url: null, created_at: at(start, "09:00") });

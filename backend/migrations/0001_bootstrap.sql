@@ -80,7 +80,6 @@ CREATE TABLE clubs (
   timezone       text NOT NULL DEFAULT 'America/Sao_Paulo',
   modalities     text[] NOT NULL DEFAULT '{run}',   -- subset of: run swim bike strength mobility other
   trainer_label  text NOT NULL DEFAULT 'treinador' CHECK (trainer_label IN ('treinador', 'professor')),
-  subdomain      text UNIQUE,                       -- Pro: <subdomain>.runflow.club
   created_at     timestamptz NOT NULL DEFAULT now(),
   updated_at     timestamptz NOT NULL DEFAULT now(),
   deleted_at     timestamptz,

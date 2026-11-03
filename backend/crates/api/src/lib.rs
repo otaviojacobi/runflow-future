@@ -49,11 +49,6 @@ pub struct ApiSettings {
     pub public_api_url: String,
     /// Strava webhook subscription check (`STRAVA_WEBHOOK_VERIFY_TOKEN`).
     pub strava_verify_token: Option<String>,
-    /// Club sites (S9b, D-029): `<subdomain><suffix>` serves that club, e.g. `-qa.runflow.club` (QA) or
-    /// `.runflow.club` (production). None = no club hosts.
-    pub club_host_suffix: Option<String>,
-    /// Also match club hosts by slug (QA: every club gets a site while subdomains are Pro and billing isn't live).
-    pub club_host_by_slug: bool,
     pub billing: BillingSettings,
     /// The VAPID public key for Web Push (`/public/config`); None = push off.
     pub push_public_key: Option<String>,

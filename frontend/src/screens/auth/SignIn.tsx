@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { IS_MOCK, useEmailStart, useEmailVerify, useGoogleSignIn, useMockAccounts, usePublicConfig } from "@/api/auth";
 import { GoogleButton } from "./GoogleButton";
 import type { Me } from "@/api/types";
-import { ClubLogo, RunflowWordmark } from "@/components/brand";
+import { RunflowWordmark } from "@/components/brand";
 import { IntensityProfile } from "@/components/workout";
 import type { Structure } from "@/domain/workout";
 import { t } from "@/i18n";
@@ -38,9 +38,7 @@ export function SignInScreen() {
   const google = useGoogleSignIn();
   const accounts = useMockAccounts(chooser);
   const config = usePublicConfig();
-  // On a club's own site (S9b) Google is off: its sign-in needs every web origin listed, and club hosts are many.
-  const hostClub = config.data?.club ?? null;
-  const googleId = IS_MOCK || hostClub ? null : config.data?.google_client_id ?? null;
+  const googleId = IS_MOCK ? null : config.data?.google_client_id ?? null;
   const codeRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -50,8 +48,7 @@ export function SignInScreen() {
   }, [cooldown]);
 
   const done = (r: { me: Me; is_new: boolean }) => {
-    // On a club's site, that club first.
-    const m = r.me.memberships.find((x) => x.club.id === hostClub?.id) ?? activeMembership(r.me);
+    const m = activeMembership(r.me);
     selectClub(m);
     if (r.is_new) toast.success(t("Conta criada. Bem-vindo(a) ao Runflow!"));
     navigate({ to: redirect && redirect.startsWith("/") ? redirect : homeFor(m?.membership.role), replace: true });
@@ -91,8 +88,7 @@ export function SignInScreen() {
           {step === "start" ? (
             <>
               <div className="grid gap-2">
-                {hostClub && <ClubLogo club={hostClub} branding={{ logo_url: hostClub.logo_url }} size={48} />}
-                <h2 className="rf-text-display-sm">{hostClub ? t("Entrar no {club}", { club: hostClub.name }) : t("Entrar no Runflow")}</h2>
+                <h2 className="rf-text-display-sm">{t("Entrar no Runflow")}</h2>
                 <p className="text-fg-muted">{googleId || IS_MOCK ? t("Use sua conta Google ou receba um código por e-mail. Sem senha para lembrar.") : t("Receba um código por e-mail. Sem senha para lembrar.")}</p>
               </div>
               <div className="grid gap-4">

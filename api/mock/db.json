@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-03T10:17:01.417Z",
+  "generated_at": "2026-11-03T16:48:06.055Z",
   "version": 1
  },
  "users": [
@@ -1026,8 +1026,7 @@
     "strength",
     "mobility"
    ],
-   "trainer_label": "treinador",
-   "subdomain": null
+   "trainer_label": "treinador"
   },
   {
    "id": "c3da5abf-0ea4-43dd-ac57-f9bfa5861b1b",
@@ -1045,8 +1044,7 @@
    "modalities": [
     "swim"
    ],
-   "trainer_label": "professor",
-   "subdomain": "equipemare"
+   "trainer_label": "professor"
   }
  ],
  "club_branding": [

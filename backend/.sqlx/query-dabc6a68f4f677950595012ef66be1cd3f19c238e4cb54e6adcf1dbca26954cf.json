@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at,\n                release_mode, auto_release_weekday, to_char(auto_release_time, 'HH24:MI') AS auto_release_time\n           FROM clubs WHERE id = $1 AND deleted_at IS NULL",
+  "query": "SELECT id, slug, name, city, state, timezone, modalities, trainer_label, created_at,\n                release_mode, auto_release_weekday, to_char(auto_release_time, 'HH24:MI') AS auto_release_time\n           FROM clubs WHERE slug = $1 AND deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -93,17 +93,6 @@
       },
       {
         "ordinal": 8,
-        "name": "subdomain",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "clubs",
-            "name": "subdomain"
-          }
-        }
-      },
-      {
-        "ordinal": 9,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -114,7 +103,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "release_mode",
         "type_info": "Text",
         "origin": {
@@ -125,7 +114,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "auto_release_weekday",
         "type_info": "Int2",
         "origin": {
@@ -136,7 +125,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "auto_release_time",
         "type_info": "Text",
         "origin": "Expression"
@@ -144,7 +133,7 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Text"
       ]
     },
     "nullable": [
@@ -156,12 +145,11 @@
       false,
       false,
       false,
-      true,
       false,
       false,
       true,
       null
     ]
   },
-  "hash": "60863d586a98b38880f6f094427059073d1baa523bf3dd0223d9c5ec51d1854a"
+  "hash": "dabc6a68f4f677950595012ef66be1cd3f19c238e4cb54e6adcf1dbca26954cf"
 }

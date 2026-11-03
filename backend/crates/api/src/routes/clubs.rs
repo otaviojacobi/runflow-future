@@ -37,44 +37,6 @@ pub const TIMEZONES: [&str; 8] = [
     "America/Boa_Vista",
     "America/Rio_Branco",
 ];
-/// Never a club's subdomain (ours, used by e-mail/DNS, or infrastructure like QA's grafana-qa; docs/hosting.md).
-pub const RESERVED_SUBDOMAINS: [&str; 34] = [
-    "app",
-    "api",
-    "www",
-    "mail",
-    "email",
-    "smtp",
-    "imap",
-    "pop",
-    "autodiscover",
-    "send",
-    "status",
-    "docs",
-    "admin",
-    "assets",
-    "static",
-    "cdn",
-    "blog",
-    "ajuda",
-    "suporte",
-    "dev",
-    "runflow",
-    "staging",
-    "grafana",
-    "prometheus",
-    "loki",
-    "alloy",
-    "metrics",
-    "logs",
-    "monitor",
-    "sentry",
-    "auth",
-    "login",
-    "qa",
-    "prod",
-];
-
 /// Runflow's theme inputs, from the synced design tokens.
 static THEME: LazyLock<(Envs, Defaults)> = LazyLock::new(|| {
     let tokens: Value = serde_json::from_str(include_str!("../../../../assets/design/tokens.json"))
@@ -351,51 +313,6 @@ async fn update(
         match body.str("trainer_label") {
             Some(l) if l == "treinador" || l == "professor" => p.trainer_label = Some(l),
             _ => errors.push(fail("trainer_label", "Opção inválida.")),
-        }
-    }
-    if body.has("subdomain") {
-        match body.str("subdomain").map(|s| s.to_lowercase()) {
-            None => p.subdomain = Some(None),
-            Some(sub) => {
-                let shape = sub.len() >= 3
-                    && sub.len() <= 32
-                    && sub
-                        .chars()
-                        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
-                    && !sub.starts_with('-')
-                    && !sub.ends_with('-');
-                if !shape {
-                    errors.push(fail(
-                        "subdomain",
-                        "Use de 3 a 32 letras, números ou hífens.",
-                    ));
-                } else if sub.ends_with("-qa") {
-                    // QA serves club sites at <club>-qa.runflow.club (D-029).
-                    errors.push(fail(
-                        "subdomain",
-                        "Endereços terminados em -qa são reservados.",
-                    ));
-                } else if RESERVED_SUBDOMAINS.contains(&sub.as_str()) {
-                    errors.push(fail(
-                        "subdomain",
-                        "Este endereço é reservado. Escolha outro.",
-                    ));
-                } else if db::subdomain_taken(&state.db, &sub, m.club_id).await? {
-                    errors.push(fail("subdomain", "Este endereço já está em uso."));
-                } else if db::subscription(&state.db, m.club_id)
-                    .await?
-                    .is_none_or(|s| s.plan == "free")
-                {
-                    return Err(Problem::new(
-                        StatusCode::PAYMENT_REQUIRED,
-                        "plan.required",
-                        "Disponível no plano Pro",
-                        "O endereço próprio (seuclube.runflow.club) faz parte do plano Pro.",
-                    ));
-                } else {
-                    p.subdomain = Some(Some(sub));
-                }
-            }
         }
     }
     // Week release (D-031).

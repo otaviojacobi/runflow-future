@@ -220,7 +220,7 @@ pub async fn notify_owners(
     let (title, body) = match notice {
         Notice::Upgraded => (
             "Bem-vindo ao Pro!",
-            "Agora o clube comporta até 100 alunos e pode ter endereço próprio.",
+            "Agora o clube comporta até 100 alunos.",
         ),
         Notice::PaymentFailed => (
             "Não conseguimos cobrar a assinatura",

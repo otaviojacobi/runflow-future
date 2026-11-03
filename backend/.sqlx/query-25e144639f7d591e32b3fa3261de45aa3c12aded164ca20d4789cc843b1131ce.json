@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at,\n                release_mode, auto_release_weekday, to_char(auto_release_time, 'HH24:MI') AS auto_release_time\n           FROM clubs WHERE (slug = $1 OR subdomain = $1) AND deleted_at IS NULL",
+  "query": "INSERT INTO clubs (id, slug, name, city, state, modalities, trainer_label) VALUES ($1, $2, $3, $4, $5, $6, $7)\n         RETURNING id, slug, name, city, state, timezone, modalities, trainer_label, created_at,\n                   release_mode, auto_release_weekday, to_char(auto_release_time, 'HH24:MI') AS auto_release_time",
   "describe": {
     "columns": [
       {
@@ -93,17 +93,6 @@
       },
       {
         "ordinal": 8,
-        "name": "subdomain",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "clubs",
-            "name": "subdomain"
-          }
-        }
-      },
-      {
-        "ordinal": 9,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -114,7 +103,7 @@
         }
       },
       {
-        "ordinal": 10,
+        "ordinal": 9,
         "name": "release_mode",
         "type_info": "Text",
         "origin": {
@@ -125,7 +114,7 @@
         }
       },
       {
-        "ordinal": 11,
+        "ordinal": 10,
         "name": "auto_release_weekday",
         "type_info": "Int2",
         "origin": {
@@ -136,7 +125,7 @@
         }
       },
       {
-        "ordinal": 12,
+        "ordinal": 11,
         "name": "auto_release_time",
         "type_info": "Text",
         "origin": "Expression"
@@ -144,6 +133,12 @@
     ],
     "parameters": {
       "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Bpchar",
+        "TextArray",
         "Text"
       ]
     },
@@ -156,12 +151,11 @@
       false,
       false,
       false,
-      true,
       false,
       false,
       true,
       null
     ]
   },
-  "hash": "a96c718fdda36b42d1371456998af8d68e790d31ee86624d3ca762610289280a"
+  "hash": "25e144639f7d591e32b3fa3261de45aa3c12aded164ca20d4789cc843b1131ce"
 }

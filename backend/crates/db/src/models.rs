@@ -29,7 +29,6 @@ pub struct Club {
     pub timezone: String,
     pub modalities: Vec<String>,
     pub trainer_label: String,
-    pub subdomain: Option<String>,
     pub created_at: DateTime<Utc>,
     /// Week release (D-031): `immediate` or `weekly`; the automatic release (ISO weekday, `"HH:MM"`), both or neither.
     pub release_mode: String,

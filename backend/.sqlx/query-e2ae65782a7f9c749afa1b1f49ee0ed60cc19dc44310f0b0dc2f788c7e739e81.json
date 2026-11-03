@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT m.id, m.club_id, m.user_id, m.role, m.status, m.is_billing_owner, m.joined_at, m.left_at,\n                c.slug, c.name, c.city, c.state, c.timezone, c.modalities, c.trainer_label, c.subdomain,\n                c.created_at AS club_created_at, c.release_mode, c.auto_release_weekday,\n                to_char(c.auto_release_time, 'HH24:MI') AS auto_release_time\n           FROM memberships m JOIN clubs c ON c.id = m.club_id\n          WHERE m.user_id = $1 AND m.status = 'active' AND c.deleted_at IS NULL\n          ORDER BY m.joined_at",
+  "query": "SELECT m.id, m.club_id, m.user_id, m.role, m.status, m.is_billing_owner, m.joined_at, m.left_at,\n                c.slug, c.name, c.city, c.state, c.timezone, c.modalities, c.trainer_label,\n                c.created_at AS club_created_at, c.release_mode, c.auto_release_weekday,\n                to_char(c.auto_release_time, 'HH24:MI') AS auto_release_time\n           FROM memberships m JOIN clubs c ON c.id = m.club_id\n          WHERE m.user_id = $1 AND m.status = 'active' AND c.deleted_at IS NULL\n          ORDER BY m.joined_at",
   "describe": {
     "columns": [
       {
@@ -170,17 +170,6 @@
       },
       {
         "ordinal": 15,
-        "name": "subdomain",
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "clubs",
-            "name": "subdomain"
-          }
-        }
-      },
-      {
-        "ordinal": 16,
         "name": "club_created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -191,7 +180,7 @@
         }
       },
       {
-        "ordinal": 17,
+        "ordinal": 16,
         "name": "release_mode",
         "type_info": "Text",
         "origin": {
@@ -202,7 +191,7 @@
         }
       },
       {
-        "ordinal": 18,
+        "ordinal": 17,
         "name": "auto_release_weekday",
         "type_info": "Int2",
         "origin": {
@@ -213,7 +202,7 @@
         }
       },
       {
-        "ordinal": 19,
+        "ordinal": 18,
         "name": "auto_release_time",
         "type_info": "Text",
         "origin": "Expression"
@@ -240,12 +229,11 @@
       false,
       false,
       false,
-      true,
       false,
       false,
       true,
       null
     ]
   },
-  "hash": "e4f2549b81f093a1d88a86b94b1ea6309df90bfd3df95c5ec0f6cf3ae65ca487"
+  "hash": "e2ae65782a7f9c749afa1b1f49ee0ed60cc19dc44310f0b0dc2f788c7e739e81"
 }

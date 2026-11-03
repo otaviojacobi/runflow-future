@@ -18,7 +18,7 @@ pub async fn memberships(
 ) -> sqlx::Result<Vec<MembershipContext>> {
     let rows = sqlx::query!(
         "SELECT m.id, m.club_id, m.user_id, m.role, m.status, m.is_billing_owner, m.joined_at, m.left_at,
-                c.slug, c.name, c.city, c.state, c.timezone, c.modalities, c.trainer_label, c.subdomain,
+                c.slug, c.name, c.city, c.state, c.timezone, c.modalities, c.trainer_label,
                 c.created_at AS club_created_at, c.release_mode, c.auto_release_weekday,
                 to_char(c.auto_release_time, 'HH24:MI') AS auto_release_time
            FROM memberships m JOIN clubs c ON c.id = m.club_id
@@ -94,7 +94,6 @@ pub async fn memberships(
                 timezone: r.timezone,
                 modalities: r.modalities,
                 trainer_label: r.trainer_label,
-                subdomain: r.subdomain,
                 created_at: r.club_created_at,
                 release_mode: r.release_mode,
                 auto_release_weekday: r.auto_release_weekday,

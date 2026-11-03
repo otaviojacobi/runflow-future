@@ -37,10 +37,6 @@ QA is live at **https://qa.runflow.club**:
   - Check: `curl -sI https://qa.runflow.club/ | grep cf-cache-status` says `HIT` (the first request after a purge says `MISS`).
 - [x] ~~**Change the Pi's password** / **keep a copy of the Pi's secrets**~~ Not needed (D-039): QA is disposable and its
   security can stay simple. If the Pi's `.env` is lost, write a new one and run `./reset-db.sh --yes`.
-- [ ] **Club sites** (`paceforte-qa.runflow.club`, S9b): Cloudflare Zero Trust → the tunnel → Routes → Add route →
-  Published application: subdomain `*`, domain `runflow.club`, service `http://web:80`. If Cloudflare doesn't create it,
-  add a proxied DNS record `*` CNAME → `<tunnel-id>.cfargotunnel.com`. Explicit records (`qa`, `www`, mail) keep winning.
-  Then `https://<club-slug>-qa.runflow.club` opens that club's sign-in. The Pi is already configured.
 - [ ] **Grafana for QA** (D-041, 2 minutes): Cloudflare Zero Trust → Networks → Tunnels → the QA tunnel → Public hostnames
   (or Routes) → Add: subdomain `grafana-qa`, domain `runflow.club`, service `http://grafana:3000`. Then open
   https://grafana-qa.runflow.club and sign in with `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` from your `.env.qa`

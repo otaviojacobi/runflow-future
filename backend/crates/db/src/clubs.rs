@@ -32,7 +32,7 @@ pub async fn access(
 pub async fn club(db: impl PgExecutor<'_>, id: Uuid) -> sqlx::Result<Option<Club>> {
     sqlx::query_as!(
         Club,
-        "SELECT id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at,
+        "SELECT id, slug, name, city, state, timezone, modalities, trainer_label, created_at,
                 release_mode, auto_release_weekday, to_char(auto_release_time, 'HH24:MI') AS auto_release_time
            FROM clubs WHERE id = $1 AND deleted_at IS NULL",
         id
@@ -41,32 +41,13 @@ pub async fn club(db: impl PgExecutor<'_>, id: Uuid) -> sqlx::Result<Option<Club
     .await
 }
 
-/// The club a host serves (S9b): by subdomain, or also by slug where every club gets a site (QA).
-pub async fn club_by_host(
-    db: impl PgExecutor<'_>,
-    sub: &str,
-    by_slug: bool,
-) -> sqlx::Result<Option<Club>> {
-    sqlx::query_as!(
-        Club,
-        "SELECT id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at,
-                release_mode, auto_release_weekday, to_char(auto_release_time, 'HH24:MI') AS auto_release_time
-           FROM clubs WHERE (subdomain = $1 OR ($2 AND slug = $1)) AND deleted_at IS NULL
-          ORDER BY subdomain = $1 DESC LIMIT 1",
-        sub,
-        by_slug
-    )
-    .fetch_optional(db)
-    .await
-}
-
-/// By slug or subdomain (public pages).
+/// By slug (public pages).
 pub async fn club_by_slug(db: impl PgExecutor<'_>, slug: &str) -> sqlx::Result<Option<Club>> {
     sqlx::query_as!(
         Club,
-        "SELECT id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at,
+        "SELECT id, slug, name, city, state, timezone, modalities, trainer_label, created_at,
                 release_mode, auto_release_weekday, to_char(auto_release_time, 'HH24:MI') AS auto_release_time
-           FROM clubs WHERE (slug = $1 OR subdomain = $1) AND deleted_at IS NULL",
+           FROM clubs WHERE slug = $1 AND deleted_at IS NULL",
         slug
     )
     .fetch_optional(db)
@@ -77,20 +58,6 @@ pub async fn slug_taken(db: impl PgExecutor<'_>, slug: &str) -> sqlx::Result<boo
     sqlx::query_scalar!(
         r#"SELECT EXISTS (SELECT 1 FROM clubs WHERE slug = $1) AS "x!""#,
         slug
-    )
-    .fetch_one(db)
-    .await
-}
-
-pub async fn subdomain_taken(
-    db: impl PgExecutor<'_>,
-    subdomain: &str,
-    except: Uuid,
-) -> sqlx::Result<bool> {
-    sqlx::query_scalar!(
-        r#"SELECT EXISTS (SELECT 1 FROM clubs WHERE subdomain = $1 AND id <> $2) AS "x!""#,
-        subdomain,
-        except
     )
     .fetch_one(db)
     .await
@@ -109,7 +76,7 @@ pub async fn insert_club(tx: &mut PgConnection, c: NewClub<'_>) -> sqlx::Result<
     sqlx::query_as!(
         Club,
         "INSERT INTO clubs (id, slug, name, city, state, modalities, trainer_label) VALUES ($1, $2, $3, $4, $5, $6, $7)
-         RETURNING id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at,
+         RETURNING id, slug, name, city, state, timezone, modalities, trainer_label, created_at,
                    release_mode, auto_release_weekday, to_char(auto_release_time, 'HH24:MI') AS auto_release_time",
         Uuid::now_v7(),
         c.slug,
@@ -196,7 +163,6 @@ pub struct ClubPatch {
     pub timezone: Option<String>,
     pub modalities: Option<Vec<String>>,
     pub trainer_label: Option<String>,
-    pub subdomain: Option<Option<String>>,
     pub release_mode: Option<String>,
     /// `Some(None)` turns the automatic release off.
     pub auto_release: Option<Option<(i16, NaiveTime)>>,
@@ -216,13 +182,12 @@ pub async fn update_club(
             timezone = coalesce($7, timezone),
             modalities = coalesce($8, modalities),
             trainer_label = coalesce($9, trainer_label),
-            subdomain = CASE WHEN $10 THEN $11 ELSE subdomain END,
-            release_mode = coalesce($12, release_mode),
-            auto_release_weekday = CASE WHEN $13 THEN $14 ELSE auto_release_weekday END,
-            auto_release_time = CASE WHEN $13 THEN $15 ELSE auto_release_time END,
+            release_mode = coalesce($10, release_mode),
+            auto_release_weekday = CASE WHEN $11 THEN $12 ELSE auto_release_weekday END,
+            auto_release_time = CASE WHEN $11 THEN $13 ELSE auto_release_time END,
             updated_at = now()
           WHERE id = $1 AND deleted_at IS NULL
-          RETURNING id, slug, name, city, state, timezone, modalities, trainer_label, subdomain, created_at,
+          RETURNING id, slug, name, city, state, timezone, modalities, trainer_label, created_at,
                    release_mode, auto_release_weekday, to_char(auto_release_time, 'HH24:MI') AS auto_release_time",
         id,
         p.name,
@@ -233,8 +198,6 @@ pub async fn update_club(
         p.timezone,
         p.modalities.as_deref(),
         p.trainer_label,
-        p.subdomain.is_some(),
-        p.subdomain.flatten(),
         p.release_mode,
         p.auto_release.is_some(),
         p.auto_release.flatten().map(|a| a.0),
@@ -244,10 +207,10 @@ pub async fn update_club(
     .await
 }
 
-/// Close a club: soft delete, subdomain released, plan canceled, open invites revoked.
+/// Close a club: soft delete, plan canceled, open invites revoked.
 pub async fn close_club(tx: &mut PgConnection, id: Uuid) -> sqlx::Result<()> {
     sqlx::query!(
-        "UPDATE clubs SET deleted_at = now(), updated_at = now(), subdomain = NULL WHERE id = $1",
+        "UPDATE clubs SET deleted_at = now(), updated_at = now() WHERE id = $1",
         id
     )
     .execute(&mut *tx)

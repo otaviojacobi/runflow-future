@@ -1,6 +1,6 @@
-/** O3 · Configurações do clube: data, modalities, terminology, week release (D-031), timezone, subdomain (Pro), danger zone. Route: /club/settings */
+/** O3 · Configurações do clube: data, modalities, terminology, week release (D-031), timezone, danger zone. Route: /club/settings */
 import { useNavigate } from "@tanstack/react-router";
-import { AlertTriangle, CalendarCheck, ExternalLink, Globe, Lock } from "lucide-react";
+import { AlertTriangle, CalendarCheck } from "lucide-react";
 import { useState } from "react";
 import { useCloseClub, useUpdateClub } from "@/api/clubs";
 import { fetchMe, meKey } from "@/api/me";
@@ -10,7 +10,7 @@ import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { selectClub, useClub } from "@/lib/club";
 import { queryClient } from "@/queryClient";
-import { Badge, Button, ButtonLink, Card, Dialog, Field, Input, PageHeader, Segmented, Select, Switch, cn, toast } from "@/ui";
+import { Button, Card, Dialog, Field, Input, PageHeader, Segmented, Select, Switch, cn, toast } from "@/ui";
 
 const UF = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" ");
 const TIMEZONES: [string, string][] = [
@@ -39,11 +39,10 @@ export function SettingsScreen() {
   if (!club || !ctx) return null;
   return (
     <div className="mx-auto grid max-w-3xl gap-6">
-      <PageHeader title={t("Configurações do clube")} subtitle={t("Dados, modalidades, liberação dos treinos e endereço do {club}", { club: club.name })} />
+      <PageHeader title={t("Configurações do clube")} subtitle={t("Dados, modalidades e liberação dos treinos do {club}", { club: club.name })} />
       <ClubData club={club} key={`d${club.id}`} />
       <Modalities club={club} key={`m${club.id}`} />
       <WeekReleaseSettings club={club} key={`r${club.id}`} />
-      <Subdomain key={`s${club.id}`} club={club} plan={ctx.subscription?.plan ?? "free"} />
       <DangerZone club={club} />
     </div>
   );
@@ -145,36 +144,6 @@ function WeekReleaseSettings({ club }: { club: Club }) {
         )}
         {err?.fieldError("release_mode") && <p className="rf-text-caption text-danger-text">{err.fieldError("release_mode")}</p>}
         <SaveRow dirty={dirty} loading={update.isPending} onReset={() => setV(init)} />
-      </form>
-    </Card>
-  );
-}
-
-function Subdomain({ club, plan }: { club: Club; plan: string }) {
-  const update = useUpdateClub(club.id);
-  const [sub, setSub] = useState(club.subdomain ?? "");
-  const locked = plan === "free";
-  const err = apiErr(update.error);
-  const dirty = sub !== (club.subdomain ?? "");
-  return (
-    <Card className="p-5 sm:p-6">
-      <form className="grid gap-4" onSubmit={(e) => { e.preventDefault(); update.mutate({ subdomain: sub || null }, { onSuccess: () => toast.success(sub ? t("Endereço salvo") : t("Endereço removido"), sub ? `${sub}.runflow.club` : undefined), onError: (e) => { if (!(e instanceof ApiError && e.errors.length)) toast.error(e); } }); }}>
-        <div className="flex flex-wrap items-start justify-between gap-2">
-          <div><h2 className="flex items-center gap-2 rf-text-title-md"><Globe className="size-5" />{t("Endereço próprio")}</h2><p className="text-sm text-fg-muted">{t("Os alunos entram por um link com o nome do clube e já veem suas cores na tela de login.")}</p></div>
-          {locked && <Badge tone="accent" icon={<Lock />}>{t("Plano Pro")}</Badge>}
-        </div>
-        <Field label={t("Endereço")} error={err?.fieldError("subdomain")} hint={t("De 3 a 32 letras, números ou hífens.")}>
-          {(id, d) => (
-            <div className="flex items-center">
-              <Input id={id} aria-describedby={d} value={sub} disabled={locked} onChange={(e) => setSub(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))} placeholder={club.slug} className="rounded-r-none" maxLength={32} />
-              <span className="flex h-10 items-center rounded-r-md border border-l-0 border-line-strong bg-sunken px-3 text-sm text-fg-muted">.runflow.club</span>
-            </div>
-          )}
-        </Field>
-        {club.subdomain && !dirty && <a href={`https://${club.subdomain}.runflow.club`} target="_blank" rel="noreferrer" className="inline-flex w-fit items-center gap-1 text-sm font-semibold text-brand-text hover:underline">{club.subdomain}.runflow.club<ExternalLink className="size-3.5" /></a>}
-        <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line-subtle pt-4">
-          {locked ? <><span className="mr-auto text-sm text-fg-muted">{t("Disponível a partir do Pro, R$ 20/mês.")}</span><ButtonLink to="/club/billing" variant="secondary">{t("Ver planos")}</ButtonLink></> : <Button type="submit" disabled={!dirty} loading={update.isPending}>{t("Salvar endereço")}</Button>}
-        </div>
       </form>
     </Card>
   );

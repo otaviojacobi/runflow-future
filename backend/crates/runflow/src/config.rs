@@ -54,11 +54,9 @@ pub struct Http {
     /// Where the API is reachable from outside (OAuth and webhook callbacks).
     pub public_api_url: String,
     pub cors_origins: Vec<String>,
-    /// `.runflow.club` in production (SSO across club subdomains, §7.3); `None` = host-only cookie.
+    /// The session cookie's domain; `None` = host-only (the default).
     pub cookie_domain: Option<String>,
     pub cookie_name: String,
-    pub club_host_suffix: Option<String>,
-    pub club_host_by_slug: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -294,8 +292,6 @@ impl Config {
             cors_origins,
             cookie_domain: e.opt("COOKIE_DOMAIN"),
             cookie_name: e.or("COOKIE_NAME", "rf_session"),
-            club_host_suffix: e.opt("CLUB_HOST_SUFFIX").map(|s| s.to_lowercase()),
-            club_host_by_slug: e.parse("CLUB_HOST_BY_SLUG", false),
         };
 
         let db = DbSettings {

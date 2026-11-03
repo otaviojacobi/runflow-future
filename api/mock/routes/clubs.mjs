@@ -8,7 +8,6 @@ const STARTER = starterLibrary();
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const TIMEZONES = ["America/Noronha", "America/Sao_Paulo", "America/Manaus", "America/Cuiaba", "America/Campo_Grande", "America/Porto_Velho", "America/Boa_Vista", "America/Rio_Branco"];
-const RESERVED = new Set("app api www mail email smtp imap pop autodiscover send status docs admin assets static cdn blog ajuda suporte dev runflow staging grafana prometheus loki alloy metrics logs monitor sentry auth login qa prod".split(" "));
 
 export default function register(h) {
   const slugify = (name) => {
@@ -44,7 +43,7 @@ export default function register(h) {
     const modalities = Array.isArray(ctx.body.modalities) ? ctx.body.modalities.filter((m) => SPORTS.includes(m)) : [];
     if (!modalities.length) h.invalid([{ field: "modalities", message: "Escolha pelo menos uma modalidade." }]);
     const now = h.nowIso();
-    const c = { id: h.uuid("club"), slug: slugify(name), name, city, state, timezone: "America/Sao_Paulo", modalities, trainer_label: modalities.some((m) => m === "swim" || m === "strength") && !modalities.includes("run") ? "professor" : "treinador", subdomain: null, created_at: now, updated_at: now, deleted_at: null };
+    const c = { id: h.uuid("club"), slug: slugify(name), name, city, state, timezone: "America/Sao_Paulo", modalities, trainer_label: modalities.some((m) => m === "swim" || m === "strength") && !modalities.includes("run") ? "professor" : "treinador", created_at: now, updated_at: now, deleted_at: null };
     h.db.clubs.push(c);
     const m = { id: h.uuid("m"), club_id: c.id, user_id: u.id, role: "owner", status: "active", is_billing_owner: true, joined_at: now, left_at: null };
     h.db.memberships.push(m);
@@ -76,19 +75,10 @@ export default function register(h) {
       else errors.push({ field: "auto_release_time", message: "Informe o dia e o horário da liberação automática." });
     }
     if ("timezone" in b && !TIMEZONES.includes(b.timezone)) errors.push({ field: "timezone", message: "Escolha um fuso horário." });
-    if ("subdomain" in b && b.subdomain) {
-      const sub = String(b.subdomain).toLowerCase();
-      if (!/^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/.test(sub)) errors.push({ field: "subdomain", message: "Use de 3 a 32 letras, números ou hífens." });
-      else if (sub.endsWith("-qa")) errors.push({ field: "subdomain", message: "Endereços terminados em -qa são reservados." }); // QA's club sites (D-029)
-      else if (RESERVED.has(sub)) errors.push({ field: "subdomain", message: "Este endereço é reservado. Escolha outro." });
-      else if (h.db.clubs.some((x) => x.subdomain === sub && x.id !== c.id)) errors.push({ field: "subdomain", message: "Este endereço já está em uso." });
-      else if (h.subscription(c.id).plan === "free") h.fail(402, "plan.required", "Disponível no plano Pro", "O endereço próprio (seuclube.runflow.club) faz parte do plano Pro.");
-    }
     if (errors.length) h.invalid(errors);
     for (const k of ["name", "city", "timezone", "trainer_label"]) if (k in b) c[k] = typeof b[k] === "string" ? b[k].trim() || null : b[k];
     if ("state" in b) c.state = b.state ? String(b.state).toUpperCase() : null;
     if ("modalities" in b) c.modalities = b.modalities.filter((m) => SPORTS.includes(m));
-    if ("subdomain" in b) c.subdomain = b.subdomain ? String(b.subdomain).toLowerCase() : null;
     const wasImmediate = h.releaseOf(c).release_mode === "immediate";
     if ("release_mode" in b) c.release_mode = b.release_mode;
     if (auto) Object.assign(c, auto);
@@ -102,7 +92,7 @@ export default function register(h) {
     const c = club(ctx.params.club_id);
     if (String(ctx.body.confirm_name || "").trim().toLowerCase() !== c.name.toLowerCase()) h.invalid([{ field: "confirm_name", message: "Digite o nome do clube exatamente como aparece." }]);
     const now = h.nowIso();
-    c.deleted_at = now; c.subdomain = null; c.updated_at = now;
+    c.deleted_at = now; c.updated_at = now;
     for (const sub of h.db.club_subscriptions.filter((x) => x.club_id === c.id && x.status !== "canceled")) Object.assign(sub, { status: "canceled", cancel_at_period_end: false, updated_at: now });
     for (const inv of h.db.invitations.filter((x) => x.club_id === c.id && !x.revoked_at)) inv.revoked_at = now;
     h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: c.id, actor_user_id: ctx.user().id, action: "club.closed", target_type: "club", target_id: c.id, data: null, created_at: now });
@@ -146,9 +136,9 @@ export default function register(h) {
     return { __raw: true, headers: { "Content-Type": blob.content_type, "Cache-Control": "public, max-age=31536000, immutable" }, body: Buffer.from(blob.data, "base64") };
   });
 
-  // ---- public club (subdomain / invite pages)
+  // ---- public club (invite pages)
   h.get("/v1/public/clubs/:slug", (ctx) => {
-    const c = h.db.clubs.find((x) => (x.slug === ctx.params.slug || x.subdomain === ctx.params.slug) && !x.deleted_at);
+    const c = h.db.clubs.find((x) => x.slug === ctx.params.slug && !x.deleted_at);
     if (!c) h.fail(404, "club.not_found", "Clube não encontrado", "Confira o endereço.");
     return { club: { id: c.id, slug: c.slug, name: c.name, city: c.city, state: c.state, modalities: c.modalities, trainer_label: c.trainer_label }, branding: h.branding(c.id) };
   });

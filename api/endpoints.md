@@ -14,7 +14,7 @@ Screen IDs (A*, M*, W*, O*, C*) refer to `docs/build-plan.md`.
   `{ "type": "about:blank", "status": 404, "code": "workout.not_found", "title": "Treino não encontrado", "detail": "Ele pode ter sido removido pelo treinador." }`
   Validation errors add `errors: [{ "field": "name", "message": "Informe o nome do clube." }]`.
 - **Authorization**: club routes check the caller's membership. `owner` ⊇ `trainer` (D-017: trainers see all students). Students only reach `/my/*` and their own data.
-- **Club context**: club-scoped routes live under `/v1/clubs/{club_id}`. Subdomains only pick branding and the default club.
+- **Club context**: club-scoped routes live under `/v1/clubs/{club_id}`. Clubs have no sites or domains of their own (D-042): everyone uses Runflow's app, in the club's colors.
 
 ## Workout structure (`structure` jsonb, v1)
 
@@ -78,7 +78,7 @@ Every user decides what reaches them and how. Per **kind**: `app` (the notificat
 
 | Method | Path | What | Screens |
 |---|---|---|---|
-| GET | `/public/config` | What the web app needs before sign-in: `{google_client_id, strava, club, push_public_key, sentry}` (`push_public_key`: the VAPID public key for Web Push, base64url, or null when push is off; `sentry`: `{dsn, environment, release}` for the web app's error reports, or null when off) (the web OAuth client id, or null when Google sign-in is off; whether Strava is configured; `club` `{id, slug, name, logo_url}` when the request's host is a club site, S9b: `<subdomain>` + `CLUB_HOST_SUFFIX`, e.g. `paceforte-qa.runflow.club` in QA). Mock: `google_client_id`, `club`, `push_public_key` and `sentry` null | A2 |
+| GET | `/public/config` | What the web app needs before sign-in: `{google_client_id, strava, push_public_key, sentry}` (`push_public_key`: the VAPID public key for Web Push, base64url, or null when push is off; `sentry`: `{dsn, environment, release}` for the web app's error reports, or null when off) (the web OAuth client id, or null when Google sign-in is off; whether Strava is configured). Mock: `google_client_id`, `push_public_key` and `sentry` null | A2 |
 | GET | `/health` | `{ok, version, database: {ok, latency_ms}}`; `503 health.database_unavailable` when the database is down. The mock adds `anchor_date` and `routes` | — |
 | GET / POST | `/webhooks/strava` | Strava webhook: GET answers the subscription handshake (`hub.verify_token` = `STRAVA_WEBHOOK_VERIFY_TOKEN`); POST events are recorded once and applied by the worker (activity create/update fetched from Strava, delete, athlete deauthorization = disconnect). Backend only | — |
 
@@ -120,13 +120,13 @@ Every user decides what reaches them and how. Per **kind**: `app` (the notificat
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
 | POST | `/clubs` `{name, city, state, modalities}` | Create club → `{club, membership, branding, subscription}`. Caller becomes owner (free plan); a starter library for the chosen modalities are created | A5 |
-| GET / PATCH | `/clubs/{club_id}` | Club settings (name, city, state, timezone, modalities, trainer_label, subdomain, `release_mode`, `auto_release_weekday`, `auto_release_time`); PATCH is owner-only. Week release fields: § Week release. `timezone` ∈ `America/Noronha` `America/Sao_Paulo` `America/Manaus` `America/Cuiaba` `America/Campo_Grande` `America/Porto_Velho` `America/Boa_Vista` `America/Rio_Branco`. `subdomain`: 3–32 of `a-z 0-9 -` (not at the ends), not ending in `-qa` (QA's club sites, D-029), not reserved (`app api www mail email smtp imap pop autodiscover send status docs admin assets static cdn blog ajuda suporte dev runflow staging grafana prometheus loki alloy metrics logs monitor sentry auth login qa prod`), not taken; Free plan → `402 plan.required` | O3 |
-| DELETE | `/clubs/{club_id}` `{confirm_name}` | Close the club (owner): soft delete, subscription canceled, invites revoked, subdomain released. Members lose access; their own activities stay in their accounts | O3 |
+| GET / PATCH | `/clubs/{club_id}` | Club settings (name, city, state, timezone, modalities, trainer_label, `release_mode`, `auto_release_weekday`, `auto_release_time`); PATCH is owner-only. Week release fields: § Week release. `timezone` ∈ `America/Noronha` `America/Sao_Paulo` `America/Manaus` `America/Cuiaba` `America/Campo_Grande` `America/Porto_Velho` `America/Boa_Vista` `America/Rio_Branco`. | O3 |
+| DELETE | `/clubs/{club_id}` `{confirm_name}` | Close the club (owner): soft delete, subscription canceled, invites revoked. Members lose access; their own activities stay in their accounts | O3 |
 | GET | `/clubs/{club_id}/branding` | `{primary_color, secondary_color, logo_url, theme_rev, theme}` | O1 |
 | PUT | `/clubs/{club_id}/branding` `{primary_color?, secondary_color?, logo_asset_id?}` | Owner. Colors as `#RRGGBB`; only a secondary is promoted to primary; `logo_asset_id` absent = keep, `null` = remove, else one of this club's logos. The server runs the color engine (golden fixtures) and stores `theme` + `theme_css`; `theme_rev` bumps on every save | A5, O1 |
 | POST | `/clubs/{club_id}/assets` `{data_url, width?, height?}` | Owner: upload a logo (≤ 5 MB; PNG, JPG, WebP, or SVG without scripts/handlers/external refs) → `201 {id, url}`. The declared type must match the file. `415 asset.unsupported`, `413 asset.too_large` | A5, O1 |
 | GET | `/assets/{id}` | The image, public: immutable cache, `ETag` (sha256), `Content-Security-Policy: … sandbox`, `nosniff` | all |
-| GET | `/public/clubs/{slug}` | Public name + theme (subdomain, invite pages) | A3 |
+| GET | `/public/clubs/{slug}` | Public name + theme (invite pages) | A3 |
 | GET | `/public/invites/{token}` | Branded invite page data: `{club, branding, role, valid, reason, invited_by, name, email, email_hint (masked), expires_at, members, already_member, email_matches}`. `email` is the invited address while the invite is valid (the token only reached that mailbox), else null; the sign-in page pre-fills it (reason: `expired` `revoked` `accepted` `club_full`; `email_matches` is null when signed out). Unknown or rotated token → 404 | A3 |
 | POST | `/invites/{token}/accept` | Join the club. Only the account whose e-mail is the invited one: otherwise `403 invite.email_mismatch`. Single use (`accepted_at`); joins the invite's groups | A3 |
 | GET / POST | `/clubs/{club_id}/invites` `{email, role, name?, group_ids?}` | **Personal invites only (D-023).** POST creates one invite for one e-mail (trainer invites: owner only), valid **7 days**, and e-mails the link through the background worker (development: `/mock/outbox`). `409 invite.exists` (open invite for that e-mail: use resend) or `invite.already_member`. GET lists them with `status: pending \| expired \| accepted` and `url` | A5, O2 |
@@ -242,5 +242,5 @@ Kinds, `data` → `result`: `body {weight_kg, height_cm, body_fat_pct?, waist_cm
 | POST | `/mock/stripe/complete` `{club_id, plan}` | **Billing simulation** (the mock; the backend with `BILLING_SIMULATION` and no Stripe key, else `404`): checkout.session.completed → Pro, paid invoice, `billing` notification to the billing owner | O5 |
 | POST | `/mock/stripe/portal` `{club_id, action: cancel \| resume \| fail_payment \| pay \| expire}` | **Billing simulation**: portal actions and the webhooks they cause (`fail_payment` notifies the billing owner) | O5 |
 
-**Plans** (D-016, §4.6): `free` = 10 active students; `pro` = 100 students, R$ 20/month, subdomain; `max` = TBD (not sold yet).
+**Plans** (D-016, §4.6): `free` = 10 active students; `pro` = 100 students, R$ 20/month; `max` = TBD (not sold yet).
 Hitting the limit blocks new joins (`invite.club_full`) and never removes existing students.

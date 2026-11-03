@@ -2,7 +2,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowRight, BadgeCheck, CalendarCheck, CalendarClock, Check, ChevronDown, ClipboardList, Gauge, Library, MessageSquare,
-  Palette, Smartphone, Sparkles, Users, Wallet, Wand2, Zap,
+  Smartphone, Sparkles, Users, Wallet, Wand2, Zap,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { IS_MOCK, useGoogleSignIn } from "@/api/auth";
@@ -215,7 +215,6 @@ function Studio() {
             </button>
           ))}
         </div>
-        <p className="flex items-center gap-2 text-sm text-fg-muted"><Palette className="size-4" />{t("No plano Pro, o clube ganha também o endereço seuclube.runflow.club.")}</p>
       </div>
       <div className="flex justify-center gap-4">
         <ThemePreview name={c.name} mode="light" vars={themeVars({ primary: c.primary, secondary: c.secondary })} />
@@ -228,8 +227,8 @@ function Studio() {
 function Pricing() {
   const plans = [
     { name: "Free", price: "R$ 0", per: t("para sempre"), desc: t("Para começar ou para turmas pequenas."), items: [t("Até 10 alunos"), t("Todos os recursos"), t("Club Studio: logo e cores"), t("Treinadores ilimitados")], cta: t("Criar clube grátis"), hl: false },
-    { name: "Pro", price: "R$ 20", per: t("por mês"), desc: t("Para assessorias e academias em crescimento."), items: [t("Até 100 alunos"), t("Tudo do Free"), t("Endereço seuclube.runflow.club"), t("Suporte prioritário")], cta: t("Começar com o Pro"), hl: true },
-    { name: "Max", price: t("Em breve"), per: "", desc: t("Para clubes grandes, com várias unidades."), items: [t("Mais de 100 alunos"), t("Tudo do Pro"), t("Valor por aluno bem baixo"), t("Atendimento dedicado")], cta: t("Falar com a gente"), hl: false },
+    { name: "Pro", price: "R$ 20", per: t("por mês"), desc: t("Para assessorias e academias em crescimento."), items: [t("Até 100 alunos"), t("Todos os recursos do plano Free"), t("Suporte prioritário")], cta: t("Começar com o Pro"), hl: true },
+    { name: "Max", price: t("Em breve"), per: "", desc: t("Para clubes grandes, com várias unidades."), items: [t("Mais de 100 alunos"), t("Todos os recursos do plano Pro"), t("Valor por aluno bem baixo"), t("Atendimento dedicado")], cta: t("Falar com a gente"), hl: false },
   ];
   return (
     <section id="precos" className="scroll-mt-20 border-y border-line bg-surface">

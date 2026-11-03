@@ -12,7 +12,7 @@ import { Badge, Button, Card, PageHeader, ProgressBar, Skeleton, cn, toast, type
 interface PlanInfo { id: Plan | "enterprise"; name: string; price: string; per?: string; students: string; features: string[]; soon?: boolean }
 const PLANS: PlanInfo[] = [
   { id: "free", name: "Free", price: "R$ 0", students: "Até 10 alunos", features: ["Todos os recursos", "Club Studio com logo e cores", "Treinadores ilimitados"] },
-  { id: "pro", name: "Pro", price: "R$ 20", per: "/mês", students: "Até 100 alunos", features: ["Tudo do Free", "Endereço próprio: seuclube.runflow.club", "Cancele quando quiser"] },
+  { id: "pro", name: "Pro", price: "R$ 20", per: "/mês", students: "Até 100 alunos", features: ["Todos os recursos do plano Free", "Suporte prioritário", "Cancele quando quiser"] },
   { id: "max", name: "Max", price: "A definir", students: "Mais de 100 alunos", features: ["Para assessorias e academias grandes", "Valor fixo + um pequeno valor por aluno"], soon: true },
   { id: "enterprise", name: "Enterprise", price: "Licença anual", students: "Sem limite", features: ["Roda no servidor da sua empresa", "Mesmo app, seus dados"] },
 ];

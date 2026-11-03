@@ -33,11 +33,9 @@ Cloudflare Zero Trust → Networks → Tunnels → create (`runflow-pi`) → cop
 Public hostnames, all to `http://api:3000`:
 - `app.runflow.club` (web app + sign-in: the Google OAuth origin, §7.3)
 - `api.runflow.club` (mobile API)
-- `*.runflow.club` (club subdomains, Pro): also add a proxied DNS record `*` → `<tunnel-id>.cfargotunnel.com`.
   Universal SSL covers `*.runflow.club` (one level) for free. Explicit records (`www`, mail, `send`) win over the wildcard.
 
 Then: `COOKIE_DOMAIN=.runflow.club`, `PUBLIC_APP_URL=https://app.runflow.club`, `PUBLIC_API_URL=https://api.runflow.club`, `CORS_ORIGINS=https://app.runflow.club`.
-Reserved subdomains (never a club's): `app api www mail email smtp imap pop autodiscover send status docs admin` (enforced in S3).
 A club's own domain (`treinos.clube.com.br`) = Cloudflare for SaaS custom hostnames: later.
 Note for LGPD: Cloudflare terminates TLS, so list it as a processor in the terms.
 **Edge cache (S8b):** the web app is served by Cloudflare, the origin only answers `/api`. The web image sets the TTLs

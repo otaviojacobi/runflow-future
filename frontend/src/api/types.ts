@@ -17,7 +17,7 @@ export interface User {
 }
 export interface Club {
   id: ID; slug: string; name: string; city: string | null; state: string | null; timezone: string;
-  modalities: Sport[]; trainer_label: "treinador" | "professor"; subdomain: string | null; created_at: ISOTime;
+  modalities: Sport[]; trainer_label: "treinador" | "professor"; created_at: ISOTime;
   /** Week release (D-031): ISO weekday 1–7 + "HH:MM" of the automatic release, both null when off. */
   release_mode: "immediate" | "weekly"; auto_release_weekday: number | null; auto_release_time: string | null;
 }

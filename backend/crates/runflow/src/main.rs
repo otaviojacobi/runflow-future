@@ -256,8 +256,6 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
         body_limit: 12 * 1024 * 1024,
         public_app_url: config.http.public_app_url.clone(),
         public_api_url: config.http.public_api_url.clone(),
-        club_host_suffix: config.http.club_host_suffix.clone(),
-        club_host_by_slug: config.http.club_host_by_slug,
         strava_verify_token: config
             .strava
             .as_ref()

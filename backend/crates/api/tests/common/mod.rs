@@ -60,8 +60,6 @@ pub fn settings(dev: bool) -> ApiSettings {
         body_limit: 64 * 1024,
         public_app_url: "http://localhost:8080".into(),
         public_api_url: "http://localhost:3000".into(),
-        club_host_suffix: Some("-qa.runflow.club".into()),
-        club_host_by_slug: false,
         strava_verify_token: Some("verify-me".into()),
         billing: BillingSettings {
             simulation: true,

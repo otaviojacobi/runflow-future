@@ -136,7 +136,7 @@ async fn join(app: &TestApp, club: &str, email: &str, role: &str) -> String {
 }
 
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]
-async fn settings_follow_roles_plan_and_subdomain_rules(db: PgPool) {
+async fn settings_follow_roles_and_validation(db: PgPool) {
     let app = TestApp::new(db);
     let owner = app.sign_in("marcos@email.com").await;
     let c = create(&app, &owner, "Pace Forte", json!(["run"])).await;
@@ -193,88 +193,15 @@ async fn settings_follow_roles_plan_and_subdomain_rules(db: PgPool) {
         )
     );
 
-    app.patch(&path, Some(&owner), json!({ "subdomain": "paceforte" }))
-        .await
-        .problem(402, "plan.required");
-    sqlx::query("UPDATE club_subscriptions SET plan = 'pro', student_limit = 100")
-        .execute(app.db())
-        .await
-        .unwrap();
-    for (sub, msg) in [
-        ("app", "Este endereço é reservado. Escolha outro."),
-        ("grafana", "Este endereço é reservado. Escolha outro."),
-        ("-x-", "Use de 3 a 32 letras, números ou hífens."),
-        ("ab", "Use de 3 a 32 letras, números ou hífens."),
-        (
-            "paceforte-qa",
-            "Endereços terminados em -qa são reservados.",
-        ),
-    ] {
-        let r = app
-            .patch(&path, Some(&owner), json!({ "subdomain": sub }))
-            .await;
-        assert_eq!(
-            r.problem(422, "validation.failed")["errors"][0]["message"],
-            msg,
-            "{sub}"
-        );
-    }
-    assert_eq!(
-        app.patch(&path, Some(&owner), json!({ "subdomain": "PaceForte" }))
-            .await
-            .ok()["subdomain"],
-        "paceforte"
-    );
-    // Its site (S9b): the host names the club; other hosts name none.
-    for (host, club) in [
-        ("paceforte-qa.runflow.club", json!("Pace Forte Assessoria")),
-        ("qa.runflow.club", Value::Null),
-        ("nobody-qa.runflow.club", Value::Null),
-    ] {
-        let r = app
-            .call(
-                Method::GET,
-                "/v1/public/config",
-                None,
-                None,
-                &[("host", host)],
-            )
-            .await;
-        assert_eq!(
-            r.ok()["club"].get("name").cloned().unwrap_or(Value::Null),
-            club,
-            "{host}"
-        );
-    }
-    let other = create(&app, &owner, "Outro", json!(["run"])).await;
-    sqlx::query("UPDATE club_subscriptions SET plan = 'pro'")
-        .execute(app.db())
-        .await
-        .unwrap();
-    let taken = app
-        .patch(
-            &format!("/v1/clubs/{}", other["club"]["id"].as_str().unwrap()),
-            Some(&owner),
-            json!({ "subdomain": "paceforte" }),
-        )
-        .await;
-    assert_eq!(
-        taken.problem(422, "validation.failed")["errors"][0]["message"],
-        "Este endereço já está em uso."
-    );
-
-    // Public page by slug or subdomain.
-    let public = app.get("/v1/public/clubs/paceforte", None).await;
+    // Public page by slug.
+    let slug = c["club"]["slug"].as_str().unwrap();
+    let public = app.get(&format!("/v1/public/clubs/{slug}"), None).await;
     assert_eq!(
         (
             public.ok()["club"]["name"].as_str(),
             public.body["branding"]["theme"]["source"].as_str()
         ),
         (Some("Pace Forte Assessoria"), Some("default"))
-    );
-    assert!(
-        public.body["club"].get("subdomain").is_none(),
-        "public shape only"
     );
     app.get("/v1/public/clubs/nao-existe", None)
         .await
@@ -526,17 +453,6 @@ async fn closing_a_club_needs_its_name_and_releases_everything(db: PgPool) {
         .as_str()
         .unwrap()
         .to_string();
-    sqlx::query("UPDATE club_subscriptions SET plan = 'pro'")
-        .execute(app.db())
-        .await
-        .unwrap();
-    app.patch(
-        &format!("/v1/clubs/{id}"),
-        Some(&owner),
-        json!({ "subdomain": "paceforte" }),
-    )
-    .await
-    .ok();
     let student = join(&app, &id, "ana@email.com", "student").await;
 
     app.call(
@@ -589,24 +505,4 @@ async fn closing_a_club_needs_its_name_and_releases_everything(db: PgPool) {
             .await
             .unwrap();
     assert_eq!(status, "canceled");
-    // The subdomain is free again for another club.
-    let other = create(&app, &owner, "Outro", json!(["run"])).await["club"]["id"]
-        .as_str()
-        .unwrap()
-        .to_string();
-    sqlx::query("UPDATE club_subscriptions SET plan = 'pro' WHERE club_id = $1::uuid")
-        .bind(&other)
-        .execute(app.db())
-        .await
-        .unwrap();
-    assert_eq!(
-        app.patch(
-            &format!("/v1/clubs/{other}"),
-            Some(&owner),
-            json!({ "subdomain": "paceforte" })
-        )
-        .await
-        .ok()["subdomain"],
-        "paceforte"
-    );
 }

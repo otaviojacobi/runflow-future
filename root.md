@@ -40,7 +40,7 @@ We compete on three things. Each one is a commitment we measure, not a slogan.
 
 Two structural differentiators sit on top of these:
 1. **Multi-modality.** One platform covers prescription (running, swimming, cycling, strength) and, later (D-035), scheduling (gym classes, swim lessons), so hybrid clubs stop paying for two tools.
-2. **Club Studio.** Runflow displays each club's logo and colors, even on the free tier, and Pro adds a custom subdomain.
+2. **Club Studio.** Runflow displays each club's logo and colors, even on the free tier.
 
 ## 3. Competitive landscape: sisrun
 
@@ -79,7 +79,7 @@ Membership is **per club**. One person can be a student in club A and a trainer 
 
 | Capability | Owner | Trainer | Student |
 |---|:-:|:-:|:-:|
-| Club Studio (logo, colors), subdomain, billing, subscription plan | ✓ | – | – |
+| Club Studio (logo, colors), billing, subscription plan | ✓ | – | – |
 | Invite or remove trainers; club settings | ✓ | – | – |
 | Invite students; manage groups | ✓ | ✓ | – |
 | Build workouts, library, *planilhas*; assign to students or groups | ✓ | ✓ | – |
@@ -112,7 +112,7 @@ Trainers see **all** students in their club (D-017). The owner is also a trainer
 | Tier | What the club gets |
 |---|---|
 | **Free** | Club name, logo, and up to two colors (primary and an optional secondary). The colors theme the **signed-in** app on web and mobile for the club's members. Public pages (landing, sign-in, invite page) always stay in Runflow's brand and show only the club's logo and name (D-024). The club's e-mails (invites, notices) wear its colors (D-036). |
-| **Pro** | Everything in Free, plus a **`<club>.runflow.club`** subdomain that opens straight into the club's Runflow (themed once signed in). |
+| **Pro** | Everything in Free, for more students. Clubs have no sites or domains of their own (D-042): everyone uses Runflow's app in the club's colors. |
 
 How theming works (D-014; details in `design/`):
 
@@ -155,7 +155,7 @@ Auth is **Sign in with Google** or an **email one-time code**. There are no pass
 | Plan | Students | Price | Notes |
 |---|---|---|---|
 | **Free** | up to 10 | R$ 0 | All features, Club Studio included. Marketed as generous. |
-| **Pro** | up to 100 | **R$ 20/month** | All features plus a custom subdomain. Annual option to define. |
+| **Pro** | up to 100 | **R$ 20/month** | All features, priority support. Annual option to define. |
 | **Max** | TBD | ~R$ 100/month + a small per-student fee | To be defined (§11). |
 | **Enterprise** | — | Annual license | Self-hosted (same container + Postgres + S3-compatible storage). A small line of business. |
 
@@ -308,7 +308,7 @@ flowchart LR
 - **API conventions.** REST + JSON under `/v1`. OpenAPI is generated from code (utoipa). Errors follow RFC 9457 (problem+json): `title` and `detail` are **pt-BR**, written for the person who reads them, plus a stable English `code` (e.g. `workout.not_found`) for the apps to branch on. Server logs stay in English. Pagination uses cursors. IDs are UUIDv7. Timestamps are `timestamptz` in UTC. Workouts are scheduled on a **local date** plus the club's timezone.
 - **Multi-tenancy.** One database with `club_id` on every club-scoped row. Club routes take the form `/v1/clubs/{club_id}/…`. An extractor checks membership and role on every request. Postgres RLS as defense-in-depth will be decided at bootstrap.
 - **Workout structure** is stored as versioned JSONB, strongly typed in Rust: steps, repeats, durations and targets per sport, FIT-compatible.
-- **Web shell.** For each host, the binary serves the SPA `index.html` with the club's theme CSS and name injected, so a club's subdomain never flashes Runflow's default colors. Hashed assets are cached at the CDN.
+- **Web shell.** The SPA is static (Cloudflare's edge on QA, Pages in production); the club's theme comes from the `rf_club` cookie/localStorage before the first paint (§7.8). Hashed assets are cached at the CDN.
 - **Lambda-ready.** No local state, config via environment variables, and `lambda_http` can wrap the same router later.
 - **Observability:** `tracing` with JSON logs, Prometheus metrics, and Sentry-compatible error reporting.
 
@@ -374,10 +374,9 @@ flowchart LR
 **API.** `GET /v1/clubs/{id}/theme` returns `{ rev, primary, secondary, source, logo, css, roles: { light, dark } }` with `ETag: "<rev>"`, so most refreshes are a `304`. The same payload is embedded per membership in `GET /v1/me`, so the apps have every club's theme right after login without extra calls. Logo URLs are content-hashed and cached forever.
 
 **Web: the first paint is already themed.**
-1. **Club subdomain** (`<club>.runflow.club`, Pro). The binary already serves `index.html` per host (§7.2), so it inlines the club's stored CSS and name in `<head>`. No cache is involved.
-2. **Shared host** (`app.runflow.club`). A small, non-secret `rf_club` cookie remembers the last active club, and the server inlines that club's theme the same way. Without the cookie, a tiny inline script applies the theme saved in `localStorage` before the first paint. This is the same trick that avoids a dark-mode flash.
-3. **Public pages** (landing, sign-in, invite page, club picker, club creation) always render in Runflow's brand (D-024): the cached club stylesheet is present but disabled on those paths, so entering the app switches to the club's colors instantly.
-4. **Revalidation.** After load the app checks the theme's ETag. If `rev` changed, it swaps the CSS variables in place, with no reload.
+1. **One host for everyone** (`app.runflow.club`; no club sites, D-042). A small, non-secret `rf_club` cookie remembers the last active club, and the server inlines that club's theme the same way. Without the cookie, a tiny inline script applies the theme saved in `localStorage` before the first paint. This is the same trick that avoids a dark-mode flash.
+2. **Public pages** (landing, sign-in, invite page, club picker, club creation) always render in Runflow's brand (D-024): the cached club stylesheet is present but disabled on those paths, so entering the app switches to the club's colors instantly.
+3. **Revalidation.** After load the app checks the theme's ETag. If `rev` changed, it swaps the CSS variables in place, with no reload.
 
 **Mobile: the first frame is already themed.**
 1. The active club's theme (colors and `rev`) is persisted in a synchronous key-value store (`expo-sqlite/kv-store`, D-022), read before the first frame. The logo stays in the image disk cache.
@@ -430,7 +429,7 @@ flowchart LR
 | D-026 | Transactional e-mail (sign-in codes, invites, notices) via **Resend**, behind an `EmailSender` trait; without an API key the backend logs e-mails instead (dev). Config only in `.env` | Founder has an account; simple API; swappable (SES in the cloud phase) | Accepted (founder, 2026-11-02) |
 | D-027 | **No club-fee payments in v1.** Students don't pay their club through Runflow; clubs keep collecting fees their own way. Fee plans, charges, checkout and receipts (built in F26) are on the later list | Founder: too much for a first version (Stripe Connect onboarding, money flows, support) | Accepted (founder, 2026-11-02) |
 | D-028 | **QA = the beta environment on the founder's Raspberry Pi**, at `qa.runflow.club` (`runflow.club` redirects there, 302). Cloudflare DNS + Tunnel; the web container serves the app and proxies `/api` (same origin); arm64 images from GitHub Actions; the Pi pulls `:qa` every 5 minutes. After the beta: a cloud (maybe k8s) | Founder, 2026-11-02 | Accepted (founder, 2026-11-02) |
-| D-029 | **QA club subdomains are one level: `<club>-qa.runflow.club`** (not `<club>.qa.runflow.club`). Production never accepts a club subdomain ending in `-qa` | Cloudflare's free certificate covers only `*.runflow.club`; two levels need ACM (US$10/month). The suffix keeps QA and production apart | Accepted (founder, 2026-11-02) |
+| D-029 | **QA club subdomains are one level: `<club>-qa.runflow.club`** (not `<club>.qa.runflow.club`). Production never accepts a club subdomain ending in `-qa` | Cloudflare's free certificate covers only `*.runflow.club`; two levels need ACM (US$10/month). The suffix keeps QA and production apart | Superseded by D-042 (2026-11-03) |
 | D-030 | **Data is disposable until the private beta.** QA can be wiped at any time (`ops/qa/reset-db.sh`). There is **one migration, `0001_bootstrap.sql`, a synced copy of `api/schema.sql`**, edited in place; when it changes, QA starts over with an empty database by itself (`ops/qa/update.sh`). No backwards compatibility. At the beta: freeze the bootstrap and return to one migration per change, expand-then-contract (`docs/hosting.md` §3) | Founder (2026-11-02): "everything for now is discardable", then "nuke the QA db and simplify the migrations" | Accepted (founder) |
 | D-031 | **Week release ("liberar semana").** Trainers plan ahead in private and unlock a week when it's ready: a club setting chooses `immediate` (visible on save, as before) or `weekly` (future weeks stay drafts until released, per week for everyone or chosen groups/students, or automatically at a club-set weekday and time, default Sunday 18:00). A week that has started is always visible. Drafts never reach the student (Hoje, Agenda, `.ics`, notifications, auto-matching); a release sends one `week_released` notification per student instead of one per workout. Detail in F34 | Founder (2026-11-02): trainers want to do all the training and "unlock" it at the end of each week. Defaults are an engineering proposal | Accepted (founder intent) |
 | D-032 | **Notification control for every user.** Per notification kind: in-app, push and e-mail on/off, and "instant" or a daily digest; quiet hours for push; trainers can limit feedback/comment notices to chosen groups. Role-aware defaults: students instant, trainers get feedback/comments/new members as a digest. Replaces the four booleans in `notification_prefs`. Detail in F35 | Founder (2026-11-02): a big club easily overwhelms a trainer | Accepted (founder intent) |
@@ -443,6 +442,7 @@ flowchart LR
 | D-039 | **QA is disposable and low-stakes (founder, 2026-11-03).** No backups, restore drills or off-site copies for QA; its database and storage can be wiped at any time; its security stays simple (shared Pi access is fine). Durability and hardening belong to production (D-040) | Founder: "we don't care about QA"; focus on building blocks | Accepted (founder) |
 | D-040 | **Production target (founder, 2026-11-03):** API on **AWS Lambda**, web app on **Cloudflare Pages**, **Aurora PostgreSQL**, S3, **Grafana Cloud** free tier (metrics, logs, alerts), **Sentry**, **Stripe**, **Resend**. Set up in a dedicated session (P1). Until then the code stays pluggable through settings, and telemetry is pushed (OTLP) rather than scraped; making the binary run as a Lambda is part of P1 (founder: production work waits for that session). Replaces the Pi as the production plan (D-012) | Founder decision | Accepted (founder) |
 | D-041 | **QA observability is self-hosted (founder, 2026-11-03):** Grafana + Loki + Prometheus with Grafana Alloy collecting, in QA's compose, at `grafana-qa.runflow.club` (admin login in QA's `.env`). Alloy reads every container's logs from Docker, receives the API's OTLP metrics and adds the Pi's host metrics; a "Runflow QA" dashboard is provisioned. Grafana Cloud is for production only (D-040). Infrastructure names (`grafana`, `prometheus`, `loki`…) are reserved subdomains | Founder decision | Accepted (founder) |
+| D-042 | **No club sites or custom domains (founder, 2026-11-03):** clubs don't get `<club>.runflow.club` or any address of their own; everyone signs in on Runflow's app and sees the club's colors after choosing it. Removed completely (contract, backend, web, QA settings). Pro is "more students and priority support". Supersedes D-029 and the subdomain part of §4.6 | Founder: hard to build and maintain, low return | Accepted (founder) |
 | D-024 | Public pages are **always Runflow's brand** (landing, sign-in, invite page, club picker, club creation); the club's colors apply only inside the signed-in app (web and mobile) | Founder: the marketing site and sign-in are ours | Accepted (founder, 2026-11-02); e-mails changed by D-036 |
 | D-016 | Payments via Stripe; no charging during the beta; NFS-e handled by the founder outside the product | Founder decision | Accepted (founder) |
 | D-017 | Trainers see all students in their club | Simple default; per-trainer assignment can come later if clubs ask | Accepted (founder) |
@@ -463,7 +463,7 @@ flowchart LR
 | **2: Real backend** | Rust API on PostgreSQL implementing the whole contract; Docker Compose; Pi deployment (D-025); founder priorities of 2026-11-02 (logo, week release, notification control, smoke tests, observability) | Done through S7b (the whole contract, billing, push). **Next:** the mobile app (Phase 3) and R1 text parser, in parallel; everything for production (P1) in its own session later (`docs/build-plan.md`) |
 | **3: Mobile app** | Expo app mirroring the web flows, on the real API | X0 done; X1 onward in parallel with the last Phase 2 steps |
 | **4: Private beta** | Friendly running clubs; Strava app review; LGPD texts | — |
-| **5: Public launch** | Stripe live (Pro), subdomains, production on AWS (D-040, from P1) | — |
+| **5: Public launch** | Stripe live (Pro), production on AWS (D-040, from P1) | — |
 | **6: Growth** | Garmin, Sign in with Apple + iOS App Store, club finances, class scheduling, events, challenges, AI assistant, Apple Health / Health Connect, Max, Enterprise | — |
 
 **Next step:** the first unchecked row in `docs/build-plan.md`. Each step ends with its box ticked, the checks green, and a commit pushed.
@@ -495,6 +495,7 @@ flowchart LR
 - 2026-11-03. **QA observability (D-041):** Grafana, Loki, Prometheus and Alloy on the Pi (logs of every container, API metrics, Pi host metrics, a provisioned dashboard) at `grafana-qa.runflow.club`; Grafana Cloud stays for production. Sentry projects per environment come through the Sentry plugin.
 - 2026-11-03. Sentry projects created (org `runflow-zw`): backend and frontend for QA and production; QA reports errors now, production keys wait for P1.
 - 2026-11-03. **R1 free-text workouts:** one rules grammar for coaching shorthand and plain pt-BR sentences (repeats and series, recoveries, paces and rep times, zones and intensity words, RPE, heart rate, power/FTP, progressions, swim strokes/equipment/send-offs, strength sets × reps × load), ported identically to the web builder (TS), the mock and the backend (Rust); 171 golden examples in `api/workout-text-examples.json` checked by all three (plus a random corpus for the backend). What isn't understood becomes a warning; `/ai/workout` now returns `warnings` and `tags`. Grammar and known gaps: `docs/workout-text.md`; how the founder adds examples: `api/CLAUDE.md`.
+- 2026-11-03. Founder: club sites/custom domains removed entirely (D-042, F38); plan wording "Todos os recursos do plano Free/Pro". R1 merged; mobile X1–X3 merged, X4/X4b/X7/X8 running in parallel.
 - 2026-11-01. Founder decisions: design-first Phase 0 with the full UI mocked before implementation (D-015); Stripe, no charging during the beta, NFS-e outside the product (D-016); trainers see all students (D-017); Runflow is the app and clubs only theme it (D-018); Apple and Garmin developer programs deferred (D-007, D-011); no guardian accounts. Added the screen inventory (§6.1) and `CLAUDE.md`. Roadmap renumbered: Phase 0 is now design and validation, and **D1 is next**.
 
 ---
