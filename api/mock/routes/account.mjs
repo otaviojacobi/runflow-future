@@ -4,7 +4,7 @@ const DEV_CODE = "000000";
 
 export default function register(h) {
   const { db } = h;
-  // Pending sign-in codes, by address. Ephemeral, like the backend's Redis (D-047): not a table, not persisted.
+  // Pending sign-in codes, by address. Ephemeral, like the backend's Valkey (D-047): not a table, not persisted.
   const codes = new Map();
 
   function createUser(email, name) {

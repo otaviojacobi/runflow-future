@@ -1,5 +1,5 @@
 //! Sessions (§7.3): opaque random tokens, stored as SHA-256 hashes, revocable. Mobile sends
-//! `Authorization: Bearer <token>`; the web gets the same token in an HttpOnly cookie. Lookups are cached in Redis for
+//! `Authorization: Bearer <token>`; the web gets the same token in an HttpOnly cookie. Lookups are cached in Valkey for
 //! up to a minute (D-047); every way a session ends calls [`forget`].
 
 use aws_lc_rs::{digest, hmac, rand};
@@ -61,7 +61,7 @@ async fn from_db(state: &AppState, token_hash: &[u8]) -> sqlx::Result<Option<Ses
 }
 
 /// These sessions ended (sign-out, revoked, account deleted; Postgres already says so): drop them from the cache.
-/// If Redis can't be told, a cached lookup lives on for at most `runflow_kv::sessions::TTL`.
+/// If Valkey can't be told, a cached lookup lives on for at most `runflow_kv::sessions::TTL`.
 pub async fn forget(state: &AppState, token_hashes: &[Vec<u8>]) {
     if let Err(e) = cached::forget(&state.kv, token_hashes).await {
         tracing::error!(error = %e, sessions = token_hashes.len(), "session cache: ended sessions not dropped");
@@ -194,7 +194,7 @@ impl FromRequestParts<AppState> for MaybeAuth {
             return Ok(Self(None));
         };
         // Sliding expiry, written at most once per TOUCH_EVERY (the cached `last_seen_at` can be a minute old, so
-        // Redis also remembers when this session was last touched).
+        // Valkey also remembers when this session was last touched).
         if Utc::now() - s.last_seen_at > TOUCH_EVERY
             && cached::touch_due(&state.kv, &hash, TOUCH_EVERY.to_std().expect("positive"))
                 .await

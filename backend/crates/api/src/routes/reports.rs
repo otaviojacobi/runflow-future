@@ -33,7 +33,7 @@ fn score(past: i64, points2: i64) -> Option<i64> {
     (past > 0).then(|| ((points2 as f64 / 2.0 / past as f64) * 100.0 + 0.5).floor() as i64)
 }
 
-/// Cached in Redis for a few minutes (D-047): any write to the club refreshes it at once. Every staff member sees
+/// Cached in Valkey for a few minutes (D-047): any write to the club refreshes it at once. Every staff member sees
 /// the same report, so only the query varies.
 async fn training(
     State(state): State<AppState>,

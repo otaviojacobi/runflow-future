@@ -30,7 +30,8 @@ jsonwebtoken = { version = "11", default-features = false, features = ["aws_lc_r
 regex = "1"
 sentry = { version = "0.49", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls", "tower-axum-matched-path", "tracing"] }
 opentelemetry = "0.33"
-# Redis (D-047): ephemeral and cache data. A multiplexed connection that reconnects by itself; TLS for managed Redis.
+# The Redis-protocol client for Valkey (D-047): ephemeral and cache data. A multiplexed connection that reconnects by
+# itself; TLS (rediss://) for a managed Valkey (ElastiCache, P1).
 redis = { version = "1.8", default-features = false, features = ["tokio-comp", "tokio-rustls-comp", "connection-manager", "script"] }
 opentelemetry_sdk = "0.33"
 opentelemetry-otlp = { version = "0.33", default-features = false, features = ["http-proto", "reqwest-blocking-client", "trace", "metrics", "logs"] }

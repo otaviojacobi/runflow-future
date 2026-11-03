@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   check:
-    name: rustfmt, clippy, tests on Postgres 18 and Redis 8
+    name: rustfmt, clippy, tests on Postgres 18 and Valkey 8
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -28,12 +28,12 @@ jobs:
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30
-      # Ephemeral and cache data (D-047); tests use random key prefixes.
-      redis:
-        image: redis:8-alpine
+      # Ephemeral and cache data (D-047; Redis protocol); tests use random key prefixes.
+      valkey:
+        image: valkey/valkey:8.1.11-alpine
         ports: ["6379:6379"]
         options: >-
-          --health-cmd "redis-cli ping"
+          --health-cmd "valkey-cli ping"
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30

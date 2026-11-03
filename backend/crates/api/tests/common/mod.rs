@@ -1,4 +1,4 @@
-//! Shared test harness: the real router on a fresh, migrated Postgres database (`#[sqlx::test]`) and the real Redis
+//! Shared test harness: the real router on a fresh, migrated Postgres database (`#[sqlx::test]`) and the real Valkey
 //! (`TEST_REDIS_URL`) under a random key prefix per app, so parallel tests never share keys.
 #![allow(dead_code)]
 

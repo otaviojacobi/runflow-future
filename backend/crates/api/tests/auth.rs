@@ -191,7 +191,7 @@ async fn codes_are_rate_limited_and_attempts_capped(db: PgPool) {
     .problem(429, "auth.too_many_codes");
 }
 
-/// Codes live in Redis (D-047): of two requests racing with the right code, exactly one signs in.
+/// Codes live in Valkey (D-047): of two requests racing with the right code, exactly one signs in.
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]
 async fn a_code_works_once_even_when_raced(db: PgPool) {
     let app = TestApp::new(db);
@@ -251,7 +251,7 @@ async fn sessions_list_revoke_and_logout(db: PgPool) {
     let phone = app.sign_in("ana@email.com").await;
     app.skip_code_cooldown("ana@email.com").await;
     let laptop = app.sign_in("ana@email.com").await;
-    // Each session is in use (so its lookup is cached in Redis) before it ends: ending it must still be immediate.
+    // Each session is in use (so its lookup is cached in Valkey) before it ends: ending it must still be immediate.
     app.get("/v1/me", Some(&phone)).await.ok();
 
     let list = app.get("/v1/me/sessions", Some(&laptop)).await;
@@ -305,7 +305,7 @@ async fn sessions_list_revoke_and_logout(db: PgPool) {
         .problem(401, "auth.required");
 }
 
-/// D-047: lookups come from Redis for up to a minute; Postgres stays the truth for every way a session ends.
+/// D-047: lookups come from Valkey for up to a minute; Postgres stays the truth for every way a session ends.
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]
 async fn session_lookups_are_cached_briefly(db: PgPool) {
     let app = TestApp::new(db);

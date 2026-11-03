@@ -15,12 +15,12 @@ static CACHE: LazyLock<Counter<u64>> = LazyLock::new(|| {
     opentelemetry::global::meter("runflow.api")
         .u64_counter("runflow.cache.lookups")
         .with_description(
-            "Redis cache lookups (D-047) by cache and result: hit, miss, or error (answered from Postgres)",
+            "Valkey cache lookups (D-047) by cache and result: hit, miss, or error (answered from Postgres)",
         )
         .build()
 });
 
-/// One lookup in a Redis cache (`session`, `dashboard`, `reports`): `hit`, `miss` or `error`.
+/// One lookup in a Valkey cache (`session`, `dashboard`, `reports`): `hit`, `miss` or `error`.
 pub fn cache_lookup(cache: &'static str, result: &'static str) {
     CACHE.add(
         1,

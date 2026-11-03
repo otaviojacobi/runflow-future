@@ -183,10 +183,10 @@ impl From<sqlx::Error> for Problem {
     }
 }
 
-/// Redis errors where Redis holds the data itself (sign-in codes); caches fall back to Postgres instead.
+/// Valkey errors where Valkey holds the data itself (sign-in codes); caches fall back to Postgres instead.
 impl From<runflow_kv::Error> for Problem {
     fn from(err: runflow_kv::Error) -> Self {
-        tracing::error!(error = %err, "redis error");
+        tracing::error!(error = %err, "valkey error");
         Self::internal()
     }
 }

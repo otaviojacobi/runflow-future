@@ -158,7 +158,8 @@ pub struct Config {
     pub log_format: LogFormat,
     pub http: Http,
     pub db: DbSettings,
-    /// `REDIS_URL` (D-047): ephemeral and cache data. A secret: it may carry a password.
+    /// `REDIS_URL` (D-047): the Valkey server for ephemeral and cache data, as a Redis-protocol URL (the name every
+    /// client and ElastiCache use). A secret: it may carry a password.
     pub redis_url: Secret,
     pub secrets: Secrets,
     pub email: EmailSettings,
@@ -299,7 +300,10 @@ impl Config {
             url: e.required("DATABASE_URL", "postgres://user:password@host:5432/db"),
             max_connections: e.parse("DATABASE_MAX_CONNECTIONS", 10),
         };
-        let redis_url = Secret(e.required("REDIS_URL", "redis://[:password@]host:6379"));
+        let redis_url = Secret(e.required(
+            "REDIS_URL",
+            "the Valkey server: redis://[:password@]host:6379",
+        ));
         if !redis_url.0.is_empty()
             && !(redis_url.0.starts_with("redis://") || redis_url.0.starts_with("rediss://"))
         {

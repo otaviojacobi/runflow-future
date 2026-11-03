@@ -76,7 +76,7 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
         }
     }
 
-    // Redis (D-047): sign-in codes need it; the caches fall back to the database without it.
+    // Valkey (D-047): sign-in codes need it; the caches fall back to the database without it.
     let redis_at = redact_url(c.redis_url.expose());
     let checked = match runflow_kv::Kv::new(c.redis_url.expose(), runflow_kv::PREFIX) {
         Ok(kv) => match kv.ping().await {
@@ -87,7 +87,7 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
     };
     match checked {
         Ok((rtt, server)) => line(
-            "redis",
+            "valkey",
             "ok",
             format!(
                 "{redis_at} · {server} · {:.1} ms",
@@ -96,7 +96,7 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
         ),
         Err(e) => {
             ok = false;
-            line("redis", "ERROR", format!("{redis_at} · {e}"));
+            line("valkey", "ERROR", format!("{redis_at} · {e}"));
         }
     }
 
@@ -364,6 +364,6 @@ mod tests {
             redact_url("rediss://:s3cret@cache:6379"),
             "rediss://:***@cache:6379"
         );
-        assert_eq!(redact_url("redis://redis:6379"), "redis://redis:6379");
+        assert_eq!(redact_url("redis://valkey:6379"), "redis://valkey:6379");
     }
 }

@@ -31,7 +31,7 @@ CREATE TABLE auth_identities (
   UNIQUE (provider, subject)
 );
 
--- E-mail sign-in codes are ephemeral: they live in Redis with their TTL, not here (D-047).
+-- E-mail sign-in codes are ephemeral: they live in Valkey with their TTL, not here (D-047).
 
 CREATE TABLE sessions (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),

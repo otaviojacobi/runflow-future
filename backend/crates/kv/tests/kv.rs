@@ -1,4 +1,4 @@
-//! The Redis modules against a real Redis (`TEST_REDIS_URL`, default the compose one on :6380), like Postgres (§8).
+//! The kv modules against a real Valkey (`TEST_REDIS_URL`, default the compose one on :6380), like Postgres (§8).
 
 use std::time::Duration;
 

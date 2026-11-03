@@ -564,7 +564,7 @@ fn is_done(w: &Workout) -> bool {
         .is_some_and(|c| c.status == "completed" || c.status == "partial")
 }
 
-/// Cached briefly in Redis (D-047): any write to the club refreshes it at once.
+/// Cached briefly in Valkey (D-047): any write to the club refreshes it at once.
 async fn dashboard(
     State(state): State<AppState>,
     auth: Auth,

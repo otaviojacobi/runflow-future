@@ -431,7 +431,7 @@ async fn the_dashboard_puts_the_day_week_feedback_and_alerts_together(db: PgPool
     assert_eq!(earlier.ok()["today"]["planned"], 2);
 }
 
-/// D-047: the dashboard comes from Redis while the club doesn't change; any write to the club refreshes it at once.
+/// D-047: the dashboard comes from Valkey while the club doesn't change; any write to the club refreshes it at once.
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]
 async fn a_write_to_the_club_refreshes_the_cached_dashboard(db: PgPool) {
     let app = TestApp::new(db);

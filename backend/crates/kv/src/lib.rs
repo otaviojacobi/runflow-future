@@ -1,4 +1,5 @@
-//! Redis (D-047): ephemeral and cache data only. Postgres stays the system of record **and** the job queue.
+//! Valkey (D-047), spoken to over the Redis protocol: ephemeral and cache data only. Postgres stays the system of
+//! record **and** the job queue.
 //!
 //! - [`codes`]: e-mail sign-in codes and their per-address limits.
 //! - [`rate`]: fixed-window rate limits (the assistant).
@@ -7,8 +8,8 @@
 //!
 //! Every key starts with the prefix (`rf:`; each test app gets a random one) and every key has a TTL, so nothing
 //! here outlives its purpose and memory pressure may evict anything (`volatile-lru`). Only commands common to
-//! Redis ≥ 7 and Valkey are used. Handlers never send Redis commands themselves: they call these modules, like
-//! SQL lives in `runflow-db`.
+//! Valkey and Redis ≥ 7 are used (any Redis-protocol server works). Handlers never send commands themselves: they
+//! call these modules, like SQL lives in `runflow-db`.
 
 pub mod cache;
 pub mod codes;
@@ -24,12 +25,12 @@ use redis::aio::{ConnectionManager, ConnectionManagerConfig};
 pub const PREFIX: &str = "rf:";
 
 #[derive(Debug, thiserror::Error)]
-#[error("redis: {0}")]
+#[error("valkey: {0}")]
 pub struct Error(#[from] redis::RedisError);
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// A Redis client: one multiplexed connection, shared by every request, that reconnects by itself.
+/// A Valkey client: one multiplexed connection, shared by every request, that reconnects by itself.
 #[derive(Clone)]
 pub struct Kv {
     conn: ConnectionManager,
@@ -57,7 +58,7 @@ impl Kv {
         })
     }
 
-    /// [`Kv::new`], then wait up to `wait` for Redis to answer (it may still be starting, e.g. under Docker Compose).
+    /// [`Kv::new`], then wait up to `wait` for Valkey to answer (it may still be starting, e.g. under Docker Compose).
     pub async fn connect(url: &str, prefix: &str, wait: Duration) -> Result<Self> {
         let kv = Self::new(url, prefix)?;
         let started = Instant::now();
@@ -66,7 +67,7 @@ impl Kv {
             match kv.ping().await {
                 Ok(_) => return Ok(kv),
                 Err(err) if started.elapsed() + delay < wait => {
-                    tracing::warn!(error = %err, "redis not reachable yet, retrying");
+                    tracing::warn!(error = %err, "valkey not reachable yet, retrying");
                     tokio::time::sleep(delay).await;
                     delay = (delay * 2).min(Duration::from_secs(3));
                 }
@@ -82,7 +83,7 @@ impl Kv {
         Ok(started.elapsed())
     }
 
-    /// The server's name and version (`redis 8.2.1`, `valkey 8.1.0`), for the doctor.
+    /// The server's name and version (`valkey 8.1.11`, or `redis 8.2.1` on a Redis server), for the doctor.
     pub async fn server(&self) -> Result<String> {
         let info: String = redis::cmd("INFO")
             .arg("server")
@@ -128,7 +129,7 @@ pub(crate) fn ms(d: Duration) -> u64 {
     (d.as_millis() as u64).max(1)
 }
 
-/// What the tests share: a client on `TEST_REDIS_URL` (default: the compose Redis on :6380) with a random prefix,
+/// What the tests share: a client on `TEST_REDIS_URL` (default: the compose Valkey on :6380) with a random prefix,
 /// so parallel tests never see each other's keys.
 #[doc(hidden)]
 pub fn test_kv() -> Kv {

@@ -1,5 +1,5 @@
 //! Users, sign-in identities and sessions (§7.3). Tokens arrive here already hashed; this module never sees a raw
-//! secret. E-mail sign-in codes are ephemeral and live in Redis (`runflow_kv::codes`, D-047).
+//! secret. E-mail sign-in codes are ephemeral and live in Valkey (`runflow_kv::codes`, D-047).
 
 use chrono::{DateTime, Duration, Utc};
 use sqlx::{PgConnection, PgExecutor};

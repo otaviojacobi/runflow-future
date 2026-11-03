@@ -36,11 +36,11 @@ jobs:
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30
-      redis:
-        image: redis:8-alpine
+      valkey:
+        image: valkey/valkey:8.1.11-alpine
         ports: ["6379:6379"]
         options: >-
-          --health-cmd "redis-cli ping"
+          --health-cmd "valkey-cli ping"
           --health-interval 2s
           --health-timeout 3s
           --health-retries 30

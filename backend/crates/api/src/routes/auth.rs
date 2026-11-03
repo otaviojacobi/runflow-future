@@ -1,5 +1,5 @@
 //! `/auth/*` (A2 Login): e-mail one-time code, Google ID token, logout. No passwords (D-007). Pending codes and their
-//! per-address limits live in Redis (`runflow_kv::codes`, D-047), only as keyed hashes.
+//! per-address limits live in Valkey (`runflow_kv::codes`, D-047), only as keyed hashes.
 
 use std::time::Duration;
 

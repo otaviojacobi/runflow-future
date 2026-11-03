@@ -1,5 +1,5 @@
 # Runflow QA (Raspberry Pi 5): everything behind one Cloudflare Tunnel, nothing exposed on the network.
-#   qa.runflow.club → web (static app + /api proxy) → api (+ worker) → postgres, redis
+#   qa.runflow.club → web (static app + /api proxy) → api (+ worker) → postgres, valkey
 #   grafana-qa.runflow.club → grafana (logs in Loki, metrics in Prometheus, both collected by Alloy; D-041)
 # Images are built for arm64 by GitHub Actions (.github/workflows/images.yml) and pulled from GHCR.
 # Setup: docs/ops/qa-pi.md (open items: setup-todo.md). Settings: ops/qa/.env (from ops/qa/.env.example).
@@ -22,15 +22,15 @@ services:
       timeout: 3s
       retries: 30
 
-  # Ephemeral and cache data (D-047): sign-in codes, rate-limit counters, the session and read caches. Nothing to
-  # keep (Postgres is the record), so no persistence at all; every key has a TTL, so under memory pressure the least
+  # Valkey (D-047; Redis protocol): sign-in codes, rate-limit counters, the session and read caches. Nothing to keep
+  # (Postgres is the record), so no persistence at all; every key has a TTL, so under memory pressure the least
   # recently used go first. Only the API reaches it (compose network, no port, no password).
-  redis:
-    image: redis:8-alpine
+  valkey:
+    image: valkey/valkey:8.1.11-alpine
     restart: unless-stopped
-    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "volatile-lru"]
+    command: ["valkey-server", "--save", "", "--appendonly", "no", "--maxmemory", "128mb", "--maxmemory-policy", "volatile-lru"]
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 30
@@ -64,7 +64,7 @@ services:
     env_file: [.env]
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-runflow}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-runflow}
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://valkey:6379
       HOST: 0.0.0.0
       PORT: "3000"
       STORAGE_BACKEND: s3
@@ -80,7 +80,7 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-      redis:
+      valkey:
         condition: service_healthy
       garage:
         condition: service_healthy

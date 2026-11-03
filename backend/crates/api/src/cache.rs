@@ -1,7 +1,7 @@
-//! Cached heavy club reads (D-047): the W1 dashboard and the W16 training report come from Redis while nothing in the
+//! Cached heavy club reads (D-047): the W1 dashboard and the W16 training report come from Valkey while nothing in the
 //! club changed. An entry's key holds the club's version; [`invalidate`] bumps it after every successful write under
 //! `/v1/clubs/{club_id}/…`, so the next read recomputes. Short TTLs cover changes that arrive any other way (a
-//! person's own profile or activities, Strava sync, the worker's week releases and Stripe events). Redis being down
+//! person's own profile or activities, Strava sync, the worker's week releases and Stripe events). Valkey being down
 //! only means reading from Postgres.
 
 use std::time::Duration;

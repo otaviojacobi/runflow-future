@@ -37,8 +37,8 @@ pub fn routes() -> Router<AppState> {
         )
 }
 
-/// Requests per user and minute, counted in Redis so every API process shares the count (D-047; the monthly cap per
-/// plan comes with an LLM). If Redis can't count, the request goes through: the rules engine is cheap.
+/// Requests per user and minute, counted in Valkey so every API process shares the count (D-047; the monthly cap per
+/// plan comes with an LLM). If Valkey can't count, the request goes through: the rules engine is cheap.
 async fn guard(state: &AppState, user: Uuid) -> Result<(), Problem> {
     match runflow_kv::rate::hit(
         &state.kv,
