@@ -29,7 +29,9 @@ src/
   domain/     pure logic copied from the web's src/domain (keep in sync): workout.ts = the workout structure types,
               zones, intensity segments, step texts, estimates
   components/ domain components shared by screens (brand: Runflow mark/wordmark + ClubLogo; sport chips; ComingSoon;
-              workout/ = intensity profile, steps, status, week strip, workout card, feedback sheet, thread;
+              workout/ = intensity profile, steps, status, week strip, month grid, workout card, feedback sheet, thread
+              and its message bubbles; staff/ = the trainer's pieces: workout row, compliance, filter chips,
+              the workout sheet (detail, move, edit, remove, thread), assign, copy week, week release, groups;
               account/ = C1/M7 sections, confirm sheet, stepper, zones table, notification settings, pt-BR labels;
               messages/ = conversation rows, the chat thread and composer, announcement cards, the stack's top bar;
               activity.tsx = an activity row; connections/StravaConnect = the "Conectar com Strava" hook + mock sheet);

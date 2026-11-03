@@ -80,6 +80,12 @@ export interface Activity {
 }
 export interface Comment { id: ID; planned_workout_id: ID; author_membership_id: ID; body: string; created_at: ISOTime; edited_at: ISOTime | null; author: { membership_id: ID; role: Role; user: User } }
 
+// ---------- staff (W1–W4, W8)
+export interface WorkoutTemplate {
+  id: ID; club_id: ID; author_membership_id: ID; sport: Sport; name: string; description: string | null;
+  structure: import("@/domain/workout").Structure; est_duration_s: number | null; est_distance_m: number | null; tags: string[];
+  created_at: ISOTime; updated_at: ISOTime; archived_at: ISOTime | null;
+}
 export type Goal = "health" | "5k" | "10k" | "21k" | "42k" | "trail" | "triathlon" | "swim" | "strength" | "other";
 export type Level = "beginner" | "intermediate" | "advanced";
 export interface AthleteProfile {
@@ -120,3 +126,34 @@ export interface Announcement {
 /** The planned workout an activity was matched to (M4). */
 export interface MatchedWorkout { id: ID; title: string; date: ISODate; club_id: ID; compliance_pct: number | null; est_distance_m: number | null; est_duration_s: number | null }
 export interface ActivityItem extends Activity { matched_workout: MatchedWorkout | null }
+
+// ---- staff (W1–W4, W8)
+export interface AthleteSummary {
+  membership: Membership; user: User; group_ids: ID[]; goal: Goal | null; level: Level | null;
+  compliance_pct: number | null; week: { planned: number; done: number }; last_activity_at: ISOTime | null;
+  strava: "none" | "private" | "shared"; shares_data: boolean;
+}
+export interface PlannedWorkoutDetail extends PlannedWorkout { athlete: { membership_id: ID; user: User }; activity: Activity | null }
+export interface AthleteRef { membership_id: ID; user: User }
+/** A week's release state for the planning screen (D-031). */
+export interface WeekState {
+  week_start: ISODate; release_mode: Club["release_mode"]; started: boolean; released_at: ISOTime | null;
+  released_athlete_ids: ID[]; auto_release_at: ISOTime | null; drafts: number;
+}
+export interface Dashboard {
+  date: ISODate; students: number;
+  today: { planned: number; done: number; items: { workout: PlannedWorkout; athlete: AthleteRef }[] };
+  week: { planned: number; done: number; compliance_pct: number | null; duration_s: number; distance_m: number };
+  compliance_trend: { week_start: ISODate; pct: number | null; planned: number; done: number; current: boolean }[];
+  feedback: { workout: PlannedWorkout; athlete: AthleteRef; last_comment: Omit<Comment, "author"> | null }[];
+  alerts: { kind: "missed_streak" | "high_rpe" | "no_sync" | "birthday" | "new_member" | "plan_limit"; severity: "danger" | "warning" | "info" | "accent" | "brand"; athlete: AthleteRef | null; text: string; link: string }[];
+  onboarding: { logo: boolean; colors: boolean; students: boolean; workouts: boolean; groups: boolean; strava: boolean };
+  subscription: Subscription;
+}
+export interface AthleteDetail extends AthleteSummary {
+  profile: AthleteProfile; zones: Zone[]; consents: { training_data: boolean; strava: boolean };
+  weekly: { week_start: ISODate; current: boolean; planned_s: number; done_s: number; distance_m: number; sessions: number }[];
+  recent_activities: ActivityItem[]; groups: { id: ID; name: string }[];
+}
+export interface FeedbackItem { workout: PlannedWorkout; athlete: AthleteRef; last_comment: Omit<Comment, "author"> | null; needs_reply: boolean; flagged: boolean }
+export type FeedbackFilter = "needs_reply" | "unread" | "flagged" | "all";

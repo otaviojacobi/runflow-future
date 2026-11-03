@@ -59,13 +59,13 @@ export function StatusBadge({ status, solid, style }: { status: WorkoutStatus; s
   return <Badge tone={s.tone} solid={solid} icon={s.icon} style={[styles.center, style]}>{t(s.label)}</Badge>;
 }
 
-/** A number with a smaller unit (4:30 /km) and a caption under it. */
-export function Stat({ value, unit, label, size = "md", style }: { value: string; unit?: string; label?: string; size?: "md" | "lg"; style?: StyleProp<ViewStyle> }) {
+/** A number with a smaller unit (4:30 /km) and a caption under it. `sm`: inside sheets and dense cards. */
+export function Stat({ value, unit, label, size = "md", style }: { value: string; unit?: string; label?: string; size?: "sm" | "md" | "lg"; style?: StyleProp<ViewStyle> }) {
   const { theme } = useTheme();
   return (
     <View style={[styles.stat, style]} accessible accessibilityLabel={[label, `${value}${unit ? " " + unit : ""}`].filter(Boolean).join(": ")}>
       <View style={[styles.baseline, { gap: theme.space[1] }]}>
-        <Text variant={size === "lg" ? "metricLg" : "metricMd"} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={styles.shrink}>{value}</Text>
+        <Text variant={size === "lg" ? "metricLg" : size === "sm" ? "titleMd" : "metricMd"} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={[styles.shrink, styles.tabular]}>{value}</Text>
         {unit ? <Text variant="caption" tone="muted">{unit}</Text> : null}
       </View>
       {label ? <Text variant="caption" tone="muted" numberOfLines={1} style={{ marginTop: theme.space[1] }}>{label}</Text> : null}
@@ -90,4 +90,5 @@ const styles = StyleSheet.create({
   center: { alignSelf: "center" },
   baseline: { flexDirection: "row", alignItems: "baseline" },
   shrink: { flexShrink: 1 },
+  tabular: { fontVariant: ["tabular-nums"] },
 });

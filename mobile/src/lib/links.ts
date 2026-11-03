@@ -4,8 +4,9 @@
  * tools like "/club/billing") opens the web app. The routes come from Expo Router's own route tree, so a screen
  * added in a later step (X4's workout, X8's student) starts receiving its links without touching this file.
  */
-import { useSitemap, type Href, type SitemapType } from "expo-router";
+import { router, useSitemap, type Href, type SitemapType } from "expo-router";
 import { useMemo } from "react";
+import { openOnWeb } from "./web";
 
 const SKIP = /^(\+|_)/; // +not-found, +html, _sitemap, _layout…
 const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -41,5 +42,15 @@ export function useAppLink() {
     if (!link || !link.startsWith("/") || link.startsWith("//")) return null;
     const path = pathOf(link);
     return patterns.some((r) => r.test(path)) ? (link as Href) : null;
+  };
+}
+
+/** `(link) => void`: opens a link in the app when a screen matches it, else on the web (dashboard alerts, checklists). */
+export function useOpenLink() {
+  const appLink = useAppLink();
+  return (link: string) => {
+    const target = appLink(link);
+    if (target) router.push(target);
+    else void openOnWeb(link);
   };
 }

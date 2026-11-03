@@ -8,11 +8,12 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { prefetchCalendar, useMyCalendar } from "@/api/my";
 import type { PlannedWorkout } from "@/api/types";
 import { SPORT_LABEL } from "@/components/sport";
+import { MonthGrid, monthRange, monthStart } from "@/components/workout/MonthGrid";
 import { LoadError, OfflineBanner, PreparingWeek } from "@/components/workout/states";
 import { estimateText } from "@/domain/workout";
 import { openWorkout } from "@/components/workout/WorkoutCard";
 import { StatusBadge, statusLabel, type WorkoutStatus } from "@/components/workout/workout";
-import { t, tn } from "@/i18n";
+import { t } from "@/i18n";
 import { useClub } from "@/lib/club";
 import { addDays, dayMonth, mondayOf, monthTitle, today as todayFn, upperFirst, weekdayLong, weekdayShort } from "@/lib/format";
 import { weight } from "@/theme/theme";
@@ -21,15 +22,11 @@ import { Button, Card, EmptyState, IconButton, PageHeader, Screen, Segmented, Sk
 import { CalendarClock, ChevronLeft, ChevronRight, Coffee } from "@/ui/icons";
 
 type Span = "week" | "month";
-const WEEKDAYS = ["seg", "ter", "qua", "qui", "sex", "sáb", "dom"];
 
-/** First day of the month `n` months from the one `d` is in. */
-const monthStart = (d: string, n = 0) => { const [y, m] = d.split("-").map(Number); return new Date(Date.UTC(y!, m! - 1 + n, 1)).toISOString().slice(0, 10); };
 /** The days a view shows: Monday–Sunday, or the whole weeks that cover the month. */
 function range(view: Span, anchor: string) {
   if (view === "week") { const first = mondayOf(anchor); return { first, last: addDays(first, 6) }; }
-  const start = monthStart(anchor);
-  return { first: mondayOf(start), last: addDays(mondayOf(addDays(monthStart(anchor, 1), -1)), 6) };
+  return monthRange(anchor);
 }
 const shift = (view: Span, anchor: string, dir: 1 | -1) => (view === "week" ? addDays(anchor, 7 * dir) : monthStart(anchor, dir));
 /** A workout's state on the calendar: the completion's, "Sem registro" once its day has passed, else none. */
@@ -167,52 +164,6 @@ function DayRow({ date, today, workouts, loading }: { date: string; today: strin
 }
 
 /** The month as whole weeks: day number and one bar per workout (sport color; missed in red; faded until done). */
-function MonthGrid({ days, month, today, byDay, selected, onSelect }: {
-  days: string[]; month: string; today: string; byDay: (d: string) => PlannedWorkout[]; selected: string | null; onSelect: (d: string) => void;
-}) {
-  const { theme } = useTheme();
-  const c = theme.color;
-  const weeks = Array.from({ length: days.length / 7 }, (_, i) => days.slice(i * 7, i * 7 + 7));
-  return (
-    <Card style={styles.clip}>
-      <View style={[styles.row, { backgroundColor: c.sunken }]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
-        {WEEKDAYS.map((d) => <Text key={d} variant="overline" tone="muted" style={[styles.flex, styles.centerText, { paddingVertical: theme.space[2] }]}>{t(d)}</Text>)}
-      </View>
-      {weeks.map((week) => (
-        <View key={week[0]} style={styles.row}>
-          {week.map((d, i) => {
-            const ws = byDay(d);
-            const out = d.slice(0, 7) !== month;
-            const isToday = d === today;
-            const isSel = d === selected;
-            const done = ws.filter((w) => w.completion && w.completion.status !== "missed").length;
-            const label = `${weekdayLong(d)}, ${dayMonth(d)}${isToday ? `, ${t("hoje")}` : ""}: ${ws.length ? tn(ws.length, "{n} treino", "{n} treinos") + (done ? `, ${tn(done, "{n} feito", "{n} feitos")}` : "") : t("descanso")}`;
-            return (
-              <Pressable key={d} accessibilityRole="button" accessibilityLabel={label} accessibilityState={{ selected: isSel }} onPress={() => onSelect(d)}
-                style={({ pressed }) => [styles.cell, {
-                  minHeight: theme.space[16], padding: theme.space[1], gap: theme.space[1],
-                  borderTopWidth: StyleSheet.hairlineWidth, borderLeftWidth: i ? StyleSheet.hairlineWidth : 0, borderColor: c.lineSubtle,
-                  backgroundColor: pressed ? c.soft : isToday ? c.brand.subtle : out ? c.sunken : "transparent",
-                }]}>
-                <View style={[styles.num, {
-                  width: theme.space[6], height: theme.space[6], borderRadius: theme.radius.full,
-                  borderWidth: isSel ? 2 : 0, borderColor: c.brand.ring,
-                }]}>
-                  <Text variant="labelSm" color={isToday ? c.brand.text : out ? c.fgSubtle : c.fg} style={styles.tabular}>{Number(d.slice(8))}</Text>
-                </View>
-                {ws.slice(0, 3).map((w) => {
-                  const missed = w.completion?.status === "missed";
-                  return <View key={w.id} aria-hidden style={{ height: theme.space["1.5"], alignSelf: "stretch", borderRadius: theme.radius.full, backgroundColor: missed ? c.danger.solid : c.sport[w.sport].solid, opacity: w.completion && !missed ? 1 : 0.55 }} />;
-                })}
-              </Pressable>
-            );
-          })}
-        </View>
-      ))}
-    </Card>
-  );
-}
-
 const styles = StyleSheet.create({
   row: { flexDirection: "row" },
   center: { alignItems: "center" },
