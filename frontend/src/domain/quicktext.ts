@@ -1416,7 +1416,8 @@ function stepToText(s: Step, sport: Sport): string {
   // "2' trote", "3' caminhada": the word already says recovery.
   if (sport !== "swim" && INTENT_WORD[s.intent] && !(s.intent === "recovery" && (tg === "trote" || tg === "caminhada"))) parts.push(INTENT_WORD[s.intent]!);
   if (tg) parts.push(tg);
-  if (s.note) parts.push(`(${s.note})`);
+  // A note the text already says ("2' trote" with the note "trote") isn't repeated.
+  if (s.note && !parts.includes(s.note)) parts.push(`(${s.note})`);
   return parts.filter(Boolean).join(" ");
 }
 function exerciseToText(e: Exercise): string {
