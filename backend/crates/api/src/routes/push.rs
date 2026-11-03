@@ -1,5 +1,5 @@
 //! Push devices (S7b; endpoints.md § Auth and account → `/me/push-tokens`), like the mock: the installed web app
-//! registers its Web Push subscription; the phone app registers Expo tokens with X10.
+//! registers its Web Push subscription, the phone app its Expo push token (`ExponentPushToken[…]`).
 
 use axum::Router;
 use axum::extract::State;
@@ -64,7 +64,11 @@ async fn register(
         errors.push(fail("platform", "Plataforma inválida."));
     }
     let dev = state.settings.auth.dev_affordances;
-    if token.is_empty() || token.len() > 2048 || (platform == "web" && !web_endpoint(&token, dev)) {
+    let valid = match platform.as_str() {
+        "web" => web_endpoint(&token, dev),
+        _ => runflow_integrations::expo_push::is_expo_token(&token),
+    };
+    if token.is_empty() || token.len() > 2048 || !valid {
         errors.push(fail("token", "Informe o token do aparelho."));
     }
     let key = |k: &str| {

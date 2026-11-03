@@ -16,6 +16,7 @@ use chrono::{DateTime, Utc};
 use runflow_db::Pool;
 use runflow_db::jobs::{self, Job};
 use runflow_integrations::email::Mailer;
+use runflow_integrations::expo_push::ExpoPush;
 use runflow_integrations::secrets::TokenCipher;
 use runflow_integrations::strava::StravaClient;
 use runflow_integrations::webpush::WebPush;
@@ -68,6 +69,8 @@ pub struct Worker {
     strava: Option<StravaCtx>,
     /// Web Push (VAPID keys set); none = notifications aren't pushed.
     webpush: Option<std::sync::Arc<WebPush>>,
+    /// Expo push for the phone app (X10).
+    expo: Option<std::sync::Arc<ExpoPush>>,
 }
 
 #[derive(Clone)]
@@ -100,7 +103,13 @@ impl Worker {
             id,
             strava: None,
             webpush: None,
+            expo: None,
         }
+    }
+
+    pub fn with_expo(mut self, expo: std::sync::Arc<ExpoPush>) -> Self {
+        self.expo = Some(expo);
+        self
     }
 
     pub fn with_webpush(mut self, web: std::sync::Arc<WebPush>) -> Self {

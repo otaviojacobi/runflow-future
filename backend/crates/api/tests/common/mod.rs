@@ -19,6 +19,8 @@ pub struct TestApp {
     pub state: AppState,
     /// The worker's Web Push sender (`with_push`).
     pub webpush: Option<std::sync::Arc<runflow_integrations::webpush::WebPush>>,
+    /// The worker's Expo push sender (`with_expo`).
+    pub expo: Option<std::sync::Arc<runflow_integrations::expo_push::ExpoPush>>,
 }
 
 pub struct Res {
@@ -109,6 +111,7 @@ impl TestApp {
             .try_init();
         Self {
             webpush: None,
+            expo: None,
             state: AppState::new(
                 db,
                 settings(dev),
@@ -126,6 +129,7 @@ impl TestApp {
         s.body_limit = limit;
         Self {
             webpush: None,
+            expo: None,
             state: AppState::new(db, s, log_mailer(), None, Storage::memory(), cipher()),
         }
     }
@@ -143,6 +147,9 @@ impl TestApp {
         }
         if let Some(web) = &self.webpush {
             w = w.with_webpush(web.clone());
+        }
+        if let Some(expo) = &self.expo {
+            w = w.with_expo(expo.clone());
         }
         w.run_once(500).await.unwrap()
     }
@@ -193,6 +200,14 @@ impl TestApp {
                 "sk_test_123".into(),
             ));
         app
+    }
+
+    /// Expo push pointed at a fake server (`base`).
+    pub fn with_expo(mut self, base: &str) -> Self {
+        self.expo = Some(std::sync::Arc::new(
+            runflow_integrations::expo_push::ExpoPush::new(base, None),
+        ));
+        self
     }
 
     /// Web Push on: a fresh VAPID pair, its public key in `/public/config`.

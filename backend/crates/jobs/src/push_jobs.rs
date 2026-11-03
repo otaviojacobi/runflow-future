@@ -1,9 +1,10 @@
-//! Push (S7b): `push.send {notification_id}` runs at the notification's `push_at` (quiet hours delay it) and sends
-//! it to each of the person's web devices. Skipped when it was read in the app meanwhile; devices the push
+//! Push (S7b, X10): `push.send {notification_id}` runs at the notification's `push_at` (quiet hours delay it) and
+//! sends it to each of the person's devices: Web Push for the installed web app, Expo push for the phone app. Skipped when it was read in the app meanwhile; devices the push
 //! service no longer knows are forgotten. A retry may reach a device twice: the service worker shows one
 //! notification per id (`tag`), so the second replaces the first.
 
 use runflow_db::push;
+use runflow_integrations::expo_push::{self, Message, Ticket};
 use runflow_integrations::webpush::{Outcome, Subscription};
 use serde_json::{Value, json};
 use uuid::Uuid;
@@ -34,10 +35,6 @@ pub(crate) async fn send(w: &Worker, payload: &Value) -> Result<(), JobError> {
     if n.pushed_at.is_some() || n.read_at.is_some() {
         return Ok(());
     }
-    let Some(web) = &w.webpush else {
-        // Push isn't configured here (no VAPID keys): the center and e-mail still have it.
-        return Ok(());
-    };
     let message = json!({
         "id": id,
         "title": clip(&n.title, 120),
@@ -46,10 +43,45 @@ pub(crate) async fn send(w: &Worker, payload: &Value) -> Result<(), JobError> {
     })
     .to_string();
     let mut retry = None;
-    for d in push::devices(&w.db, n.user_id).await? {
-        if d.platform != "web" {
-            continue; // Expo push arrives with the phone app (X10)
+    let devices = push::devices(&w.db, n.user_id).await?;
+    // The phone app: one Expo request for all of the person's phones.
+    let phones: Vec<&push::Device> = devices.iter().filter(|d| d.platform != "web").collect();
+    if let (Some(expo), false) = (&w.expo, phones.is_empty()) {
+        let data = json!({ "id": id, "link": n.link });
+        let title = clip(&n.title, 120);
+        let body = n.body.as_deref().map(|b| clip(b, 400));
+        for chunk in phones.chunks(expo_push::BATCH) {
+            let messages: Vec<Message> = chunk
+                .iter()
+                .map(|d| Message {
+                    to: &d.token,
+                    title: &title,
+                    body: body.as_deref(),
+                    data: data.clone(),
+                    ttl_s: TTL_S,
+                })
+                .collect();
+            match expo.send(&messages).await {
+                Ok(tickets) => {
+                    for (d, t) in chunk.iter().zip(tickets) {
+                        match t {
+                            Ticket::Ok => {}
+                            Ticket::Gone => push::remove(&w.db, d.id).await?,
+                            Ticket::Failed(e) => {
+                                tracing::warn!(device = %d.id, error = %e, "expo push refused")
+                            }
+                        }
+                    }
+                }
+                Err(expo_push::ExpoError::Retry(e)) => retry = Some(e),
+                Err(e) => tracing::warn!(error = %e, "expo push refused the batch"),
+            }
         }
+    }
+    // The installed web app (VAPID keys set).
+    let web_devices = devices.iter().filter(|d| d.platform == "web");
+    for d in web_devices {
+        let Some(web) = &w.webpush else { break };
         let key = |k: &str| {
             d.keys
                 .as_ref()

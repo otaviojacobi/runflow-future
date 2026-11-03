@@ -140,6 +140,17 @@ async fn main() -> ExitCode {
     }
 }
 
+/// Expo push for the phone app: always on (free, no server credentials unless enhanced security is enabled).
+fn expo(config: &Config) -> std::sync::Arc<runflow_integrations::expo_push::ExpoPush> {
+    std::sync::Arc::new(runflow_integrations::expo_push::ExpoPush::new(
+        runflow_integrations::expo_push::EXPO_PUSH_BASE,
+        config
+            .expo_access_token
+            .as_ref()
+            .map(|t| t.expose().to_string()),
+    ))
+}
+
 /// The Web Push sender when VAPID keys are set.
 fn webpush(
     config: &Config,
@@ -214,6 +225,7 @@ async fn worker(config: Config) -> anyhow::Result<()> {
     if let Some(web) = webpush(&config)? {
         w = w.with_webpush(web);
     }
+    w = w.with_expo(expo(&config));
     w.run(shutdown()).await;
     pool.close().await;
     Ok(())
@@ -360,6 +372,7 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
         if let Some(web) = web.clone() {
             w = w.with_webpush(web);
         }
+        w = w.with_expo(expo(&config));
         let mut rx = stop_rx.clone();
         tokio::spawn(async move {
             w.run(async move {

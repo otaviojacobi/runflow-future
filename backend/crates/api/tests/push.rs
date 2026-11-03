@@ -357,3 +357,88 @@ async fn quiet_hours_pause_and_reading_first(db: PgPool) {
             .unwrap();
     assert_eq!(held, 1, "only the first one was ever scheduled");
 }
+
+type ExpoSeen = Arc<Mutex<Vec<Value>>>;
+
+/// A fake Expo push service: accepts every token except `ExponentPushToken[gone]`.
+async fn fake_expo() -> (String, ExpoSeen) {
+    let seen: ExpoSeen = Arc::default();
+    let send = |State(s): State<ExpoSeen>, axum::Json(batch): axum::Json<Vec<Value>>| async move {
+        let tickets: Vec<Value> = batch
+            .iter()
+            .map(|m| {
+                if m["to"] == "ExponentPushToken[gone]" {
+                    json!({ "status": "error", "message": "not registered", "details": { "error": "DeviceNotRegistered" } })
+                } else {
+                    json!({ "status": "ok", "id": "ticket-1" })
+                }
+            })
+            .collect();
+        s.lock().unwrap().extend(batch);
+        axum::Json(json!({ "data": tickets }))
+    };
+    let app = Router::new()
+        .route("/--/api/v2/push/send", post(send))
+        .with_state(seen.clone());
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    (url, seen)
+}
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn phones_get_pushes_through_expo(db: PgPool) {
+    let (base, seen) = fake_expo().await;
+    let app = TestApp::new(db).with_expo(&base);
+    let (club, owner, ana) = setup(&app).await;
+
+    app.post(
+        "/v1/me/push-tokens",
+        Some(&ana),
+        json!({ "platform": "android", "token": "not-a-token" }),
+    )
+    .await
+    .problem(422, "validation.failed");
+    for token in ["ExponentPushToken[ana-phone]", "ExponentPushToken[gone]"] {
+        let r = app
+            .post(
+                "/v1/me/push-tokens",
+                Some(&ana),
+                json!({ "platform": "android", "token": token }),
+            )
+            .await;
+        assert_eq!(r.status.as_u16(), 204);
+    }
+    app.patch(
+        "/v1/me/prefs",
+        Some(&ana),
+        json!({ "quiet_start": null, "quiet_end": null }),
+    )
+    .await
+    .ok();
+    message(&app, &club, &owner, &ana, "Bora treinar amanhã?").await;
+    app.run_jobs().await;
+
+    let batch = seen.lock().unwrap().clone();
+    assert_eq!(batch.len(), 2, "one request with both phones");
+    let m = batch
+        .iter()
+        .find(|m| m["to"] == "ExponentPushToken[ana-phone]")
+        .unwrap();
+    assert_eq!(m["title"], "Marcos respondeu");
+    assert_eq!(m["body"], "Bora treinar amanhã?");
+    assert!(m["data"]["link"].as_str().unwrap().starts_with("/messages"));
+    assert!(m["data"]["id"].is_string());
+    // The uninstalled app's token is forgotten; the notification counts as pushed.
+    let left: Vec<String> = sqlx::query_scalar("SELECT token FROM push_tokens")
+        .fetch_all(app.db())
+        .await
+        .unwrap();
+    assert_eq!(left, ["ExponentPushToken[ana-phone]"]);
+    let pushed: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM notifications WHERE pushed_at IS NOT NULL")
+            .fetch_one(app.db())
+            .await
+            .unwrap();
+    assert_eq!(pushed, 1);
+}

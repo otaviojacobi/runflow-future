@@ -164,6 +164,8 @@ pub struct Config {
     /// `BILLING_SIMULATION` (default: on in development): without Stripe, owners "pay" on Runflow's test pages.
     pub billing_simulation: bool,
     pub push: Option<Push>,
+    /// `EXPO_ACCESS_TOKEN`: only if the Expo project turns on enhanced push security (phone push, X10).
+    pub expo_access_token: Option<Secret>,
     pub storage: Storage,
     pub assistant: Assistant,
     pub sentry_dsn: Option<String>,
@@ -459,6 +461,7 @@ impl Config {
             },
         );
         let billing_simulation = e.parse("BILLING_SIMULATION", env == RunEnv::Development);
+        let expo_access_token = e.secret("EXPO_ACCESS_TOKEN");
         let subject = e.or("VAPID_SUBJECT", "mailto:contato@runflow.club");
         let push = e
             .pair("VAPID_PUBLIC_KEY", "VAPID_PRIVATE_KEY")
@@ -490,6 +493,7 @@ impl Config {
                 stripe,
                 billing_simulation,
                 push,
+                expo_access_token,
                 storage,
                 assistant,
                 sentry_dsn,

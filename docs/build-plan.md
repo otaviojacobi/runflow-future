@@ -100,7 +100,7 @@ Founder (2026-11-02, D-025): the backend comes before mobile, so mobile is built
 | X7 | Profile, account, notifications, privacy | [ ] |
 | X8 | Trainer on mobile: students, feedback inbox, quick edit of today's workouts | [ ] |
 | X9 | Owner/student onboarding on mobile (invite deep link → consent → profile → Strava) | [ ] |
-| X10 | Push notifications, widgets (today's workout), Apple Health / Health Connect read | [ ] |
+| X10 | Push notifications (server half done: the worker sends to `ios`/`android` Expo tokens through Expo's push service, forgets uninstalled apps; the app registers its token with `expo-notifications` in a development build), widgets (today's workout), Apple Health / Health Connect read | [ ] |
 
 ## Later (TODO, not scheduled)
 

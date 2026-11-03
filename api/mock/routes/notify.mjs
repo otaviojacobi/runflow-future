@@ -64,7 +64,8 @@ export default function register(h) {
     const keys = b.keys && typeof b.keys === "object" ? b.keys : null;
     const e = [];
     if (!["web", "ios", "android"].includes(b.platform)) e.push({ field: "platform", message: "Plataforma inválida." });
-    if (!token || token.length > 2048 || (b.platform === "web" && !/^https:\/\//.test(token))) e.push({ field: "token", message: "Informe o token do aparelho." });
+    const expo = /^(ExponentPushToken|ExpoPushToken)\[[\x21-\x5c\x5e-\x7e]{1,256}\]$/.test(token);
+    if (!token || token.length > 2048 || (b.platform === "web" ? !/^https:\/\//.test(token) : !expo)) e.push({ field: "token", message: "Informe o token do aparelho." });
     if (b.platform === "web" && !(typeof keys?.p256dh === "string" && keys.p256dh && typeof keys?.auth === "string" && keys.auth)) e.push({ field: "keys", message: "Chaves da inscrição inválidas." });
     if (e.length) h.invalid(e);
     h.db.push_tokens ||= [];
