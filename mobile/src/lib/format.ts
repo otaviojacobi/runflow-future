@@ -55,6 +55,12 @@ export const longDate = (d: string) => fmt({ weekday: "long", day: "numeric", mo
 export const dayMonth = (d: string) => { const p = parts(d); return `${p.day} ${p.mon}`; };
 /** "2026-11-03" → "ter". */
 export const weekdayShort = (d: string) => clean(fmt({ weekday: "short" }).format(asUtc(d)));
+/** "2026-11-03" → "terça". */
+export const weekdayLong = (d: string) => fmt({ weekday: "long" }).format(asUtc(d)).replace(/-feira$/, "");
+/** "2026-11-03" → "Novembro 2026" (month titles). */
+export const monthTitle = (d: string) => `${upperFirst(fmt({ month: "long" }).format(asUtc(d)))} ${d.slice(0, 4)}`;
+/** Sentence case for a date that starts a line ("terça-feira, 3 de novembro" → "Terça-feira, 3 de novembro"). */
+export const upperFirst = (s: string) => s.charAt(0).toLocaleUpperCase("pt-BR") + s.slice(1);
 /** ISO timestamp → "06:30" in the club timezone. */
 export const timeOf = (iso: string, tz = "America/Sao_Paulo") => new Intl.DateTimeFormat("pt-BR", { timeZone: tz, hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 /** ISO timestamp → club-local "YYYY-MM-DD". */

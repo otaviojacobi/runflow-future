@@ -27,8 +27,12 @@ export interface Branding {
   theme: { primary: string; secondary: string; source: "default" | "derived" | "club" };
   theme_css: string;
 }
+/** The club's plan (D-043): seats per role, the monthly price and whether it's frozen for the caller (never for students). */
 export interface Subscription {
-  plan: Plan; status: "active" | "trialing" | "past_due" | "canceled"; student_limit: number; active_students: number;
+  plan: Plan; status: "active" | "trialing" | "past_due" | "canceled"; frozen: boolean; grace_until: ISOTime | null;
+  /** null = no hard limit (Max bills the seats above the included ones). */
+  student_limit: number | null; active_students: number; trainer_limit: number | null; active_trainers: number;
+  included_students: number; included_trainers: number; monthly_cents: number;
   current_period_end: ISOTime | null; cancel_at_period_end: boolean; has_billing_account?: boolean;
 }
 export interface MembershipContext { membership: Membership; club: Club; branding: Branding | null; subscription: Subscription | null }
@@ -43,3 +47,25 @@ export interface PublicInvite {
   /** null when signed out */
   email_matches: boolean | null;
 }
+
+export type CompletionStatus = "completed" | "partial" | "missed" | "skipped";
+export type Feeling = "great" | "good" | "ok" | "bad" | "awful";
+export interface Completion {
+  planned_workout_id: ID; activity_id: ID | null; status: CompletionStatus; compliance_pct: number | null;
+  rpe: number | null; feeling: Feeling | null; comment: string | null; completed_at: ISOTime; updated_at: ISOTime;
+}
+export interface PlannedWorkout {
+  id: ID; club_id: ID; athlete_membership_id: ID; date: ISODate; position: number; sport: Sport; title: string;
+  structure: import("@/domain/workout").Structure; notes: string | null; est_duration_s: number | null; est_distance_m: number | null;
+  template_id: ID | null; plan_assignment_id: ID | null; created_by: ID; created_at: ISOTime; updated_at: ISOTime;
+  completion: Completion | null; comments_count: number; unread_count: number;
+  /** The student can see it now; false = a draft (D-031). Always true under /my/*. */
+  visible: boolean;
+}
+export interface Activity {
+  id: ID; user_id: ID; source: "strava" | "garmin" | "manual" | "file"; external_id: string | null; sport: Sport; name: string;
+  started_at: ISOTime; duration_s: number; moving_time_s: number | null; distance_m: number | null; elevation_gain_m: number | null;
+  avg_hr: number | null; max_hr: number | null; avg_pace_s_per_km: number | null; avg_power_w: number | null; calories: number | null;
+  laps: { distance_m: number; duration_s: number; avg_hr: number | null; avg_pace_s_per_km?: number }[] | null; polyline: string | null; created_at: ISOTime;
+}
+export interface Comment { id: ID; planned_workout_id: ID; author_membership_id: ID; body: string; created_at: ISOTime; edited_at: ISOTime | null; author: { membership_id: ID; role: Role; user: User } }
