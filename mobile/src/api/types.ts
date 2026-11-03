@@ -116,3 +116,7 @@ export interface Announcement {
   id: ID; club_id: ID; author_membership_id: ID; title: string; body: string; group_ids: ID[]; pinned: boolean; created_at: ISOTime; edited_at: ISOTime | null; deleted_at: ISOTime | null;
   author: { membership_id: ID; user: User }; read_at: ISOTime | null; audience_count?: number; reads_count?: number;
 }
+
+/** The planned workout an activity was matched to (M4). */
+export interface MatchedWorkout { id: ID; title: string; date: ISODate; club_id: ID; compliance_pct: number | null; est_distance_m: number | null; est_duration_s: number | null }
+export interface ActivityItem extends Activity { matched_workout: MatchedWorkout | null }

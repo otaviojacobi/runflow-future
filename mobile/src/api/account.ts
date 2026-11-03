@@ -7,6 +7,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { session } from "@/lib/session";
 import { queryClient } from "@/queryClient";
+import { invalidateTraining } from "./activities";
 import { meKey } from "./me";
 import type { AthleteProfile, Assessment, Consent, ConsentKind, Me, ProviderStatus, User, UserSession } from "./types";
 
@@ -56,13 +57,13 @@ export const useSessions = () => useQuery({ queryKey: accountKeys.sessions, quer
 export const useRevokeSession = () => useMutation({ mutationFn: (id: string) => api.del(`/me/sessions/${id}`), onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.sessions }) });
 export const useRevokeOtherSessions = () => useMutation({ mutationFn: () => api.post<{ revoked: number }>("/me/sessions/revoke-others"), onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.sessions }) });
 
-// ---------- connections (Strava; Garmin later). Connecting in the app comes with X5: until then on the web.
+// ---------- connections (Strava; Garmin later). Connecting: lib/strava.ts.
 export const useConnections = () => useQuery({ queryKey: accountKeys.connections, queryFn: () => api.get<{ items: ProviderStatus[] }>("/me/connections").then((r) => r.items) });
 /** Disconnecting deletes what came from the provider and the sharing consent (root.md §5). */
 export const useDisconnect = () =>
   useMutation({
     mutationFn: (provider: string) => api.del(`/me/connections/${provider}`),
-    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: accountKeys.connections }); void queryClient.invalidateQueries({ queryKey: accountKeys.consents }); },
+    onSuccess: () => { void queryClient.invalidateQueries({ queryKey: accountKeys.connections }); void queryClient.invalidateQueries({ queryKey: accountKeys.consents }); invalidateTraining(); },
   });
 
 // ---------- clubs and the account itself

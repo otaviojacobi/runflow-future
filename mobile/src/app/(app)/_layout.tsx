@@ -49,6 +49,7 @@ function ClubTabs({ role, modalities }: { role: Role; modalities: Sport[] }) {
         <Tabs.Screen name="schedule" options={{ title: t("Agenda") }} />
         <Tabs.Screen name="workouts/[id]" options={{ title: t("Treino") }} />
         <Tabs.Screen name="activities" options={{ title: t("Atividades") }} />
+        <Tabs.Screen name="activities/[id]" options={{ title: t("Atividade") }} />
         <Tabs.Screen name="races" options={{ title: t("Provas") }} />
       </Tabs.Protected>
       <Tabs.Protected guard={staff} redirectTo={homeFor(role)}>

@@ -64,6 +64,7 @@ export { default as PersonStanding } from "lucide-react-native/icons/person-stan
 export { default as Pin } from "lucide-react-native/icons/pin";
 export { default as PinOff } from "lucide-react-native/icons/pin-off";
 export { default as Plus } from "lucide-react-native/icons/plus";
+export { default as RefreshCw } from "lucide-react-native/icons/refresh-cw";
 export { default as Repeat } from "lucide-react-native/icons/repeat";
 export { default as Ruler } from "lucide-react-native/icons/ruler";
 export { default as Search } from "lucide-react-native/icons/search";

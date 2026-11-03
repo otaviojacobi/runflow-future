@@ -111,6 +111,8 @@ const parentOf = (name: string) => (name.includes("/") ? name.slice(0, name.inde
 /** Where a back bar returns to without history: a nested route → its parent, Perfil's links → Perfil, the rest → "Mais" (staff) or home. */
 export function backFallback(name: string, role: Role): Href {
   const parent = parentOf(name);
+  // A workout opens from Hoje, Agenda or an activity; there's no /workouts list to go up to.
+  if (parent === "workouts") return homeFor(role);
   if (parent) return hrefOf(`/${parent}`);
   if (profileLinksFor(role).some((i) => routeName(i.to) === name)) return "/account";
   return role === "student" ? homeFor(role) : hrefOf("/more");
