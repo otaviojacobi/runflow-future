@@ -5,7 +5,7 @@
  */
 import { Redirect, Stack, router, useLocalSearchParams, usePreventRemove } from "expo-router";
 import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { type AnnouncementInput, useAnnouncements, useGroups, useSaveAnnouncement } from "@/api/messages";
 import type { Announcement, Group, MembershipContext } from "@/api/types";
@@ -16,7 +16,7 @@ import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Button, Card, Dialog, EmptyState, Field, Input, Skeleton, Switch, Text, Textarea, toast } from "@/ui";
+import { Button, Card, Dialog, EmptyState, Field, Input, KeyboardAvoid, KeyboardScrollView, Skeleton, Switch, Text, Textarea, toast } from "@/ui";
 import { Check, Megaphone } from "@/ui/icons";
 
 const MURAL = { pathname: "/messages", params: { tab: "mural" } } as const;
@@ -96,8 +96,8 @@ function Form({ ctx, value }: { ctx: MembershipContext; value?: Announcement }) 
     <View style={[styles.fill, { backgroundColor: c.canvas }]}>
       <Stack.Screen options={{ gestureEnabled: !dirty }} />
       <TopBar title={value ? t("Editar aviso") : t("Novo aviso")} subtitle={t("Mural · {club}", { club: club.name })} fallback={MURAL} />
-      <KeyboardAvoidingView behavior="padding" style={styles.fill}>
-        <ScrollView style={styles.fill} keyboardShouldPersistTaps="handled"
+      <KeyboardAvoid>
+        <KeyboardScrollView style={styles.fill} keyboardShouldPersistTaps="handled"
           contentContainerStyle={{ padding: theme.space[4], paddingBottom: theme.space[8], gap: theme.space[5], width: "100%", maxWidth: theme.size.readingMax, alignSelf: "center" }}>
           <Field label={t("Título")} error={fieldError("title")}>
             {(a) => <Input {...a} value={v.title} onChangeText={(title) => set({ title })} maxLength={MAX_TITLE} placeholder={t("Ex.: Treino de pista no feriado")} returnKeyType="next" />}
@@ -110,13 +110,13 @@ function Form({ ctx, value }: { ctx: MembershipContext; value?: Announcement }) 
           <Switch checked={v.pinned} onCheckedChange={(pinned) => set({ pinned })} label={t("Fixar no topo do mural")}
             description={t("Fica acima dos outros avisos até alguém da equipe desafixar.")} />
           {!value && <Text variant="bodySm" tone="muted">{t("Os alunos que recebem o aviso ganham uma notificação, e você acompanha quem já leu.")}</Text>}
-        </ScrollView>
+        </KeyboardScrollView>
         <View style={[styles.footer, { paddingHorizontal: theme.space[4], paddingTop: theme.space[3], paddingBottom: (keyboard ? 0 : insets.bottom) + theme.space[3], backgroundColor: c.surface, borderTopColor: c.line }]}>
           <Button size="lg" block loading={save.isPending} onPress={submit} style={{ width: "100%", maxWidth: theme.size.readingMax, alignSelf: "center" }}>
             {value ? t("Salvar aviso") : t("Publicar aviso")}
           </Button>
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardAvoid>
       <Dialog open={discard} onOpenChange={(o) => { setDiscard(o); if (!o) resume.current = null; }}title={value ? t("Descartar alterações?") : t("Descartar aviso?")}
         description={value ? t("O que você mudou neste aviso não será salvo.") : t("O texto que você escreveu será perdido.")}
         footer={(

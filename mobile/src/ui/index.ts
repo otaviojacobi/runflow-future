@@ -9,4 +9,5 @@ export * from "./overlay";
 export * from "./toast";
 export * from "./Text";
 export * from "./Screen";
+export * from "./keyboard";
 export type { Icon } from "./icons";

@@ -5,7 +5,7 @@
  */
 import { router } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSaveTemplate, useTemplate, useTemplates } from "@/api/library";
 import type { Sport } from "@/api/types";
@@ -17,7 +17,7 @@ import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
 import { textStyle } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Button, Card, EmptyState, Field, Input, Skeleton, Text, Textarea, toast } from "@/ui";
+import { Button, Card, EmptyState, Field, Input, KeyboardAvoid, KeyboardScrollView, Skeleton, Text, Textarea, toast } from "@/ui";
 import { Save, SearchX } from "@/ui/icons";
 import { AiDescribe, FitButton } from "./extras";
 import { SportPicker, TagInput } from "./parts";
@@ -82,8 +82,8 @@ export function TemplateEditor({ id }: { id?: string }) {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={[styles.fill, { backgroundColor: theme.color.canvas }]}>
-      <ScrollView style={styles.fill} keyboardShouldPersistTaps="handled"
+    <KeyboardAvoid style={{ backgroundColor: theme.color.canvas }}>
+      <KeyboardScrollView style={styles.fill} keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.content, { paddingHorizontal: theme.space[4], paddingTop: theme.space[5], paddingBottom: theme.space[8], gap: theme.space[5], maxWidth: theme.size.readingMax }]}>
         <Field label={t("Nome do treino")} error={err?.fieldError("name")}>
           {(a) => <Input {...a} value={name} onChangeText={setName} placeholder={t("Ex.: Intervalado 6×1 km")} autoCapitalize="sentences" maxLength={120} style={styles.title} />}
@@ -102,12 +102,12 @@ export function TemplateEditor({ id }: { id?: string }) {
         <Field label={t("Descrição para o aluno")} optional hint={t("Aparece no app do aluno junto do treino.")}>
           {(a) => <Textarea {...a} value={description} onChangeText={setDescription} placeholder={t("Ex.: foco em manter o pace constante nos tiros.")} maxLength={2000} />}
         </Field>
-      </ScrollView>
+      </KeyboardScrollView>
       <View style={[styles.bar, { gap: theme.space[2], paddingHorizontal: theme.space[4], paddingTop: theme.space[3], paddingBottom: theme.space[3] + insets.bottom, borderTopColor: theme.color.line, backgroundColor: theme.color.surface }]}>
         <FitButton name={name} sport={sport} structure={structure} label={t(".FIT")} />
         <Button icon={Save} loading={save.isPending} onPress={submit} style={styles.flex}>{isNew ? t("Salvar na biblioteca") : t("Salvar alterações")}</Button>
       </View>
-    </KeyboardAvoidingView>
+    </KeyboardAvoid>
   );
 }
 

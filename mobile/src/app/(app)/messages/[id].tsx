@@ -1,12 +1,13 @@
 /**
  * M10 / W13 · a conversation between a student and the club staff (every staff member sees it). Polls while on
  * screen, marks it read on open and when a new message arrives, sends with the message shown at once, and lets the
- * author delete their own messages. The keyboard never covers the composer (KeyboardAvoidingView on both platforms:
- * Android is edge-to-edge, so the window no longer shrinks for the keyboard by itself).
+ * author delete their own messages. The keyboard never covers the composer (ui KeyboardAvoid: padding on both
+ * platforms, since Android is edge-to-edge and the window no longer shrinks for the keyboard, measured from where the
+ * view starts in the window).
  */
 import { useIsFocused, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { KeyboardAvoidingView, StyleSheet, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { useConversation, useDeleteMessage, useMarkConversationRead, useSendMessage } from "@/api/messages";
 import type { Club, MembershipContext, Message } from "@/api/types";
 import { ClubLogo } from "@/components/brand";
@@ -18,7 +19,7 @@ import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Avatar, Button, Dialog, EmptyState, Skeleton, Text, toast } from "@/ui";
+import { Avatar, Button, Dialog, EmptyState, KeyboardAvoid, Skeleton, Text, toast } from "@/ui";
 import { CircleAlert, MessageCircle, Trash2 } from "@/ui/icons";
 
 export default function ConversationScreen() {
@@ -86,7 +87,7 @@ function Conversation({ ctx, id }: { ctx: MembershipContext; id: string }) {
   return (
     <View style={[styles.fill, { backgroundColor: theme.color.canvas }]}>
       {header}
-      <KeyboardAvoidingView behavior="padding" style={styles.fill}>
+      <KeyboardAvoid>
         {c ? (
           <Thread c={c} pending={pending} myId={myId} club={club} onDelete={setTarget} empty={<Empty staff={staff} club={club} name={studentName} />} />
         ) : q.error ? (
@@ -95,7 +96,7 @@ function Conversation({ ctx, id }: { ctx: MembershipContext; id: string }) {
           <Loading />
         )}
         {(c || !q.error) && <Composer value={draft} onChange={setDraft} onSend={submit} />}
-      </KeyboardAvoidingView>
+      </KeyboardAvoid>
       <Dialog open={!!target} onOpenChange={(v) => !v && setTarget(null)} title={t("Apagar mensagem?")}
         description={t("Ela some para todos na conversa e fica como “Mensagem apagada”.")}
         footer={(

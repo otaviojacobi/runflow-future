@@ -1,7 +1,7 @@
 /**
  * The bar of the screens pushed in the Mensagens stack (thread, announcement, compose): back, an optional avatar,
  * title and subtitle, optional actions. Same look as the shell's BackHeader. The screens draw it themselves (no
- * navigator header), so a KeyboardAvoidingView under it measures from the top of the window.
+ * navigator header); the body under it keeps the composer above the keyboard with ui's KeyboardAvoid.
  */
 import { router, type Href } from "expo-router";
 import type { ReactNode } from "react";

@@ -7,7 +7,7 @@
  */
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { useAssignPlan, usePlan, useSavePlanItems, useUnassignPlan, useUpdatePlan } from "@/api/plans";
 import type { PlanAssignment, PlanItem } from "@/api/types";
 import { ConfirmDialog, Stepper } from "@/components/account/parts";
@@ -22,7 +22,7 @@ import { useClub } from "@/lib/club";
 import { addDays, dayMonth, duration, mondayOf, shortDate, today as todayFn } from "@/lib/format";
 import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Avatar, Button, Card, Dialog, EmptyState, Field, IconButton, Input, Menu, ProgressBar, Skeleton, Text, Textarea, toast } from "@/ui";
+import { Avatar, Button, Card, Dialog, EmptyState, Field, IconButton, Input, KeyboardAvoid, KeyboardScrollView, Menu, ProgressBar, Skeleton, Text, Textarea, toast } from "@/ui";
 import { ChevronLeft, ChevronRight, Copy, Eraser, MoreHorizontal, Plus, Save, SearchX, Send, Trash2, Users } from "@/ui/icons";
 
 const WD = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
@@ -117,8 +117,8 @@ function PlanEditor({ id }: { id: string }) {
   const total = weekly[shown - 1] ?? 0;
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={[styles.fill, { backgroundColor: c.canvas }]}>
-      <ScrollView style={styles.fill} keyboardShouldPersistTaps="handled"
+    <KeyboardAvoid style={{ backgroundColor: c.canvas }}>
+      <KeyboardScrollView style={styles.fill} keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.content, { paddingHorizontal: theme.space[4], paddingTop: theme.space[5], paddingBottom: theme.space[8], gap: theme.space[5], maxWidth: theme.size.readingMax }]}>
         <View style={{ gap: theme.space[3] }}>
           <Field label={t("Nome da planilha")}>
@@ -193,7 +193,7 @@ function PlanEditor({ id }: { id: string }) {
             </View>
           ))}
         </Card>
-      </ScrollView>
+      </KeyboardScrollView>
 
       <View style={[styles.bar, { gap: theme.space[2], paddingHorizontal: theme.space[4], paddingVertical: theme.space[3], borderTopColor: c.line, backgroundColor: c.surface }]}>
         <Button variant="secondary" icon={Save} disabled={!dirty} loading={saveItems.isPending} onPress={save}
@@ -217,7 +217,7 @@ function PlanEditor({ id }: { id: string }) {
           onSuccess: (r) => { setOff(null); toast.success(t("Aplicação removida"), tn(r?.removed_workouts ?? 0, "{n} treino futuro saiu da agenda.", "{n} treinos futuros saíram da agenda.")); },
           onError: (e) => { setOff(null); toast.error(e); },
         })} />
-    </KeyboardAvoidingView>
+    </KeyboardAvoid>
   );
 }
 

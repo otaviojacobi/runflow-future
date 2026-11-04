@@ -9,7 +9,7 @@
 import { tokens } from "@runflow/design/tokens";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState, type ReactNode } from "react";
-import { Keyboard, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, View, type ScrollViewInstance } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View, type ScrollViewInstance } from "react-native";
 import { useMyWorkout, type MyWorkoutDetail } from "@/api/my";
 import type { Activity } from "@/api/types";
 import { SportChip } from "@/components/sport";
@@ -24,7 +24,7 @@ import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
 import { duration, km, longDate, pace, timeOf, today as todayFn, upperFirst } from "@/lib/format";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Avatar, Button, Card, EmptyState, Skeleton, Text } from "@/ui";
+import { Avatar, Button, Card, EmptyState, KeyboardAvoid, Skeleton, Text, useFocusedInputVisible } from "@/ui";
 import { CircleCheck, Link2, SearchX } from "@/ui/icons";
 import { PoweredByStrava } from "@/components/strava";
 
@@ -41,16 +41,12 @@ function WorkoutBody({ id }: { id: string }) {
   const [sheet, setSheet] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const scroll = useRef<ScrollViewInstance>(null);
+  const keepVisible = useFocusedInputVisible(scroll);
   if (!club || !ctx) return null;
   const w = q.data;
   const gone = q.error instanceof ApiError && q.error.status === 404 ? q.error : null;
 
   const refresh = async () => { setRefreshing(true); await q.refetch(); setRefreshing(false); };
-  // The composer is the last thing on the screen: once the keyboard is up, bring it into view.
-  const onComposerFocus = () => {
-    const sub = Keyboard.addListener("keyboardDidShow", () => { sub.remove(); scroll.current?.scrollToEnd({ animated: true }); });
-    setTimeout(() => sub.remove(), theme.motion.duration.slow * 4);
-  };
 
   let body;
   if (gone) {
@@ -64,7 +60,7 @@ function WorkoutBody({ id }: { id: string }) {
     );
   } else if (w) {
     body = <Detail w={w} placeholder={q.isPlaceholderData} clubTz={club.timezone} professor={club.trainer_label === "professor"} onFeedback={() => setSheet(true)}
-      thread={<Thread club={club} workoutId={w.id} day={w.date} meMembershipId={ctx.membership.id} placeholder={t("Dúvida sobre o treino? Escreva aqui")} onComposerFocus={onComposerFocus} />} />;
+      thread={<Thread club={club} workoutId={w.id} day={w.date} meMembershipId={ctx.membership.id} placeholder={t("Dúvida sobre o treino? Escreva aqui")} />} />;
   } else if (q.isPending) {
     body = (
       <View style={{ gap: theme.space[4] }} accessibilityLabel={t("Carregando…")}>
@@ -78,15 +74,16 @@ function WorkoutBody({ id }: { id: string }) {
   }
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={[styles.fill, { backgroundColor: theme.color.canvas }]}>
-      <ScrollView ref={scroll} style={styles.fill} keyboardShouldPersistTaps="handled"
+    // The keyboard never covers the conversation's composer (ui/keyboard.tsx: Android is edge-to-edge).
+    <KeyboardAvoid style={{ backgroundColor: theme.color.canvas }}>
+      <ScrollView ref={scroll} {...keepVisible} style={styles.fill} keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.content, { paddingHorizontal: theme.space[4], paddingTop: theme.space[5], paddingBottom: theme.space[8], gap: theme.space[5], maxWidth: theme.size.readingMax }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={theme.color.brand.solid} colors={[theme.color.brand.solid]} progressBackgroundColor={theme.color.surface} />}>
         {!gone && <OfflineBanner error={q.error} />}
         {body}
       </ScrollView>
       {w && !gone && <FeedbackSheet clubId={club.id} workout={w} activities={w.candidate_activities} open={sheet} onOpenChange={setSheet} />}
-    </KeyboardAvoidingView>
+    </KeyboardAvoid>
   );
 }
 

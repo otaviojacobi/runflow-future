@@ -4,12 +4,13 @@
  */
 import { tokens } from "@runflow/design/tokens";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Animated, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from "react-native";
+import { Animated, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions, type ScrollViewInstance } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { t } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
 import { IconButton } from "./Button";
 import { ListItem, Divider } from "./display";
+import { KeyboardAvoid, useFocusedInputVisible } from "./keyboard";
 import { X, type Icon } from "./icons";
 import { nativeDriver, useReducedMotion } from "./motion";
 import { Text } from "./Text";
@@ -24,6 +25,17 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
   const [visible, setVisible] = useState(open);
   const layer = useToastLayer(visible);
   const progress = useRef(new Animated.Value(0)).current;
+  const body = useRef<ScrollViewInstance>(null);
+  const keepVisible = useFocusedInputVisible(body);
+  // With the keyboard up the sheet sits on it: the home-indicator padding would only leave a gap.
+  const [keyboard, setKeyboard] = useState(false);
+  useEffect(() => {
+    if (!visible) return;
+    const ios = Platform.OS === "ios";
+    const a = Keyboard.addListener(ios ? "keyboardWillShow" : "keyboardDidShow", () => setKeyboard(true));
+    const b = Keyboard.addListener(ios ? "keyboardWillHide" : "keyboardDidHide", () => setKeyboard(false));
+    return () => { a.remove(); b.remove(); };
+  }, [visible]);
   useEffect(() => {
     if (open) {
       setVisible(true);
@@ -40,12 +52,12 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
         <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: c.overlay, opacity: progress }]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <Pressable style={StyleSheet.absoluteFill} onPress={close} />
         </Animated.View>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={styles.end} pointerEvents="box-none">
+        <KeyboardAvoid contentStyle={styles.end} pointerEvents="box-none">
           <Animated.View
             accessibilityViewIsModal
             style={[styles.sheet, {
               backgroundColor: c.raised, borderTopLeftRadius: theme.radius.xl, borderTopRightRadius: theme.radius.xl, boxShadow: theme.shadow.lg,
-              maxHeight: height * 0.92 - insets.top, paddingBottom: insets.bottom, opacity: progress, transform: [{ translateY }],
+              maxHeight: height * 0.92 - insets.top, paddingBottom: keyboard ? 0 : insets.bottom, opacity: progress, transform: [{ translateY }],
             }]}
           >
             <View style={[styles.head, { gap: theme.space[4], paddingHorizontal: theme.space[5], paddingTop: theme.space[5] }]}>
@@ -55,12 +67,12 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
               </View>
               <IconButton label={t("Fechar")} icon={X} onPress={close} style={{ marginRight: -theme.space[2], marginTop: -theme.space[1] }} />
             </View>
-            <ScrollView style={styles.body} contentContainerStyle={{ paddingHorizontal: theme.space[5], paddingVertical: theme.space[4] }} keyboardShouldPersistTaps="handled">
+            <ScrollView ref={body} {...keepVisible} style={styles.body} contentContainerStyle={{ paddingHorizontal: theme.space[5], paddingVertical: theme.space[4] }} keyboardShouldPersistTaps="handled">
               {children}
             </ScrollView>
             {footer && <View style={[styles.footer, { gap: theme.space[2], paddingHorizontal: theme.space[5], paddingVertical: theme.space[4], borderTopColor: c.lineSubtle }]}>{footer}</View>}
           </Animated.View>
-        </KeyboardAvoidingView>
+        </KeyboardAvoid>
         <Toaster layer={layer} />
       </View>
     </Modal>
@@ -93,7 +105,8 @@ export function Menu({ trigger, items, title }: { trigger: (open: () => void) =>
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   end: { flex: 1, justifyContent: "flex-end" },
-  sheet: { width: "100%", maxWidth: tokens.breakpoint.sm, alignSelf: "center" },
+  // flexShrink: with the keyboard up the sheet fits the space left and its body scrolls.
+  sheet: { width: "100%", maxWidth: tokens.breakpoint.sm, alignSelf: "center", flexShrink: 1 },
   head: { flexDirection: "row", alignItems: "flex-start" },
   flex: { flex: 1, minWidth: 0 },
   body: { flexGrow: 0, flexShrink: 1 },
