@@ -1,6 +1,6 @@
 /** Assessments and tests (W14), like the web's src/api/assessments.ts. The student's own list is in api/account.ts. */
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, qs } from "@/lib/api";
 import { queryClient } from "@/queryClient";
 import type { Assessment, AssessmentData, AssessmentKind } from "./types";
 
@@ -9,8 +9,7 @@ export const useAssessments = (clubId: string | undefined, f: { membership_id?: 
   useQuery({
     queryKey: [...k(clubId ?? ""), f], enabled: !!clubId,
     queryFn: () => {
-      const q = new URLSearchParams(Object.entries(f).filter(([, v]) => !!v) as [string, string][]).toString();
-      return api.get<{ items: Assessment[] }>(`/clubs/${clubId}/assessments${q ? `?${q}` : ""}`).then((r) => r.items);
+      return api.get<{ items: Assessment[] }>(`/clubs/${clubId}/assessments${qs(f)}`).then((r) => r.items);
     },
   });
 /** A test can change the student's zones and profile: refresh the athlete views and their own profile too. */

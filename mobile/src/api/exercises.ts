@@ -1,6 +1,6 @@
 /** Exercise library (W18), like the web's src/api/exercises.ts: Runflow's catalog + the club's own exercises. */
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, qs } from "@/lib/api";
 import { queryClient } from "@/queryClient";
 import type { LibraryExercise } from "./types";
 
@@ -9,8 +9,7 @@ export const useExercises = (clubId: string | undefined, f: { q?: string; catego
   useQuery({
     queryKey: [...k(clubId ?? ""), f], enabled: !!clubId, staleTime: 5 * 60_000, placeholderData: (prev) => prev,
     queryFn: () => {
-      const q = new URLSearchParams(Object.entries(f).filter(([, v]) => !!v) as [string, string][]).toString();
-      return api.get<{ items: LibraryExercise[] }>(`/clubs/${clubId}/exercises${q ? `?${q}` : ""}`).then((r) => r.items);
+      return api.get<{ items: LibraryExercise[] }>(`/clubs/${clubId}/exercises${qs(f)}`).then((r) => r.items);
     },
   });
 /** Creates a club exercise, or edits one (`id`); a club version of a catalog exercise replaces it for the club. */

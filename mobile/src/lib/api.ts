@@ -53,6 +53,8 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   }
   return data as T;
 }
+export { qs, queryOf } from "./query";
+
 export const api = {
   get: <T,>(p: string) => request<T>("GET", p),
   post: <T,>(p: string, b?: unknown) => request<T>("POST", p, b ?? {}),

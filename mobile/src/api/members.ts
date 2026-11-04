@@ -1,7 +1,7 @@
 /** Membros (O2): the club's people by role, promoting, suspending, removing; like the web's src/api/members.ts. Groups
  * and athletes live in api/staff.ts. */
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, qs } from "@/lib/api";
 import { queryClient } from "@/queryClient";
 import { meKey } from "./me";
 import type { Member, Role } from "./types";
@@ -17,10 +17,7 @@ export const useMembers = (clubId: string | undefined, f: { role?: string; q?: s
   useQuery({
     queryKey: [...membersKey(clubId ?? ""), f], enabled: !!clubId,
     queryFn: () => {
-      const q = new URLSearchParams({ limit: "500" });
-      if (f.role) q.set("role", f.role);
-      if (f.q) q.set("q", f.q);
-      return api.get<{ items: Member[] }>(`/clubs/${clubId}/members?${q.toString()}`).then((r) => r.items);
+      return api.get<{ items: Member[] }>(`/clubs/${clubId}/members${qs({ limit: 500, role: f.role, q: f.q })}`).then((r) => r.items);
     },
   });
 /** Promote a trainer to owner, or suspend / reactivate a student (`409 plan.limit_reached` when there's no seat). */

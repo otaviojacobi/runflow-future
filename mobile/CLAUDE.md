@@ -95,3 +95,7 @@ Preview every change at `/dev/components` (light and dark side by side, demo clu
   `cd mobile && eas build -p android --profile development`, profiles in `eas.json` point at QA) and the founder's
   Expo project and credentials (`docs/ops/push-notifications.md`); in Expo Go the device card says so.
 - Accessibility: `accessibilityRole`/`accessibilityState` on touchables, 44 pt touch targets, visible text = accessible name.
+- **Phones run Hermes, not a browser:** the web preview hides engine gaps. Hermes has no `Intl.PluralRules` (`i18n.ts`
+  writes the pt-BR rule out) and React Native's `URLSearchParams` is partial (use `lib/query.ts`). Before a release
+  build, open `/dev/hermes` on a phone in Expo Go (`npx expo start`, `adb reverse tcp:8081 tcp:8081`): it loads every
+  route module and logs `RF_DIAG {...}`, to compare with `node scripts/diagnostics.mjs` (Node's answers).

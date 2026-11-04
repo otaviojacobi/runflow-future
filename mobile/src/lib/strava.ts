@@ -15,7 +15,7 @@ import { invalidateTraining } from "@/api/activities";
 import { t } from "@/i18n";
 import { queryClient } from "@/queryClient";
 import { toast } from "@/ui";
-import { ApiError, api } from "./api";
+import { ApiError, api, queryOf } from "./api";
 
 export interface StravaReturn { code: string; state?: string; scope?: string }
 type Started = { authorize_url: string; state: string; redirect_uri: string };
@@ -45,10 +45,9 @@ export function finishStrava(r: StravaReturn): Promise<void> {
 
 /** Strava's `?code&state&scope` (or `?error=access_denied`) from the URL it sent the person back to. */
 export function stravaParams(url: string): StravaReturn | { error: string } {
-  const q = new URLSearchParams(url.includes("?") ? url.slice(url.indexOf("?") + 1) : "");
-  const code = q.get("code");
-  if (!code) return { error: q.get("error") ?? "missing_code" };
-  return { code, state: q.get("state") ?? undefined, scope: q.get("scope") ?? undefined };
+  const q = queryOf(url);
+  if (!q.code) return { error: q.error ?? "missing_code" };
+  return { code: q.code, state: q.state, scope: q.scope };
 }
 
 /** pt-BR reason for a failed connection, from Strava's `error` or the API's problem. */
