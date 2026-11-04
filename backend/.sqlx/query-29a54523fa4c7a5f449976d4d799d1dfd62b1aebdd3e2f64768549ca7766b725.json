@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO workout_completions (planned_workout_id, activity_id, status, compliance_pct, rpe, feeling, comment)\n           VALUES ($1, $2, $3, $4, $5, $6, $7)\n           ON CONFLICT (planned_workout_id) DO UPDATE SET activity_id = $2, status = $3, compliance_pct = $4, rpe = $5,\n                  feeling = $6, comment = $7, updated_at = now()\n           RETURNING planned_workout_id, activity_id, status, compliance_pct, rpe, feeling, comment, completed_at, updated_at,\n                     (xmax = 0) AS \"fresh!\"",
+  "query": "INSERT INTO workout_completions (planned_workout_id, activity_id, matched_by, status, compliance_pct, rpe, feeling, comment, reported_at)\n           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())\n           ON CONFLICT (planned_workout_id) DO UPDATE SET activity_id = $2, matched_by = $3, status = $4, compliance_pct = $5, rpe = $6,\n                  feeling = $7, comment = $8, reported_at = coalesce(workout_completions.reported_at, now()), updated_at = now()\n           RETURNING planned_workout_id, activity_id, status, compliance_pct, rpe, feeling, comment, matched_by, reported_at,\n                     completed_at, updated_at",
   "describe": {
     "columns": [
       {
@@ -82,6 +82,28 @@
       },
       {
         "ordinal": 7,
+        "name": "matched_by",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "matched_by"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "reported_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "reported_at"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
         "name": "completed_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -92,7 +114,7 @@
         }
       },
       {
-        "ordinal": 8,
+        "ordinal": 10,
         "name": "updated_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -101,18 +123,13 @@
             "name": "updated_at"
           }
         }
-      },
-      {
-        "ordinal": 9,
-        "name": "fresh!",
-        "type_info": "Bool",
-        "origin": "Expression"
       }
     ],
     "parameters": {
       "Left": [
         "Uuid",
         "Uuid",
+        "Text",
         "Text",
         "Int4",
         "Int4",
@@ -128,10 +145,11 @@
       true,
       true,
       true,
+      true,
+      true,
       false,
-      false,
-      null
+      false
     ]
   },
-  "hash": "66423095c2c32778300288ff658d1dfe0d3d6148c728f0709e3984ef2ec66e78"
+  "hash": "29a54523fa4c7a5f449976d4d799d1dfd62b1aebdd3e2f64768549ca7766b725"
 }

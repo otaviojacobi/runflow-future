@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workout_completions SET activity_id = NULL, matched_by = NULL, updated_at = now() WHERE planned_workout_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a5bed4b5c35ff5867696df91ca7c89c52ff33561c3d468f4e3f9228f85368a76"
+}

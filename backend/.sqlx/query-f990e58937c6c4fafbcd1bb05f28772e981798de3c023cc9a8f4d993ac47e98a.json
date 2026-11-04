@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM planned_workouts w WHERE w.plan_assignment_id = $1 AND w.date >= $2\n            AND NOT EXISTS (SELECT 1 FROM workout_completions c WHERE c.planned_workout_id = w.id)\n         RETURNING w.athlete_membership_id, w.date",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "athlete_membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "planned_workouts",
+            "name": "athlete_membership_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "planned_workouts",
+            "name": "date"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "f990e58937c6c4fafbcd1bb05f28772e981798de3c023cc9a8f4d993ac47e98a"
+}

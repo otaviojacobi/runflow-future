@@ -3,6 +3,7 @@
 //! ids and fetch the activity from Strava with the athlete's token.
 
 use chrono::{Duration, TimeZone, Utc};
+use runflow_db::matching;
 use runflow_db::providers::{self, Connection, NewActivity};
 use runflow_integrations::strava::{Mapped, StravaError, map_activity};
 use serde_json::Value;
@@ -110,8 +111,8 @@ pub(crate) async fn sync(w: &Worker, payload: &Value) -> Result<(), JobError> {
         .as_ref()
         .ok_or_else(|| JobError::permanent("strava not configured"))?
         .client;
-    let after = (Utc::now() - Duration::days(payload["days"].as_i64().unwrap_or(30).clamp(1, 365)))
-        .timestamp();
+    let days = payload["days"].as_i64().unwrap_or(30).clamp(1, 365) as i32;
+    let after = (Utc::now() - Duration::days(days.into())).timestamp();
     for page in 1..=5 {
         let batch = match client.activities(&token, after, page).await {
             Ok(b) => b,
@@ -126,7 +127,18 @@ pub(crate) async fn sync(w: &Worker, payload: &Value) -> Result<(), JobError> {
             break;
         }
     }
-    providers::mark_synced(&w.db, c.id, true).await?;
+    // Matched to the plan like any import (D-049); a retried sync matches again, which changes nothing.
+    let mut tx = w.db.begin().await?;
+    providers::mark_synced(&mut *tx, c.id, true).await?;
+    let today = Utc::now().date_naive();
+    matching::enqueue(
+        &mut *tx,
+        c.user_id,
+        today - Duration::days(i64::from(days) + 1),
+        today,
+    )
+    .await?;
+    tx.commit().await?;
     Ok(())
 }
 
@@ -165,13 +177,19 @@ async fn apply_event(w: &Worker, e: &Value) -> Result<(), JobError> {
             Ok(())
         }
         (Some("activity"), Some("delete")) => {
-            providers::delete_external(
-                &w.db,
+            let mut tx = w.db.begin().await?;
+            if let Some(at) = providers::delete_external(
+                &mut *tx,
                 c.user_id,
                 "strava",
                 &e["object_id"].as_i64().unwrap_or_default().to_string(),
             )
-            .await?;
+            .await?
+            {
+                let (from, to) = matching::days_around(at);
+                matching::enqueue(&mut *tx, c.user_id, from, to).await?;
+            }
+            tx.commit().await?;
             Ok(())
         }
         (Some("activity"), Some("create" | "update")) => {
@@ -193,10 +211,21 @@ async fn apply_event(w: &Worker, e: &Value) -> Result<(), JobError> {
                 Err(StravaError::Rejected(404, _)) => return Ok(()),
                 Err(err) => return fail_connection(w, &c, strava_err(err)).await,
             };
+            let mut tx = w.db.begin().await?;
             if let Some(m) = map_activity(&a) {
-                providers::upsert_activity(&w.db, c.user_id, "strava", &to_new(m)).await?;
+                // Matched around its day, and the day it had before when an edit moved it (D-049).
+                let before =
+                    providers::started_at(&mut *tx, c.user_id, "strava", &m.external_id).await?;
+                let (mut from, mut to) = matching::days_around(m.started_at);
+                if let Some(b) = before {
+                    let (f, t) = matching::days_around(b);
+                    (from, to) = (from.min(f), to.max(t));
+                }
+                providers::upsert_activity(&mut *tx, c.user_id, "strava", &to_new(m)).await?;
+                matching::enqueue(&mut *tx, c.user_id, from, to).await?;
             }
-            providers::mark_synced(&w.db, c.id, true).await?;
+            providers::mark_synced(&mut *tx, c.id, true).await?;
+            tx.commit().await?;
             Ok(())
         }
         _ => Ok(()),

@@ -206,7 +206,11 @@ async fn detail(
         }
     }
     let recent = if s.shares_data {
-        activities_json(db::visible_activities(&state.db, s.user.id, s.strava_shared, 10, 0).await?)
+        activities_json(
+            &state,
+            db::visible_activities(&state.db, s.user.id, s.strava_shared, 10, 0).await?,
+        )
+        .await?
     } else {
         Vec::new()
     };
@@ -220,15 +224,7 @@ async fn detail(
     Ok(Json(out))
 }
 
-fn activities_json(rows: Vec<(runflow_db::models::Activity, Option<Value>)>) -> Vec<Value> {
-    rows.into_iter()
-        .map(|(a, matched)| {
-            let mut v = serde_json::to_value(a).unwrap_or(Value::Null);
-            v["matched_workout"] = matched.unwrap_or(Value::Null);
-            v
-        })
-        .collect()
-}
+use crate::routes::providers::activities_json;
 
 #[derive(Deserialize)]
 struct Page {
@@ -255,9 +251,8 @@ async fn activities(
     let rows =
         db::visible_activities(&state.db, s.user.id, s.strava_shared, limit + 1, start).await?;
     let next = (rows.len() as i64 > limit).then(|| (start + limit).to_string());
-    Ok(Json(
-        json!({ "items": activities_json(rows.into_iter().take(limit as usize).collect()), "next_cursor": next }),
-    ))
+    let items = activities_json(&state, rows.into_iter().take(limit as usize).collect()).await?;
+    Ok(Json(json!({ "items": items, "next_cursor": next })))
 }
 
 // ------------------------------------------------------------------------------------ profiles

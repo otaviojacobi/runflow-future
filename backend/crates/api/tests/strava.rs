@@ -406,3 +406,114 @@ async fn without_strava_config_and_manual_activities(db: PgPool) {
         204
     );
 }
+
+/// R3 (D-049): synced runs are matched to the plan by the worker, and a better fit arriving later takes the workout.
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn synced_runs_are_matched_to_the_plan(db: PgPool) {
+    let (url, _fake) = fake_strava().await;
+    let app = TestApp::new(db).with_strava(&url);
+    let owner = app.sign_in("marcos@email.com").await;
+    let club = app
+        .post(
+            "/v1/clubs",
+            Some(&owner),
+            json!({ "name": "Pace Forte", "modalities": ["run"] }),
+        )
+        .await
+        .body["club"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    app.patch(
+        &format!("/v1/clubs/{club}"),
+        Some(&owner),
+        json!({ "release_mode": "immediate" }),
+    )
+    .await
+    .ok();
+    let invite = app
+        .post(
+            &format!("/v1/clubs/{club}/invites"),
+            Some(&owner),
+            json!({ "email": "ana@email.com" }),
+        )
+        .await;
+    let ana = app.sign_in("ana@email.com").await;
+    let token = invite.body["url"]
+        .as_str()
+        .unwrap()
+        .rsplit('/')
+        .next()
+        .unwrap()
+        .to_string();
+    let athlete = app
+        .post(
+            &format!("/v1/invites/{token}/accept"),
+            Some(&ana),
+            json!({}),
+        )
+        .await
+        .body["membership"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    // A 6 km run planned on the day the fake's new run happens (09:20 UTC is 06:20 in São Paulo, same date).
+    let day = chrono::Utc::now().date_naive().to_string();
+    let structure = json!({ "v": 1, "blocks": [{ "kind": "step", "intent": "active", "duration": { "type": "distance", "m": 6000 },
+                                                 "target": { "type": "zone", "metric": "pace", "zone": 2 } }] });
+    let w = app
+        .post(
+            &format!("/v1/clubs/{club}/planned-workouts"),
+            Some(&owner),
+            json!({ "athlete_ids": [athlete], "dates": [day], "sport": "run", "title": "Rodagem 6 km", "structure": structure,
+                    "est_distance_m": 6000, "est_duration_s": 2100 }),
+        )
+        .await
+        .body["items"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let matched = |items: &Value, name: &str| {
+        items
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|a| a["name"] == name)
+            .map(|a| a["matched_workout"]["id"].clone())
+            .unwrap()
+    };
+    let drain = || async {
+        for _ in 0..5 {
+            if app.run_jobs().await == 0 {
+                break;
+            }
+        }
+    };
+
+    // The first sync: the run from 2 days ago is the only candidate, so it completes the workout (done early).
+    connect(&app, &ana).await;
+    drain().await;
+    let acts = app.get("/v1/me/activities", Some(&ana)).await;
+    assert_eq!(matched(&acts.ok()["items"], "Rodagem leve"), w.as_str());
+
+    // Today's run arrives by webhook: same day, same size, so it takes the workout.
+    app.post("/v1/webhooks/strava", None, json!({ "object_type": "activity", "object_id": 3001, "aspect_type": "create", "owner_id": 777, "event_time": 1700000400 })).await;
+    drain().await;
+    let acts = app.get("/v1/me/activities", Some(&ana)).await;
+    assert_eq!(matched(&acts.ok()["items"], "Tiros na pista"), w.as_str());
+    assert_eq!(matched(&acts.ok()["items"], "Rodagem leve"), Value::Null);
+
+    // Deleted on Strava: the workout goes back to the earlier run.
+    app.post("/v1/webhooks/strava", None, json!({ "object_type": "activity", "object_id": 3001, "aspect_type": "delete", "owner_id": 777, "event_time": 1700000500 })).await;
+    drain().await;
+    let acts = app.get("/v1/me/activities", Some(&ana)).await;
+    assert_eq!(matched(&acts.ok()["items"], "Rodagem leve"), w.as_str());
+
+    // Disconnecting removes the synced runs: the automatic completion goes too.
+    app.delete("/v1/me/connections/strava", Some(&ana)).await;
+    drain().await;
+    let mine = app
+        .get(&format!("/v1/clubs/{club}/my/workouts/{w}"), Some(&ana))
+        .await;
+    assert_eq!(mine.ok()["completion"], Value::Null);
+}

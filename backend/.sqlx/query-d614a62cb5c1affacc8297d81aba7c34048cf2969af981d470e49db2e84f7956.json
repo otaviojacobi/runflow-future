@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT activity_id FROM workout_completions WHERE planned_workout_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "activity_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "activity_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "d614a62cb5c1affacc8297d81aba7c34048cf2969af981d470e49db2e84f7956"
+}

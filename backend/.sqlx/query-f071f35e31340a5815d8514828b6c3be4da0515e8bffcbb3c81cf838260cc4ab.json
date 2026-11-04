@@ -1,0 +1,79 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT p.id, p.date, p.sport, p.est_distance_m, p.est_duration_s\n           FROM planned_workouts p JOIN memberships m ON m.id = p.athlete_membership_id\n           LEFT JOIN workout_completions c ON c.planned_workout_id = p.id\n          WHERE m.user_id = $1 AND m.role = 'student' AND m.status = 'active' AND p.date BETWEEN $2 AND $3\n            AND coalesce(workout_released(p.club_id, p.athlete_membership_id, p.date), false)\n            AND (c.planned_workout_id IS NULL\n                 OR (c.status NOT IN ('missed', 'skipped')\n                     AND (c.activity_id IS NULL OR (c.matched_by = 'auto' AND c.activity_id = ANY($4)))))\n          ORDER BY p.date, p.position, p.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "planned_workouts",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "date",
+        "type_info": "Date",
+        "origin": {
+          "Table": {
+            "table": "planned_workouts",
+            "name": "date"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "sport",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "planned_workouts",
+            "name": "sport"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "est_distance_m",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "planned_workouts",
+            "name": "est_distance_m"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "est_duration_s",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "planned_workouts",
+            "name": "est_duration_s"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Date",
+        "Date",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true
+    ]
+  },
+  "hash": "f071f35e31340a5815d8514828b6c3be4da0515e8bffcbb3c81cf838260cc4ab"
+}

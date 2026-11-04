@@ -1,0 +1,30 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH z AS (SELECT coalesce((SELECT c.timezone FROM memberships m JOIN clubs c ON c.id = m.club_id\n                                         WHERE m.user_id = $1 AND m.role = 'student' AND m.status = 'active'\n                                         ORDER BY m.joined_at LIMIT 1), 'America/Sao_Paulo') AS tz)\n           SELECT tz AS \"tz!\", (now() AT TIME ZONE tz)::date AS \"today!\" FROM z",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "tz!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "today!",
+        "type_info": "Date",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "6e737d928bf2509cd19ad66ffd69204c169e97a87f3e7f3805b2bc980a1d13b9"
+}

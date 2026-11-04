@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m, elevation_gain_m,\n                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, created_at\n           FROM activities WHERE id = $1",
+  "query": "SELECT id, user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m, elevation_gain_m,\n                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, match_state, created_at\n           FROM activities WHERE user_id = $1 AND (started_at AT TIME ZONE $2)::date BETWEEN $3 AND $4\n          ORDER BY started_at",
   "describe": {
     "columns": [
       {
@@ -203,6 +203,17 @@
       },
       {
         "ordinal": 18,
+        "name": "match_state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "activities",
+            "name": "match_state"
+          }
+        }
+      },
+      {
+        "ordinal": 19,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -215,7 +226,10 @@
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Uuid",
+        "Text",
+        "Date",
+        "Date"
       ]
     },
     "nullable": [
@@ -237,8 +251,9 @@
       true,
       true,
       true,
+      false,
       false
     ]
   },
-  "hash": "a4a01967be513203eca7b6bcc2e35c8f2dcf0631e77b89d0addff0d9c8d7cdaa"
+  "hash": "26eda74e357c5f9802cd500a181519796e709b22a833b5b6e65688d8b82ee2af"
 }

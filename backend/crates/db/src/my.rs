@@ -32,7 +32,7 @@ pub async fn activities_between(
     sqlx::query_as!(
         Activity,
         "SELECT id, user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m, elevation_gain_m,
-                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, created_at
+                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, match_state, created_at
            FROM activities WHERE user_id = $1 AND (started_at AT TIME ZONE $2)::date BETWEEN $3 AND $4
           ORDER BY started_at",
         user_id,
@@ -51,7 +51,7 @@ pub async fn last_activity(
     sqlx::query_as!(
         Activity,
         "SELECT id, user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m, elevation_gain_m,
-                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, created_at
+                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, match_state, created_at
            FROM activities WHERE user_id = $1 ORDER BY started_at DESC LIMIT 1",
         user_id
     )
@@ -61,6 +61,8 @@ pub async fn last_activity(
 
 pub struct CompletionInput<'a> {
     pub activity_id: Option<Uuid>,
+    /// Who linked the activity (`auto` | `student`), none without one.
+    pub matched_by: Option<&'a str>,
     pub status: &'a str,
     pub compliance_pct: i32,
     pub rpe: Option<i32>,
@@ -68,21 +70,23 @@ pub struct CompletionInput<'a> {
     pub comment: Option<&'a str>,
 }
 
-/// Create or replace the completion. Returns it and whether it's new.
+/// The student's report: create or replace the completion; `reported_at` is set the first time.
 pub async fn upsert_completion(
     tx: &mut PgConnection,
     workout_id: Uuid,
     c: CompletionInput<'_>,
-) -> sqlx::Result<(Completion, bool)> {
-    let row = sqlx::query!(
-        r#"INSERT INTO workout_completions (planned_workout_id, activity_id, status, compliance_pct, rpe, feeling, comment)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
-           ON CONFLICT (planned_workout_id) DO UPDATE SET activity_id = $2, status = $3, compliance_pct = $4, rpe = $5,
-                  feeling = $6, comment = $7, updated_at = now()
-           RETURNING planned_workout_id, activity_id, status, compliance_pct, rpe, feeling, comment, completed_at, updated_at,
-                     (xmax = 0) AS "fresh!""#,
+) -> sqlx::Result<Completion> {
+    sqlx::query_as!(
+        Completion,
+        r#"INSERT INTO workout_completions (planned_workout_id, activity_id, matched_by, status, compliance_pct, rpe, feeling, comment, reported_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, now())
+           ON CONFLICT (planned_workout_id) DO UPDATE SET activity_id = $2, matched_by = $3, status = $4, compliance_pct = $5, rpe = $6,
+                  feeling = $7, comment = $8, reported_at = coalesce(workout_completions.reported_at, now()), updated_at = now()
+           RETURNING planned_workout_id, activity_id, status, compliance_pct, rpe, feeling, comment, matched_by, reported_at,
+                     completed_at, updated_at"#,
         workout_id,
         c.activity_id,
+        c.matched_by,
         c.status,
         c.compliance_pct,
         c.rpe,
@@ -90,21 +94,7 @@ pub async fn upsert_completion(
         c.comment
     )
     .fetch_one(&mut *tx)
-    .await?;
-    Ok((
-        Completion {
-            planned_workout_id: row.planned_workout_id,
-            activity_id: row.activity_id,
-            status: row.status,
-            compliance_pct: row.compliance_pct,
-            rpe: row.rpe,
-            feeling: row.feeling,
-            comment: row.comment,
-            completed_at: row.completed_at,
-            updated_at: row.updated_at,
-        },
-        row.fresh,
-    ))
+    .await
 }
 
 /// Planned workouts per week (Monday) with how many were done (completed/partial), for one athlete.

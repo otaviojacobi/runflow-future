@@ -265,6 +265,10 @@ pub struct Completion {
     pub rpe: Option<i32>,
     pub feeling: Option<String>,
     pub comment: Option<String>,
+    /// Who linked `activity_id` (D-049): `auto` (the matching engine) or `student`.
+    pub matched_by: Option<String>,
+    /// When the student sent feedback; none while the workout was only matched automatically.
+    pub reported_at: Option<DateTime<Utc>>,
     pub completed_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -315,6 +319,8 @@ pub struct Activity {
     pub calories: Option<i32>,
     pub laps: Option<Value>,
     pub polyline: Option<String>,
+    /// D-049: `open`, `pending` (waiting for the student's choice) or `dismissed`.
+    pub match_state: String,
     pub created_at: DateTime<Utc>,
 }
 

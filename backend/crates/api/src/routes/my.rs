@@ -5,7 +5,8 @@ use axum::routing::{get, put};
 use axum::{Json, Router};
 use chrono::{Duration, NaiveDate, Utc};
 use runflow_db::models::{Club, Workout};
-use runflow_db::{my as db, workouts};
+use runflow_db::{matching, my as db, workouts};
+use runflow_domain::matching as matching_engine;
 use runflow_domain::week;
 use runflow_domain::workout::resolve_targets;
 use serde::Deserialize;
@@ -195,58 +196,103 @@ async fn complete(
     }
     let status = status.unwrap_or_default();
 
-    // The activity: the one chosen (must be theirs), else a same-day activity of the same sport.
-    let tz = club_tz(&state, m.club_id).await?;
-    let activity = match body.str("activity_id") {
+    // The activity (D-049): the one sent (the student's own link), else the one the workout already has, else the
+    // likeliest open activity of that day. Missed or skipped drops the link.
+    let done = status != "missed" && status != "skipped";
+    let (tz, _) = matching::student_clock(&state.db, auth.user_id).await?;
+    let current = w.completion.as_ref().and_then(|c| c.activity_id);
+    let planned = matching::MatchWorkout {
+        id: w.id,
+        date: w.date,
+        sport: w.sport.clone(),
+        est_distance_m: w.est_distance_m,
+        est_duration_s: w.est_duration_s,
+    };
+    let (activity, by) = match body.str("activity_id") {
         Some(id) => {
-            let a = Uuid::parse_str(&id)
-                .ok()
-                .map(|id| workouts::activity(&state.db, id));
-            let a = match a {
-                Some(f) => f.await?,
-                None => None,
+            let a = match Uuid::parse_str(&id) {
+                Ok(id) => matching::activity(&state.db, auth.user_id, id, &tz).await?,
+                Err(_) => None,
             };
-            Some(
-                a.filter(|a| a.user_id == auth.user_id)
-                    .ok_or_else(|| Problem::field("activity_id", "Atividade inválida."))?,
+            (
+                Some(a.ok_or_else(|| Problem::field("activity_id", "Atividade inválida."))?),
+                Some("student"),
             )
         }
-        None if status != "missed" && status != "skipped" => {
-            db::activities_between(&state.db, auth.user_id, &tz, w.date, w.date)
+        None if done && current.is_some() => {
+            let by = w
+                .completion
+                .as_ref()
+                .and_then(|c| c.matched_by.clone())
+                .unwrap_or_else(|| "auto".into());
+            let a = match current {
+                Some(id) => matching::activity(&state.db, auth.user_id, id, &tz).await?,
+                None => None,
+            };
+            let by = if by == "student" { "student" } else { "auto" };
+            (a, Some(by))
+        }
+        None if done => {
+            let engine_w = planned.engine();
+            let best = matching::free_activities_on(&state.db, auth.user_id, &tz, w.date)
                 .await?
                 .into_iter()
-                .find(|a| a.sport == w.sport)
+                .filter_map(|a| matching_engine::cost(&a.engine(), &engine_w).map(|c| (c, a)))
+                .min_by_key(|(c, _)| *c)
+                .map(|(_, a)| a);
+            let by = best.as_ref().map(|_| "auto");
+            (best, by)
         }
+        None => (None, None),
+    };
+    let compliance = match &activity {
+        Some(a) => matching_engine::compliance(&a.engine(), &planned.engine()),
+        None => match status.as_str() {
+            "completed" => 100,
+            "partial" => 60,
+            _ => 0,
+        },
+    };
+    let comment = body.str("comment");
+    let first = w
+        .completion
+        .as_ref()
+        .is_none_or(|c| c.reported_at.is_none());
+    let mut tx = state.db.begin().await?;
+    matching::lock(&mut tx, auth.user_id).await?;
+    // The activity leaves the workout it completed before; the one this workout had becomes free.
+    let previous = match &activity {
+        Some(a) => matching::linked_workout(&mut *tx, a.id)
+            .await?
+            .filter(|(wid, _, _)| *wid != w.id),
         None => None,
     };
-    let mut compliance: i64 = match status.as_str() {
-        "completed" => 100,
-        "partial" => 60,
-        _ => 0,
-    };
-    if let Some(a) = &activity {
-        if let (Some(est), Some(d)) = (w.est_distance_m.filter(|e| *e > 0), a.distance_m) {
-            compliance = ((d as f64 / est as f64) * 100.0).round() as i64;
-        } else if let Some(est) = w.est_duration_s.filter(|e| *e > 0) {
-            compliance = ((a.duration_s as f64 / est as f64) * 100.0).round() as i64;
-        }
+    if let Some((wid, _, _)) = previous {
+        matching::unlink(&mut tx, wid).await?;
     }
-    let comment = body.str("comment");
-    let mut tx = state.db.begin().await?;
-    let (_, fresh) = db::upsert_completion(
+    let dropped = current.is_some() && current != activity.as_ref().map(|a| a.id);
+    db::upsert_completion(
         &mut tx,
         w.id,
         db::CompletionInput {
             activity_id: activity.as_ref().map(|a| a.id),
+            matched_by: by,
             status: &status,
-            compliance_pct: compliance.clamp(0, 200) as i32,
+            compliance_pct: compliance,
             rpe,
             feeling: feeling.as_deref(),
             comment: comment.as_deref(),
         },
     )
     .await?;
-    if fresh {
+    if let Some(a) = &activity {
+        matching::settle(&mut tx, a.id, "open").await?;
+    }
+    if previous.is_some() || dropped {
+        matching::rematch(&mut tx, auth.user_id, w.date, w.date).await?;
+    }
+    // The trainer hears about it the first time the student reports (an automatic match alone doesn't notify).
+    if first {
         let me = runflow_db::auth::user_by_id(&mut *tx, auth.user_id)
             .await?
             .ok_or_else(Problem::unauthorized)?;

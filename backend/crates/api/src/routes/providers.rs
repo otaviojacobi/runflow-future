@@ -4,11 +4,12 @@ use aws_lc_rs::hmac;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
-use axum::routing::{delete, get, post};
+use axum::routing::{delete, get, post, put};
 use axum::{Json, Router};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use chrono::{DateTime, TimeZone, Utc};
+use runflow_db::matching;
 use runflow_db::providers as db;
 use runflow_domain::workout::SPORTS;
 use serde::Deserialize;
@@ -31,6 +32,7 @@ pub fn routes() -> Router<AppState> {
         .route("/webhooks/strava", get(strava_verify).post(strava_event))
         .route("/me/activities", get(activities).post(log_activity))
         .route("/me/activities/{id}", get(activity).delete(delete_activity))
+        .route("/me/activities/{id}/match", put(choose))
 }
 
 fn unavailable() -> Problem {
@@ -302,10 +304,39 @@ async fn strava_event(State(state): State<AppState>, body: Body) -> Result<Statu
 
 // ------------------------------------------------------------------------------------ my activities
 
-fn activity_json((a, matched): (runflow_db::models::Activity, Option<Value>)) -> Value {
+/// An activity as the apps get it: the row, `matched_workout` and `match_options` (D-049).
+pub(crate) fn activity_json(
+    (a, matched): (runflow_db::models::Activity, Option<Value>),
+    options: Vec<Value>,
+) -> Value {
     let mut v = serde_json::to_value(a).unwrap_or(Value::Null);
     v["matched_workout"] = matched.unwrap_or(Value::Null);
+    v["match_options"] = Value::Array(options);
     v
+}
+
+/// A list of activities: `match_options` only for the ones waiting for the student's choice.
+pub(crate) async fn activities_json(
+    state: &AppState,
+    rows: Vec<(runflow_db::models::Activity, Option<Value>)>,
+) -> Result<Vec<Value>, Problem> {
+    let pending: Vec<Uuid> = rows
+        .iter()
+        .filter(|(a, _)| a.match_state == "pending")
+        .map(|(a, _)| a.id)
+        .collect();
+    let mut options = if pending.is_empty() {
+        Default::default()
+    } else {
+        matching::pending_options(&state.db, &pending).await?
+    };
+    Ok(rows
+        .into_iter()
+        .map(|r| {
+            let o = options.remove(&r.0.id).unwrap_or_default();
+            activity_json(r, o)
+        })
+        .collect())
 }
 
 #[derive(Deserialize)]
@@ -314,6 +345,8 @@ struct Range {
     to: Option<String>,
     cursor: Option<String>,
     limit: Option<i64>,
+    #[serde(rename = "match")]
+    match_: Option<String>,
 }
 
 async fn activities(
@@ -327,20 +360,26 @@ async fn activities(
         .as_deref()
         .and_then(|c| c.parse::<i64>().ok())
         .unwrap_or(0);
+    let (tz, today) = matching::student_clock(&state.db, auth.user_id).await?;
+    let pending_since = (q.match_.as_deref() == Some("pending"))
+        .then(|| today - chrono::Duration::days(runflow_domain::matching::ASK_DAYS));
     let rows = db::my_activities(
         &state.db,
         auth.user_id,
-        q.from.as_deref().and_then(parse_date),
-        q.to.as_deref().and_then(parse_date),
+        db::MyFilter {
+            tz: &tz,
+            from: q.from.as_deref().and_then(parse_date),
+            to: q.to.as_deref().and_then(parse_date),
+            pending_since,
+            only: None,
+        },
         limit + 1,
         start,
-        None,
     )
     .await?;
     let next = (rows.len() as i64 > limit).then(|| (start + limit).to_string());
-    Ok(Json(
-        json!({ "items": rows.into_iter().take(limit as usize).map(activity_json).collect::<Vec<_>>(), "next_cursor": next }),
-    ))
+    let items = activities_json(&state, rows.into_iter().take(limit as usize).collect()).await?;
+    Ok(Json(json!({ "items": items, "next_cursor": next })))
 }
 
 fn activity_missing() -> Problem {
@@ -358,10 +397,42 @@ async fn mine(
     id: &str,
 ) -> Result<(runflow_db::models::Activity, Option<Value>), Problem> {
     let id = Uuid::parse_str(id).map_err(|_| activity_missing())?;
-    db::my_activities(&state.db, user, None, None, 1, 0, Some(id))
-        .await?
-        .pop()
-        .ok_or_else(activity_missing)
+    db::my_activities(
+        &state.db,
+        user,
+        db::MyFilter {
+            tz: "UTC",
+            from: None,
+            to: None,
+            pending_since: None,
+            only: Some(id),
+        },
+        1,
+        0,
+    )
+    .await?
+    .pop()
+    .ok_or_else(activity_missing)
+}
+
+/// The student's activity detail: `match_options` always (the pending choices, else what "Trocar treino" offers).
+async fn detail(state: &AppState, user: Uuid, id: &str) -> Result<Value, Problem> {
+    let row = mine(state, user, id).await?;
+    let a = &row.0;
+    let options = if a.match_state == "pending" {
+        matching::pending_options(&state.db, &[a.id])
+            .await?
+            .remove(&a.id)
+            .unwrap_or_default()
+    } else {
+        let (tz, _) = matching::student_clock(&state.db, user).await?;
+        let day = matching::activity(&state.db, user, a.id, &tz)
+            .await?
+            .map(|m| m.day)
+            .unwrap_or_else(|| a.started_at.date_naive());
+        matching::pick_options(&state.db, user, a.id, &a.sport, day).await?
+    };
+    Ok(activity_json(row, options))
 }
 
 async fn activity(
@@ -369,7 +440,77 @@ async fn activity(
     auth: Auth,
     Path(id): Path<String>,
 ) -> Result<Json<Value>, Problem> {
-    Ok(Json(activity_json(mine(&state, auth.user_id, &id).await?)))
+    Ok(Json(detail(&state, auth.user_id, &id).await?))
+}
+
+/// The student says which workout an activity was, or that it was none (D-049).
+async fn choose(
+    State(state): State<AppState>,
+    auth: Auth,
+    Path(id): Path<String>,
+    body: Body,
+) -> Result<Json<Value>, Problem> {
+    let (a, _) = mine(&state, auth.user_id, &id).await?;
+    let (tz, _) = matching::student_clock(&state.db, auth.user_id).await?;
+    let act = matching::activity(&state.db, auth.user_id, a.id, &tz)
+        .await?
+        .ok_or_else(activity_missing)?;
+    let invalid = || {
+        Problem::field(
+            "planned_workout_id",
+            "Escolha um treino seu de até 7 dias antes ou depois da atividade.",
+        )
+    };
+    let chosen = match body.get("planned_workout_id") {
+        None | Some(Value::Null) => None,
+        Some(v) => {
+            let wid = v
+                .as_str()
+                .and_then(|s| Uuid::parse_str(s).ok())
+                .ok_or_else(invalid)?;
+            Some(
+                matching::visible_workout(&state.db, auth.user_id, wid)
+                    .await?
+                    .filter(|w| (w.date - act.day).num_days().abs() <= 7)
+                    .ok_or_else(invalid)?,
+            )
+        }
+    };
+    let mut tx = state.db.begin().await?;
+    matching::lock(&mut tx, auth.user_id).await?;
+    // It leaves the workout it completes now; the chosen workout's activity is free again.
+    let current = matching::linked_workout(&mut *tx, act.id).await?;
+    if let Some((wid, _, _)) = current
+        && chosen.as_ref().map(|w| w.id) != Some(wid)
+    {
+        matching::unlink(&mut tx, wid).await?;
+    }
+    let mut days = vec![act.day];
+    match &chosen {
+        Some(w) => {
+            if let Some(other) = matching::workout_activity(&mut *tx, w.id)
+                .await?
+                .filter(|o| *o != act.id)
+            {
+                matching::settle(&mut tx, other, "open").await?;
+                if let Some(o) = matching::activity(&mut *tx, auth.user_id, other, &tz).await? {
+                    days.push(o.day);
+                }
+            }
+            matching::link(&mut tx, &act, w, "student").await?;
+            matching::settle(&mut tx, act.id, "open").await?;
+            days.push(w.date);
+        }
+        None => matching::settle(&mut tx, act.id, "dismissed").await?,
+    }
+    if let Some((_, _, d)) = current {
+        days.push(d);
+    }
+    for d in days {
+        matching::rematch(&mut tx, auth.user_id, d, d).await?;
+    }
+    tx.commit().await?;
+    Ok(Json(detail(&state, auth.user_id, &id).await?))
 }
 
 fn fail(field: &'static str, message: &'static str) -> FieldError {
@@ -459,12 +600,18 @@ async fn log_activity(
         laps: None,
         polyline: None,
     };
-    let id = db::upsert_activity(&state.db, auth.user_id, "manual", &a).await?;
+    // Matched right away (D-049): the answer already shows the workout it completed.
+    let mut tx = state.db.begin().await?;
+    matching::lock(&mut tx, auth.user_id).await?;
+    let id = db::upsert_activity(&mut *tx, auth.user_id, "manual", &a).await?;
+    let (tz, _) = matching::student_clock(&mut *tx, auth.user_id).await?;
+    if let Some(m) = matching::activity(&mut *tx, auth.user_id, id, &tz).await? {
+        matching::rematch(&mut tx, auth.user_id, m.day, m.day).await?;
+    }
+    tx.commit().await?;
     Ok((
         StatusCode::CREATED,
-        Json(activity_json(
-            mine(&state, auth.user_id, &id.to_string()).await?,
-        )),
+        Json(detail(&state, auth.user_id, &id.to_string()).await?),
     )
         .into_response())
 }
@@ -483,6 +630,17 @@ async fn delete_activity(
             "Para remover, apague no app de origem (Strava).",
         ));
     }
-    db::delete_activity(&state.db, a.id).await?;
+    // A workout it completed automatically is open again; the day is matched anew (D-049).
+    let (tz, _) = matching::student_clock(&state.db, auth.user_id).await?;
+    let day = matching::activity(&state.db, auth.user_id, a.id, &tz)
+        .await?
+        .map(|m| m.day);
+    let mut tx = state.db.begin().await?;
+    matching::lock(&mut tx, auth.user_id).await?;
+    db::delete_activity(&mut *tx, a.id).await?;
+    if let Some(day) = day {
+        matching::rematch(&mut tx, auth.user_id, day, day).await?;
+    }
+    tx.commit().await?;
     Ok(StatusCode::NO_CONTENT)
 }

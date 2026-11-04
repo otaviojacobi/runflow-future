@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE activities SET match_state = $2 WHERE id = $1 AND match_state <> $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "0a601a4cb857ceff0d0fc49aec2f154caa5d597c3ffaa5ad64251b6faf2ee175"
+}

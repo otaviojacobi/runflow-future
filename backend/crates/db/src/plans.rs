@@ -214,16 +214,24 @@ pub async fn assignment_exists(
 }
 
 /// Unassign: delete the assignment's workouts from `today` on that weren't done; keep the past ones (detached).
-pub async fn unassign(tx: &mut PgConnection, id: Uuid, today: NaiveDate) -> sqlx::Result<u64> {
+/// → the removed workouts' `(athlete, date)`.
+pub async fn unassign(
+    tx: &mut PgConnection,
+    id: Uuid,
+    today: NaiveDate,
+) -> sqlx::Result<Vec<(Uuid, NaiveDate)>> {
     let removed = sqlx::query!(
         "DELETE FROM planned_workouts w WHERE w.plan_assignment_id = $1 AND w.date >= $2
-            AND NOT EXISTS (SELECT 1 FROM workout_completions c WHERE c.planned_workout_id = w.id)",
+            AND NOT EXISTS (SELECT 1 FROM workout_completions c WHERE c.planned_workout_id = w.id)
+         RETURNING w.athlete_membership_id, w.date",
         id,
         today
     )
-    .execute(&mut *tx)
+    .fetch_all(&mut *tx)
     .await?
-    .rows_affected();
+    .into_iter()
+    .map(|r| (r.athlete_membership_id, r.date))
+    .collect();
     sqlx::query!(
         "UPDATE planned_workouts SET plan_assignment_id = NULL WHERE plan_assignment_id = $1",
         id

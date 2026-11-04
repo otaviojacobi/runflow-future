@@ -13,6 +13,7 @@ pub mod clubs;
 pub mod invites;
 pub mod jobs;
 pub mod library;
+pub mod matching;
 pub mod me;
 pub mod members;
 pub mod messages;

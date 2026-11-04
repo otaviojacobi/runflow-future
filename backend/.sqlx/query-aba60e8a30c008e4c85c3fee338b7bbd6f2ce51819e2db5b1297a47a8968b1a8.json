@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE workout_completions SET compliance_pct = $2 WHERE planned_workout_id = $1 AND compliance_pct IS DISTINCT FROM $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "aba60e8a30c008e4c85c3fee338b7bbd6f2ce51819e2db5b1297a47a8968b1a8"
+}

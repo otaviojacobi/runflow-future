@@ -5,7 +5,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use chrono::NaiveDate;
+use chrono::{Duration, NaiveDate};
 use runflow_db::models::Workout;
 use runflow_db::workouts as db;
 use runflow_domain::workout::SPORTS;
@@ -285,6 +285,12 @@ async fn assign(
         )
         .await?;
     }
+    // Activities already done around those days may be these workouts (D-049).
+    let around: Vec<(Uuid, NaiveDate)> = athletes
+        .iter()
+        .flat_map(|a| dates.iter().map(move |d| (*a, *d)))
+        .collect();
+    runflow_db::matching::enqueue_for_workouts(&mut tx, &around).await?;
     tx.commit().await?;
 
     let mut items: Vec<Workout> = Vec::with_capacity(created.len());
@@ -384,7 +390,24 @@ async fn update(
     let restructured = p.structure.is_some();
     let title = p.title.clone().unwrap_or_else(|| w.title.clone());
     let date = p.date.unwrap_or(w.date);
-    db::update(&state.db, w.id, p).await?;
+    // A new day, sport or size can change which activity it was (D-049).
+    let rematch = p.date.is_some()
+        || p.sport.is_some()
+        || p.est_duration_s.is_some()
+        || p.est_distance_m.is_some();
+    let mut tx = state.db.begin().await?;
+    db::update(&mut *tx, w.id, p).await?;
+    if rematch {
+        runflow_db::matching::enqueue_for_workouts(
+            &mut tx,
+            &[
+                (w.athlete_membership_id, w.date),
+                (w.athlete_membership_id, date),
+            ],
+        )
+        .await?;
+    }
+    tx.commit().await?;
     // A draft changes in silence (D-031).
     if (moved || restructured)
         && db::released(&state.db, m.club_id, w.athlete_membership_id, date).await?
@@ -424,7 +447,12 @@ async fn remove(
     let w = db::one(&state.db, m.club_id, m.membership_id, id)
         .await?
         .ok_or_else(not_found)?;
-    db::delete(&state.db, w.id).await?;
+    // The activity it completed is free again (D-049).
+    let mut tx = state.db.begin().await?;
+    db::delete(&mut *tx, w.id).await?;
+    runflow_db::matching::enqueue_for_workouts(&mut tx, &[(w.athlete_membership_id, w.date)])
+        .await?;
+    tx.commit().await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -452,6 +480,11 @@ async fn copy_week(
     };
     let mut tx = state.db.begin().await?;
     let copied = db::copy_week(&mut tx, m.club_id, &athletes, from, to, m.membership_id).await?;
+    let around: Vec<(Uuid, NaiveDate)> = athletes
+        .iter()
+        .flat_map(|a| (0..7).map(move |i| (*a, to + Duration::days(i))))
+        .collect();
+    runflow_db::matching::enqueue_for_workouts(&mut tx, &around).await?;
     tx.commit().await?;
     Ok((StatusCode::CREATED, Json(json!({ "copied": copied }))).into_response())
 }

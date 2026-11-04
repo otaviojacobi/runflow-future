@@ -4,6 +4,7 @@
 pub mod assessment;
 pub mod assistant;
 pub mod color;
+pub mod matching;
 pub mod notify;
 pub mod plans;
 pub mod tags;

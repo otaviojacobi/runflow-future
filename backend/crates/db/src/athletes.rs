@@ -196,9 +196,9 @@ pub async fn visible_activities(
 ) -> sqlx::Result<Vec<(Activity, Option<Value>)>> {
     let rows = sqlx::query!(
         r#"SELECT a.id, a.user_id, a.source, a.external_id, a.sport, a.name, a.started_at, a.duration_s, a.moving_time_s, a.distance_m, a.elevation_gain_m,
-                  a.avg_hr, a.max_hr, a.avg_pace_s_per_km, a.avg_power_w, a.calories, a.laps, a.polyline, a.created_at,
+                  a.avg_hr, a.max_hr, a.avg_pace_s_per_km, a.avg_power_w, a.calories, a.laps, a.polyline, a.match_state, a.created_at,
                   (SELECT jsonb_build_object('id', p.id, 'title', p.title, 'date', p.date, 'club_id', p.club_id, 'compliance_pct', c.compliance_pct,
-                                             'est_distance_m', p.est_distance_m, 'est_duration_s', p.est_duration_s)
+                                             'est_distance_m', p.est_distance_m, 'est_duration_s', p.est_duration_s, 'matched_by', c.matched_by)
                      FROM workout_completions c JOIN planned_workouts p ON p.id = c.planned_workout_id WHERE c.activity_id = a.id LIMIT 1) AS matched
              FROM activities a WHERE a.user_id = $1 AND (a.source <> 'strava' OR $2)
             ORDER BY a.started_at DESC LIMIT $3 OFFSET $4"#,
@@ -232,6 +232,7 @@ pub async fn visible_activities(
                     calories: r.calories,
                     laps: r.laps,
                     polyline: r.polyline,
+                    match_state: r.match_state,
                     created_at: r.created_at,
                 },
                 r.matched,

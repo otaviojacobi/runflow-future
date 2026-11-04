@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO workout_completions (planned_workout_id, activity_id, status, compliance_pct, matched_by, completed_at)\n         VALUES ($1, $2, $3, $4, $5, $6)\n         ON CONFLICT (planned_workout_id) DO UPDATE SET activity_id = $2, matched_by = $5, compliance_pct = $4, updated_at = now(),\n                status = CASE WHEN workout_completions.status IN ('missed', 'skipped') THEN $3 ELSE workout_completions.status END",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int4",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5cba48fd9871b4987e2341b177783ffb27cddf7edc12478e4586979b9253a61c"
+}

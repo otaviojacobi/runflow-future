@@ -25,6 +25,8 @@ use serde_json::Value;
 pub use billing_jobs::{STRIPE_EVENT, STRIPE_SEATS};
 pub use invite_email::INVITE_EMAIL;
 pub use push_jobs::PUSH_SEND;
+/// A matching pass for one student (D-049): `{user_id, from, to}`.
+pub use runflow_db::matching::JOB as MATCH_ACTIVITIES;
 pub use strava_jobs::{STRAVA_EVENT, STRAVA_SYNC};
 
 const MAX_ATTEMPTS: i32 = 8;
@@ -271,6 +273,9 @@ impl Worker {
             STRIPE_EVENT => billing_jobs::event(self, &job.payload).await,
             STRIPE_SEATS => billing_jobs::seats(self, &job.payload).await,
             PUSH_SEND => push_jobs::send(self, &job.payload).await,
+            MATCH_ACTIVITIES => runflow_db::matching::run_job(&self.db, &job.payload)
+                .await
+                .map_err(JobError::retry),
             other => Err(JobError::permanent(format!("unknown job kind {other}"))),
         }
     }

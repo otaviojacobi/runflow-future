@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM workout_completions WHERE planned_workout_id = $1 AND reported_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4cf696bec2559ceb98f8a312dfcd2efa2455ea40fa9b990278b42d4291bf2823"
+}

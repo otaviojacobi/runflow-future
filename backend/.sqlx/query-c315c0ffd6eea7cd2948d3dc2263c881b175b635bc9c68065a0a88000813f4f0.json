@@ -1,0 +1,35 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT o.activity_id,\n                  jsonb_build_object('id', p.id, 'title', p.title, 'date', p.date, 'club_id', p.club_id, 'sport', p.sport,\n                                     'est_distance_m', p.est_distance_m, 'est_duration_s', p.est_duration_s) AS \"workout!\"\n             FROM activity_match_options o JOIN activities a ON a.id = o.activity_id\n             JOIN planned_workouts p ON p.id = o.planned_workout_id\n            WHERE o.activity_id = ANY($1) AND a.match_state = 'pending'\n            ORDER BY o.activity_id, o.rank",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "activity_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "activity_match_options",
+            "name": "activity_id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "workout!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "c315c0ffd6eea7cd2948d3dc2263c881b175b635bc9c68065a0a88000813f4f0"
+}

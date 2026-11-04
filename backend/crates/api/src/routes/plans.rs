@@ -285,6 +285,7 @@ async fn assign(
     }
     let mut tx = state.db.begin().await?;
     let mut workouts = 0;
+    let mut around = Vec::new();
     for athlete in &athletes {
         let a = db::insert_assignment(&mut tx, p.id, *athlete, start, m.membership_id).await?;
         for it in &grid {
@@ -308,6 +309,7 @@ async fn assign(
                 m.membership_id,
             )
             .await?;
+            around.push((*athlete, date));
             workouts += 1;
         }
         // Announced now only if the first week is already visible; otherwise its release does it (D-031).
@@ -328,6 +330,8 @@ async fn assign(
         )
         .await?;
     }
+    // Activities already done around those days may be these workouts (D-049).
+    runflow_db::matching::enqueue_for_workouts(&mut tx, &around).await?;
     tx.commit().await?;
     Ok((
         StatusCode::CREATED,
@@ -360,6 +364,7 @@ async fn unassign(
         .ok_or_else(Problem::club_not_found)?;
     let mut tx = state.db.begin().await?;
     let removed = db::unassign(&mut tx, aid, club_today(&club.timezone)).await?;
+    runflow_db::matching::enqueue_for_workouts(&mut tx, &removed).await?;
     tx.commit().await?;
-    Ok(Json(json!({ "removed_workouts": removed })))
+    Ok(Json(json!({ "removed_workouts": removed.len() })))
 }

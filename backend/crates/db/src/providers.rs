@@ -161,6 +161,9 @@ pub async fn revoke(tx: &mut PgConnection, user_id: Uuid, provider: &str) -> sql
     )
     .execute(&mut *tx)
     .await?;
+    // Workouts those activities completed automatically are open again; the rest is matched anew (D-049).
+    let today = Utc::now().date_naive();
+    crate::matching::enqueue(&mut *tx, user_id, today - chrono::Duration::days(31), today).await?;
     Ok(())
 }
 
@@ -221,51 +224,80 @@ pub async fn upsert_activity(
     .await
 }
 
+/// Delete a synced activity → when it had started (to match its days again), if it existed.
 pub async fn delete_external(
     db: impl PgExecutor<'_>,
     user_id: Uuid,
     source: &str,
     external_id: &str,
-) -> sqlx::Result<()> {
-    sqlx::query!(
-        "DELETE FROM activities WHERE user_id = $1 AND source = $2 AND external_id = $3",
+) -> sqlx::Result<Option<DateTime<Utc>>> {
+    sqlx::query_scalar!(
+        "DELETE FROM activities WHERE user_id = $1 AND source = $2 AND external_id = $3 RETURNING started_at",
         user_id,
         source,
         external_id
     )
-    .execute(db)
-    .await?;
-    Ok(())
+    .fetch_optional(db)
+    .await
+}
+
+/// When a synced activity started, if it's already here (an update can move it to another day).
+pub async fn started_at(
+    db: impl PgExecutor<'_>,
+    user_id: Uuid,
+    source: &str,
+    external_id: &str,
+) -> sqlx::Result<Option<DateTime<Utc>>> {
+    sqlx::query_scalar!(
+        "SELECT started_at FROM activities WHERE user_id = $1 AND source = $2 AND external_id = $3",
+        user_id,
+        source,
+        external_id
+    )
+    .fetch_optional(db)
+    .await
 }
 
 // ------------------------------------------------------------------------------------ my activities
 
-/// Newest first, each with `matched_workout`. `from`/`to` are UTC days of `started_at`.
+/// Which of my activities: club-time days `from`/`to` (in `tz`), only the ones waiting for my choice since a day
+/// (`pending_since`, D-049), or one.
+pub struct MyFilter<'a> {
+    pub tz: &'a str,
+    pub from: Option<NaiveDate>,
+    pub to: Option<NaiveDate>,
+    pub pending_since: Option<NaiveDate>,
+    pub only: Option<Uuid>,
+}
+
+/// Newest first, each with `matched_workout`.
 pub async fn my_activities(
     db: impl PgExecutor<'_>,
     user_id: Uuid,
-    from: Option<NaiveDate>,
-    to: Option<NaiveDate>,
+    f: MyFilter<'_>,
     limit: i64,
     offset: i64,
-    only: Option<Uuid>,
 ) -> sqlx::Result<Vec<(Activity, Option<Value>)>> {
     let rows = sqlx::query!(
         r#"SELECT a.id, a.user_id, a.source, a.external_id, a.sport, a.name, a.started_at, a.duration_s, a.moving_time_s, a.distance_m, a.elevation_gain_m,
-                  a.avg_hr, a.max_hr, a.avg_pace_s_per_km, a.avg_power_w, a.calories, a.laps, a.polyline, a.created_at,
+                  a.avg_hr, a.max_hr, a.avg_pace_s_per_km, a.avg_power_w, a.calories, a.laps, a.polyline, a.match_state, a.created_at,
                   (SELECT jsonb_build_object('id', p.id, 'title', p.title, 'date', p.date, 'club_id', p.club_id, 'compliance_pct', c.compliance_pct,
-                                             'est_distance_m', p.est_distance_m, 'est_duration_s', p.est_duration_s)
+                                             'est_distance_m', p.est_distance_m, 'est_duration_s', p.est_duration_s, 'matched_by', c.matched_by)
                      FROM workout_completions c JOIN planned_workouts p ON p.id = c.planned_workout_id WHERE c.activity_id = a.id LIMIT 1) AS matched
              FROM activities a
-            WHERE a.user_id = $1 AND ($2::date IS NULL OR a.started_at::date >= $2) AND ($3::date IS NULL OR a.started_at::date <= $3)
+            WHERE a.user_id = $1 AND ($2::date IS NULL OR (a.started_at AT TIME ZONE $7)::date >= $2)
+              AND ($3::date IS NULL OR (a.started_at AT TIME ZONE $7)::date <= $3)
               AND ($6::uuid IS NULL OR a.id = $6)
+              AND ($8::date IS NULL OR (a.match_state = 'pending' AND (a.started_at AT TIME ZONE $7)::date >= $8))
             ORDER BY a.started_at DESC LIMIT $4 OFFSET $5"#,
         user_id,
-        from,
-        to,
+        f.from,
+        f.to,
         limit,
         offset,
-        only
+        f.only,
+        f.tz,
+        f.pending_since
     )
     .fetch_all(db)
     .await?;
@@ -292,6 +324,7 @@ pub async fn my_activities(
                     calories: r.calories,
                     laps: r.laps,
                     polyline: r.polyline,
+                    match_state: r.match_state,
                     created_at: r.created_at,
                 },
                 r.matched,

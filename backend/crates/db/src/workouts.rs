@@ -29,7 +29,8 @@ pub async fn list(
         r#"SELECT p.id, p.club_id, p.athlete_membership_id, p.date, p.position, p.sport, p.title, p.structure, p.notes,
                   p.est_duration_s, p.est_distance_m, p.template_id, p.plan_assignment_id, p.created_by, p.created_at, p.updated_at,
                   c.planned_workout_id AS "c_id?", c.activity_id AS c_activity_id, c.status AS "c_status?", c.compliance_pct AS c_compliance_pct,
-                  c.rpe AS c_rpe, c.feeling AS c_feeling, c.comment AS c_comment, c.completed_at AS "c_completed_at?", c.updated_at AS "c_updated_at?",
+                  c.rpe AS c_rpe, c.feeling AS c_feeling, c.comment AS c_comment, c.matched_by AS c_matched_by, c.reported_at AS c_reported_at,
+                  c.completed_at AS "c_completed_at?", c.updated_at AS "c_updated_at?",
                   (SELECT count(*) FROM comments x WHERE x.planned_workout_id = p.id AND x.deleted_at IS NULL) AS "comments_count!",
                   (SELECT count(*) FROM comments x
                      LEFT JOIN thread_reads r ON r.membership_id = $2 AND r.planned_workout_id = p.id
@@ -65,6 +66,8 @@ pub async fn list(
                 rpe: r.c_rpe,
                 feeling: r.c_feeling,
                 comment: r.c_comment,
+                matched_by: r.c_matched_by,
+                reported_at: r.c_reported_at,
                 completed_at: r.c_completed_at.unwrap_or_default(),
                 updated_at: r.c_updated_at.unwrap_or_default(),
             }),
@@ -307,7 +310,7 @@ pub async fn activity(db: impl PgExecutor<'_>, id: Uuid) -> sqlx::Result<Option<
     sqlx::query_as!(
         Activity,
         "SELECT id, user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m, elevation_gain_m,
-                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, created_at
+                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, match_state, created_at
            FROM activities WHERE id = $1",
         id
     )

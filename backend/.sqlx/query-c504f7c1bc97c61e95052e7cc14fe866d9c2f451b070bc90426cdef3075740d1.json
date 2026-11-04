@@ -1,0 +1,122 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.id, (a.started_at AT TIME ZONE $2)::date AS \"day!\", a.sport, a.distance_m, a.duration_s, a.moving_time_s, a.started_at,\n                  a.match_state, c.planned_workout_id AS \"linked?\"\n             FROM activities a LEFT JOIN workout_completions c ON c.activity_id = a.id\n            WHERE a.user_id = $1 AND a.match_state <> 'dismissed' AND (a.started_at AT TIME ZONE $2)::date BETWEEN $3 AND $4\n              AND c.matched_by IS DISTINCT FROM 'student'\n            ORDER BY a.started_at, a.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "activities",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "day!",
+        "type_info": "Date",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "sport",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "activities",
+            "name": "sport"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "distance_m",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "activities",
+            "name": "distance_m"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
+        "name": "duration_s",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "activities",
+            "name": "duration_s"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "moving_time_s",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "activities",
+            "name": "moving_time_s"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "started_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "activities",
+            "name": "started_at"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "match_state",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "activities",
+            "name": "match_state"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "linked?",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "workout_completions",
+            "name": "planned_workout_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Date",
+        "Date"
+      ]
+    },
+    "nullable": [
+      false,
+      null,
+      false,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "c504f7c1bc97c61e95052e7cc14fe866d9c2f451b070bc90426cdef3075740d1"
+}

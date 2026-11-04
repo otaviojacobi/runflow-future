@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM workout_completions c USING planned_workouts p, memberships m\n          WHERE p.id = c.planned_workout_id AND m.id = p.athlete_membership_id AND m.user_id = $1\n            AND c.matched_by IS NOT NULL AND c.activity_id IS NULL AND c.reported_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "017c0bd2c9a7ea21e4acc7c7ba2a978e8b92542e9e3f53bbe8b452dd7a1ee210"
+}
