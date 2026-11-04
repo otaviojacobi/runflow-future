@@ -157,10 +157,18 @@ async fn setup(app: &TestApp) -> (String, String, String) {
     )
     .await
     .ok();
+    // Messages don't push by default (D-045); Ana switches them on, so the tests below have a push to follow.
+    app.patch(
+        "/v1/me/prefs",
+        Some(&ana),
+        json!({ "kinds": { "message": { "push": true } } }),
+    )
+    .await
+    .ok();
     (club, owner, ana)
 }
 
-/// A conversation message from the owner to Ana: a `message` notification (push on by default).
+/// A conversation message from the owner to Ana: a `message` notification (push switched on in `setup`).
 async fn message(app: &TestApp, club: &str, owner: &str, ana: &str, text: &str) {
     let path = format!("/v1/clubs/{club}/conversations");
     let conv = app.get(&path, Some(ana)).await.ok()["items"][0]["id"]

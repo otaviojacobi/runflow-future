@@ -99,14 +99,23 @@ async fn preferences_are_push_switches_per_kind(db: PgPool) {
     let app = TestApp::new(db);
     let c = setup(&app).await;
 
-    // Defaults: push on, except the staff's feedback and new members. Nothing but the switches and the pause.
+    // Defaults: push on for the week's release, changed workouts, feedback, new members and billing; off for the rest.
+    // Nothing but the switches and the pause.
     let p = app.get("/v1/me/prefs", Some(&c.owner)).await;
     let body = p.ok();
-    assert_eq!(body["kinds"]["feedback"], json!({ "push": false }));
-    assert_eq!(body["kinds"]["member_joined"], json!({ "push": false }));
-    assert_eq!(body["kinds"]["comment"], json!({ "push": true }));
-    assert_eq!(body["kinds"]["billing"], json!({ "push": true }));
-    assert_eq!(body["kinds"]["week_released"], json!({ "push": true }));
+    for (kind, on) in [
+        ("workout_assigned", false),
+        ("workout_changed", true),
+        ("week_released", true),
+        ("comment", false),
+        ("feedback", true),
+        ("member_joined", true),
+        ("billing", true),
+        ("message", false),
+        ("announcement", false),
+    ] {
+        assert_eq!(body["kinds"][kind], json!({ "push": on }), "{kind}");
+    }
     assert_eq!(body["kinds"].as_object().unwrap().len(), 9);
     assert_eq!(body["paused"], false);
     let mut keys: Vec<&String> = body.as_object().unwrap().keys().collect();
@@ -146,15 +155,15 @@ async fn preferences_are_push_switches_per_kind(db: PgPool) {
         .patch(
             "/v1/me/prefs",
             Some(&c.owner),
-            json!({ "kinds": { "feedback": { "push": true, "email": "digest" } }, "digest_hour": 7 }),
+            json!({ "kinds": { "feedback": { "push": false, "email": "digest" } }, "digest_hour": 7 }),
         )
         .await;
-    assert_eq!(p.ok()["kinds"]["feedback"], json!({ "push": true }));
+    assert_eq!(p.ok()["kinds"]["feedback"], json!({ "push": false }));
     let p = app
         .patch(
             "/v1/me/prefs",
             Some(&c.owner),
-            json!({ "kinds": { "comment": { "push": false } }, "paused": true }),
+            json!({ "kinds": { "comment": { "push": true } }, "paused": true }),
         )
         .await;
     assert_eq!(
@@ -163,7 +172,7 @@ async fn preferences_are_push_switches_per_kind(db: PgPool) {
             p.ok()["kinds"]["comment"]["push"].as_bool(),
             p.ok()["paused"].as_bool()
         ),
-        (Some(true), Some(false), Some(true))
+        (Some(false), Some(true), Some(true))
     );
     let me = app.get("/v1/me", Some(&c.owner)).await;
     assert_eq!(me.ok()["prefs"], p.body);

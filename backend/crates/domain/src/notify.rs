@@ -17,9 +17,14 @@ pub const KINDS: [&str; 9] = [
     "announcement",
 ];
 
-/// Push by default: on for everything except the staff's busiest kinds (a big club would flood a trainer).
+/// Push by default (founder, 2026-11-04): students get the week's release and changed workouts; staff get feedback,
+/// new members and billing. Everything else (new workouts, comments, messages, announcements) starts off: it still
+/// lands in the app, and Mensagens shows its unread count.
 pub fn push_default(kind: &str) -> bool {
-    !matches!(kind, "feedback" | "member_joined")
+    matches!(
+        kind,
+        "week_released" | "workout_changed" | "feedback" | "member_joined" | "billing"
+    )
 }
 
 /// A kind's push switch: the saved choice, or the default.
@@ -73,16 +78,29 @@ mod tests {
 
     #[test]
     fn defaults_and_overrides() {
-        let stored = json!({ "feedback": { "push": true }, "comment": { "push": false } });
-        assert!(push_on(&stored, "feedback"));
-        assert!(!push_on(&stored, "comment"));
+        let stored = json!({ "feedback": { "push": false }, "comment": { "push": true } });
+        assert!(!push_on(&stored, "feedback"));
+        assert!(push_on(&stored, "comment"));
         assert!(push_on(&stored, "week_released"));
-        assert!(!push_on(&json!({}), "member_joined"));
+        assert!(push_on(&json!({}), "member_joined"));
         assert!(push_on(&json!({}), "billing"));
         let all = all(&json!({}));
         assert_eq!(all.as_object().unwrap().len(), KINDS.len());
-        assert_eq!(all["feedback"], json!({ "push": false }));
-        assert_eq!(all["message"], json!({ "push": true }));
+        let on: Vec<&str> = KINDS
+            .iter()
+            .copied()
+            .filter(|k| all[*k]["push"] == json!(true))
+            .collect();
+        assert_eq!(
+            on,
+            [
+                "workout_changed",
+                "week_released",
+                "feedback",
+                "member_joined",
+                "billing"
+            ]
+        );
     }
 
     #[test]
@@ -104,14 +122,16 @@ mod tests {
 
     #[test]
     fn push_follows_the_switches() {
-        let off = json!({ "message": { "push": false } });
-        assert!(pushes(&json!({}), "message", false, true));
-        assert!(!pushes(&off, "message", false, true), "switched off");
-        assert!(!pushes(&json!({}), "message", true, true), "paused");
-        assert!(!pushes(&json!({}), "message", false, false), "no device");
+        let off = json!({ "feedback": { "push": false } });
+        assert!(pushes(&json!({}), "feedback", false, true));
+        assert!(!pushes(&off, "feedback", false, true), "switched off");
+        assert!(!pushes(&json!({}), "feedback", true, true), "paused");
+        assert!(!pushes(&json!({}), "feedback", false, false), "no device");
         assert!(
-            !pushes(&json!({}), "feedback", false, true),
+            !pushes(&json!({}), "message", false, true),
             "off by default"
         );
+        let on = json!({ "message": { "push": true } });
+        assert!(pushes(&on, "message", false, true), "switched on");
     }
 }

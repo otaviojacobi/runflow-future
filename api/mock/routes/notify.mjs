@@ -1,8 +1,9 @@
 /** Notifications (D-045, N1): every notification goes through h.notify and always lands in the app; the person only
  * switches push to their devices on or off per kind, or pauses it. No notification e-mails. */
 const KINDS = ["workout_assigned", "workout_changed", "week_released", "comment", "feedback", "member_joined", "billing", "message", "announcement"];
-/** Push by default (endpoints.md § Notifications): on, except the staff's busiest kinds. */
-const PUSH_OFF_BY_DEFAULT = ["feedback", "member_joined"];
+/** Push by default (endpoints.md § Notifications): the week's release and changed workouts (students), feedback, new
+ *  members and billing (staff); everything else starts off. */
+const PUSH_ON_BY_DEFAULT = ["week_released", "workout_changed", "feedback", "member_joined", "billing"];
 
 export default function register(h) {
   const blank = (userId) => ({ user_id: userId, kinds: {}, paused: false, updated_at: h.nowIso() });
@@ -17,7 +18,7 @@ export default function register(h) {
     }
     return p;
   };
-  const pushOn = (p, kind) => (typeof p.kinds?.[kind]?.push === "boolean" ? p.kinds[kind].push : !PUSH_OFF_BY_DEFAULT.includes(kind));
+  const pushOn = (p, kind) => (typeof p.kinds?.[kind]?.push === "boolean" ? p.kinds[kind].push : PUSH_ON_BY_DEFAULT.includes(kind));
 
   /** GET /me/prefs payload: every kind resolved, plus the pause. */
   h.prefsOut = (userId) => {
