@@ -1,5 +1,5 @@
 /** An activity as a list row (M4, and later the trainer's view of a student): sport tile, name, when, source, the
- * workout it matched, and its distance or time. */
+ * workout it matched (or "treino a confirmar" / "treino extra", D-049), and its distance or time. */
 import { Pressable, StyleSheet, View } from "react-native";
 import type { ActivityItem } from "@/api/types";
 import { SPORT_ICON } from "@/components/sport";
@@ -14,7 +14,10 @@ export function ActivityRow({ a, onPress }: { a: ActivityItem; onPress?: () => v
   const c = theme.color;
   const s = c.sport[a.sport];
   const I = SPORT_ICON[a.sport];
-  const meta = [shortDate(localDate(a.started_at)), timeOf(a.started_at), a.source === "strava" ? "Strava" : t("manual"), a.matched_workout ? t("treino: {x}", { x: a.matched_workout.title }) : null].filter(Boolean).join(" · ");
+  // The workout it completed, or where matching stands (D-049).
+  const match = a.matched_workout ? t("treino: {x}", { x: a.matched_workout.title })
+    : a.match_state === "pending" ? t("treino a confirmar") : a.match_state === "dismissed" ? t("treino extra") : null;
+  const meta = [shortDate(localDate(a.started_at)), timeOf(a.started_at), a.source === "strava" ? "Strava" : t("manual"), match].filter(Boolean).join(" · ");
   const main = a.distance_m ? distance(a.distance_m, { swim: a.sport === "swim" }) : duration(a.duration_s);
   const sub = a.avg_pace_s_per_km && a.sport === "run" ? `${pace(a.avg_pace_s_per_km)} /km` : a.distance_m ? duration(a.duration_s) : "";
   return (

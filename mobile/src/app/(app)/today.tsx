@@ -1,13 +1,15 @@
 /**
  * M1 · Hoje (student home; the web's screens/student/Today.tsx): greeting and streak, the week strip (tap a day to see
  * it), that day's workouts with "Concluir" (M5 sheet), the week's progress, the last activity, and, near the weekend or
- * once the week is done, whether next week is still in preparation (D-031). Works offline from the saved week.
+ * once the week is done, whether next week is still in preparation (D-031). Activities waiting for the student to say
+ * which workout they were come first (D-049). Works offline from the saved week.
  */
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { prefetchWorkouts, useMyCalendar, useMySummary, useMyWorkout, type MySummary } from "@/api/my";
 import type { PlannedWorkout } from "@/api/types";
+import { PendingMatches } from "@/components/matching";
 import { SportChip } from "@/components/sport";
 import { FeedbackSheet } from "@/components/workout/FeedbackSheet";
 import { LoadError, OfflineBanner, PreparingWeek } from "@/components/workout/states";
@@ -73,6 +75,8 @@ export default function TodayScreen() {
 
       <OfflineBanner error={cal.error} />
       {s && !s.shares_data && <NotSharing />}
+      {/* An activity the matching engine couldn't place on its own (D-049): which workout was it? */}
+      {online && <PendingMatches />}
 
       {cal.data ? (
         <>

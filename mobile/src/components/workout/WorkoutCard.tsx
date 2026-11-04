@@ -1,6 +1,7 @@
 /**
  * A workout on Hoje (the web's WorkoutCard): sport and estimate, the title (opens the workout), the intensity
- * profile, the trainer's note, then either "Ver treino" + "Concluir" or how it went with "Editar", and the thread.
+ * profile, the trainer's note, then either "Ver treino" + "Concluir", how it went with "Editar", or, when an activity
+ * completed it automatically (D-049), "Conte como foi"; and the thread.
  */
 import { router } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -37,7 +38,13 @@ export function WorkoutCard({ w, onFeedback, professor }: { w: PlannedWorkout; o
           <Text variant="bodySm" color={c.brand.subtleFg}>{w.notes}</Text>
         </View>
       ) : null}
-      {done ? (
+      {done && done.reported_at === null ? (
+        <View style={[styles.wrap, { gap: theme.space[2] }]}>
+          <StatusBadge status={done.status} />
+          <Text variant="bodySm" tone="muted">{t("pela atividade")}</Text>
+          <Button variant="secondary" size="sm" onPress={onFeedback} style={styles.push}>{t("Conte como foi")}</Button>
+        </View>
+      ) : done ? (
         <View style={[styles.wrap, { gap: theme.space[2] }]}>
           <StatusBadge status={done.status} />
           {done.feeling ? <Text variant="bodySm" tone="muted">{feelingLabel(done.feeling)}</Text> : null}

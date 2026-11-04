@@ -1,7 +1,7 @@
 /**
  * M4 · Atividades (student, from Perfil, D-035; the web's screens/student/Activities.tsx): activities by week with
- * totals, each with its source and the workout it matched; "Registrar" logs one by hand (sheet); without Strava, a card
- * to connect it right here.
+ * totals, each with its source and the workout it matched, and the question under the ones the matching engine
+ * couldn't place (D-049); "Registrar" logs one by hand (sheet); without Strava, a card to connect it right here.
  */
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
@@ -10,6 +10,7 @@ import { useConnections } from "@/api/account";
 import { useLogActivity, useMyActivities } from "@/api/activities";
 import type { ActivityItem, Sport } from "@/api/types";
 import { ActivityRow } from "@/components/activity";
+import { MatchQuestion } from "@/components/matching";
 import { SPORT_LABEL } from "@/components/sport";
 import { useStravaConnect } from "@/components/connections/StravaConnect";
 import { t, tn } from "@/i18n";
@@ -157,7 +158,15 @@ export default function ActivitiesScreen() {
               <Text variant="labelMd" accessibilityRole="header">{mon === thisMonday ? t("Esta semana") : `${dayMonth(mon)} – ${dayMonth(addDays(mon, 6))}`}</Text>
               <Text variant="caption" tone="muted" style={styles.tabular}>{tn(acts.length, "{n} atividade", "{n} atividades")} · {duration(ds)}{dm ? ` · ${km(dm)} km` : ""}</Text>
             </View>
-            <Card style={{ padding: theme.space[1] }}>{acts.map((a) => <ActivityRow key={a.id} a={a} onPress={() => open(a)} />)}</Card>
+            <Card style={{ padding: theme.space[1] }}>
+              {acts.map((a) => (
+                <View key={a.id}>
+                  <ActivityRow a={a} onPress={() => open(a)} />
+                  {/* Which workout was it? (D-049): asked right under the activity. */}
+                  {a.match_state === "pending" && a.match_options.length > 0 && <MatchQuestion a={a} inline />}
+                </View>
+              ))}
+            </Card>
           </View>
         );
       })}

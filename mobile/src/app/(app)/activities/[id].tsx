@@ -1,11 +1,13 @@
 /**
  * M4 · Atividade (the web's screens/student/ActivityDetail.tsx): the numbers, the planned workout it matched (with
- * how much was done), per-km splits as bars (longer = faster) and, for manual ones, removing it.
+ * how much was done) and "Trocar treino", or the question when the matching engine couldn't place it (D-049), per-km
+ * splits as bars (longer = faster) and, for manual ones, removing it.
  */
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useDeleteActivity, useMyActivity } from "@/api/activities";
+import { MatchQuestion, MatchSheet } from "@/components/matching";
 import { SportChip } from "@/components/sport";
 import { Stat } from "@/components/workout/workout";
 import { t } from "@/i18n";
@@ -13,7 +15,7 @@ import { ApiError } from "@/lib/api";
 import { distance, duration, km, localDate, longDate, pace, timeOf, upperFirst } from "@/lib/format";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Button, Card, Dialog, EmptyState, Screen, Skeleton, Text, toast } from "@/ui";
-import { ChevronRight, SearchX, Trash2 } from "@/ui/icons";
+import { ArrowRightLeft, ChevronRight, Link2, SearchX, Trash2 } from "@/ui/icons";
 
 export default function ActivityScreen() {
   const { theme } = useTheme();
@@ -22,6 +24,7 @@ export default function ActivityScreen() {
   const q = useMyActivity(String(id ?? ""));
   const del = useDeleteActivity();
   const [confirm, setConfirm] = useState(false);
+  const [pick, setPick] = useState(false);
   const a = q.data;
 
   if (!a) {
@@ -66,11 +69,13 @@ export default function ActivityScreen() {
         {stats.map((s, i) => <Stat key={s.label} size={i < 2 ? "lg" : "md"} value={s.value} unit={s.unit} label={s.label} style={styles.half} />)}
       </Card>
 
+      {/* Which workout it was (D-049): asked when in doubt, else the one it completed (changeable), else a way to pick one. */}
+      {a.match_state === "pending" && a.match_options.length > 0 && <MatchQuestion a={a} showActivity={false} />}
       {m && (
         <Pressable accessibilityRole="link" accessibilityLabel={t("Treino planejado: {x}", { x: m.title })} onPress={() => router.push({ pathname: "/workouts/[id]", params: { id: m.id } })}
           style={({ pressed }) => [styles.row, { gap: theme.space[4], padding: theme.space[4], borderRadius: theme.radius.lg, borderWidth: 1, borderColor: c.brand.border, backgroundColor: pressed ? c.brand.subtleHover : c.brand.subtle }]}>
           <View style={styles.flex}>
-            <Text variant="caption" color={c.brand.subtleFg}>{t("Treino planejado")}</Text>
+            <Text variant="caption" color={c.brand.subtleFg}>{m.matched_by === "auto" ? t("Treino planejado · ligado automaticamente") : t("Treino planejado")}</Text>
             <Text variant="labelMd" numberOfLines={1} color={c.brand.subtleFg}>{m.title}</Text>
             {(m.est_distance_m || m.est_duration_s) ? (
               <Text variant="bodySm" color={c.brand.subtleFg}>{t("Planejado: {x}", { x: [m.est_distance_m && distance(m.est_distance_m), m.est_duration_s && duration(m.est_duration_s)].filter(Boolean).join(" · ") })}</Text>
@@ -85,6 +90,21 @@ export default function ActivityScreen() {
           <ChevronRight size={theme.size.iconSm} color={c.brand.subtleFg} aria-hidden />
         </Pressable>
       )}
+      {m && !q.isPlaceholderData && (
+        <Button variant="ghost" icon={ArrowRightLeft} style={styles.start} onPress={() => setPick(true)}>{t("Não foi este? Trocar treino")}</Button>
+      )}
+      {!m && a.match_state !== "pending" && !q.isPlaceholderData && (a.match_state === "dismissed" || a.match_options.length > 0) && (
+        <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>
+          <View style={{ gap: theme.space[1] }}>
+            <Text variant="titleSm" accessibilityRole="header">{a.match_state === "dismissed" ? t("Treino extra") : t("Sem treino planejado")}</Text>
+            <Text variant="bodySm" tone="muted">
+              {a.match_state === "dismissed" ? t("Você disse que esta atividade não era um treino planejado.") : t("Esta atividade não está ligada a nenhum treino do seu planejamento.")}
+            </Text>
+          </View>
+          {a.match_options.length > 0 && <Button variant="secondary" icon={Link2} block onPress={() => setPick(true)}>{t("Escolher treino")}</Button>}
+        </Card>
+      )}
+      <MatchSheet a={a} open={pick} onOpenChange={setPick} />
 
       {laps.length > 0 && (
         <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>

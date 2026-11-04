@@ -42,7 +42,9 @@ src/
               plans.tsx = the planilhas' weekly volume bars (a week switcher in the editor);
               account/ = C1/M7 sections, confirm sheet, stepper, zones table, notification settings, pt-BR labels;
               messages/ = conversation rows, the chat thread and composer, announcement cards, the stack's top bar;
-              activity.tsx = an activity row; connections/StravaConnect = the "Conectar com Strava" hook + mock sheet;
+              activity.tsx = an activity row; matching.tsx = activity matching (D-049): "Qual treino foi esta
+              atividade?" (MatchQuestion, PendingMatches on Hoje) and the "Trocar/Escolher treino" sheet (MatchSheet);
+              connections/StravaConnect = the "Conectar com Strava" hook + mock sheet;
               club/ = color picker, theme preview (a phone in a club's colors), the one-by-one invite form,
               contrast report, the spreadsheet import; billing/ = plan copy (copy of the web's plans.ts), seat meters,
               the mock's Stripe checkout and portal sheets; shell/FrozenLayer = the frozen club's icy layer, D-043;

@@ -65,9 +65,15 @@ export interface PublicInvite {
 
 export type CompletionStatus = "completed" | "partial" | "missed" | "skipped";
 export type Feeling = "great" | "good" | "ok" | "bad" | "awful";
+/** Who linked a completion's activity (D-049): the matching engine or the student; null without an activity. */
+export type MatchedBy = "auto" | "student";
 export interface Completion {
   planned_workout_id: ID; activity_id: ID | null; status: CompletionStatus; compliance_pct: number | null;
-  rpe: number | null; feeling: Feeling | null; comment: string | null; completed_at: ISOTime; updated_at: ISOTime;
+  rpe: number | null; feeling: Feeling | null; comment: string | null;
+  matched_by: MatchedBy | null;
+  /** When the student sent feedback; null while the workout was only completed by the matching engine. */
+  reported_at: ISOTime | null;
+  completed_at: ISOTime; updated_at: ISOTime;
 }
 export interface PlannedWorkout {
   id: ID; club_id: ID; athlete_membership_id: ID; date: ISODate; position: number; sport: Sport; title: string;
@@ -81,8 +87,12 @@ export interface Activity {
   id: ID; user_id: ID; source: "strava" | "garmin" | "manual" | "file"; external_id: string | null; sport: Sport; name: string;
   started_at: ISOTime; duration_s: number; moving_time_s: number | null; distance_m: number | null; elevation_gain_m: number | null;
   avg_hr: number | null; max_hr: number | null; avg_pace_s_per_km: number | null; avg_power_w: number | null; calories: number | null;
-  laps: { distance_m: number; duration_s: number; avg_hr: number | null; avg_pace_s_per_km?: number }[] | null; polyline: string | null; created_at: ISOTime;
+  laps: { distance_m: number; duration_s: number; avg_hr: number | null; avg_pace_s_per_km?: number }[] | null; polyline: string | null;
+  /** D-049: `open` (the engine may link it), `pending` (waiting for the student's choice), `dismissed` (not a planned workout). */
+  match_state: MatchState;
+  created_at: ISOTime;
 }
+export type MatchState = "open" | "pending" | "dismissed";
 export interface Comment { id: ID; planned_workout_id: ID; author_membership_id: ID; body: string; created_at: ISOTime; edited_at: ISOTime | null; author: { membership_id: ID; role: Role; user: User } }
 
 // ---------- staff (W1–W4, W8)
@@ -132,8 +142,11 @@ export interface Announcement {
 }
 
 /** The planned workout an activity was matched to (M4). */
-export interface MatchedWorkout { id: ID; title: string; date: ISODate; club_id: ID; compliance_pct: number | null; est_distance_m: number | null; est_duration_s: number | null }
-export interface ActivityItem extends Activity { matched_workout: MatchedWorkout | null }
+export interface MatchedWorkout { id: ID; title: string; date: ISODate; club_id: ID; compliance_pct: number | null; est_distance_m: number | null; est_duration_s: number | null; matched_by: MatchedBy | null }
+/** A workout an activity may be (D-049): a pending activity's choices, or the detail's "Trocar treino" list. */
+export interface MatchOption { id: ID; title: string; date: ISODate; club_id: ID; sport: Sport; est_distance_m: number | null; est_duration_s: number | null }
+/** `match_options`: in lists only for pending activities; the detail always fills it (nearest first). */
+export interface ActivityItem extends Activity { matched_workout: MatchedWorkout | null; match_options: MatchOption[] }
 
 // ---- staff (W1–W4, W8)
 export interface AthleteSummary {

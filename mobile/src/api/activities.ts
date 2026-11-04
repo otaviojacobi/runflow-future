@@ -5,9 +5,10 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { queryClient } from "@/queryClient";
-import type { ActivityItem, Sport } from "./types";
+import type { ActivityItem, ID, Sport } from "./types";
 
 export const actKey = ["me", "activities"] as const;
+export const pendingKey = [...actKey, "pending"] as const;
 
 export const useMyActivities = () =>
   useQuery({ queryKey: actKey, queryFn: () => api.get<{ items: ActivityItem[] }>("/me/activities?limit=200").then((r) => r.items) });
@@ -16,6 +17,25 @@ export const useMyActivity = (id: string) =>
     queryKey: [...actKey, "one", id], enabled: !!id, queryFn: () => api.get<ActivityItem>(`/me/activities/${id}`),
     // The list row while the detail (laps) loads.
     placeholderData: () => queryClient.getQueryData<ActivityItem[]>(actKey)?.find((a) => a.id === id),
+  });
+
+/** Activities waiting for the student to say which workout they were (D-049; last 7 days): Hoje asks about them. */
+export const usePendingMatches = (enabled = true) =>
+  useQuery({ queryKey: pendingKey, enabled, queryFn: () => api.get<{ items: ActivityItem[] }>("/me/activities?match=pending").then((r) => r.items) });
+
+/**
+ * "Qual treino foi esta atividade?": the student's choice (never changed by the engine afterwards), or `null` for
+ * "none of these" (an extra session). The workouts it leaves or joins change too, so the student's week refreshes
+ * (and with it the copy saved on the device for offline use).
+ */
+export const useMatchActivity = () =>
+  useMutation({
+    mutationFn: ({ id, planned_workout_id }: { id: ID; planned_workout_id: ID | null }) => api.put<ActivityItem>(`/me/activities/${id}/match`, { planned_workout_id }),
+    onSuccess: (a) => {
+      queryClient.setQueryData([...actKey, "one", a.id], a);
+      queryClient.setQueryData<ActivityItem[]>(pendingKey, (list) => list?.filter((x) => x.id !== a.id));
+      invalidateTraining();
+    },
   });
 
 export interface ActivityInput { sport: Sport; name: string; started_at: string; duration_s: number; distance_m: number | null; avg_hr: number | null }

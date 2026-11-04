@@ -10,6 +10,7 @@ import { api } from "@/lib/api";
 import { addDays } from "@/lib/format";
 import { offline, savedData } from "@/lib/offline";
 import { queryClient } from "@/queryClient";
+import { actKey } from "./activities";
 import type { Activity, Comment, CompletionStatus, Feeling, ID, ISODate, ISOTime, PlannedWorkout, User } from "./types";
 
 // ---------- responses (the shared rows live in types.ts)
@@ -114,8 +115,10 @@ export const useSaveCompletion = (clubId: string) =>
     mutationFn: ({ id, ...v }: CompletionInput & { id: ID }) => api.put<PlannedWorkout>(`/clubs/${clubId}/my/workouts/${id}/completion`, v),
     onSuccess: (w) => {
       patchWorkout(clubId, w.id, { completion: w.completion, comments_count: w.comments_count, unread_count: w.unread_count, updated_at: w.updated_at });
-      // The summary (week, streak) and the matched activity change on the server.
+      // The summary (week, streak) and the matched activity change on the server, and so may the activity's own
+      // match (D-049: a question answered by picking it here).
       void queryClient.invalidateQueries({ queryKey: myKey(clubId) });
+      void queryClient.invalidateQueries({ queryKey: actKey });
     },
   });
 
