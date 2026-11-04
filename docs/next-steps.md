@@ -79,6 +79,11 @@ The session cookie works across `runflow.club` and `api.runflow.club` with `COOK
 and `CORS_ORIGINS=https://runflow.club`; or keep the app same-origin with a tiny Pages Function proxying `/api`
 (counts against the Workers free tier, 100k requests/day). Decide in P1.
 
+**Learned 2026-11-04:** whatever host the apps call, production must answer `/api/*` there itself (the same-origin
+proxy above, or the VM serving web + API as QA does), never through a redirect to another host: phones drop the
+`Authorization` header on a cross-host redirect and a 302 turns a POST into a GET. Each environment gets its own app
+build (`mobile/eas.json`: QA builds call `qa.runflow.club`; production builds will call the production domain).
+
 ---
 
 ## 3. Persistence and backups (the part that must not be improvised)
