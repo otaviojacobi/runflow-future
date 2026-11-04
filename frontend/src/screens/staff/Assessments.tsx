@@ -10,6 +10,7 @@ import { type AssessmentData, type AssessmentKind, ZONE_KIND, computeAssessment,
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
+import { has, testsFor } from "@/lib/features";
 import { fullDate, number, today as todayFn } from "@/lib/format";
 import { Avatar, Badge, Button, Card, DateInput, Dialog, EmptyState, Field, IconButton, Input, PageHeader, Select, Skeleton, Switch, Textarea, cn, toast } from "@/ui";
 import { parseTime } from "../onboarding/Welcome";
@@ -36,13 +37,16 @@ export function AssessmentsScreen() {
     return m;
   }, [list.data]);
   if (!club) return null;
+  // Only the tests of the club's modalities (D-052): Cooper for running, CSS for swimming, 1RM for the gym…
+  const allowed = new Set(testsFor(club, PROTOCOLS.map((p) => p.kind)));
+  const protocols = PROTOCOLS.filter((p) => allowed.has(p.kind));
   return (
     <div className="mx-auto grid max-w-6xl gap-6">
-      <PageHeader title={t("Avaliações e testes")} subtitle={t("Registre testes de campo e avaliações físicas. Os testes podem atualizar as zonas do aluno na hora.")} />
+      <PageHeader title={t("Avaliações e testes")} subtitle={has(club, "zones") ? t("Registre testes de campo e avaliações físicas. Os testes podem atualizar as zonas do aluno na hora.") : t("Registre testes e avaliações físicas e acompanhe a evolução de cada aluno.")} />
       <section className="grid gap-3" aria-labelledby="proto-h">
         <h2 id="proto-h" className="rf-text-title-md">{t("Registrar")}</h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {PROTOCOLS.map((p) => (
+          {protocols.map((p) => (
             <button key={p.kind} type="button" onClick={() => setRecord(p.kind)} className="flex items-start gap-3 rounded-lg border border-line bg-surface p-4 text-left shadow-sm hover:shadow-md focus-visible:ring-2 focus-visible:ring-brand-ring">
               <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-brand-soft text-on-brand-soft"><p.icon className="size-5" /></span>
               <span className="min-w-0"><span className="block font-semibold">{t(p.name)}</span><span className="block text-sm text-fg-muted">{t(p.how)}</span>{p.zones && <span className="mt-1 block text-xs font-semibold text-brand-text">{t("Atualiza {z}", { z: t(p.zones) })}</span>}</span>
@@ -55,7 +59,7 @@ export function AssessmentsScreen() {
           <h2 id="hist-h" className="rf-text-title-md">{t("Histórico")}</h2>
           <div className="flex flex-wrap gap-2">
             <Select aria-label={t("Aluno")} value={athlete} onChange={(e) => setAthlete(e.target.value)} className="w-52"><option value="">{t("Todos os alunos")}</option>{(athletes.data ?? []).map((a) => <option key={a.membership.id} value={a.membership.id}>{a.user.name}</option>)}</Select>
-            <Select aria-label={t("Tipo")} value={kind} onChange={(e) => setKind(e.target.value)} className="w-48"><option value="">{t("Todos os testes")}</option>{PROTOCOLS.map((p) => <option key={p.kind} value={p.kind}>{t(p.name)}</option>)}</Select>
+            <Select aria-label={t("Tipo")} value={kind} onChange={(e) => setKind(e.target.value)} className="w-48"><option value="">{t("Todos os testes")}</option>{protocols.map((p) => <option key={p.kind} value={p.kind}>{t(p.name)}</option>)}</Select>
           </div>
         </div>
         <Card className="relative min-w-0 overflow-x-auto">

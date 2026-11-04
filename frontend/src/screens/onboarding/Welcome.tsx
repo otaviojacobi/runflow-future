@@ -9,6 +9,7 @@ import { ClubLogo } from "@/components/brand";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { today as todayFn, yearsAgo } from "@/lib/format";
 import { Button, Card, Checkbox, DateInput, Field, Input, toast } from "@/ui";
 
@@ -45,14 +46,22 @@ export function WelcomeScreen() {
   const first = name.split(" ")[0] || me.user.name.split(" ")[0];
   const err = updateMe.error instanceof ApiError ? updateMe.error : null;
   const [nameError, setNameError] = useState<string | null>(null);
-  const total = 3;
+  // The watch step only in clubs whose modalities sync activities (D-052): a funcional gym's student skips it.
+  const strava = has(club, "strava");
+  const total = strava ? 3 : 2;
   /** "Nome completo": first and last name, so the club knows who is who. */
   const saveName = () => {
     const full = name.trim().replace(/\s+/g, " ");
     if (full.split(" ").length < 2) return setNameError(t("Informe nome e sobrenome."));
     setNameError(null);
-    updateMe.mutate({ name: full, birth_date: birth || null, phone: phone || null }, { onSuccess: () => setStep(3), onError: toast.error });
+    updateMe.mutate({ name: full, birth_date: birth || null, phone: phone || null }, { onSuccess: () => setStep(strava ? 3 : 4), onError: toast.error });
   };
+  const sees = [
+    t("Seus treinos planejados, se você fez e como se sentiu"),
+    ...(strava ? [t("Atividades sincronizadas: distância, tempo, ritmo e frequência cardíaca")] : []),
+    has(club, "zones") ? t("Seu objetivo, nível e zonas de treino") : t("Seu objetivo e nível"),
+    t("Os comentários que você deixar nos treinos"),
+  ];
 
   const steps: Record<number, React.ReactNode> = {
     1: (
@@ -61,7 +70,7 @@ export function WelcomeScreen() {
         <Card className="grid gap-3 p-5 text-sm">
           <p className="font-semibold">{t("Os treinadores do clube vão ver:")}</p>
           <ul className="grid gap-1.5 text-fg-muted">
-            {[t("Seus treinos planejados, se você fez e como se sentiu"), t("Atividades sincronizadas: distância, tempo, ritmo e frequência cardíaca"), t("Seu objetivo, nível e zonas de treino"), t("Os comentários que você deixar nos treinos")].map((x) => <li key={x} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-success-text" />{x}</li>)}
+            {sees.map((x) => <li key={x} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-success-text" />{x}</li>)}
           </ul>
           <p className="text-fg-muted">{t("Dados de saúde são sensíveis pela LGPD. Você pode revogar este consentimento a qualquer momento em Minha conta.")}</p>
         </Card>

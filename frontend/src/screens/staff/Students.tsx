@@ -8,6 +8,7 @@ import { InviteDialog } from "@/components/club/InviteDialog";
 import { ComplianceBar } from "@/components/workout";
 import { t, tn } from "@/i18n";
 import { useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { ago } from "@/lib/format";
 import { Avatar, Badge, Button, Card, EmptyState, IconButton, Input, Menu, PageHeader, Segmented, Skeleton, cn, toast, type MenuItem } from "@/ui";
 import { GOALS } from "../onboarding/Welcome";
@@ -27,6 +28,8 @@ const box = "size-[18px] shrink-0 cursor-pointer accent-brand";
 
 export function StudentsScreen() {
   const { club } = useClub();
+  // Last activity and the watch column only where the modalities sync activities (D-052).
+  const strava = has(club, "strava");
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [group, setGroup] = useState("all");
@@ -126,7 +129,7 @@ export function StudentsScreen() {
               <thead className="bg-sunken text-left text-[11px] font-bold uppercase tracking-[0.06em] text-fg-muted">
                 <tr>
                   <th className="w-10 pl-4"><input type="checkbox" className={box} aria-label={t("Selecionar todos")} checked={allOn} onChange={(e) => setSelected(e.target.checked ? new Set(rows.map((a) => a.membership.id)) : new Set())} /></th>
-                  <th className="px-3 py-3">{t("Aluno")}</th><th className="px-3 py-3">{t("Grupos")}</th><th className="w-36 px-3 py-3">{t("Aderência 28 dias")}</th><th className="px-3 py-3">{t("Semana")}</th><th className="px-3 py-3">{t("Última atividade")}</th><th className="px-3 py-3">{t("Relógio")}</th><th className="w-10" />
+                  <th className="px-3 py-3">{t("Aluno")}</th><th className="px-3 py-3">{t("Grupos")}</th><th className="w-36 px-3 py-3">{t("Aderência 28 dias")}</th><th className="px-3 py-3">{t("Semana")}</th>{strava && <><th className="px-3 py-3">{t("Última atividade")}</th><th className="px-3 py-3">{t("Relógio")}</th></>}<th className="w-10" />
                 </tr>
               </thead>
               <tbody>
@@ -137,8 +140,8 @@ export function StudentsScreen() {
                     <td className="px-3 py-3"><div className="flex flex-wrap gap-1">{a.group_ids.map((g) => <Badge key={g}>{groupName(g)}</Badge>)}</div></td>
                     <td className="px-3 py-3">{a.shares_data ? <ComplianceBar pct={a.compliance_pct} /> : <span className="text-xs text-fg-muted">{t("Não compartilha os treinos")}</span>}</td>
                     <td className="px-3 py-3 tabular-nums">{a.week.planned ? <span><b>{a.week.done}</b><span className="text-fg-muted">/{a.week.planned}</span></span> : <span className="text-fg-subtle">{t("Sem treinos")}</span>}</td>
-                    <td className="px-3 py-3 text-fg-muted">{a.last_activity_at ? ago(a.last_activity_at) : "–"}</td>
-                    <td className="px-3 py-3"><StravaIcon s={a.strava} /></td>
+                    {strava && <><td className="px-3 py-3 text-fg-muted">{a.last_activity_at ? ago(a.last_activity_at) : "–"}</td>
+                    <td className="px-3 py-3"><StravaIcon s={a.strava} /></td></>}
                     <td className="pr-3"><ChevronRight className="size-4 text-fg-subtle" /></td>
                   </tr>
                 ))}
@@ -155,7 +158,7 @@ export function StudentsScreen() {
                   <Avatar name={a.user.name} size={40} />
                   <span className="min-w-0"><span className="block truncate font-semibold">{a.user.name}</span><span className="block truncate text-xs text-fg-muted">{a.week.planned ? t("{done}/{planned} na semana", { done: a.week.done, planned: a.week.planned }) : t("Sem treinos na semana")} · {a.last_activity_at ? ago(a.last_activity_at) : t("sem atividade")}</span>
                     {a.group_ids.length > 0 && <span className="block truncate text-xs text-fg-muted">{a.group_ids.map(groupName).filter(Boolean).join(" · ")}</span>}
-                    {(!a.shares_data || a.strava === "private") && <span className="flex items-center gap-1 truncate text-xs font-semibold text-fg-muted"><Lock className="size-3.5 shrink-0" />{!a.shares_data ? t("Não compartilha os treinos") : t("Não compartilha o Strava")}</span>}</span>
+                    {(!a.shares_data || (strava && a.strava === "private")) && <span className="flex items-center gap-1 truncate text-xs font-semibold text-fg-muted"><Lock className="size-3.5 shrink-0" />{!a.shares_data ? t("Não compartilha os treinos") : t("Não compartilha o Strava")}</span>}</span>
                   <span className="w-16">{a.shares_data && <ComplianceBar pct={a.compliance_pct} />}</span>
                 </Link>
               </li>

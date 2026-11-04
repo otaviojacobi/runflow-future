@@ -13,6 +13,7 @@ import { IntensityProfile, Stat, StatusBadge } from "@/components/workout";
 import { WeekStrip, type DayState } from "@/components/week";
 import { t, tn } from "@/i18n";
 import { useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { addDays, distance, duration, km, longDate, mondayOf, pace, shortDate, today as todayFn } from "@/lib/format";
 import { Button, ButtonLink, Card, Skeleton } from "@/ui";
 import { FEELING } from "../staff/planning/WorkoutDialogs";
@@ -68,7 +69,9 @@ export function TodayScreen() {
   const states = Object.fromEntries(Array.from({ length: 7 }, (_, i) => { const d = addDays(monday, i); return [d, dayState(byDay(d), d, today)]; }));
   const list = byDay(selected);
   const s = summary.data;
-  const last = s?.last_activity;
+  // Activities, their matching questions and the last-activity card belong to the endurance modalities (D-052).
+  const strava = has(club, "strava");
+  const last = strava ? s?.last_activity : null;
 
   return (
     <div className="mx-auto grid max-w-xl gap-5">
@@ -77,7 +80,7 @@ export function TodayScreen() {
         {s && s.streak_weeks > 0 && <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-accent-soft px-3 text-sm font-bold text-on-accent-soft ring-1 ring-inset ring-accent-line"><Flame className="size-4" />{tn(s.streak_weeks, "{n} semana", "{n} semanas")}</span>}
       </header>
       {s && !s.shares_data && <p className="flex items-start gap-2 rounded-md bg-warning-soft px-3 py-2 text-sm text-on-warning-soft"><ShieldAlert className="mt-0.5 size-4 shrink-0" />{t("Você não está compartilhando seus treinos com o clube. O treinador não vê seu progresso.")} <Link to="/account" className="font-semibold underline">{t("Ajustar")}</Link></p>}
-      {pending.data?.map((a) => <MatchQuestion key={a.id} a={a} />)}
+      {strava && pending.data?.map((a) => <MatchQuestion key={a.id} a={a} />)}
       <WeekStrip monday={monday} states={states} selected={selected} onSelect={setSelected} />
       <section className="grid gap-3">
         <h2 className="rf-text-overline text-fg-muted">{selected === today ? t("Hoje") : shortDate(selected)}</h2>

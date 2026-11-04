@@ -12,6 +12,7 @@ import { ComplianceBar, Stat, ZoneTable } from "@/components/workout";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { addDays, brDate, dayMonth, duration, km, mondayOf, pace, today as todayFn } from "@/lib/format";
 import { Avatar, Badge, Button, ButtonLink, Card, DateInput, Field, IconButton, Input, Select, Skeleton, Tabs, Textarea, cn, toast } from "@/ui";
 import { GOALS, LEVELS, parseTime } from "../onboarding/Welcome";
@@ -111,7 +112,8 @@ function ZonesTab({ a, clubId }: { a: AthleteDetail; clubId: string }) {
   );
 }
 
-function ProfileTab({ a, clubId }: { a: AthleteDetail; clubId: string }) {
+/** `races`/`zones`: the race date and heart rate only for the club's modalities (D-052). */
+function ProfileTab({ a, clubId, races, zones }: { a: AthleteDetail; clubId: string; races: boolean; zones: boolean }) {
   const save = useSaveAthleteProfile(clubId, a.membership.id);
   const [p, setP] = useState(a.profile);
   useEffect(() => setP(a.profile), [a.profile]);
@@ -120,11 +122,13 @@ function ProfileTab({ a, clubId }: { a: AthleteDetail; clubId: string }) {
     <Card className="grid gap-4 p-5">
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label={t("Objetivo")}>{(id) => <Select id={id} value={p.goal ?? ""} onChange={(e) => set("goal", (e.target.value || null) as Goal | null)}><option value="">–</option>{GOALS.map((g) => <option key={g.value} value={g.value}>{t(g.label)}</option>)}</Select>}</Field>
-        <Field label={t("Data da prova-alvo")} optional>{(id) => <DateInput id={id} value={p.goal_date ?? ""} onChange={(v) => set("goal_date", v || null)} />}</Field>
+        {races && <Field label={t("Data da prova-alvo")} optional>{(id) => <DateInput id={id} value={p.goal_date ?? ""} onChange={(v) => set("goal_date", v || null)} />}</Field>}
         <Field label={t("Nível")}>{(id) => <Select id={id} value={p.level ?? ""} onChange={(e) => set("level", (e.target.value || null) as Level | null)}><option value="">–</option>{LEVELS.map((l) => <option key={l.value} value={l.value}>{t(l.label)}</option>)}</Select>}</Field>
         <Field label={t("Treinos por semana")}>{(id) => <Input id={id} type="number" min={0} max={14} value={p.weekly_sessions ?? ""} onChange={(e) => set("weekly_sessions", e.target.value ? Number(e.target.value) : null)} />}</Field>
-        <Field label={t("FC de repouso")} optional>{(id) => <Input id={id} type="number" value={p.resting_hr ?? ""} onChange={(e) => set("resting_hr", e.target.value ? Number(e.target.value) : null)} />}</Field>
-        <Field label={t("FC máxima")} optional>{(id) => <Input id={id} type="number" value={p.max_hr ?? ""} onChange={(e) => set("max_hr", e.target.value ? Number(e.target.value) : null)} />}</Field>
+        {zones && <>
+          <Field label={t("FC de repouso")} optional>{(id) => <Input id={id} type="number" value={p.resting_hr ?? ""} onChange={(e) => set("resting_hr", e.target.value ? Number(e.target.value) : null)} />}</Field>
+          <Field label={t("FC máxima")} optional>{(id) => <Input id={id} type="number" value={p.max_hr ?? ""} onChange={(e) => set("max_hr", e.target.value ? Number(e.target.value) : null)} />}</Field>
+        </>}
       </div>
       <Field label={<span className="inline-flex items-center gap-1.5">{t("Notas do treinador")}<Lock className="size-3.5 text-fg-muted" /></span>} hint={t("Só a equipe do clube vê. O aluno não tem acesso.")}>
         {(id, d) => <Textarea id={id} aria-describedby={d} value={p.trainer_notes ?? ""} onChange={(e) => set("trainer_notes", e.target.value)} placeholder={t("Ex.: lesão no joelho em 2025, prefere treinar cedo")} />}
@@ -148,6 +152,8 @@ export function StudentScreen() {
   if (!a) return <p className="text-fg-muted">{t("Aluno não encontrado.")}</p>;
   const phone = a.user.phone?.replace(/\D/g, "");
   const avgWeek = last4.length ? last4.reduce((s, w) => s + w.done_s, 0) / last4.length : 0;
+  // Activities (volume, recent list, Strava state) and zones only where the club's modalities use them (D-052).
+  const strava = has(club, "strava"), zones = has(club, "zones");
   return (
     <div className="mx-auto grid max-w-6xl gap-6">
       <ButtonLink to="/students" variant="ghost" size="sm" icon={<ArrowLeft />} className="w-fit">{t("Alunos")}</ButtonLink>
@@ -155,10 +161,10 @@ export function StudentScreen() {
         <Avatar name={a.user.name} src={a.user.avatar_url} size={64} />
         <div className="min-w-0 flex-1">
           <h1 className="rf-text-display-sm">{a.user.name}</h1>
-          <p className="text-fg-muted">{[a.goal === "other" && a.profile.goal_note ? a.profile.goal_note : goalLabel(a.goal), a.profile.goal_date && t("prova em {d}", { d: dayMonth(a.profile.goal_date) }), a.level && t({ beginner: "Iniciante", intermediate: "Intermediário", advanced: "Avançado" }[a.level])].filter(Boolean).join(" · ") || t("Sem objetivo definido")}</p>
+          <p className="text-fg-muted">{[a.goal === "other" && a.profile.goal_note ? a.profile.goal_note : goalLabel(a.goal), has(club, "races") && a.profile.goal_date && t("prova em {d}", { d: dayMonth(a.profile.goal_date) }), a.level && t({ beginner: "Iniciante", intermediate: "Intermediário", advanced: "Avançado" }[a.level])].filter(Boolean).join(" · ") || t("Sem objetivo definido")}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {a.consents.training_data ? <Badge tone="success" icon={<ShieldCheck />}>{t("Compartilha dados")}</Badge> : <Badge tone="warning" icon={<ShieldOff />}>{t("Não compartilha os treinos")}</Badge>}
-            {a.strava !== "none" && <Badge tone={a.strava === "shared" ? "info" : "neutral"}>{a.strava === "shared" ? t("Strava compartilhado") : t("Não compartilha o Strava")}</Badge>}
+            {strava && a.strava !== "none" && <Badge tone={a.strava === "shared" ? "info" : "neutral"}>{a.strava === "shared" ? t("Strava compartilhado") : t("Não compartilha o Strava")}</Badge>}
           </div>
           <div className="mt-3"><StudentGroups clubId={club.id} membershipId={a.membership.id} studentName={a.user.name.split(" ")[0]} groups={a.groups} /></div>
         </div>
@@ -168,27 +174,27 @@ export function StudentScreen() {
         </div>
       </header>
       <Tabs.Root defaultValue="overview">
-        <Tabs.List><Tabs.Trigger value="overview">{t("Visão geral")}</Tabs.Trigger><Tabs.Trigger value="calendar">{t("Calendário")}</Tabs.Trigger><Tabs.Trigger value="zones">{t("Zonas")}</Tabs.Trigger><Tabs.Trigger value="profile">{t("Perfil e notas")}</Tabs.Trigger></Tabs.List>
+        <Tabs.List><Tabs.Trigger value="overview">{t("Visão geral")}</Tabs.Trigger><Tabs.Trigger value="calendar">{t("Calendário")}</Tabs.Trigger>{zones && <Tabs.Trigger value="zones">{t("Zonas")}</Tabs.Trigger>}<Tabs.Trigger value="profile">{t("Perfil e notas")}</Tabs.Trigger></Tabs.List>
         <Tabs.Content value="overview">
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+          <div className={cn("grid gap-5", strava && "lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]")}>
             <div className="grid content-start gap-5">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className={cn("grid grid-cols-2 gap-3", strava && zones ? "sm:grid-cols-4" : strava || zones ? "sm:grid-cols-3" : "")}>
                 <Card className="p-4"><div className="mb-2 text-sm text-fg-muted">{t("Aderência 28 dias")}</div><ComplianceBar pct={a.compliance_pct} /></Card>
                 <Card className="p-4"><Stat value={`${a.week.done}/${a.week.planned}`} label={t("Nesta semana")} /></Card>
-                <Card className="p-4"><Stat value={duration(avgWeek)} label={t("Média semanal (4 sem.)")} /></Card>
-                <Card className="p-4"><Stat value={a.profile.threshold_pace_s_per_km ? pace(a.profile.threshold_pace_s_per_km) : "–"} unit={a.profile.threshold_pace_s_per_km ? "/km" : undefined} label={t("Pace de limiar")} /></Card>
+                {strava && <Card className="p-4"><Stat value={duration(avgWeek)} label={t("Média semanal (4 sem.)")} /></Card>}
+                {zones && <Card className="p-4"><Stat value={a.profile.threshold_pace_s_per_km ? pace(a.profile.threshold_pace_s_per_km) : "–"} unit={a.profile.threshold_pace_s_per_km ? "/km" : undefined} label={t("Pace de limiar")} /></Card>}
               </div>
-              <Card className="grid gap-3 p-5"><h2 className="rf-text-title-md">{t("Volume semanal")}</h2><VolumeChart weeks={a.weekly} /></Card>
+              {strava && <Card className="grid gap-3 p-5"><h2 className="rf-text-title-md">{t("Volume semanal")}</h2><VolumeChart weeks={a.weekly} /></Card>}
             </div>
-            <Card className="grid content-start gap-2 p-4">
+            {strava && <Card className="grid content-start gap-2 p-4">
               <h2 className="px-2 rf-text-title-md">{t("Atividades recentes")}</h2>
               {!a.consents.training_data ? <p className="px-2 text-sm text-fg-muted">{t("O aluno não compartilha os dados de treino com o clube.")}</p> : a.recent_activities.length ? <>{a.recent_activities.map((x) => <ActivityRow key={x.id} a={x} to={false} />)}{a.recent_activities.some((x) => x.source === "strava") && <StravaAttribution className="px-2 pt-2" />}</> : <p className="px-2 text-sm text-fg-muted">{t("Nenhuma atividade sincronizada.")}</p>}
-            </Card>
+            </Card>}
           </div>
         </Tabs.Content>
         <Tabs.Content value="calendar"><MonthCalendar clubId={club.id} athleteId={a.membership.id} onOpen={setDetail} /></Tabs.Content>
-        <Tabs.Content value="zones"><ZonesTab a={a} clubId={club.id} /></Tabs.Content>
-        <Tabs.Content value="profile"><ProfileTab a={a} clubId={club.id} /></Tabs.Content>
+        {zones && <Tabs.Content value="zones"><ZonesTab a={a} clubId={club.id} /></Tabs.Content>}
+        <Tabs.Content value="profile"><ProfileTab a={a} clubId={club.id} races={has(club, "races")} zones={zones} /></Tabs.Content>
       </Tabs.Root>
       <AssignDialog club={club} monday={mondayOf(todayFn())} open={assign} onOpenChange={setAssign} prefill={{ athleteIds: [a.membership.id] }} />
       <DetailDialog club={club} id={detail} onClose={() => setDetail(null)} onEdit={(x) => { setDetail(null); setEdit(x); }} />

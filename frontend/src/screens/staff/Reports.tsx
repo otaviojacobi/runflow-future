@@ -9,6 +9,7 @@ import { ComplianceBar } from "@/components/workout";
 import { t } from "@/i18n";
 import { downloadCsv } from "@/lib/csv";
 import { useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { addDays, duration, fullDate, km, mondayOf, today as todayFn } from "@/lib/format";
 import { Avatar, Button, Card, DateInput, Field, PageHeader, Segmented, Skeleton, cn } from "@/ui";
 
@@ -51,22 +52,25 @@ export function ReportsScreen() {
           {[{ id: "", name: t("Todos") }, ...(groups.data ?? [])].map((g) => <button key={g.id} onClick={() => setGroup(g.id)} aria-pressed={group === g.id} className={cn("h-8 rounded-full border px-3 text-[13px] font-semibold", group === g.id ? "border-brand-ring bg-brand-soft text-on-brand-soft" : "border-line bg-surface text-fg-muted hover:bg-soft")}>{g.name}</button>)}
         </div>
       </div>
-      {training.data ? <Training r={training.data} /> : <Skeleton className="h-96" />}
+      {training.data ? <Training r={training.data} volume={has(club, "strava")} /> : <Skeleton className="h-96" />}
     </div>
   );
 }
 
-function Training({ r }: { r: TrainingReport }) {
+/** `volume`: time and distance from synced activities, only for clubs whose modalities sync them (D-052). */
+function Training({ r, volume }: { r: TrainingReport; volume: boolean }) {
   const [sort, setSort] = useState<"name" | "compliance">("name");
   const rows = useMemo(() => [...r.athletes].sort((a, b) => (sort === "name" ? a.user.name.localeCompare(b.user.name) : (a.compliance_pct ?? 101) - (b.compliance_pct ?? 101))), [r.athletes, sort]);
   const T = r.totals;
   return (
     <div className="grid gap-5">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className={cn("grid grid-cols-2 gap-3", volume ? "lg:grid-cols-4" : "lg:grid-cols-3")}>
         <Kpi label={t("Aderência")} value={pct(T.compliance_pct)} sub={t("parcial conta meio treino")} />
         <Kpi label={t("Treinos feitos")} value={`${T.done + T.partial}/${T.planned}`} sub={t("{n} não realizados", { n: T.missed })} />
-        <Kpi label={t("Tempo de treino")} value={duration(T.done_s)} sub={t("planejado: {d}", { d: duration(T.planned_s) })} />
-        <Kpi label={t("Distância")} value={`${km(T.distance_m)} km`} sub={t("{n} de {t} alunos compartilham dados", { n: T.sharing, t: T.athletes })} />
+        {volume ? <>
+          <Kpi label={t("Tempo de treino")} value={duration(T.done_s)} sub={t("planejado: {d}", { d: duration(T.planned_s) })} />
+          <Kpi label={t("Distância")} value={`${km(T.distance_m)} km`} sub={t("{n} de {t} alunos compartilham dados", { n: T.sharing, t: T.athletes })} />
+        </> : <Kpi label={t("Tempo planejado")} value={duration(T.planned_s)} sub={t("{n} de {t} alunos compartilham dados", { n: T.sharing, t: T.athletes })} />}
       </div>
       <Card data-print="avoid-break" className="grid gap-3 p-5">
         <div className="flex items-baseline justify-between gap-3"><h2 className="rf-text-title-md">{t("Aderência por semana")}</h2><span className="text-sm text-fg-muted">{t("alunos do filtro")}</span></div>
@@ -75,7 +79,7 @@ function Training({ r }: { r: TrainingReport }) {
       <Card className="relative min-w-0 overflow-x-auto">
         <div data-print="hide" className="flex justify-end border-b border-line-subtle px-4 py-2"><Segmented label={t("Ordenar")} value={sort} onChange={setSort} size="sm" options={[{ value: "name", label: t("Nome") }, { value: "compliance", label: t("Menor aderência") }]} /></div>
         <table className="w-full min-w-[760px] text-sm">
-          <thead className="border-b border-line bg-sunken text-left text-xs text-fg-muted"><tr><Th>{t("Aluno")}</Th><Th>{t("Aderência")}</Th><Th right>{t("Feitos")}</Th><Th right>{t("Parciais")}</Th><Th right>{t("Faltas")}</Th><Th right>{t("Planejado")}</Th><Th right>{t("Treinado")}</Th><Th right>{t("Distância")}</Th></tr></thead>
+          <thead className="border-b border-line bg-sunken text-left text-xs text-fg-muted"><tr><Th>{t("Aluno")}</Th><Th>{t("Aderência")}</Th><Th right>{t("Feitos")}</Th><Th right>{t("Parciais")}</Th><Th right>{t("Faltas")}</Th><Th right>{t("Planejado")}</Th>{volume && <><Th right>{t("Treinado")}</Th><Th right>{t("Distância")}</Th></>}</tr></thead>
           <tbody className="divide-y divide-line-subtle">
             {rows.map((a) => (
               <tr key={a.membership_id}>
@@ -85,7 +89,7 @@ function Training({ r }: { r: TrainingReport }) {
                 <td className="px-4 py-2.5 text-right tabular-nums">{a.partial}</td>
                 <td className={cn("px-4 py-2.5 text-right tabular-nums", a.missed > 2 && "font-semibold text-danger-text")}>{a.missed}</td>
                 <td className="px-4 py-2.5 text-right tabular-nums">{duration(a.planned_s)}</td>
-                {a.shares_data ? <><td className="px-4 py-2.5 text-right tabular-nums">{duration(a.done_s)}</td><td className="px-4 py-2.5 text-right tabular-nums">{km(a.distance_m)} km</td></> : <td colSpan={2} className="px-4 py-2.5 text-right text-xs text-fg-muted"><span className="inline-flex items-center gap-1"><ShieldOff className="size-3.5" />{t("não compartilha")}</span></td>}
+                {!volume ? null : a.shares_data ? <><td className="px-4 py-2.5 text-right tabular-nums">{duration(a.done_s)}</td><td className="px-4 py-2.5 text-right tabular-nums">{km(a.distance_m)} km</td></> : <td colSpan={2} className="px-4 py-2.5 text-right text-xs text-fg-muted"><span className="inline-flex items-center gap-1"><ShieldOff className="size-3.5" />{t("não compartilha")}</span></td>}
               </tr>
             ))}
           </tbody>
@@ -97,7 +101,9 @@ function Training({ r }: { r: TrainingReport }) {
 
 const hours = (s: number | null) => (s == null ? null : Math.round((s / 3600) * 10) / 10);
 function csvTraining(club: Club, r: TrainingReport) {
+  // The activity columns only where the club's modalities sync activities (D-052).
+  const volume = has(club, "strava");
   downloadCsv(`${club.slug}-treinos-${r.from}-a-${r.to}.csv`,
-    [t("Aluno"), t("E-mail"), t("Aderência (%)"), t("Planejados"), t("Feitos"), t("Parciais"), t("Não realizados"), t("Horas planejadas"), t("Horas treinadas"), t("Distância (km)"), t("Atividades")],
-    r.athletes.map((a) => [a.user.name, a.user.email, a.compliance_pct, a.planned, a.done, a.partial, a.missed, hours(a.planned_s), hours(a.done_s), a.distance_m == null ? null : Math.round(a.distance_m / 100) / 10, a.activities]));
+    [t("Aluno"), t("E-mail"), t("Aderência (%)"), t("Planejados"), t("Feitos"), t("Parciais"), t("Não realizados"), t("Horas planejadas"), ...(volume ? [t("Horas treinadas"), t("Distância (km)"), t("Atividades")] : [])],
+    r.athletes.map((a) => [a.user.name, a.user.email, a.compliance_pct, a.planned, a.done, a.partial, a.missed, hours(a.planned_s), ...(volume ? [hours(a.done_s), a.distance_m == null ? null : Math.round(a.distance_m / 100) / 10, a.activities] : [])]));
 }

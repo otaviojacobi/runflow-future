@@ -17,7 +17,7 @@
     "dev:design": "node design/serve.mjs",
     "seed": "node api/mock/seed.mjs",
     "check": "npm run check:web && npm run check:backend",
-    "check:web": "npm run check:design && npm run check:api && npm run check -w @runflow/frontend && npm run check -w @runflow/mobile",
+    "check:web": "npm run check:design && npm run check:api && node scripts/check-copies.mjs && npm run check -w @runflow/frontend && npm run check -w @runflow/mobile",
     "check:backend": "bash backend/scripts/check.sh",
     "check:design": "node design/build.mjs --check",
     "check:api": "node api/mock/check.mjs",

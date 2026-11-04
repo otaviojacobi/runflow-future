@@ -17,7 +17,10 @@ Read `../root.md` (§4, §6, §7.4, §7.8) and `../docs/build-plan.md` first. Fu
 ```
 src/
   main.tsx, router.tsx, queryClient.ts, styles.css (Tailwind ↔ tokens), i18n.ts
-  lib/        api client (ApiError), session, theme, storage, format (pt-BR)
+  lib/        api client (ApiError), session, theme, storage, format (pt-BR); features.ts = what a club sees from its
+              modalities (D-052: Aulas, Exercícios, Provas, Strava/Atividades, zones and Avaliações' tests; `has(club,
+              feature)`, `anyClubHas(memberships, feature)` for Perfil, `testsFor`); the app keeps an identical copy
+              (`node scripts/check-copies.mjs`)
   api/        types.ts (mirror of the contract) + one file of query/mutation hooks per domain
   ui/         generic components (Button, Input, Dialog…): no domain knowledge
   components/ domain components (WorkoutCard, IntensityProfile, SportChip…; ActivityMatch = the D-049 question
@@ -41,6 +44,10 @@ src/
   `liveQuery()`: 10 s while the tab is visible, again on focus; Mensagens polls the same way). A new message scrolls
   into view only if the reader was at the end (`followNewest`). The e2e "open workout conversation" test guards it
   (founder, 2026-11-04: a reply never showed on the student's open workout).
+- **The club's modalities decide what shows (D-052)**: every role sees only the features its modalities use. Ask
+  `has(club, "strava" | "zones" | "races" | "exercises" | "classes")` from `lib/features.ts` (nav items carry
+  `feature`); never check `modalities.includes(...)` in a screen. A new modality-specific surface goes into that table
+  first (and the app's copy).
 - **Formats**: always `lib/format.ts` (pace `4:30`, `10,4 km`, `ter, 3 nov`, 24 h). A date in numbers is always
   dd/mm/aaaa (`brDate`), whatever the browser's language: date fields use the kit's `DateInput` (masked dd/mm/aaaa +
   a pt-BR month grid; future years grayed after `max`), never `<input type="date">`, which follows the browser (an

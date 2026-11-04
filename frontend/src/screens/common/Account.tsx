@@ -16,6 +16,7 @@ import { NotificationSettings } from "@/components/account/NotificationSettings"
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { ROLE_LABEL, selectClub, useClub } from "@/lib/club";
+import { anyClubHas, has } from "@/lib/features";
 import { ago, fullDate, localDate, today as todayFn, yearsAgo } from "@/lib/format";
 import { promptInstall, useInstall } from "@/lib/pwa";
 import { getColorMode, setColorMode, type ColorMode } from "@/lib/theme";
@@ -30,16 +31,20 @@ const Section = ({ id, title, description, children, edge }: { id: string; title
 );
 
 // The student's profile links (D-035: Atividades and Provas live here on mobile). Titles only: they say what's behind
-// them (founder, 2026-11-04: the descriptions under them were clutter).
+// them (founder, 2026-11-04: the descriptions under them were clutter). Account-level, so a link or section shows when
+// any of the person's clubs uses it (D-052); "Relógios e apps" also stays while Strava is connected, to disconnect.
 export function AccountScreen() {
   const { me, role } = useClub();
+  const conns = useConnections();
   if (!me) return null;
+  const stravaConnected = !!conns.data?.find((c) => c.provider === "strava")?.connection;
+  const showConnections = anyClubHas(me.memberships, "strava") || stravaConnected;
   return (
     <div className="mx-auto grid max-w-2xl gap-6">
       <PageHeader title={t("Minha conta")} subtitle={me.user.email} />
       {role === "student" && (
         <nav aria-label={t("Seu perfil")} className="grid divide-y divide-line-subtle overflow-hidden rounded-lg border border-line bg-surface shadow-sm">
-          {[{ to: "/account/profile", label: "Perfil de atleta", icon: UserRound }, ...profileLinksFor(role)].map((l) => (
+          {[{ to: "/account/profile", label: "Perfil de atleta", icon: UserRound }, ...profileLinksFor(role, me.memberships)].map((l) => (
             <Link key={l.to} to={l.to} className="flex items-center gap-3 px-4 py-3 hover:bg-soft">
               <span className="grid size-10 place-items-center rounded-full bg-brand-soft text-on-brand-soft"><l.icon className="size-5" /></span>
               <span className="min-w-0 flex-1 font-semibold">{t(l.label)}</span>
@@ -51,7 +56,7 @@ export function AccountScreen() {
       <Profile user={me.user} key={me.user.id} />
       <Appearance />
       <InstallApp />
-      <Section id="connections" title={t("Relógios e apps")} description={t("Seus treinos chegam sozinhos. Desconectar apaga os dados importados.")}><ProviderConnections /></Section>
+      {showConnections && <Section id="connections" title={t("Relógios e apps")} description={t("Seus treinos chegam sozinhos. Desconectar apaga os dados importados.")}><ProviderConnections /></Section>}
       <Notifications />
       <Privacy memberships={me.memberships} />
       <Clubs memberships={me.memberships} />
@@ -166,7 +171,9 @@ function Privacy({ memberships }: { memberships: MembershipContext[] }) {
         <div key={m.club.id} className="grid gap-3 rounded-lg border border-line-subtle p-4">
           <div className="flex items-center gap-2"><ClubLogo club={m.club} branding={m.branding} size={24} /><span className="font-semibold">{m.club.name}</span></div>
           <Switch label={t("Compartilhar meus treinos")} description={t("Treinadores veem atividades, ritmo e frequência cardíaca dos treinos")} checked={!!active("share_training_data", m.club.id)} onCheckedChange={(v) => toggle("share_training_data", m.club.id, v)} />
-          <Switch label={t("Incluir atividades do Strava")} description={t("Exigido pelo Strava para mostrar seus dados a outras pessoas")} checked={!!active("share_strava", m.club.id)} onCheckedChange={(v) => toggle("share_strava", m.club.id, v)} />
+          {(has(m.club, "strava") || !!active("share_strava", m.club.id)) && (
+            <Switch label={t("Incluir atividades do Strava")} description={t("Exigido pelo Strava para mostrar seus dados a outras pessoas")} checked={!!active("share_strava", m.club.id)} onCheckedChange={(v) => toggle("share_strava", m.club.id, v)} />
+          )}
         </div>
       ))}
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line-subtle pt-4">

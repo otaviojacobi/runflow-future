@@ -12,6 +12,7 @@ import { sportBar } from "@/components/sport";
 import { StatusBadge } from "@/components/workout";
 import { t } from "@/i18n";
 import { useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { duration, km, longDate, shortDate } from "@/lib/format";
 import { Avatar, Button, ButtonLink, Card, ProgressBar, Skeleton, cn } from "@/ui";
 import { FEELING } from "./planning/WorkoutDialogs";
@@ -28,13 +29,13 @@ const ALERT_TONE: Record<Dashboard["alerts"][number]["severity"], string> = {
   danger: "bg-danger-soft text-on-danger-soft", warning: "bg-warning-soft text-on-warning-soft", info: "bg-info-soft text-on-info-soft", accent: "bg-accent-soft text-on-accent-soft", brand: "bg-brand-soft text-on-brand-soft",
 };
 
-function Onboarding({ o }: { o: Dashboard["onboarding"] }) {
+function Onboarding({ o, strava }: { o: Dashboard["onboarding"]; strava: boolean }) {
   const items = [
     { ok: o.colors || o.logo, label: t("Personalize o clube com logo e cores"), to: "/club/studio" },
     { ok: o.students, label: t("Convide os primeiros alunos"), to: "/club/members" },
     { ok: o.workouts, label: t("Monte a semana no planejamento"), to: "/planning" },
     { ok: o.groups, label: t("Organize os alunos em grupos"), to: "/students" },
-    { ok: o.strava, label: t("Peça aos alunos para conectar o Strava"), to: "/students" },
+    ...(strava ? [{ ok: o.strava, label: t("Peça aos alunos para conectar o Strava"), to: "/students" }] : []),
   ];
   const done = items.filter((i) => i.ok).length;
   if (done === items.length) return null;
@@ -53,6 +54,9 @@ export function DashboardScreen() {
   const [invite, setInvite] = useState(false);
   if (!club || !me) return null;
   const x = d.data;
+  // Strava's onboarding step and its sync alerts belong to the endurance modalities (D-052).
+  const strava = has(club, "strava");
+  const alerts = (x?.alerts ?? []).filter((al) => strava || al.kind !== "no_sync");
   return (
     <div className="mx-auto grid max-w-6xl gap-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
@@ -61,7 +65,7 @@ export function DashboardScreen() {
       </header>
       {!x ? <div className="grid gap-4 sm:grid-cols-4">{Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-24" />)}<Skeleton className="h-72 sm:col-span-4" /></div> : (
         <>
-          <Onboarding o={x.onboarding} />
+          <Onboarding o={x.onboarding} strava={strava} />
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Kpi label={t("Treinos hoje")} value={`${x.today.done}/${x.today.planned}`} sub={x.today.planned ? t("feitos até agora") : t("nenhum treino hoje")} to="/planning" />
             <Kpi label={t("Aderência da semana")} value={x.week.compliance_pct != null ? `${x.week.compliance_pct}%` : "–"} sub={t("{done} de {planned} treinos", { done: x.week.done, planned: x.week.planned })} />
@@ -94,9 +98,9 @@ export function DashboardScreen() {
             <div className="grid content-start gap-6">
               <Card className="grid gap-3 p-5">
                 <h2 className="rf-text-title-md">{t("Atenção")}</h2>
-                {x.alerts.length === 0 ? <p className="flex items-center gap-2 text-fg-muted"><Check className="size-5 text-success-text" />{t("Tudo em dia por aqui.")}</p> : (
+                {alerts.length === 0 ? <p className="flex items-center gap-2 text-fg-muted"><Check className="size-5 text-success-text" />{t("Tudo em dia por aqui.")}</p> : (
                   <ul className="grid gap-2">
-                    {x.alerts.map((al, i) => { const I = ALERT_ICON[al.kind] ?? Info; return (
+                    {alerts.map((al, i) => { const I = ALERT_ICON[al.kind] ?? Info; return (
                       <li key={i}><Link to={al.link} className="flex items-start gap-3 rounded-md p-1.5 hover:bg-soft"><span className={cn("grid size-8 shrink-0 place-items-center rounded-full", ALERT_TONE[al.severity])}><I className="size-4" /></span><span className="pt-1 text-sm">{al.text}</span></Link></li>
                     ); })}
                   </ul>

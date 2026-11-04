@@ -10,6 +10,7 @@ import { ZoneTable } from "@/components/workout";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { clock, fullDate, pace } from "@/lib/format";
 import { Button, Card, DateInput, Field, Input, PageHeader, Select, Skeleton, toast } from "@/ui";
 import { GOALS, LEVELS, parseTime } from "../onboarding/Welcome";
@@ -24,12 +25,17 @@ export function ProfileScreen() {
     <div className="mx-auto grid max-w-2xl gap-6">
       <Link to="/account" className="inline-flex w-fit items-center gap-1.5 text-sm font-semibold text-fg-muted hover:text-fg"><ArrowLeft className="size-4" />{t("Minha conta")}</Link>
       <PageHeader title={t("Perfil de atleta")} subtitle={t("Ajuda {who} a montar treinos do seu jeito em {club}.", { who: club.trainer_label === "professor" ? t("seu professor") : t("seu treinador"), club: club.name })} />
-      {!p.data ? <Skeleton className="h-96" /> : <><Form clubId={club.id} p={p.data} key={p.data.updated_at} /><Zones p={p.data} label={club.trainer_label} /><MyAssessments clubId={club.id} /></>}
+      {!p.data ? <Skeleton className="h-96" /> : <>
+        <Form clubId={club.id} p={p.data} key={p.data.updated_at} races={has(club, "races")} zones={has(club, "zones")} />
+        {has(club, "zones") && <Zones p={p.data} label={club.trainer_label} />}
+        <MyAssessments clubId={club.id} />
+      </>}
     </div>
   );
 }
 
-function Form({ clubId, p }: { clubId: string; p: AthleteProfile }) {
+/** `races`/`zones`: the race date, the recent race (pace estimate) and heart rate only for the club's modalities (D-052). */
+function Form({ clubId, p, races, zones }: { clubId: string; p: AthleteProfile; races: boolean; zones: boolean }) {
   const save = useSaveMyProfile(clubId);
   const [v, setV] = useState({
     goal: p.goal ?? "", goal_note: p.goal_note ?? "", goal_date: p.goal_date ?? "", level: p.level ?? "", weekly_sessions: p.weekly_sessions?.toString() ?? "",
@@ -52,17 +58,19 @@ function Form({ clubId, p }: { clubId: string; p: AthleteProfile }) {
         {v.goal === "other" && (
           <Field label={t("Qual é o seu objetivo?")} error={err?.fieldError("goal_note")} className="sm:col-span-2">{(id) => <Input id={id} value={v.goal_note} onChange={(e) => set({ goal_note: e.target.value })} maxLength={120} placeholder={t("Ex.: voltar a correr depois de uma lesão")} />}</Field>
         )}
-        <Field label={t("Data da prova")} optional error={err?.fieldError("goal_date")}>{(id) => <DateInput id={id} value={v.goal_date} onChange={(goal_date) => set({ goal_date })} />}</Field>
+        {races && <Field label={t("Data da prova")} optional error={err?.fieldError("goal_date")}>{(id) => <DateInput id={id} value={v.goal_date} onChange={(goal_date) => set({ goal_date })} />}</Field>}
         <Field label={t("Nível")} error={err?.fieldError("level")}>{(id) => <Select id={id} value={v.level} onChange={(e) => set({ level: e.target.value })}><option value="">{t("Escolha…")}</option>{LEVELS.map((l) => <option key={l.value} value={l.value}>{t(l.label)}</option>)}</Select>}</Field>
         <Field label={t("Treinos por semana")} error={err?.fieldError("weekly_sessions")}>{(id) => <Input id={id} type="number" min={0} max={14} value={v.weekly_sessions} onChange={(e) => set({ weekly_sessions: e.target.value })} />}</Field>
 
-        <h2 className="mt-2 rf-text-title-md sm:col-span-2">{t("Prova recente")}</h2>
-        <Field label={t("Distância")}>{(id) => <Select id={id} value={v.race_m} onChange={(e) => set({ race_m: Number(e.target.value) })}>{RACES.map((r) => <option key={r.m} value={r.m}>{t(r.label)}</option>)}</Select>}</Field>
-        <Field label={t("Tempo")} optional error={err?.fieldError("recent_race") ?? (v.race_time && !raceS ? t("Use o formato 52:30 ou 1:45:10.") : null)} hint={t("Usamos para estimar seu ritmo de limiar.")}>{(id, d) => <Input id={id} aria-describedby={d} value={v.race_time} onChange={(e) => set({ race_time: e.target.value })} placeholder="52:30" inputMode="numeric" />}</Field>
+        {zones && <>
+          <h2 className="mt-2 rf-text-title-md sm:col-span-2">{t("Prova recente")}</h2>
+          <Field label={t("Distância")}>{(id) => <Select id={id} value={v.race_m} onChange={(e) => set({ race_m: Number(e.target.value) })}>{RACES.map((r) => <option key={r.m} value={r.m}>{t(r.label)}</option>)}</Select>}</Field>
+          <Field label={t("Tempo")} optional error={err?.fieldError("recent_race") ?? (v.race_time && !raceS ? t("Use o formato 52:30 ou 1:45:10.") : null)} hint={t("Usamos para estimar seu ritmo de limiar.")}>{(id, d) => <Input id={id} aria-describedby={d} value={v.race_time} onChange={(e) => set({ race_time: e.target.value })} placeholder="52:30" inputMode="numeric" />}</Field>
 
-        <h2 className="mt-2 rf-text-title-md sm:col-span-2">{t("Frequência cardíaca")}</h2>
-        <Field label={t("FC máxima (bpm)")} optional>{(id) => <Input id={id} type="number" min={120} max={230} value={v.max_hr} onChange={(e) => set({ max_hr: e.target.value })} />}</Field>
-        <Field label={t("FC de repouso (bpm)")} optional>{(id) => <Input id={id} type="number" min={30} max={110} value={v.resting_hr} onChange={(e) => set({ resting_hr: e.target.value })} />}</Field>
+          <h2 className="mt-2 rf-text-title-md sm:col-span-2">{t("Frequência cardíaca")}</h2>
+          <Field label={t("FC máxima (bpm)")} optional>{(id) => <Input id={id} type="number" min={120} max={230} value={v.max_hr} onChange={(e) => set({ max_hr: e.target.value })} />}</Field>
+          <Field label={t("FC de repouso (bpm)")} optional>{(id) => <Input id={id} type="number" min={30} max={110} value={v.resting_hr} onChange={(e) => set({ resting_hr: e.target.value })} />}</Field>
+        </>}
         <div className="flex justify-end sm:col-span-2"><Button type="submit" loading={save.isPending} disabled={!!v.race_time && !raceS}>{t("Salvar perfil")}</Button></div>
       </form>
     </Card>
