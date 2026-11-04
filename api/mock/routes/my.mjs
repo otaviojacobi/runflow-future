@@ -63,7 +63,8 @@ export default function register(h) {
       const taken = new Set(h.db.workout_completions.map((x) => x.activity_id).filter(Boolean));
       const best = h.db.activities
         .filter((a) => a.user_id === m.user_id && !taken.has(a.id) && a.match_state !== "dismissed" && h.activityDay(a.started_at) === p.date)
-        .map((a) => ({ a, cost: cost({ ...a, day: p.date }, p) }))
+        // Only an activity shared with this club (D-011); sending activity_id is the student's own call.
+        .map((a) => ({ a, cost: cost({ ...a, day: p.date, clubs: h.sharedClubs(m.user_id, a.source) }, p) }))
         .filter((x) => x.cost != null)
         .sort((x, y) => x.cost - y.cost)[0];
       if (best) [activityId, by] = [best.a.id, "auto"];

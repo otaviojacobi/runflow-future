@@ -140,11 +140,17 @@ function Privacy({ memberships }: { memberships: MembershipContext[] }) {
   const active = (kind: ConsentKind, clubId: string | null) => consents.data?.find((c) => c.kind === kind && c.club_id === clubId && !c.revoked_at);
   const terms = active("terms", null), privacy = active("privacy", null);
   const studentClubs = memberships.filter((m) => m.membership.role === "student");
+  // Turning sharing off asks first: the club stops seeing the data and is told so (D-011).
+  const [pending, setPending] = useState<{ id: string; kind: ConsentKind; club: string } | null>(null);
   const toggle = (kind: ConsentKind, clubId: string, on: boolean) => {
     const c = active(kind, clubId);
     if (on) grant.mutate({ kind, club_id: clubId }, { onSuccess: () => toast.success(t("Compartilhamento ativado")), onError: toast.error });
-    else if (c) revoke.mutate(c.id, { onSuccess: () => toast.success(t("Compartilhamento desativado"), t("O clube deixa de ver esses dados a partir de agora.")), onError: toast.error });
+    else if (c) setPending({ id: c.id, kind, club: studentClubs.find((m) => m.club.id === clubId)?.club.name ?? "" });
   };
+  const confirmRevoke = () => pending && revoke.mutate(pending.id, {
+    onSuccess: () => { setPending(null); toast.success(t("Compartilhamento desativado"), t("O clube deixa de ver esses dados a partir de agora.")); },
+    onError: toast.error,
+  });
   const download = async () => {
     setExporting(true);
     try {
@@ -168,6 +174,11 @@ function Privacy({ memberships }: { memberships: MembershipContext[] }) {
         <p className="flex items-center gap-2 text-sm text-fg-muted"><ShieldCheck className="size-4 shrink-0" />{terms && privacy ? t("Termos e política de privacidade aceitos em {d}", { d: fullDate(localDate(terms.granted_at)) }) : t("Termos e política de privacidade")}</p>
         <Button variant="secondary" icon={<Download />} loading={exporting} onClick={download}>{t("Baixar meus dados")}</Button>
       </div>
+      <Dialog open={!!pending} onOpenChange={(v) => !v && setPending(null)} size="sm" title={t("Parar de compartilhar com {club}?", { club: pending?.club ?? "" })}
+        description={pending?.kind === "share_strava"
+          ? t("Seus treinadores deixam de ver suas atividades do Strava, e elas não marcam mais os treinos deste clube sozinhas. O clube vai ver que você parou de compartilhar. Você pode voltar a compartilhar quando quiser.")
+          : t("Seus treinadores deixam de ver suas atividades, ritmo e frequência cardíaca, e elas não marcam mais os treinos deste clube sozinhas. O clube vai ver que você parou de compartilhar. Você pode voltar a compartilhar quando quiser.")}
+        footer={<><Button variant="ghost" onClick={() => setPending(null)}>{t("Voltar")}</Button><Button variant="danger" loading={revoke.isPending} onClick={confirmRevoke}>{t("Parar de compartilhar")}</Button></>} />
     </Section>
   );
 }

@@ -80,9 +80,10 @@ export default function register(h) {
     const me = ctx.staff(ctx.params.club_id);
     const pw = get(ctx.params.club_id, ctx.params.id);
     const m = h.db.memberships.find((x) => x.id === pw.athlete_membership_id);
-    const shared = h.db.consents.some((c) => c.user_id === m.user_id && c.club_id === pw.club_id && c.kind === "share_training_data" && !c.revoked_at);
     const c = comp(pw.id);
-    const activity = shared && c?.activity_id ? h.db.activities.find((a) => a.id === c.activity_id) : null;
+    // The linked activity only with the student's consent: training data, plus the provider's for a synced one (D-011).
+    const linked = c?.activity_id ? h.db.activities.find((a) => a.id === c.activity_id) : null;
+    const activity = linked && h.staffSees(m.user_id, pw.club_id, linked.source) ? linked : null;
     return { ...h.workoutOut(pw, me.id), athlete: { membership_id: m.id, user: h.publicUser(h.db.users.find((u) => u.id === m.user_id)) }, activity: activity || null };
   });
   h.patch("/v1/clubs/:club_id/planned-workouts/:id", (ctx) => {

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT a.id, (a.started_at AT TIME ZONE $2)::date AS \"day!\", a.sport, a.distance_m, a.duration_s, a.moving_time_s, a.started_at\n             FROM activities a\n            WHERE a.user_id = $1 AND a.match_state <> 'dismissed' AND (a.started_at AT TIME ZONE $2)::date = $3\n              AND NOT EXISTS (SELECT 1 FROM workout_completions c WHERE c.activity_id = a.id)\n            ORDER BY a.started_at, a.id",
+  "query": "SELECT a.id, (a.started_at AT TIME ZONE $2)::date AS \"day!\", a.sport, a.source, a.distance_m, a.duration_s, a.moving_time_s, a.started_at\n             FROM activities a\n            WHERE a.user_id = $1 AND a.match_state <> 'dismissed' AND (a.started_at AT TIME ZONE $2)::date = $3\n              AND NOT EXISTS (SELECT 1 FROM workout_completions c WHERE c.activity_id = a.id)\n            ORDER BY a.started_at, a.id",
   "describe": {
     "columns": [
       {
@@ -33,6 +33,17 @@
       },
       {
         "ordinal": 3,
+        "name": "source",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "activities",
+            "name": "source"
+          }
+        }
+      },
+      {
+        "ordinal": 4,
         "name": "distance_m",
         "type_info": "Int4",
         "origin": {
@@ -43,7 +54,7 @@
         }
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "duration_s",
         "type_info": "Int4",
         "origin": {
@@ -54,7 +65,7 @@
         }
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "moving_time_s",
         "type_info": "Int4",
         "origin": {
@@ -65,7 +76,7 @@
         }
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "started_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -87,11 +98,12 @@
       false,
       null,
       false,
+      false,
       true,
       false,
       true,
       false
     ]
   },
-  "hash": "522c45ba9da1e46d8403c524e8972bf24ecebdabdac6b785374880a02646bed3"
+  "hash": "61d876868fff4ede87d9cab9f8257b6a2074e281566faf713bcba5eaef115e53"
 }

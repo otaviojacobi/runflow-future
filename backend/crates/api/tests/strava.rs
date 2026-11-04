@@ -457,6 +457,16 @@ async fn synced_runs_are_matched_to_the_plan(db: PgPool) {
         .as_str()
         .unwrap()
         .to_string();
+    // Ana shares her training data and her Strava with the club, as the welcome flow asks (D-011).
+    for kind in ["share_training_data", "share_strava"] {
+        app.post(
+            "/v1/me/consents",
+            Some(&ana),
+            json!({ "kind": kind, "club_id": club }),
+        )
+        .await
+        .ok();
+    }
     // A 6 km run planned on the day the fake's new run happens (09:20 UTC is 06:20 in São Paulo, same date).
     let day = chrono::Utc::now().date_naive().to_string();
     let structure = json!({ "v": 1, "blocks": [{ "kind": "step", "intent": "active", "duration": { "type": "distance", "m": 6000 },

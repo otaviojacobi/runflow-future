@@ -37,6 +37,14 @@ export default function register(h) {
   h.unlinkCompletion = unlink;
   h.clearMatchOptions = clearOptions;
 
+  // ---- sharing (§5, D-011): what a club's staff may see of a student's activities
+  const consented = (userId, clubId, kind) => h.db.consents.some((c) => c.user_id === userId && c.club_id === clubId && c.kind === kind && !c.revoked_at);
+  const SYNCED = ["strava", "garmin"];
+  /** Staff of `clubId` may see an activity of `source`: training data shared and, if synced, that provider too. */
+  h.staffSees = (userId, clubId, source) => consented(userId, clubId, "share_training_data") && (!SYNCED.includes(source) || consented(userId, clubId, `share_${source}`));
+  /** The clubs an activity of `source` may complete workouts of (the engine's `clubs`). */
+  h.sharedClubs = (userId, source) => [...new Set(h.db.memberships.filter((m) => m.user_id === userId).map((m) => m.club_id))].filter((c) => h.staffSees(userId, c, source));
+
   /** Re-runs the engine for one student around the days [from, to] (docs/activity-matching.md § When it runs). */
   h.rematch = (userId, from, to = from) => {
     // Automatic completions whose activity is gone.
@@ -52,7 +60,8 @@ export default function register(h) {
       if (c.status === "missed" || c.status === "skipped") return false;
       return !c.activity_id || (c.matched_by === "auto" && inScope.has(c.activity_id));
     });
-    const { links, pending } = solve({ today: h.today(), activities: acts.map((a) => ({ ...a, day: dayOf(a.started_at) })), workouts: works });
+    // Each activity only to the clubs the student shares it with (D-011).
+    const { links, pending } = solve({ today: h.today(), activities: acts.map((a) => ({ ...a, day: dayOf(a.started_at), clubs: h.sharedClubs(userId, a.source) })), workouts: works });
     const want = new Map(links.map((l) => [l.activity_id, l.workout_id]));
     for (const a of acts) {
       const c = compOfAct(a.id);

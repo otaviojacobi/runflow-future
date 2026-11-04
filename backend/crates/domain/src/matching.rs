@@ -38,6 +38,9 @@ pub struct Act {
     pub duration_s: i64,
     #[serde(default)]
     pub moving_time_s: Option<i64>,
+    /// The clubs this activity may be matched to (the ones the student shares it with, D-011); `None` = any.
+    #[serde(default)]
+    pub clubs: Option<Vec<String>>,
 }
 
 /// A planned workout as the engine sees it.
@@ -50,6 +53,8 @@ pub struct Planned {
     pub est_distance_m: Option<i64>,
     #[serde(default)]
     pub est_duration_s: Option<i64>,
+    #[serde(default)]
+    pub club_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -110,6 +115,12 @@ pub fn compliance(act: &Act, w: &Planned) -> i32 {
 
 /// How unlikely it is that `act` was `w` (lower is likelier), or `None` when it can't have been.
 pub fn cost(act: &Act, w: &Planned) -> Option<i64> {
+    // Only a club the student shares this activity with may see it completing one of its workouts (D-011).
+    if let Some(clubs) = &act.clubs
+        && !w.club_id.as_ref().is_some_and(|c| clubs.contains(c))
+    {
+        return None;
+    }
     if !compatible(&act.sport, &w.sport) {
         return None;
     }

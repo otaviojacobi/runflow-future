@@ -63,6 +63,7 @@ Activities are matched to planned workouts by an engine (rules: `docs/activity-m
 - Activity JSON (`/me/activities`, the trainer's views): `matched_workout` `{id, title, date, club_id, compliance_pct, est_distance_m, est_duration_s, matched_by}` or null, and `match_options` `[{id, title, date, club_id, sport, est_distance_m, est_duration_s}]`. In lists `match_options` is filled only for `pending` activities; the student's activity detail always fills it (the pending choices, else the student's visible workouts of a compatible sport within 3 days, nearest first) for "Trocar treino".
 - Completion JSON gains `matched_by` (`auto` = the engine, `student` = chosen by the student, null without an activity) and `reported_at` (when the student sent feedback; null while only matched automatically). A completion made by the engine has the status from compliance (`completed` at ≥ 80%, else `partial`) and no PSE, feeling or comment.
 - One activity completes at most one workout. A link the student made is never changed by the engine.
+- **Consent (D-011).** The engine links an activity (or offers it as a question) only to workouts of clubs the student shares it with: `share_training_data` for that club and, for a synced activity, that provider too (`share_strava`). The completion route's same-day pick follows the same rule; the student's own choices (`PUT /me/activities/{id}/match`, `activity_id` on the completion) don't, since they're the student's report. Granting or revoking a sharing consent, or leaving a club, matches the last 30 days again, so automatic links follow the consent.
 
 ## Notifications (D-045)
 
@@ -146,7 +147,7 @@ Every notification lands in the app: the notification center (W11) and the unrea
 ### Athletes (trainer view) and dashboard
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
-| GET | `/clubs/{club_id}/dashboard?date` | `{date, students, today: {planned, done, items}, week: {planned, done, compliance_pct, duration_s, distance_m}, compliance_trend[8], feedback[], alerts[] (missed_streak, high_rpe, no_sync, birthday, new_member, plan_limit; pt-BR text + link), onboarding{logo, colors, students, workouts, groups, strava}, subscription}` | W1 |
+| GET | `/clubs/{club_id}/dashboard?date` | `{date, students, today: {planned, done, items}, week: {planned, done, compliance_pct, duration_s, distance_m}, compliance_trend[8], feedback[], alerts[] (missed_streak, high_rpe, no_sync, birthday, new_member, plan_limit, sharing_off; pt-BR text + link; `sharing_off`: the student turned off `share_training_data` or `share_strava` for this club in the last 14 days and it's still off, "Ana Souza parou de compartilhar o Strava" / "…os treinos", training data said first), onboarding{logo, colors, students, workouts, groups, strava}, subscription}` | W1 |
 | GET | `/clubs/{club_id}/athletes?q&group_id` | `{membership, user, group_ids, goal, level, compliance_pct (28 d, partial = ½), week: {planned, done}, last_activity_at (only with consent), strava: none\|private\|shared, shares_data}` | W2, W4 |
 | GET | `/clubs/{club_id}/athletes/{membership_id}` | Summary + `profile` (with trainer notes), latest `zones` (pace, hr), `consents {training_data, strava}`, `weekly[12] {week_start, planned_s, done_s, distance_m, sessions}`, `recent_activities` (consent-aware), `groups` | W3 |
 | PUT | `/clubs/{club_id}/athletes/{membership_id}/profile` | Goal, level, physiology, trainer notes | W3 |
@@ -161,7 +162,7 @@ Every notification lands in the app: the notification center (W11) and the unrea
 | GET / PATCH / DELETE | `/clubs/{club_id}/templates/{id}` | Template CRUD (delete = archive) | W5, W6 |
 | GET | `/clubs/{club_id}/planned-workouts?from&to&athlete_id&group_id` | Calendar data: rows + `completion` + `comments_count` + `unread_count` (for the caller) + `visible` (the student can see it now, § Week release) | W4, W3 |
 | POST | `/clubs/{club_id}/planned-workouts` `{athlete_ids \| group_id, dates[], template_id? \| {sport,title,structure,notes}}` | Assign (bulk). Students are notified (`workout_assigned`) only about workouts they can already see | W4, W5, A5 |
-| GET / PATCH / DELETE | `/clubs/{club_id}/planned-workouts/{id}` | GET adds `athlete` and the linked `activity` (only with consent). PATCH edits or moves (date); the student is notified (`workout_changed`) if they can see it | W4 |
+| GET / PATCH / DELETE | `/clubs/{club_id}/planned-workouts/{id}` | GET adds `athlete` and the linked `activity` (only with consent: the student shares training data with the club and, for a synced activity, that provider too, e.g. `share_strava`; else null). PATCH edits or moves (date); the student is notified (`workout_changed`) if they can see it | W4 |
 | POST | `/clubs/{club_id}/planned-workouts/copy-week` `{from_monday, to_monday, athlete_ids?}` | Copy a week (all students if no ids) → `{copied}` | W4 |
 | GET | `/clubs/{club_id}/weeks/{week_start}` | Release state of a week (staff): `{week_start, release_mode, started, released_at, released_athlete_ids, auto_release_at, drafts}`. `released_at`: released to everyone (else null); `released_athlete_ids`: released to some students only; `auto_release_at`: when it will be released automatically (null if off, released or started); `drafts`: workouts students can't see yet. `week_start` must be a Monday (`400 week.invalid`) | W4 |
 | POST | `/clubs/{club_id}/weeks/{week_start}/release` `{athlete_ids? \| group_id?, notify?}` | Release the week (staff): to everyone without ids, or to some students. `notify` (default true): one `week_released` notification per newly released student with workouts that week. → the week state. `409 week.started` (already visible), `409 week.release_off` (club in `immediate` mode) | W4 |
@@ -197,7 +198,7 @@ Staff only. Responses carry `source`: `rules` (the deterministic rules engine, i
 ### Reports
 | Method | Path | Purpose | Screens |
 |---|---|---|---|
-| GET | `/clubs/{club_id}/reports/training?from&to&group_id` | Period ≤ 1 year (default: last 28 days). `totals`, `weekly[]` (same shape as the dashboard trend) and `athletes[] {planned, done, partial, missed, compliance_pct, planned_s, shares_data, activities, done_s, distance_m}`. Activity volume only for students who share training data (else null) | W16 |
+| GET | `/clubs/{club_id}/reports/training?from&to&group_id` | Period ≤ 1 year (default: last 28 days). `totals`, `weekly[]` (same shape as the dashboard trend) and `athletes[] {planned, done, partial, missed, compliance_pct, planned_s, shares_data, activities, done_s, distance_m}`. Activity volume only for students who share training data (else null), and Strava activities only when Strava is shared with the club too (D-011) | W16 |
 
 Exports are built by the app from these payloads: CSV (`;`-separated, decimal comma, UTF-8 BOM for Excel) and PDF via the print stylesheet.
 

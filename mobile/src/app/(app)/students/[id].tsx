@@ -87,7 +87,7 @@ function Student({ id, q }: { id: string; q: ReturnType<typeof useAthlete> }) {
       <View style={{ gap: theme.space[3] }}>
         <View style={[styles.row, styles.stretch, { gap: theme.space[3] }]}>
           <Card style={[styles.flex, { padding: theme.space[4], gap: theme.space[2] }]}>
-            <Text variant="caption" tone="muted">{a.shares_data ? t("Aderência 28 dias") : t("Aderência: sem consentimento")}</Text>
+            <Text variant="caption" tone="muted">{a.shares_data ? t("Aderência 28 dias") : t("Aderência: não compartilha os treinos")}</Text>
             {a.shares_data ? <ComplianceBar pct={a.compliance_pct} /> : <Text variant="titleMd">–</Text>}
           </Card>
           <Card style={[styles.flex, { padding: theme.space[4] }]}><Stat value={`${a.week.done}/${a.week.planned}`} label={t("Nesta semana")} /></Card>
@@ -128,8 +128,8 @@ function Header({ a, onAssign }: { a: AthleteDetail; onAssign: () => void }) {
       </View>
       <View style={[styles.row, styles.wrap, { gap: theme.space["1.5"] }]}>
         {a.groups.map((g) => <Badge key={g.id}>{g.name}</Badge>)}
-        {a.consents.training_data ? <Badge tone="success" icon={ShieldCheck}>{t("Compartilha dados")}</Badge> : <Badge tone="warning" icon={ShieldOff}>{t("Sem consentimento")}</Badge>}
-        {a.strava !== "none" && <Badge tone={a.strava === "shared" ? "info" : "neutral"}>{a.strava === "shared" ? t("Strava compartilhado") : t("Strava privado")}</Badge>}
+        {a.consents.training_data ? <Badge tone="success" icon={ShieldCheck}>{t("Compartilha dados")}</Badge> : <Badge tone="warning" icon={ShieldOff}>{t("Não compartilha os treinos")}</Badge>}
+        {a.strava !== "none" && <Badge tone={a.strava === "shared" ? "info" : "neutral"}>{a.strava === "shared" ? t("Strava compartilhado") : t("Não compartilha o Strava")}</Badge>}
       </View>
       <View style={[styles.row, { gap: theme.space[2] }]}>
         <Button icon={Plus} onPress={onAssign} style={styles.flex}>{t("Atribuir treino")}</Button>

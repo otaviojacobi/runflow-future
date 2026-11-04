@@ -68,7 +68,11 @@ pub async fn athletes(
              CROSS JOIN LATERAL (
                SELECT count(*) AS n, coalesce(sum(x.duration_s), 0)::bigint AS secs, coalesce(sum(x.distance_m), 0)::bigint AS meters
                  FROM activities x
-                WHERE x.user_id = m.user_id AND (x.started_at AT TIME ZONE $6)::date BETWEEN $3 AND $4) a
+                WHERE x.user_id = m.user_id AND (x.started_at AT TIME ZONE $6)::date BETWEEN $3 AND $4
+                  -- A synced activity counts only when its provider is shared with the club too (D-011).
+                  AND (x.source NOT IN ('strava', 'garmin')
+                       OR EXISTS (SELECT 1 FROM consents k WHERE k.user_id = m.user_id AND k.club_id = m.club_id
+                                     AND k.kind = 'share_' || x.source AND k.revoked_at IS NULL))) a
             WHERE m.club_id = $1 AND m.role = 'student' AND m.status = 'active'
               AND ($2::uuid IS NULL OR EXISTS (SELECT 1 FROM group_members g WHERE g.group_id = $2 AND g.membership_id = m.id))
             ORDER BY u.name, m.id"#,

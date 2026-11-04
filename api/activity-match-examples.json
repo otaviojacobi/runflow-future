@@ -675,6 +675,80 @@
         ],
         "pending": []
       }
+    },
+    {
+      "name": "Not shared with the club of the only workout: not linked",
+      "comment": "The student doesn't share this activity (training data, or Strava for a Strava activity) with the club, so it can't complete that club's workout (D-011).",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 8000,
+          "est_duration_s": 2880,
+          "club_id": "club-a"
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "run",
+          "duration_s": 2900,
+          "distance_m": 8100,
+          "clubs": []
+        }
+      ],
+      "expect": {
+        "links": [],
+        "pending": []
+      }
+    },
+    {
+      "name": "Two clubs, shared with one: linked to that club's workout",
+      "comment": "A student training with two clubs shares Strava only with club B: the run goes to club B's workout even though club A's fits better.",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-a",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 8000,
+          "est_duration_s": 2880,
+          "club_id": "club-a"
+        },
+        {
+          "id": "w-b",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 10000,
+          "est_duration_s": 3600,
+          "club_id": "club-b"
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "run",
+          "duration_s": 2900,
+          "distance_m": 8100,
+          "clubs": [
+            "club-b"
+          ]
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "activity_id": "a-tue",
+            "workout_id": "w-b",
+            "compliance_pct": 81
+          }
+        ],
+        "pending": []
+      }
     }
   ]
 }

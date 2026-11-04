@@ -42,6 +42,14 @@ export default function register(h) {
       if (hard >= 2) alerts.push({ kind: "high_rpe", severity: "warning", athlete: { membership_id: m.id, user: u }, text: `${u.name} relatou esforço muito alto em ${hard} treinos seguidos`, link: `/students/${m.id}` });
       const conn = h.db.provider_connections.find((c) => c.user_id === m.user_id && c.provider === "strava" && c.status === "active");
       if (conn && conn.last_sync_at && h.daysBetween(conn.last_sync_at.slice(0, 10), today) >= 7) alerts.push({ kind: "no_sync", severity: "info", athlete: { membership_id: m.id, user: u }, text: `O Strava de ${u.name} não sincroniza há mais de 7 dias`, link: `/students/${m.id}` });
+      // Sharing turned off in the last 14 days and still off (D-011: the club sees it). Training data off hides
+      // everything, so it's the one said.
+      const stopped = (kind) => {
+        const cs = h.db.consents.filter((c) => c.user_id === m.user_id && c.club_id === clubId && c.kind === kind);
+        return !cs.some((c) => !c.revoked_at) && cs.some((c) => c.revoked_at && Date.parse(c.revoked_at) >= Date.now() - 14 * 86400000);
+      };
+      if (stopped("share_training_data")) alerts.push({ kind: "sharing_off", severity: "warning", athlete: { membership_id: m.id, user: u }, text: `${u.name} parou de compartilhar os treinos`, link: `/students/${m.id}` });
+      else if (stopped("share_strava")) alerts.push({ kind: "sharing_off", severity: "warning", athlete: { membership_id: m.id, user: u }, text: `${u.name} parou de compartilhar o Strava`, link: `/students/${m.id}` });
       if (u.birth_date && u.birth_date.slice(5) >= today.slice(5) && u.birth_date.slice(5) <= h.addDays(today, 6).slice(5)) alerts.push({ kind: "birthday", severity: "accent", athlete: { membership_id: m.id, user: u }, text: `Aniversário de ${u.name} em ${u.birth_date.slice(8)}/${u.birth_date.slice(5, 7)}`, link: `/students/${m.id}` });
       if (h.daysBetween(m.joined_at.slice(0, 10), today) <= 3 && !planned.some((p) => p.athlete_membership_id === m.id && p.date >= today)) alerts.push({ kind: "new_member", severity: "brand", athlete: { membership_id: m.id, user: u }, text: `${u.name} entrou e ainda não tem treinos`, link: "/planning" });
     }

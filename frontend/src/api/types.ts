@@ -149,7 +149,7 @@ export interface Dashboard {
   week: { planned: number; done: number; compliance_pct: number | null; duration_s: number; distance_m: number };
   compliance_trend: { week_start: ISODate; pct: number | null; planned: number; done: number; current: boolean }[];
   feedback: { workout: PlannedWorkout; athlete: AthleteRef; last_comment: Omit<Comment, "author"> | null }[];
-  alerts: { kind: "missed_streak" | "high_rpe" | "no_sync" | "birthday" | "new_member" | "plan_limit"; severity: "danger" | "warning" | "info" | "accent" | "brand"; athlete: AthleteRef | null; text: string; link: string }[];
+  alerts: { kind: "missed_streak" | "high_rpe" | "no_sync" | "birthday" | "new_member" | "plan_limit" | "sharing_off"; severity: "danger" | "warning" | "info" | "accent" | "brand"; athlete: AthleteRef | null; text: string; link: string }[];
   onboarding: { logo: boolean; colors: boolean; students: boolean; workouts: boolean; groups: boolean; strava: boolean };
   subscription: Subscription;
 }

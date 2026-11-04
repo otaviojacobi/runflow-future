@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-04T11:03:38.949Z",
+  "generated_at": "2026-11-04T12:18:39.408Z",
   "version": 1
  },
  "users": [
@@ -915,6 +915,15 @@
    "id": "c2e0cabc-4039-4248-a5d3-72a395677b2a",
    "user_id": "47fe2772-687e-4bef-af0d-8eae75eeecac",
    "club_id": "e26a6954-6ecb-4205-adcb-bc07fc66b769",
+   "kind": "share_strava",
+   "text_version": "2026-10",
+   "granted_at": "2026-08-24T13:00:00.000Z",
+   "revoked_at": null
+  },
+  {
+   "id": "54b34d9f-8b7d-4b23-ad28-c704ba86b13d",
+   "user_id": "47fe2772-687e-4bef-af0d-8eae75eeecac",
+   "club_id": "c3da5abf-0ea4-43dd-ac57-f9bfa5861b1b",
    "kind": "share_strava",
    "text_version": "2026-10",
    "granted_at": "2026-08-24T13:00:00.000Z",

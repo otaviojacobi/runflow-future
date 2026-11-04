@@ -689,6 +689,10 @@ async fn dashboard_json(state: &AppState, m: &Member, q: DashQuery) -> Result<Va
             .await?
             .into_iter()
             .collect();
+    // Students who turned sharing off in the last 14 days (D-011: the club sees it).
+    let stopped =
+        db::sharing_stopped(&state.db, m.club_id, Utc::now() - Duration::days(14)).await?;
+    let stopped_kind = |mid: Uuid, kind: &str| stopped.iter().any(|(m, k)| *m == mid && k == kind);
     for s in &students {
         let (name, mid) = (&s.user.name, s.membership.id);
         let athlete = user_of.get(&mid).cloned();
@@ -717,6 +721,12 @@ async fn dashboard_json(state: &AppState, m: &Member, q: DashQuery) -> Result<Va
             && (today - last.date_naive()).num_days() >= 7
         {
             alerts.push(json!({ "kind": "no_sync", "severity": "info", "athlete": athlete, "text": format!("O Strava de {name} não sincroniza há mais de 7 dias"), "link": link }));
+        }
+        // Training data off hides everything, so it's the one said.
+        if stopped_kind(mid, "share_training_data") {
+            alerts.push(json!({ "kind": "sharing_off", "severity": "warning", "athlete": athlete, "text": format!("{name} parou de compartilhar os treinos"), "link": link }));
+        } else if stopped_kind(mid, "share_strava") {
+            alerts.push(json!({ "kind": "sharing_off", "severity": "warning", "athlete": athlete, "text": format!("{name} parou de compartilhar o Strava"), "link": link }));
         }
         if let Some(b) = s.user.birth_date {
             let upcoming = (0..7).any(|d| {

@@ -281,7 +281,11 @@ export function generate(anchor) {
   const strava = new Set(["ana", "bruno", "diego"]);
   for (const k of strava) {
     t("provider_connections").push({ id: uuid("conn:strava:" + k), user_id: U[k].id, provider: "strava", external_user_id: String(r(1000000, 9999999)), athlete_name: U[k].name, access_token_enc: null, refresh_token_enc: null, scopes: ["read", "activity:read_all"], token_expires_at: null, status: "active", connected_at: createdLongAgo, last_sync_at: at(anchor, "07:41") });
-    t("consents").push({ id: uuid("consent:strava:" + k), user_id: U[k].id, club_id: PF.id, kind: "share_strava", text_version: "2026-10", granted_at: createdLongAgo, revoked_at: null });
+    // Strava shared with every club they train with, as the welcome flow defaults (D-011).
+    for (const m of t("memberships").filter((x) => x.user_id === U[k].id && x.role === "student")) {
+      const id = m.club_id === PF.id ? uuid("consent:strava:" + k) : uuid(`consent:strava:${k}:${m.club_id}`);
+      t("consents").push({ id, user_id: U[k].id, club_id: m.club_id, kind: "share_strava", text_version: "2026-10", granted_at: createdLongAgo, revoked_at: null });
+    }
   }
 
   // ---- planned workouts, completions, activities

@@ -317,12 +317,16 @@ async fn one(
     let (user_id, athlete) = db::athlete(&state.db, w.athlete_membership_id)
         .await?
         .ok_or_else(not_found)?;
-    // The linked activity only with the student's consent (§5, D-011).
+    // The linked activity only with the student's consent: training data, plus the provider's for a synced one
+    // (§5, D-011).
     let activity = match w.completion.as_ref().and_then(|c| c.activity_id) {
-        Some(a) if db::shares_training(&state.db, user_id, m.club_id).await? => {
-            db::activity(&state.db, a).await?
-        }
-        _ => None,
+        Some(a) => match db::activity(&state.db, a).await? {
+            Some(a) if db::staff_sees_source(&state.db, user_id, m.club_id, &a.source).await? => {
+                Some(a)
+            }
+            _ => None,
+        },
+        None => None,
     };
     let mut out = serde_json::to_value(&w).map_err(|_| Problem::internal())?;
     out["athlete"] = athlete;

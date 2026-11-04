@@ -107,8 +107,8 @@ function Sharing({ memberships }: { memberships: MembershipContext[] }) {
       <ConfirmDialog open={!!pending} onOpenChange={(v) => !v && setPending(null)} loading={revoke.isPending} onConfirm={confirmRevoke}
         title={t("Parar de compartilhar com {club}?", { club: clubName(pending?.club_id ?? null) })}
         description={pending?.kind === "share_strava"
-          ? t("Os treinadores deixam de ver suas atividades do Strava a partir de agora. Você pode voltar a compartilhar quando quiser.")
-          : t("Os treinadores deixam de ver suas atividades, ritmo e frequência cardíaca a partir de agora. Você pode voltar a compartilhar quando quiser.")}
+          ? t("Seus treinadores deixam de ver suas atividades do Strava, e elas não marcam mais os treinos deste clube sozinhas. O clube vai ver que você parou de compartilhar. Você pode voltar a compartilhar quando quiser.")
+          : t("Seus treinadores deixam de ver suas atividades, ritmo e frequência cardíaca, e elas não marcam mais os treinos deste clube sozinhas. O clube vai ver que você parou de compartilhar. Você pode voltar a compartilhar quando quiser.")}
         confirmLabel={t("Parar de compartilhar")} />
     </>
   );

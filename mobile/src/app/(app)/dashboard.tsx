@@ -20,10 +20,10 @@ import { hasWeb } from "@/lib/web";
 import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar, Button, Card, EmptyState, PageHeader, ProgressBar, Screen, Skeleton, Text, type Icon } from "@/ui";
-import { Activity, ArrowRight, Cake, Check, Circle, CircleAlert, CircleCheck, ExternalLink, TriangleAlert, UserCog, UserPlus, Users, X } from "@/ui/icons";
+import { Activity, ArrowRight, Cake, Check, Circle, CircleAlert, CircleCheck, ExternalLink, ShieldOff, TriangleAlert, UserCog, UserPlus, Users, X } from "@/ui/icons";
 
 const greet = () => { const h = new Date().getHours(); return h < 12 ? "Bom dia" : h < 18 ? "Boa tarde" : "Boa noite"; };
-const ALERT_ICON: Record<Dashboard["alerts"][number]["kind"], Icon> = { missed_streak: X, high_rpe: TriangleAlert, no_sync: Activity, birthday: Cake, new_member: UserPlus, plan_limit: Users };
+const ALERT_ICON: Record<Dashboard["alerts"][number]["kind"], Icon> = { missed_streak: X, high_rpe: TriangleAlert, no_sync: Activity, birthday: Cake, new_member: UserPlus, plan_limit: Users, sharing_off: ShieldOff };
 const PLAN_NAME = { free: "Free", pro: "Pro", max: "Max" } as const;
 /** Rows shown per group on the board before "see all" (Planejamento has the full day). */
 const BOARD_ROWS = 5;

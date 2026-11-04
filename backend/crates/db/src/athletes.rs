@@ -300,6 +300,28 @@ pub async fn strava_syncs(
     Ok(rows.into_iter().map(|r| (r.id, r.last_sync_at)).collect())
 }
 
+/// Active students who stopped sharing with the club since `since` and still don't (D-011: staff see it was turned
+/// off): `(membership, kind)` for `share_training_data` and `share_strava`.
+pub async fn sharing_stopped(
+    db: impl PgExecutor<'_>,
+    club_id: Uuid,
+    since: DateTime<Utc>,
+) -> sqlx::Result<Vec<(Uuid, String)>> {
+    let rows = sqlx::query!(
+        "SELECT DISTINCT m.id, k.kind FROM memberships m
+           JOIN consents k ON k.user_id = m.user_id AND k.club_id = m.club_id
+          WHERE m.club_id = $1 AND m.role = 'student' AND m.status = 'active'
+            AND k.kind IN ('share_training_data', 'share_strava') AND k.revoked_at >= $2
+            AND NOT EXISTS (SELECT 1 FROM consents a WHERE a.user_id = m.user_id AND a.club_id = m.club_id
+                               AND a.kind = k.kind AND a.revoked_at IS NULL)",
+        club_id,
+        since
+    )
+    .fetch_all(db)
+    .await?;
+    Ok(rows.into_iter().map(|r| (r.id, r.kind)).collect())
+}
+
 /// Memberships with any workout from `today` on.
 pub async fn with_future_workouts(
     db: impl PgExecutor<'_>,

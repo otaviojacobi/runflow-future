@@ -306,6 +306,26 @@ pub async fn shares_training(
     .await
 }
 
+/// Whether the club's staff may see a student's activity of this `source` (§5, D-011): the student shares training
+/// data with the club and, for a synced source (`strava`, `garmin`), shares that provider with the club too.
+pub async fn staff_sees_source(
+    db: impl PgExecutor<'_>,
+    user_id: Uuid,
+    club_id: Uuid,
+    source: &str,
+) -> sqlx::Result<bool> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM consents WHERE user_id = $1 AND club_id = $2 AND kind = 'share_training_data' AND revoked_at IS NULL)
+              AND ($3 NOT IN ('strava', 'garmin')
+                   OR EXISTS (SELECT 1 FROM consents WHERE user_id = $1 AND club_id = $2 AND kind = 'share_' || $3 AND revoked_at IS NULL)) AS "x!""#,
+        user_id,
+        club_id,
+        source
+    )
+    .fetch_one(db)
+    .await
+}
+
 pub async fn activity(db: impl PgExecutor<'_>, id: Uuid) -> sqlx::Result<Option<Activity>> {
     sqlx::query_as!(
         Activity,

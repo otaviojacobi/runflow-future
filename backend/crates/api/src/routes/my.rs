@@ -203,6 +203,7 @@ async fn complete(
     let current = w.completion.as_ref().and_then(|c| c.activity_id);
     let planned = matching::MatchWorkout {
         id: w.id,
+        club_id: w.club_id,
         date: w.date,
         sport: w.sport.clone(),
         est_distance_m: w.est_distance_m,
@@ -233,11 +234,15 @@ async fn complete(
             (a, Some(by))
         }
         None if done => {
+            // Only an activity the student shares with this club (D-011); sending `activity_id` is their own call.
             let engine_w = planned.engine();
+            let sharing = matching::sharing(&state.db, auth.user_id).await?;
             let best = matching::free_activities_on(&state.db, auth.user_id, &tz, w.date)
                 .await?
                 .into_iter()
-                .filter_map(|a| matching_engine::cost(&a.engine(), &engine_w).map(|c| (c, a)))
+                .filter_map(|a| {
+                    matching_engine::cost(&a.engine_shared(&sharing), &engine_w).map(|c| (c, a))
+                })
                 .min_by_key(|(c, _)| *c)
                 .map(|(_, a)| a);
             let by = best.as_ref().map(|_| "auto");

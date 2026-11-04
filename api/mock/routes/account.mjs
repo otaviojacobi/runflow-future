@@ -168,6 +168,8 @@ export default function register(h) {
     Object.assign(m, { status: "left", left_at: now });
     h.db.group_members = h.db.group_members.filter((g) => g.membership_id !== m.id);
     for (const c of h.db.consents.filter((c) => c.user_id === m.user_id && c.club_id === m.club_id && !c.revoked_at)) c.revoked_at = now;
+    // Automatic links to that club's workouts go (D-011, D-049).
+    h.rematch(m.user_id, h.addDays(h.today(), -30), h.today());
     h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: m.club_id, actor_user_id: m.user_id, action: "member.left", target_type: "membership", target_id: m.id, data: null, created_at: now });
   });
 
@@ -185,6 +187,8 @@ export default function register(h) {
     if (existing) return existing;
     const row = { id: h.uuid("consent"), user_id: u.id, club_id, kind, text_version, granted_at: h.nowIso(), revoked_at: null };
     h.db.consents.push(row);
+    // Sharing decides which clubs an activity may complete workouts of (D-011, D-049): the last 30 days again.
+    if (kind.startsWith("share_")) h.rematch(u.id, h.addDays(h.today(), -30), h.today());
     return { __status: 201, data: row };
   });
   h.delete("/v1/me/consents/:id", (ctx) => {
@@ -192,6 +196,7 @@ export default function register(h) {
     if (!c) h.fail(404, "consent.not_found", "Consentimento não encontrado", "Ele pode já ter sido revogado.");
     if (c.kind === "terms" || c.kind === "privacy") h.fail(409, "consent.required", "Este consentimento é obrigatório", "Para revogar os termos, exclua sua conta.");
     c.revoked_at = h.nowIso();
+    if (c.kind.startsWith("share_")) h.rematch(c.user_id, h.addDays(h.today(), -30), h.today());
   });
 
   // ---- notifications

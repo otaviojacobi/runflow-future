@@ -1,7 +1,7 @@
 /** W1 · Painel (trainer home). Route: /dashboard */
 import { Link } from "@tanstack/react-router";
 import {
-  Activity, AlertTriangle, ArrowRight, Cake, Check, CircleCheck, Circle, Info, MessageSquare, Plus, Sparkles, UserPlus, Users, X,
+  Activity, AlertTriangle, ArrowRight, Cake, Check, CircleCheck, Circle, Info, MessageSquare, Plus, ShieldOff, Sparkles, UserPlus, Users, X,
 } from "lucide-react";
 import { useState } from "react";
 import { useDashboard } from "@/api/dashboard";
@@ -23,7 +23,7 @@ function Kpi({ label, value, sub, to }: { label: string; value: string; sub?: st
   return to ? <Link to={to} className="rounded-lg border border-line bg-surface p-4 shadow-sm transition-shadow hover:shadow-md">{body}</Link> : <Card className="p-4">{body}</Card>;
 }
 
-const ALERT_ICON = { missed_streak: X, high_rpe: AlertTriangle, no_sync: Activity, birthday: Cake, new_member: UserPlus, plan_limit: Users } as const;
+const ALERT_ICON = { missed_streak: X, high_rpe: AlertTriangle, no_sync: Activity, birthday: Cake, new_member: UserPlus, plan_limit: Users, sharing_off: ShieldOff } as const;
 const ALERT_TONE: Record<Dashboard["alerts"][number]["severity"], string> = {
   danger: "bg-danger-soft text-on-danger-soft", warning: "bg-warning-soft text-on-warning-soft", info: "bg-info-soft text-on-info-soft", accent: "bg-accent-soft text-on-accent-soft", brand: "bg-brand-soft text-on-brand-soft",
 };

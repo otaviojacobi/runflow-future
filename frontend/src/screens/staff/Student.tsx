@@ -156,8 +156,8 @@ export function StudentScreen() {
           <p className="text-fg-muted">{[a.goal === "other" && a.profile.goal_note ? a.profile.goal_note : goalLabel(a.goal), a.profile.goal_date && t("prova em {d}", { d: dayMonth(a.profile.goal_date) }), a.level && t({ beginner: "Iniciante", intermediate: "Intermediário", advanced: "Avançado" }[a.level])].filter(Boolean).join(" · ") || t("Sem objetivo definido")}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {a.groups.map((g) => <Badge key={g.id}>{g.name}</Badge>)}
-            {a.consents.training_data ? <Badge tone="success" icon={<ShieldCheck />}>{t("Compartilha dados")}</Badge> : <Badge tone="warning" icon={<ShieldOff />}>{t("Sem consentimento")}</Badge>}
-            {a.strava !== "none" && <Badge tone={a.strava === "shared" ? "info" : "neutral"}>{a.strava === "shared" ? t("Strava compartilhado") : t("Strava privado")}</Badge>}
+            {a.consents.training_data ? <Badge tone="success" icon={<ShieldCheck />}>{t("Compartilha dados")}</Badge> : <Badge tone="warning" icon={<ShieldOff />}>{t("Não compartilha os treinos")}</Badge>}
+            {a.strava !== "none" && <Badge tone={a.strava === "shared" ? "info" : "neutral"}>{a.strava === "shared" ? t("Strava compartilhado") : t("Não compartilha o Strava")}</Badge>}
           </div>
         </div>
         <div className="flex gap-2">

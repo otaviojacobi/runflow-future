@@ -256,6 +256,8 @@ async fn leave(
     }
     let mut tx = state.db.begin().await?;
     db::leave(&mut tx, me.membership_id, true).await?;
+    // Leaving revokes the club's sharing consents: automatic links to its workouts go (D-011, D-049).
+    crate::routes::me::rematch_after_sharing(&mut tx, auth.user_id, "share_training_data").await?;
     runflow_db::clubs::audit(
         &mut *tx,
         Some(me.club_id),

@@ -272,8 +272,36 @@ async fn grant_consent(
     let version = body
         .str("text_version")
         .unwrap_or_else(|| runflow_db::auth::TERMS_VERSION.to_string());
-    let row = db::grant_consent(&state.db, auth.user_id, club_id, &kind, &version).await?;
+    let mut tx = state.db.begin().await?;
+    let row = db::grant_consent(&mut *tx, auth.user_id, club_id, &kind, &version).await?;
+    rematch_after_sharing(&mut tx, auth.user_id, &kind).await?;
+    tx.commit().await?;
+    sharing_changed(&state, club_id).await;
     Ok((StatusCode::CREATED, Json(row)).into_response())
+}
+
+/// What a club's staff may see changed (§5: revoking ends it at once): its cached reads (dashboard, report) go.
+async fn sharing_changed(state: &AppState, club: Option<Uuid>) {
+    if let Some(club) = club
+        && let Err(e) = runflow_kv::cache::bump(&state.kv, &[club]).await
+    {
+        tracing::warn!(error = %e, %club, "cache: version bump failed; reads refresh at their TTL");
+    }
+}
+
+/// Sharing decides which clubs an activity may complete workouts of (D-011, D-049): after it changes, the last 30
+/// days are matched again (in the worker).
+pub(crate) async fn rematch_after_sharing(
+    tx: &mut sqlx::PgConnection,
+    user_id: Uuid,
+    kind: &str,
+) -> Result<(), Problem> {
+    if kind.starts_with("share_") {
+        let (_, today) = runflow_db::matching::student_clock(&mut *tx, user_id).await?;
+        runflow_db::matching::enqueue(&mut *tx, user_id, today - chrono::Duration::days(30), today)
+            .await?;
+    }
+    Ok(())
 }
 
 async fn revoke_consent(
@@ -301,7 +329,11 @@ async fn revoke_consent(
             "Para revogar os termos, exclua sua conta.",
         ));
     }
-    db::revoke_consent(&state.db, id).await?;
+    let mut tx = state.db.begin().await?;
+    db::revoke_consent(&mut *tx, id).await?;
+    rematch_after_sharing(&mut tx, auth.user_id, &c.kind).await?;
+    tx.commit().await?;
+    sharing_changed(&state, c.club_id).await;
     Ok(StatusCode::NO_CONTENT)
 }
 

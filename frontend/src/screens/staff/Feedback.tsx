@@ -39,6 +39,7 @@ function Detail({ item, clubId, meId, onBack }: { item: FeedbackItem; clubId: st
           {w?.activity?.distance_m && <Stat size="sm" value={distance(w.activity.distance_m)} label={t("Distância")} />}
           {w?.activity && <Stat size="sm" value={duration(w.activity.duration_s)} label={t("Tempo")} />}
           {w?.activity?.avg_pace_s_per_km && <Stat size="sm" value={pace(w.activity.avg_pace_s_per_km)} unit="/km" label={t("Pace")} />}
+          {w?.activity && <Stat size="sm" value={w.activity.source === "strava" ? "Strava" : t("Registro manual")} label={t("Origem")} />}
         </div>
         {c?.comment && <blockquote className="border-l-2 border-brand-line pl-3 italic text-fg-muted">“{c.comment}”</blockquote>}
       </Card>

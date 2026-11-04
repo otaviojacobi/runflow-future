@@ -19,7 +19,7 @@ function StravaIcon({ s }: { s: AthleteSummary["strava"] }) {
   if (s === "none") return <span className="text-xs text-fg-subtle">–</span>;
   return s === "shared"
     ? <span title={t("Strava conectado e compartilhado")} className="inline-flex items-center gap-1 text-xs font-semibold text-success-text"><Activity className="size-4" />{t("Strava")}</span>
-    : <span title={t("Strava conectado, mas sem compartilhar com o clube")} className="inline-flex items-center gap-1 text-xs font-semibold text-fg-muted"><Lock className="size-3.5" />{t("Privado")}</span>;
+    : <span title={t("Strava conectado, mas sem compartilhar com o clube")} className="inline-flex items-center gap-1 text-xs font-semibold text-fg-muted"><Lock className="size-3.5 shrink-0" />{t("Não compartilha o Strava")}</span>;
 }
 
 export function StudentsScreen() {
@@ -74,7 +74,7 @@ export function StudentsScreen() {
                   <tr key={a.membership.id} onClick={() => open(a)} className="cursor-pointer border-t border-line-subtle hover:bg-soft">
                     <td className="px-4 py-3"><Link to="/students/$id" params={{ id: a.membership.id }} className="flex items-center gap-3 font-semibold outline-none focus-visible:underline" onClick={(e) => e.stopPropagation()}><Avatar name={a.user.name} src={a.user.avatar_url} size={34} /><span><span className="block">{a.user.name}</span><span className="block text-xs font-normal text-fg-muted">{[goalLabel(a.goal), a.level && t({ beginner: "Iniciante", intermediate: "Intermediário", advanced: "Avançado" }[a.level])].filter(Boolean).join(" · ") || "–"}</span></span></Link></td>
                     <td className="px-3 py-3"><div className="flex flex-wrap gap-1">{a.group_ids.map((g) => <Badge key={g}>{groupName(g)}</Badge>)}</div></td>
-                    <td className="px-3 py-3">{a.shares_data ? <ComplianceBar pct={a.compliance_pct} /> : <span className="text-xs text-fg-subtle">{t("Sem consentimento")}</span>}</td>
+                    <td className="px-3 py-3">{a.shares_data ? <ComplianceBar pct={a.compliance_pct} /> : <span className="text-xs text-fg-muted">{t("Não compartilha os treinos")}</span>}</td>
                     <td className="px-3 py-3 tabular-nums">{a.week.planned ? <span><b>{a.week.done}</b><span className="text-fg-muted">/{a.week.planned}</span></span> : <span className="text-fg-subtle">{t("Sem treinos")}</span>}</td>
                     <td className="px-3 py-3 text-fg-muted">{a.last_activity_at ? ago(a.last_activity_at) : "–"}</td>
                     <td className="px-3 py-3"><StravaIcon s={a.strava} /></td>
@@ -89,7 +89,8 @@ export function StudentsScreen() {
               <li key={a.membership.id}>
                 <Link to="/students/$id" params={{ id: a.membership.id }} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-lg border border-line bg-surface p-3">
                   <Avatar name={a.user.name} size={40} />
-                  <span className="min-w-0"><span className="block truncate font-semibold">{a.user.name}</span><span className="block truncate text-xs text-fg-muted">{a.week.planned ? t("{done}/{planned} na semana", { done: a.week.done, planned: a.week.planned }) : t("Sem treinos na semana")} · {a.last_activity_at ? ago(a.last_activity_at) : t("sem atividade")}</span></span>
+                  <span className="min-w-0"><span className="block truncate font-semibold">{a.user.name}</span><span className="block truncate text-xs text-fg-muted">{a.week.planned ? t("{done}/{planned} na semana", { done: a.week.done, planned: a.week.planned }) : t("Sem treinos na semana")} · {a.last_activity_at ? ago(a.last_activity_at) : t("sem atividade")}</span>
+                    {(!a.shares_data || a.strava === "private") && <span className="flex items-center gap-1 truncate text-xs font-semibold text-fg-muted"><Lock className="size-3.5 shrink-0" />{!a.shares_data ? t("Não compartilha os treinos") : t("Não compartilha o Strava")}</span>}</span>
                   <span className="w-16">{a.shares_data && <ComplianceBar pct={a.compliance_pct} />}</span>
                 </Link>
               </li>

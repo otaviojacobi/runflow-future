@@ -84,6 +84,18 @@ Then:
   before. It sets `reported_at`, and the trainer is notified the **first** time the student reports, not when the
   engine links an activity.
 
+## Consent (D-011)
+
+A completion tells the trainer the student trained, so an activity only completes workouts of the clubs the student
+shares it with: `share_training_data` for that club and, for a synced activity, that provider too (`share_strava`).
+The engine gets this as each activity's `clubs` (the I/O layer reads the consents; a workout carries its `club_id`),
+so both ports agree, and the golden examples cover it. The completion route's same-day pick follows the same rule.
+The student's own choices (`PUT /me/activities/{id}/match`, `activity_id` on the completion) are their report and
+stay allowed, but staff still don't see the activity itself without the consent (the trainer's workout detail returns
+`activity: null`). Granting or revoking a sharing consent, or leaving a club, runs a pass over the last 30 days, so
+automatic links follow the switch both ways; the club's cached dashboard and report are dropped at once. Turning a
+switch off asks first in both apps, and the club sees it on the dashboard for 14 days (`sharing_off`).
+
 ## Why not more signals
 
 Pace, heart rate and lap structure could tell intervals from an easy run, but they aren't comparable across watches

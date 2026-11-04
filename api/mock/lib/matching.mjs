@@ -4,8 +4,9 @@
  * links to make and the questions to ask. Ported to backend/crates/domain/src/matching.rs; both must give the
  * outputs in api/activity-match-examples.json.
  *
- *   activity: {id, day: "YYYY-MM-DD" (club time), sport, distance_m?, duration_s, moving_time_s?}
- *   workout:  {id, date, sport, est_distance_m?, est_duration_s?}
+ *   activity: {id, day: "YYYY-MM-DD" (club time), sport, distance_m?, duration_s, moving_time_s?, clubs?}
+ *   workout:  {id, date, sport, est_distance_m?, est_duration_s?, club_id?}
+ *   `clubs`: the clubs this activity may be matched to (the ones the student shares it with, D-011); absent = any.
  *   → {links: [{activity_id, workout_id, compliance_pct}], pending: [{activity_id, options: [workout_id…]}]}
  */
 export const RULES = {
@@ -47,6 +48,8 @@ export function compliance(act, w) {
 
 /** How unlikely it is that `act` was `w` (lower is likelier), or null when it can't have been. */
 export function cost(act, w) {
+  // Only a club the student shares this activity with may see it completing one of its workouts (D-011).
+  if (Array.isArray(act.clubs) && !act.clubs.includes(w.club_id)) return null;
   if (!compatible(act.sport, w.sport)) return null;
   const d = Math.abs(days(act.day, w.date));
   if (d > RULES.maxDays) return null;

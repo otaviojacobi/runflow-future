@@ -16,6 +16,7 @@ import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
 import { ago } from "@/lib/format";
 import { hasWeb, openOnWeb } from "@/lib/web";
+import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar, Button, Card, EmptyState, Input, PageHeader, Screen, Segmented, Skeleton, Text } from "@/ui";
 import { Activity, CircleAlert, ExternalLink, Lock, Search, Users } from "@/ui/icons";
@@ -26,26 +27,29 @@ function Row({ a, divider }: { a: AthleteSummary; divider: boolean }) {
   const week = a.week.planned ? t("{done}/{planned} na semana", { done: a.week.done, planned: a.week.planned }) : t("Sem treinos na semana");
   const last = a.last_activity_at ? ago(a.last_activity_at) : t("sem atividade");
   const goal = [a.goal ? t(GOAL_LABEL[a.goal]) : null, a.level ? t(LEVEL_LABEL[a.level]) : null].filter(Boolean).join(" · ");
-  const strava = a.strava === "shared" ? t("Strava") : a.strava === "private" ? t("Strava privado") : null;
-  const compliance = a.shares_data ? (a.compliance_pct != null ? t("aderência {p}%", { p: a.compliance_pct }) : null) : t("sem consentimento");
+  // What the club sees (D-011): sharing off reads as such, like the web's list.
+  const sharing = !a.shares_data ? t("Não compartilha os treinos") : a.strava === "private" ? t("Não compartilha o Strava") : a.strava === "shared" ? t("Strava") : null;
+  const compliance = a.shares_data && a.compliance_pct != null ? t("aderência {p}%", { p: a.compliance_pct }) : null;
   return (
     <Pressable accessibilityRole="link" onPress={() => router.push(`/students/${a.membership.id}`)}
-      accessibilityLabel={[a.user.name, goal, week, t("última atividade {when}", { when: last }), compliance, strava].filter(Boolean).join(", ")}
+      accessibilityLabel={[a.user.name, goal, week, t("última atividade {when}", { when: last }), compliance, sharing].filter(Boolean).join(", ")}
       style={({ pressed }) => [styles.row, { gap: theme.space[3], paddingHorizontal: theme.space[4], paddingVertical: theme.space[3], minHeight: theme.size.touchMin + theme.space[4], backgroundColor: pressed ? c.soft : "transparent", borderTopWidth: divider ? StyleSheet.hairlineWidth : 0, borderTopColor: c.lineSubtle }]}>
       <Avatar name={a.user.name} src={a.user.avatar_url} size={theme.space[10]} />
       <View style={[styles.flex, { gap: theme.space["0.5"] }]}>
         <Text variant="labelMd" numberOfLines={1}>{a.user.name}</Text>
         <Text variant="caption" tone="muted" numberOfLines={1}>{`${week} · ${last}`}</Text>
-        {(goal || strava) ? (
+        {goal ? <Text variant="caption" tone="subtle" numberOfLines={1}>{goal}</Text> : null}
+        {sharing ? (
           <View style={[styles.row, { gap: theme.space[1] }]}>
-            {goal ? <Text variant="caption" tone="subtle" numberOfLines={1} style={styles.shrink}>{goal}</Text> : null}
-            {a.strava === "shared" && <Activity size={theme.size.iconSm - 4} color={c.success.text} aria-hidden />}
-            {a.strava === "private" && <Lock size={theme.size.iconSm - 4} color={c.fgSubtle} aria-hidden />}
+            {a.shares_data && a.strava === "shared"
+              ? <Activity size={theme.size.iconSm - 4} color={c.success.text} aria-hidden />
+              : <Lock size={theme.size.iconSm - 4} color={c.fgMuted} aria-hidden />}
+            <Text variant="caption" numberOfLines={1} style={[styles.shrink, { color: a.shares_data && a.strava === "shared" ? c.success.text : c.fgMuted, fontWeight: weight("semibold") }]}>{sharing}</Text>
           </View>
         ) : null}
       </View>
       <View style={{ width: theme.space[16] }}>
-        {a.shares_data ? <ComplianceBar pct={a.compliance_pct} /> : <Text variant="caption" tone="subtle" style={styles.right}>{t("Sem consentimento")}</Text>}
+        {a.shares_data ? <ComplianceBar pct={a.compliance_pct} /> : <Text variant="caption" tone="subtle" style={styles.right}>–</Text>}
       </View>
     </Pressable>
   );

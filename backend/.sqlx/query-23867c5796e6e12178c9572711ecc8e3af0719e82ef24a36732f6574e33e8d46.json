@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT kind, club_id AS \"club_id!\" FROM consents\n            WHERE user_id = $1 AND club_id IS NOT NULL AND revoked_at IS NULL\n              AND kind IN ('share_training_data', 'share_strava', 'share_garmin')",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "consents",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "club_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "consents",
+            "name": "club_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "23867c5796e6e12178c9572711ecc8e3af0719e82ef24a36732f6574e33e8d46"
+}

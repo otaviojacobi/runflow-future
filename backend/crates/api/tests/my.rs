@@ -198,6 +198,14 @@ async fn the_student_sees_their_workouts_with_personal_targets_and_gives_feedbac
             .len(),
         3
     );
+    // The same-day pick only takes an activity Ana shares with the club (D-011), as the welcome flow asks.
+    app.post(
+        "/v1/me/consents",
+        Some(&c.ana.0),
+        json!({ "kind": "share_training_data", "club_id": c.id }),
+    )
+    .await
+    .ok();
     let res = app.call(Method::PUT, &done, Some(&c.ana.0), Some(json!({ "status": "completed", "rpe": 7, "feeling": "good", "comment": "Pernas pesadas no fim" })), &[]).await;
     let comp = &res.ok()["completion"];
     assert_eq!(

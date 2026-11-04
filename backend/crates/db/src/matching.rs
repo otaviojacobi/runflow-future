@@ -119,6 +119,7 @@ pub struct MatchActivity {
     pub id: Uuid,
     pub day: NaiveDate,
     pub sport: String,
+    pub source: String,
     pub distance_m: Option<i32>,
     pub duration_s: i32,
     pub moving_time_s: Option<i32>,
@@ -126,6 +127,7 @@ pub struct MatchActivity {
 }
 
 impl MatchActivity {
+    /// As the engine sees it, matchable to any club (the student's own choices, compliance).
     pub fn engine(&self) -> Act {
         Act {
             id: self.id.to_string(),
@@ -134,14 +136,71 @@ impl MatchActivity {
             distance_m: self.distance_m.map(i64::from),
             duration_s: self.duration_s.into(),
             moving_time_s: self.moving_time_s.map(i64::from),
+            clubs: None,
         }
     }
+
+    /// As the engine sees it for automatic matching: only to the clubs the student shares it with (D-011).
+    pub fn engine_shared(&self, sharing: &Sharing) -> Act {
+        Act {
+            clubs: Some(
+                sharing
+                    .clubs_for(&self.source)
+                    .iter()
+                    .map(Uuid::to_string)
+                    .collect(),
+            ),
+            ..self.engine()
+        }
+    }
+}
+
+/// Which clubs a student shares what with (active consents, §5): training data, and each synced provider.
+#[derive(Debug, Clone, Default)]
+pub struct Sharing {
+    training: Vec<Uuid>,
+    providers: Vec<(String, Uuid)>,
+}
+
+impl Sharing {
+    /// The clubs whose staff may see an activity of this source: training data shared and, for a synced source
+    /// (`strava`, `garmin`), that provider shared with the club too.
+    pub fn clubs_for(&self, source: &str) -> Vec<Uuid> {
+        let synced = source == "strava" || source == "garmin";
+        self.training
+            .iter()
+            .copied()
+            .filter(|c| !synced || self.providers.iter().any(|(p, pc)| p == source && pc == c))
+            .collect()
+    }
+}
+
+/// The student's active sharing consents.
+pub async fn sharing(db: impl PgExecutor<'_>, user_id: Uuid) -> sqlx::Result<Sharing> {
+    let rows = sqlx::query!(
+        r#"SELECT kind, club_id AS "club_id!" FROM consents
+            WHERE user_id = $1 AND club_id IS NOT NULL AND revoked_at IS NULL
+              AND kind IN ('share_training_data', 'share_strava', 'share_garmin')"#,
+        user_id
+    )
+    .fetch_all(db)
+    .await?;
+    let mut s = Sharing::default();
+    for r in rows {
+        match r.kind.strip_prefix("share_") {
+            Some("training_data") => s.training.push(r.club_id),
+            Some(p) => s.providers.push((p.to_string(), r.club_id)),
+            None => {}
+        }
+    }
+    Ok(s)
 }
 
 /// One planned workout as the engine needs it.
 #[derive(Debug, Clone)]
 pub struct MatchWorkout {
     pub id: Uuid,
+    pub club_id: Uuid,
     pub date: NaiveDate,
     pub sport: String,
     pub est_distance_m: Option<i32>,
@@ -156,6 +215,7 @@ impl MatchWorkout {
             sport: self.sport.clone(),
             est_distance_m: self.est_distance_m.map(i64::from),
             est_duration_s: self.est_duration_s.map(i64::from),
+            club_id: Some(self.club_id.to_string()),
         }
     }
 }
@@ -169,7 +229,7 @@ pub async fn activity(
 ) -> sqlx::Result<Option<MatchActivity>> {
     sqlx::query_as!(
         MatchActivity,
-        r#"SELECT id, (started_at AT TIME ZONE $3)::date AS "day!", sport, distance_m, duration_s, moving_time_s, started_at
+        r#"SELECT id, (started_at AT TIME ZONE $3)::date AS "day!", sport, source, distance_m, duration_s, moving_time_s, started_at
              FROM activities WHERE id = $1 AND user_id = $2"#,
         id,
         user_id,
@@ -187,7 +247,7 @@ pub async fn visible_workout(
 ) -> sqlx::Result<Option<MatchWorkout>> {
     sqlx::query_as!(
         MatchWorkout,
-        "SELECT p.id, p.date, p.sport, p.est_distance_m, p.est_duration_s
+        "SELECT p.id, p.club_id, p.date, p.sport, p.est_distance_m, p.est_duration_s
            FROM planned_workouts p JOIN memberships m ON m.id = p.athlete_membership_id
           WHERE p.id = $1 AND m.user_id = $2 AND m.role = 'student' AND m.status = 'active'
             AND coalesce(workout_released(p.club_id, p.athlete_membership_id, p.date), false)",
@@ -311,7 +371,7 @@ pub async fn free_activities_on(
 ) -> sqlx::Result<Vec<MatchActivity>> {
     sqlx::query_as!(
         MatchActivity,
-        r#"SELECT a.id, (a.started_at AT TIME ZONE $2)::date AS "day!", a.sport, a.distance_m, a.duration_s, a.moving_time_s, a.started_at
+        r#"SELECT a.id, (a.started_at AT TIME ZONE $2)::date AS "day!", a.sport, a.source, a.distance_m, a.duration_s, a.moving_time_s, a.started_at
              FROM activities a
             WHERE a.user_id = $1 AND a.match_state <> 'dismissed' AND (a.started_at AT TIME ZONE $2)::date = $3
               AND NOT EXISTS (SELECT 1 FROM workout_completions c WHERE c.activity_id = a.id)
@@ -355,7 +415,7 @@ pub async fn rematch(
     let hi = from.max(to) + Duration::days(engine::MAX_DAYS);
     // Activities: not dismissed, not placed by the student; with the workout they complete now.
     let acts = sqlx::query!(
-        r#"SELECT a.id, (a.started_at AT TIME ZONE $2)::date AS "day!", a.sport, a.distance_m, a.duration_s, a.moving_time_s, a.started_at,
+        r#"SELECT a.id, (a.started_at AT TIME ZONE $2)::date AS "day!", a.sport, a.source, a.distance_m, a.duration_s, a.moving_time_s, a.started_at,
                   a.match_state, c.planned_workout_id AS "linked?"
              FROM activities a LEFT JOIN workout_completions c ON c.activity_id = a.id
             WHERE a.user_id = $1 AND a.match_state <> 'dismissed' AND (a.started_at AT TIME ZONE $2)::date BETWEEN $3 AND $4
@@ -372,7 +432,7 @@ pub async fn rematch(
     // Workouts the student can see that are still open (or linked automatically to an activity of this pass).
     let works = sqlx::query_as!(
         MatchWorkout,
-        "SELECT p.id, p.date, p.sport, p.est_distance_m, p.est_duration_s
+        "SELECT p.id, p.club_id, p.date, p.sport, p.est_distance_m, p.est_duration_s
            FROM planned_workouts p JOIN memberships m ON m.id = p.athlete_membership_id
            LEFT JOIN workout_completions c ON c.planned_workout_id = p.id
           WHERE m.user_id = $1 AND m.role = 'student' AND m.status = 'active' AND p.date BETWEEN $2 AND $3
@@ -395,15 +455,20 @@ pub async fn rematch(
             id: a.id,
             day: a.day,
             sport: a.sport.clone(),
+            source: a.source.clone(),
             distance_m: a.distance_m,
             duration_s: a.duration_s,
             moving_time_s: a.moving_time_s,
             started_at: a.started_at,
         })
         .collect();
+    // Each activity only to the clubs the student shares it with (D-011): links to other clubs are undone.
+    let sharing = sharing(&mut *tx, user_id).await?;
     let solution = engine::solve(
         today,
-        &ma.iter().map(MatchActivity::engine).collect::<Vec<_>>(),
+        &ma.iter()
+            .map(|a| a.engine_shared(&sharing))
+            .collect::<Vec<_>>(),
         &works.iter().map(MatchWorkout::engine).collect::<Vec<_>>(),
     );
     let uuid = |s: &str| Uuid::parse_str(s).unwrap_or_default();

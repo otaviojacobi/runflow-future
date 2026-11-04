@@ -60,6 +60,14 @@ async fn setup(app: &TestApp) -> Club {
     )
     .await
     .ok();
+    // Ana shares her training data with the club, as the welcome flow asks (D-011).
+    app.post(
+        "/v1/me/consents",
+        Some(&ana),
+        json!({ "kind": "share_training_data", "club_id": id }),
+    )
+    .await
+    .ok();
     Club { id, owner, ana }
 }
 
@@ -365,4 +373,111 @@ async fn planning_after_the_run_matches_through_the_worker(db: PgPool) {
             .ok()["matched_workout"],
         Value::Null
     );
+}
+
+/// A Strava activity of Ana's (as the import writes it), on `date` at 09:00 club time.
+async fn strava_run(app: &TestApp, date: &str, meters: i32, secs: i32) -> String {
+    let id: uuid::Uuid = sqlx::query_scalar(
+        "INSERT INTO activities (user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m)
+         SELECT id, 'strava', '9001', 'run', 'Corrida no Strava', ($1::date + time '12:00') AT TIME ZONE 'UTC', $2, $2, $3
+           FROM users WHERE email = 'ana@email.com' RETURNING id",
+    )
+    .bind(date)
+    .bind(secs)
+    .bind(meters)
+    .fetch_one(app.db())
+    .await
+    .unwrap();
+    id.to_string()
+}
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn staff_see_strava_data_only_with_the_strava_consent(db: PgPool) {
+    let app = TestApp::new(db);
+    let c = setup(&app).await;
+    let athlete = athlete_id(&app, &c).await;
+    let run = strava_run(&app, &day(-1), 8100, 2900).await;
+
+    // Training data shared, Strava not: the run doesn't complete the club's workout.
+    let w = plan(&app, &c, &athlete, &day(-1), 8000, 2880).await;
+    drain(&app).await;
+    assert_eq!(completion(&app, &c, &w).await, Value::Null);
+    assert_eq!(report_activities(&app, &c).await, 0);
+
+    // Sharing Strava: the worker links it, and staff see the activity on the workout and in the report.
+    let granted = app
+        .post(
+            "/v1/me/consents",
+            Some(&c.ana),
+            json!({ "kind": "share_strava", "club_id": c.id }),
+        )
+        .await;
+    let consent = granted.body["id"].as_str().unwrap().to_string();
+    drain(&app).await;
+    let done = completion(&app, &c, &w).await;
+    assert_eq!(
+        (done["activity_id"].as_str(), done["matched_by"].as_str()),
+        (Some(run.as_str()), Some("auto"))
+    );
+    assert_eq!(staff_activity(&app, &c, &w).await["source"], "strava");
+    assert_eq!(report_activities(&app, &c).await, 1);
+
+    // Stopping: the automatic completion goes, and nothing of the run reaches staff.
+    app.delete(&format!("/v1/me/consents/{consent}"), Some(&c.ana))
+        .await;
+    drain(&app).await;
+    assert_eq!(completion(&app, &c, &w).await, Value::Null);
+    assert_eq!(report_activities(&app, &c).await, 0);
+    // The club sees it was turned off (dashboard alert, the student's state on the list).
+    let dash = app
+        .get(&format!("/v1/clubs/{}/dashboard", c.id), Some(&c.owner))
+        .await;
+    let off: Vec<&Value> = dash.ok()["alerts"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|a| a["kind"] == "sharing_off")
+        .collect();
+    assert_eq!(off.len(), 1);
+    assert_eq!(off[0]["text"], "Ana Souza parou de compartilhar o Strava");
+    assert_eq!(off[0]["link"], format!("/students/{athlete}"));
+
+    // Ana herself says the run was this workout: it's her report, but the Strava data stays hidden from staff.
+    put(
+        &app,
+        &format!("/v1/me/activities/{run}/match"),
+        &c.ana,
+        json!({ "planned_workout_id": w }),
+    )
+    .await
+    .ok();
+    assert_eq!(completion(&app, &c, &w).await["matched_by"], "student");
+    assert_eq!(staff_activity(&app, &c, &w).await, Value::Null);
+}
+
+/// The activity staff see on a workout (the trainer's detail).
+async fn staff_activity(app: &TestApp, c: &Club, workout: &str) -> Value {
+    app.get(
+        &format!("/v1/clubs/{}/planned-workouts/{workout}", c.id),
+        Some(&c.owner),
+    )
+    .await
+    .ok()["activity"]
+        .clone()
+}
+
+/// How many of Ana's activities of the last week the training report counts.
+async fn report_activities(app: &TestApp, c: &Club) -> Value {
+    app.get(
+        &format!(
+            "/v1/clubs/{}/reports/training?from={}&to={}",
+            c.id,
+            day(-7),
+            day(0)
+        ),
+        Some(&c.owner),
+    )
+    .await
+    .ok()["athletes"][0]["activities"]
+        .clone()
 }

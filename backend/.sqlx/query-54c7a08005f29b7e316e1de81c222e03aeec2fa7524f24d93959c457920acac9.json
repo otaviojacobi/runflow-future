@@ -1,0 +1,25 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT EXISTS (SELECT 1 FROM consents WHERE user_id = $1 AND club_id = $2 AND kind = 'share_training_data' AND revoked_at IS NULL)\n              AND ($3 NOT IN ('strava', 'garmin')\n                   OR EXISTS (SELECT 1 FROM consents WHERE user_id = $1 AND club_id = $2 AND kind = 'share_' || $3 AND revoked_at IS NULL)) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "54c7a08005f29b7e316e1de81c222e03aeec2fa7524f24d93959c457920acac9"
+}

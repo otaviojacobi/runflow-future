@@ -23,7 +23,8 @@ export default function register(h) {
     const planned = h.db.planned_workouts.filter((p) => ids.has(p.athlete_membership_id) && p.date >= from && p.date <= to);
     const status = (p) => h.db.workout_completions.find((c) => c.planned_workout_id === p.id)?.status;
     const score = (ps) => { const past = ps.filter((p) => p.date < today); return past.length ? Math.round((past.reduce((s, p) => s + (status(p) === "completed" ? 1 : status(p) === "partial" ? 0.5 : 0), 0) / past.length) * 100) : null; };
-    const actsOf = (m) => (shares(m) ? h.db.activities.filter((a) => a.user_id === m.user_id && localDate(a.started_at) >= from && localDate(a.started_at) <= to) : null);
+    // A synced activity counts only when its provider is shared with the club too (D-011).
+    const actsOf = (m) => (shares(m) ? h.db.activities.filter((a) => a.user_id === m.user_id && localDate(a.started_at) >= from && localDate(a.started_at) <= to && h.staffSees(m.user_id, m.club_id, a.source)) : null);
     const athletes = students.map((m) => {
       const ps = planned.filter((p) => p.athlete_membership_id === m.id);
       const acts = actsOf(m);
