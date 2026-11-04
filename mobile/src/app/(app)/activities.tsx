@@ -12,13 +12,14 @@ import type { ActivityItem, Sport } from "@/api/types";
 import { ActivityRow } from "@/components/activity";
 import { MatchQuestion } from "@/components/matching";
 import { SPORT_LABEL } from "@/components/sport";
-import { useStravaConnect } from "@/components/connections/StravaConnect";
+import { StravaConnectPanel } from "@/components/connections/StravaConnect";
+import { StravaAttribution } from "@/components/strava";
 import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { addDays, dayMonth, duration, km, localDate, mondayOf, shortDate, today as todayFn, upperFirst } from "@/lib/format";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Button, Card, Dialog, EmptyState, Field, Input, Screen, Select, Skeleton, Text, toast } from "@/ui";
-import { Activity, Link2, Plus } from "@/ui/icons";
+import { Activity, Plus } from "@/ui/icons";
 
 const SPORTS: Sport[] = ["run", "swim", "bike", "strength", "mobility", "other"];
 
@@ -106,15 +107,13 @@ function LogSheet({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boo
 
 function ConnectCard() {
   const { theme } = useTheme();
-  const { connect, busy, mockSheet } = useStravaConnect();
   return (
-    <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>
+    <Card style={{ padding: theme.space[4], gap: theme.space[4] }}>
       <View style={[styles.row, { gap: theme.space[3] }]}>
         <Activity size={theme.size.iconLg} color={theme.color.fgMuted} aria-hidden />
         <Text variant="bodySm" style={styles.flex}>{t("Conecte o Strava e suas atividades chegam sozinhas, já ligadas aos treinos.")}</Text>
       </View>
-      <Button icon={Link2} block loading={busy} onPress={() => void connect()}>{t("Conectar com Strava")}</Button>
-      {mockSheet}
+      <StravaConnectPanel />
     </Card>
   );
 }
@@ -170,6 +169,7 @@ export default function ActivitiesScreen() {
           </View>
         );
       })}
+      {list.data?.some((a) => a.source === "strava") && <StravaAttribution style={{ paddingHorizontal: theme.space[1] }} />}
       <LogSheet open={log} onOpenChange={setLog} />
     </Screen>
   );

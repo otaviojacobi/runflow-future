@@ -7,17 +7,17 @@ import { Redirect, router } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useGrantConsent, useUpdateMe } from "@/api/account";
+import { useConnections, useConsents, useGrantConsent, useUpdateMe } from "@/api/account";
 import { ClubLogo } from "@/components/brand";
 import { brToIso, isoToBr, maskDate } from "@/components/account/inputs";
-import { useStravaConnect } from "@/components/connections/StravaConnect";
+import { StravaConnectPanel } from "@/components/connections/StravaConnect";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { clubColors, useClub } from "@/lib/club";
 import { useSession } from "@/lib/session";
 import { ThemeScope, useTheme } from "@/theme/ThemeProvider";
-import { Button, Card, Checkbox, Field, Input, ProgressBar, Screen, Text, toast } from "@/ui";
-import { Activity, Check, Link2, ShieldCheck, Sparkles, type Icon } from "@/ui/icons";
+import { Button, Card, Checkbox, Field, Input, ProgressBar, Screen, Skeleton, Text, toast } from "@/ui";
+import { Activity, Check, ShieldCheck, Sparkles, type Icon } from "@/ui/icons";
 
 const TOTAL = 3;
 const home = () => router.replace("/today");
@@ -92,7 +92,7 @@ function Bullets({ items }: { items: string[] }) {
 
 function StepConsent({ clubId, clubName, onDone }: { clubId: string; clubName: string; onDone: () => void }) {
   const { theme } = useTheme();
-  const [agree, setAgree] = useState(false);
+  const [agree, setAgree] = useState(true);
   const consent = useGrantConsent();
   return (
     <>
@@ -160,33 +160,41 @@ function StepProfile({ onDone }: { onDone: () => void }) {
   );
 }
 
+/**
+ * Connecting shares Strava with every club where the student is (the API does it, D-011). Already connected (from
+ * another club): Strava is shared with this club too when they continue, unless they uncheck it.
+ */
 function StepStrava({ clubId, clubName, onDone }: { clubId: string; clubName: string; onDone: () => void }) {
   const { theme } = useTheme();
   const consent = useGrantConsent();
+  const conns = useConnections();
+  const consents = useConsents();
   const [share, setShare] = useState(true);
-  const [connected, setConnected] = useState(false);
-  const { connect, busy, mockSheet } = useStravaConnect(() => {
-    setConnected(true);
-    // Strava requires the student's explicit consent before trainers see its data (root.md §5).
-    if (share) consent.mutate({ kind: "share_strava", club_id: clubId }, { onError: toast.error });
-  });
+  const connected = !!conns.data?.find((c) => c.provider === "strava")?.connection;
+  const sharesHere = !!consents.data?.some((c) => c.kind === "share_strava" && c.club_id === clubId && !c.revoked_at);
+  const finish = () => {
+    if (connected && !sharesHere && share) consent.mutate({ kind: "share_strava", club_id: clubId }, { onSuccess: onDone, onError: toast.error });
+    else onDone();
+  };
   return (
     <>
       <Head title={t("Conecte seu relógio")} text={t("Treinou, sincronizou: seu treinador vê o resultado sem você precisar fazer nada.")} />
-      <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>
+      <Card style={{ padding: theme.space[4], gap: theme.space[4] }}>
         <View style={[styles.row, { gap: theme.space[3] }]}>
           <Activity size={theme.size.iconLg} color={theme.color.fg} aria-hidden />
           <View style={styles.flex}>
-            <Text variant="titleSm">Strava</Text>
-            <Text variant="bodySm" tone="muted">{connected ? t("Conectado. Suas atividades recentes estão chegando.") : t("Funciona com Garmin, Coros, Apple Watch e outros relógios que enviam ao Strava.")}</Text>
+            <Text variant="labelMd">Strava</Text>
+            <Text variant="bodySm" tone="muted">{connected ? t("Strava conectado. Suas atividades recentes estão chegando.") : t("Funciona com Garmin, Coros, Apple Watch e outros relógios que enviam ao Strava.")}</Text>
           </View>
         </View>
-        {connected ? null : <Button icon={Link2} block loading={busy} onPress={() => void connect()}>{t("Conectar com Strava")}</Button>}
+        {connected ? (
+          sharesHere ? null : (
+            <Checkbox checked={share} onCheckedChange={setShare} label={t("Compartilhar as atividades do Strava com os treinadores do {club}", { club: clubName })}
+              description={t("O Strava exige o seu consentimento explícito para isso.")} />
+          )
+        ) : conns.isPending ? <Skeleton style={{ height: theme.space[12] }} /> : <StravaConnectPanel />}
       </Card>
-      <Checkbox checked={share} onCheckedChange={setShare} label={t("Compartilhar as atividades do Strava com os treinadores do {club}", { club: clubName })}
-        description={t("O Strava exige o seu consentimento explícito para isso.")} />
-      <Button size="lg" block variant={connected ? "primary" : "secondary"} onPress={onDone}>{connected ? t("Continuar") : t("Agora não")}</Button>
-      {mockSheet}
+      <Button size="lg" block variant={connected ? "primary" : "secondary"} loading={consent.isPending} onPress={finish}>{connected ? t("Continuar") : t("Agora não")}</Button>
     </>
   );
 }

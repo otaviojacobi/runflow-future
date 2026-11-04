@@ -21,6 +21,7 @@ import { IntensityProfile, Stat, StatusBadge, feelingLabel } from "@/components/
 import { WorkoutSteps } from "@/components/workout/WorkoutSteps";
 import { WorkoutBuilder } from "@/components/builder/WorkoutBuilder";
 import { estimate, estimateText, type Structure } from "@/domain/workout";
+import { StravaAttribution } from "@/components/strava";
 
 export type SheetMode = "view" | "move" | "edit" | "remove" | "thread";
 /** What the list already knows, so the sheet opens instantly; `mode` picks the first view (Feedbacks: the thread). */
@@ -174,6 +175,7 @@ export function WorkoutSheet({ seed, onClose }: { seed: WorkoutSeed | null; onCl
                   {a.avg_pace_s_per_km && a.sport === "run" ? <Stat size="sm" value={pace(a.avg_pace_s_per_km)} unit="/km" label={t("Pace médio")} /> : null}
                   {a.avg_hr ? <Stat size="sm" value={String(a.avg_hr)} unit="bpm" label={t("FC média")} /> : null}
                 </View>
+                {a.source === "strava" && <StravaAttribution externalId={a.external_id} />}
               </View>
             );
           })()}

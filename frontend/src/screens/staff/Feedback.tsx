@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useFeedback, useMarkAllRead } from "@/api/feedback";
 import type { FeedbackFilter, FeedbackItem } from "@/api/types";
 import { usePlannedDetail } from "@/api/workouts";
+import { StravaAttribution } from "@/components/strava";
 import { AiFeedbackSummaryCard } from "@/components/AiAssist";
 import { SportChip } from "@/components/sport";
 import { Thread } from "@/components/Thread";
@@ -39,8 +40,8 @@ function Detail({ item, clubId, meId, onBack }: { item: FeedbackItem; clubId: st
           {w?.activity?.distance_m && <Stat size="sm" value={distance(w.activity.distance_m)} label={t("Distância")} />}
           {w?.activity && <Stat size="sm" value={duration(w.activity.duration_s)} label={t("Tempo")} />}
           {w?.activity?.avg_pace_s_per_km && <Stat size="sm" value={pace(w.activity.avg_pace_s_per_km)} unit="/km" label={t("Pace")} />}
-          {w?.activity && <Stat size="sm" value={w.activity.source === "strava" ? "Strava" : t("Registro manual")} label={t("Origem")} />}
         </div>
+        {w?.activity && (w.activity.source === "strava" ? <StravaAttribution externalId={w.activity.external_id} /> : <p className="text-xs text-fg-muted">{t("Atividade registrada manualmente")}</p>)}
         {c?.comment && <blockquote className="border-l-2 border-brand-line pl-3 italic text-fg-muted">“{c.comment}”</blockquote>}
       </Card>
       <Card className="p-4"><Thread clubId={clubId} workoutId={item.workout.id} meMembershipId={meId} quickReplies={QUICK} placeholder={t("Responder para {name}", { name: item.athlete.user.name.split(" ")[0]! })} /></Card>

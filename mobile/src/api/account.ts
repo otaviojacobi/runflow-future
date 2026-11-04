@@ -47,8 +47,14 @@ export const useConsents = () => useQuery({ queryKey: accountKeys.consents, quer
 export const CONSENT_TEXT_VERSION = "2026-10";
 export const useGrantConsent = () =>
   useMutation({ mutationFn: (v: { kind: ConsentKind; club_id?: string | null }) => api.post<Consent>("/me/consents", { text_version: CONSENT_TEXT_VERSION, ...v }), onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.consents }) });
+/** Sharing ending can disconnect Strava (D-011, § Strava sharing): the connection and the training data are read again. */
+const afterSharingEnds = () => {
+  void queryClient.invalidateQueries({ queryKey: accountKeys.consents });
+  void queryClient.invalidateQueries({ queryKey: accountKeys.connections });
+  invalidateTraining();
+};
 export const useRevokeConsent = () =>
-  useMutation({ mutationFn: (id: string) => api.del(`/me/consents/${id}`), onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.consents }) });
+  useMutation({ mutationFn: (id: string) => api.del(`/me/consents/${id}`), onSuccess: afterSharingEnds });
 /** GET /me/export: everything about the person (LGPD portability). */
 export const exportMyData = () => api.get<unknown>("/me/export");
 
@@ -67,5 +73,5 @@ export const useDisconnect = () =>
   });
 
 // ---------- clubs and the account itself
-export const useLeaveClub = () => useMutation({ mutationFn: (clubId: string) => api.post(`/clubs/${clubId}/leave`) });
+export const useLeaveClub = () => useMutation({ mutationFn: (clubId: string) => api.post(`/clubs/${clubId}/leave`), onSuccess: afterSharingEnds });
 export const useDeleteAccount = () => useMutation({ mutationFn: () => api.del("/me") });

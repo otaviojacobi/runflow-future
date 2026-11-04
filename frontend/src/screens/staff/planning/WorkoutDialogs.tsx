@@ -3,6 +3,7 @@ import { CalendarArrowUp, Check, Copy, MessageSquare, Pencil, Trash2 } from "luc
 import { useEffect, useState } from "react";
 import type { Club, Feeling, Sport } from "@/api/types";
 import { useCopyWeek, useDeletePlanned, usePlannedDetail, useUpdatePlanned } from "@/api/workouts";
+import { StravaAttribution } from "@/components/strava";
 import { SportPicker, WorkoutBuilder, WorkoutSummary } from "@/components/builder/WorkoutBuilder";
 import { SportChip } from "@/components/sport";
 import { IntensityProfile, Stat, StatusBadge } from "@/components/workout";
@@ -62,6 +63,7 @@ export function DetailDialog({ club, id, onClose, onEdit }: { club: Club; id: st
                 {a.avg_pace_s_per_km && <Stat value={pace(a.avg_pace_s_per_km)} unit="/km" label={t("Pace médio")} size="sm" />}
                 {a.avg_hr && <Stat value={String(a.avg_hr)} unit="bpm" label={t("FC média")} size="sm" />}
               </div>
+              {a.source === "strava" && <StravaAttribution externalId={a.external_id} />}
             </section>
           )}
           {w.comments_count > 0 && <p className="flex items-center gap-2 text-sm text-fg-muted"><MessageSquare className="size-4" />{tn(w.comments_count, "{n} comentário nesta conversa", "{n} comentários nesta conversa")}</p>}

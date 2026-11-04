@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useDeleteActivity, useMyActivity } from "@/api/activities";
 import { ChangeMatchDialog, MatchQuestion } from "@/components/ActivityMatch";
 import { SportChip } from "@/components/sport";
+import { StravaAttribution } from "@/components/strava";
 import { Stat } from "@/components/workout";
 import { t } from "@/i18n";
 import { distance, duration, km, localDate, longDate, pace, shortDate, timeOf } from "@/lib/format";
@@ -73,6 +74,7 @@ export function ActivityDetailScreen() {
           </ol>
         </Card>
       )}
+      {a.source === "strava" && <StravaAttribution externalId={a.external_id} />}
       {a.source === "manual" && <Button variant="ghost" icon={<Trash2 />} className="w-fit" loading={del.isPending} onClick={() => del.mutate(a.id, { onSuccess: () => { toast.success(t("Atividade removida")); navigate({ to: "/activities" }); }, onError: toast.error })}>{t("Remover atividade")}</Button>}
     </div>
   );

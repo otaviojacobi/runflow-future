@@ -2,7 +2,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Check, ShieldCheck, Sparkles } from "lucide-react";
 import { useState } from "react";
-import { useGrantConsent, useUpdateMe } from "@/api/account";
+import { useConnections, useConsents, useGrantConsent, useUpdateMe } from "@/api/account";
 import type { Goal, Level } from "@/api/types";
 import { ProviderConnections } from "@/components/account/StravaConnect";
 import { ClubLogo } from "@/components/brand";
@@ -24,14 +24,23 @@ export function WelcomeScreen() {
   const { me, club, ctx } = useClub();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
-  const [agree, setAgree] = useState(false);
+  const [agree, setAgree] = useState(true);
   const consent = useGrantConsent();
   const updateMe = useUpdateMe();
   const [name, setName] = useState(me?.user.name ?? "");
   const [birth, setBirth] = useState(me?.user.birth_date ?? "");
   const [phone, setPhone] = useState(me?.user.phone ?? "");
+  // Already connected to Strava (from another club): sharing it with this club too, checked to start (D-011).
+  const conns = useConnections();
+  const consents = useConsents();
   const [shareStrava, setShareStrava] = useState(true);
   if (!me || !club) return null;
+  const connected = !!conns.data?.find((c) => c.provider === "strava")?.connection;
+  const sharesStrava = !!consents.data?.some((c) => c.kind === "share_strava" && c.club_id === club.id && !c.revoked_at);
+  const finishStrava = () => {
+    if (connected && !sharesStrava && shareStrava) consent.mutate({ kind: "share_strava", club_id: club.id }, { onSuccess: () => setStep(4), onError: toast.error });
+    else setStep(4);
+  };
   const first = name.split(" ")[0] || me.user.name.split(" ")[0];
   const err = updateMe.error instanceof ApiError ? updateMe.error : null;
   const [nameError, setNameError] = useState<string | null>(null);
@@ -75,9 +84,13 @@ export function WelcomeScreen() {
     3: (
       <>
         <Head title={t("Conecte seu relógio")} text={t("Treinou, sincronizou: seu treinador vê o resultado sem você precisar fazer nada.")} />
-        <ProviderConnections onConnected={() => shareStrava && consent.mutate({ kind: "share_strava", club_id: club.id })} />
-        <Checkbox checked={shareStrava} onChange={(e) => setShareStrava(e.target.checked)} label={t("Compartilhar as atividades do Strava com os treinadores do {club}", { club: club.name })} description={t("O Strava exige o seu consentimento explícito para isso.")} />
-        <div className="flex justify-end"><Button size="lg" onClick={() => setStep(4)}>{t("Continuar")}</Button></div>
+        <ProviderConnections />
+        {connected && !sharesStrava && (
+          <Checkbox checked={shareStrava} onChange={(e) => setShareStrava(e.target.checked)}
+            label={t("Compartilhar as atividades do Strava com os treinadores do {club}", { club: club.name })}
+            description={t("O Strava exige o seu consentimento explícito para isso.")} />
+        )}
+        <div className="flex justify-end"><Button size="lg" loading={consent.isPending} onClick={finishStrava}>{t("Continuar")}</Button></div>
       </>
     ),
     4: (

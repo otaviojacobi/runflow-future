@@ -27,6 +27,7 @@ import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar, Badge, Button, ButtonLink, Card, EmptyState, Field, IconButton, Input, Screen, Segmented, Select, Skeleton, Tabs, Text, Textarea, toast } from "@/ui";
 import { ArrowLeft, ChevronLeft, ChevronRight, CircleAlert, Gauge, Lock, Phone, Plus, ShieldCheck, ShieldOff, Users } from "@/ui/icons";
+import { StravaAttribution } from "@/components/strava";
 
 type Tab = "workouts" | "activities" | "zones" | "profile";
 const ZONE_SOURCE = { race: "prova", test: "teste", manual: "manual", estimated: "estimativa" } as const;
@@ -265,7 +266,7 @@ function Activities({ a }: { a: AthleteDetail }) {
       {a.weekly.length > 0 && <Section title={t("Volume semanal")}><VolumeChart weeks={a.weekly} /></Section>}
       <Section title={t("Atividades recentes")} flush>
         {!a.consents.training_data ? <Text tone="muted" style={{ paddingHorizontal: theme.space[4] }}>{t("O aluno não compartilha os dados de treino com o clube.")}</Text>
-          : a.recent_activities.length ? <View style={{ paddingHorizontal: theme.space[2] }}>{a.recent_activities.map((x) => <ActivityRow key={x.id} a={x} />)}</View>
+          : a.recent_activities.length ? <View style={{ paddingHorizontal: theme.space[2] }}>{a.recent_activities.map((x) => <ActivityRow key={x.id} a={x} />)}{a.recent_activities.some((x) => x.source === "strava") && <StravaAttribution style={{ paddingTop: theme.space[2] }} />}</View>
           : <Text tone="muted" style={{ paddingHorizontal: theme.space[4] }}>{t("Nenhuma atividade sincronizada.")}</Text>}
       </Section>
     </View>

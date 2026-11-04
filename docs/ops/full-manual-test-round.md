@@ -98,11 +98,14 @@ https://qa.runflow.club in the phone's browser (installable from the browser men
 
 ## 4. Student joins on the phone, with Strava
 - [ ] Open the student's invite (see §1 for the link) → sign in with the student e-mail code → "Aceitar convite".
-- [ ] Welcome, in the club's colors: consent to share training data → "Nome completo", birth date, WhatsApp →
-      **Conectar com Strava** (Strava's page or app → authorize) with "Compartilhar as atividades do Strava…" on →
-      done → Hoje.
-- [ ] Perfil → Atividades: your last 30 days of Strava activities are there.
-- [ ] Trainer (web) → Alunos → the student: Strava "shared", recent activities visible.
+- [ ] Welcome, in the club's colors: the training-data consent comes checked → "Nome completo", birth date, WhatsApp →
+      Strava's own orange **"Connect with Strava"** button under "Compartilhar as atividades do Strava com os
+      treinadores do {clube}" (checked; unchecking it disables the button and says why) → Strava's page or app →
+      authorize → done → Hoje.
+- [ ] Perfil → Atividades: your last 30 days of Strava activities are there, with "Powered by Strava" under the
+      list; an activity has "View on Strava" (opens it on Strava).
+- [ ] Trainer (web) → Alunos → the student: Strava "shared", recent activities visible with "Powered by Strava".
+- [ ] The owner and the trainer can't connect Strava (they aren't students): Minha conta → Relógios e apps says why.
 - DB: `consents` (`share_training_data`, `share_strava`), `provider_connections` (strava, active), `activities`
   (source `strava`), `jobs` (the import).
 
@@ -187,8 +190,13 @@ equally likely does the student get a question.
 
 ## 12. Account and privacy (last)
 - [ ] Perfil → Privacidade e dados: export (JSON through the share sheet), revoke and grant the sharing consent (the
-      trainer loses and regains visibility), Aparelhos conectados (sign out another device).
-- [ ] Leave the club as the student; then delete the account (type EXCLUIR). Then `./reset-db.sh --yes` when you're
+      trainer loses and regains visibility; the trainer's dashboard shows "… parou de compartilhar"), Aparelhos
+      conectados (sign out another device).
+- [ ] Strava needs a club that sees it (D-011): turning off "Compartilhar meus treinos" or "Incluir atividades do
+      Strava" in your only club warns "Isso desconecta o Strava…" → confirm → Relógios e apps shows Strava
+      disconnected and the synced activities are gone. Connect again (it shares again) before the next step.
+- [ ] Leave the club as the student (the warning says Strava will be disconnected; it is); then delete the account
+      (type EXCLUIR). Then `./reset-db.sh --yes` when you're
       done.
 
 ---

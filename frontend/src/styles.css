@@ -181,6 +181,15 @@
 @keyframes sheet-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @utility sr-only-focusable { &:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; } }
 
+/* Third-party artwork that comes in a light and a dark version (Strava's logos, components/strava.tsx): show the one
+ * for the current mode. Same resolution as the tokens (tokens.css): data-theme on any ancestor forces a mode, else the
+ * OS decides; the custom properties inherit, so the nearest data-theme wins. */
+:root, [data-theme="light"] { --rf-art-light: block; --rf-art-dark: none; }
+[data-theme="dark"] { --rf-art-light: none; --rf-art-dark: block; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --rf-art-light: none; --rf-art-dark: block; } }
+.rf-art-light { display: var(--rf-art-light); }
+.rf-art-dark { display: var(--rf-art-dark); }
+
 /* Print / "Salvar como PDF": page content only (the shell chrome and controls are marked). */
 @media print {
   [data-print="hide"] { display: none !important; }

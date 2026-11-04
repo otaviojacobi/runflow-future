@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAthlete, useSaveAthleteProfile, useSetZones } from "@/api/activities";
 import type { AthleteDetail, Goal, Level } from "@/api/types";
 import { usePlanned } from "@/api/workouts";
+import { StravaAttribution } from "@/components/strava";
 import { sportBar } from "@/components/sport";
 import { ComplianceBar, Stat, ZoneTable } from "@/components/workout";
 import { t } from "@/i18n";
@@ -180,7 +181,7 @@ export function StudentScreen() {
             </div>
             <Card className="grid content-start gap-2 p-4">
               <h2 className="px-2 rf-text-title-md">{t("Atividades recentes")}</h2>
-              {!a.consents.training_data ? <p className="px-2 text-sm text-fg-muted">{t("O aluno não compartilha os dados de treino com o clube.")}</p> : a.recent_activities.length ? a.recent_activities.map((x) => <ActivityRow key={x.id} a={x} to={false} />) : <p className="px-2 text-sm text-fg-muted">{t("Nenhuma atividade sincronizada.")}</p>}
+              {!a.consents.training_data ? <p className="px-2 text-sm text-fg-muted">{t("O aluno não compartilha os dados de treino com o clube.")}</p> : a.recent_activities.length ? <>{a.recent_activities.map((x) => <ActivityRow key={x.id} a={x} to={false} />)}{a.recent_activities.some((x) => x.source === "strava") && <StravaAttribution className="px-2 pt-2" />}</> : <p className="px-2 text-sm text-fg-muted">{t("Nenhuma atividade sincronizada.")}</p>}
             </Card>
           </div>
         </Tabs.Content>

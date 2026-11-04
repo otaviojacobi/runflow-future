@@ -7,13 +7,14 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useConnections, useDisconnect } from "@/api/account";
 import { ConfirmDialog } from "@/components/account/parts";
-import { useStravaConnect } from "@/components/connections/StravaConnect";
+import { StravaConnectPanel } from "@/components/connections/StravaConnect";
+import { PoweredByStrava } from "@/components/strava";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { ago } from "@/lib/format";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Badge, Button, Card, EmptyState, Screen, Skeleton, Text, toast, type Icon } from "@/ui";
-import { Activity, Check, CircleAlert, Link2, Unlink, Watch } from "@/ui/icons";
+import { Activity, Check, CircleAlert, Unlink, Watch } from "@/ui/icons";
 
 function ProviderIcon({ icon: I }: { icon: Icon }) {
   const { theme } = useTheme();
@@ -31,7 +32,6 @@ export default function ConnectionsScreen() {
   const [confirm, setConfirm] = useState(false);
   const strava = conns.data?.find((c) => c.provider === "strava")?.connection ?? null;
   const stravaAvailable = conns.data?.find((c) => c.provider === "strava")?.available !== false;
-  const stravaConnect = useStravaConnect();
   const run = () => disconnect.mutate("strava", {
     onSuccess: () => { setConfirm(false); toast.success(t("Strava desconectado"), t("Apagamos os dados que vieram do Strava.")); },
     onError: (e) => { setConfirm(false); toast.error(e); },
@@ -63,9 +63,12 @@ export default function ConnectionsScreen() {
             </View>
           </View>
           {strava ? (
-            <Button variant="secondary" icon={Unlink} onPress={() => setConfirm(true)}>{t("Desconectar")}</Button>
+            <>
+              <Button variant="secondary" icon={Unlink} onPress={() => setConfirm(true)}>{t("Desconectar")}</Button>
+              <PoweredByStrava />
+            </>
           ) : (
-            stravaAvailable ? <Button icon={Link2} loading={stravaConnect.busy} onPress={() => void stravaConnect.connect()}>{t("Conectar com Strava")}</Button>
+            stravaAvailable ? <StravaConnectPanel />
               : <Text variant="caption" tone="muted">{t("A conexão com o Strava está indisponível no momento.")}</Text>
           )}
         </Card>
@@ -78,7 +81,6 @@ export default function ConnectionsScreen() {
         </View>
         <Badge>{t("Em breve")}</Badge>
       </Card>
-      {stravaConnect.mockSheet}
       <ConfirmDialog open={confirm} onOpenChange={setConfirm} loading={disconnect.isPending} onConfirm={run}
         title={t("Desconectar o Strava?")}
         description={t("Apagamos as atividades que vieram do Strava e os clubes deixam de vê-las. Seus feedbacks e comentários ficam.")}

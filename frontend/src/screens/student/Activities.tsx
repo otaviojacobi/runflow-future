@@ -1,16 +1,18 @@
 /** M4 · Atividades (list) + manual log. Route: /activities */
 import { Link } from "@tanstack/react-router";
-import { Activity, Link2, Plus } from "lucide-react";
+import { Activity, Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useConnections } from "@/api/account";
 import { useLogActivity, useMyActivities } from "@/api/activities";
 import type { ActivityItem, Sport } from "@/api/types";
 import { MatchQuestion } from "@/components/ActivityMatch";
+import { StravaConnectPanel } from "@/components/account/StravaConnect";
+import { StravaAttribution } from "@/components/strava";
 import { SPORT_ICON, SPORT_LABEL, SPORTS } from "@/components/sport";
 import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { dayMonth, distance, duration, km, mondayOf, pace, shortDate, timeOf, today as todayFn, localDate, addDays } from "@/lib/format";
-import { Button, ButtonLink, Card, Dialog, EmptyState, Field, Input, PageHeader, Select, Skeleton, cn, toast } from "@/ui";
+import { Button, Card, Dialog, EmptyState, Field, Input, PageHeader, Select, Skeleton, cn, toast } from "@/ui";
 import { parseClock } from "@/components/builder/BlockEditor";
 
 const SOLID: Record<Sport, string> = { run: "bg-run text-on-run", swim: "bg-swim text-on-swim", bike: "bg-bike text-on-bike", strength: "bg-strength text-on-strength", mobility: "bg-mobility text-on-mobility", other: "bg-other text-on-other" };
@@ -77,7 +79,7 @@ export function ActivitiesScreen() {
     <div className="mx-auto grid max-w-2xl gap-5">
       <PageHeader title={t("Atividades")} actions={<Button icon={<Plus />} onClick={() => setLog(true)}>{t("Registrar")}</Button>} />
       {conns.data && !strava && (
-        <Card className="flex flex-wrap items-center gap-3 p-4"><Activity className="size-6 text-fg-muted" /><p className="min-w-48 flex-1 text-sm">{t("Conecte o Strava e suas atividades chegam sozinhas, já ligadas aos treinos.")}</p><ButtonLink to="/account" size="sm" icon={<Link2 />}>{t("Conectar")}</ButtonLink></Card>
+        <Card className="grid gap-4 p-4"><div className="flex items-center gap-3"><Activity className="size-6 shrink-0 text-fg-muted" /><p className="min-w-0 flex-1 text-sm">{t("Conecte o Strava e suas atividades chegam sozinhas, já ligadas aos treinos.")}</p></div><StravaConnectPanel /></Card>
       )}
       {list.isPending ? <Skeleton className="h-64" /> : weeks.length === 0 ? (
         <Card><EmptyState icon={<Activity />} title={t("Nenhuma atividade ainda")} action={<Button icon={<Plus />} onClick={() => setLog(true)}>{t("Registrar atividade")}</Button>}>{t("Quando você treinar com o Strava conectado, elas aparecem aqui.")}</EmptyState></Card>
@@ -93,6 +95,7 @@ export function ActivitiesScreen() {
           </section>
         );
       })}
+      {list.data?.some((a) => a.source === "strava") && <StravaAttribution className="px-1" />}
       <LogDialog open={log} onOpenChange={setLog} />
     </div>
   );

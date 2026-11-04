@@ -5,6 +5,7 @@ import { useState } from "react";
 import { usePendingMatches } from "@/api/activities";
 import { useMySummary, useMyWorkouts } from "@/api/my";
 import type { PlannedWorkout } from "@/api/types";
+import { PoweredByStrava } from "@/components/strava";
 import { MatchQuestion } from "@/components/ActivityMatch";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
 import { SportChip } from "@/components/sport";
@@ -97,7 +98,7 @@ export function TodayScreen() {
       )}
       {last && (
         <Card className="grid gap-3 p-4">
-          <div className="flex items-center justify-between"><h2 className="rf-text-title-sm">{t("Última atividade")}</h2><span className="text-xs font-semibold text-fg-muted">{last.source === "strava" ? t("via Strava") : t("manual")}</span></div>
+          <div className="flex items-center justify-between"><h2 className="rf-text-title-sm">{t("Última atividade")}</h2>{last.source === "strava" ? <PoweredByStrava /> : <span className="text-xs font-semibold text-fg-muted">{t("manual")}</span>}</div>
           <div className="text-sm text-fg-muted">{last.name} · {shortDate(last.started_at.slice(0, 10))}</div>
           <div className="grid grid-cols-3 gap-3">
             {last.distance_m ? <Stat value={km(last.distance_m)} unit="km" label={t("Distância")} /> : <Stat value={duration(last.duration_s)} label={t("Tempo")} />}

@@ -26,6 +26,7 @@ import { duration, km, longDate, pace, timeOf, today as todayFn, upperFirst } fr
 import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar, Button, Card, EmptyState, Skeleton, Text } from "@/ui";
 import { CircleCheck, Link2, SearchX } from "@/ui/icons";
+import { PoweredByStrava } from "@/components/strava";
 
 export default function WorkoutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -177,7 +178,7 @@ function ActivityCard({ a }: { a: Activity }) {
     <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>
       <View style={styles.between}>
         <Text variant="titleSm" accessibilityRole="header">{t("Atividade")}</Text>
-        <Text variant="caption" tone="muted">{a.source === "strava" ? "Strava" : t("manual")}</Text>
+        {a.source === "strava" ? <PoweredByStrava /> : <Text variant="caption" tone="muted">{t("manual")}</Text>}
       </View>
       <Text variant="bodySm" tone="muted" numberOfLines={1}>{a.name} · {timeOf(a.started_at)}</Text>
       <View style={[styles.wrap, { rowGap: theme.space[3] }]}>

@@ -6,12 +6,13 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { Platform, StyleSheet, View } from "react-native";
-import { exportMyData, useConsents, useDeleteAccount, useGrantConsent, useLeaveClub, useRevokeConsent } from "@/api/account";
+import { exportMyData, useConnections, useConsents, useDeleteAccount, useGrantConsent, useLeaveClub, useRevokeConsent } from "@/api/account";
 import { endSession } from "@/api/auth";
 import { fetchMe, meKey } from "@/api/me";
 import type { Consent, ConsentKind, MembershipContext } from "@/api/types";
 import { ClubLogo } from "@/components/brand";
 import { ConfirmDialog, Section } from "@/components/account/parts";
+import { disconnectWarning, disconnectsStrava } from "@/components/connections/StravaConnect";
 import { t } from "@/i18n";
 import { activeMembership, homeFor, ROLE_LABEL, selectClub, useClub } from "@/lib/club";
 import { shareTextFile } from "@/lib/files";
@@ -58,8 +59,12 @@ function Sharing({ memberships }: { memberships: MembershipContext[] }) {
     if (on) grant.mutate({ kind, club_id: clubId }, { onSuccess: () => toast.success(t("Compartilhamento ativado")), onError: toast.error });
     else if (c) setPending(c);
   };
+  // When no club would see the Strava sync any more, the API disconnects Strava (D-011): the warning says so.
+  const conns = useConnections();
+  const connected = !!conns.data?.find((c) => c.provider === "strava")?.connection;
+  const ends = !!pending?.club_id && disconnectsStrava({ connected, consents: consents.data, memberships, clubId: pending.club_id, kind: pending.kind });
   const confirmRevoke = () => pending && revoke.mutate(pending.id, {
-    onSuccess: () => { setPending(null); toast.success(t("Compartilhamento desativado"), t("O clube deixa de ver esses dados a partir de agora.")); },
+    onSuccess: () => { setPending(null); toast.success(t("Compartilhamento desativado"), ends ? t("O Strava foi desconectado.") : t("O clube deixa de ver esses dados a partir de agora.")); },
     onError: (e) => { setPending(null); toast.error(e); },
   });
   const download = async () => {
@@ -106,9 +111,10 @@ function Sharing({ memberships }: { memberships: MembershipContext[] }) {
       </Section>
       <ConfirmDialog open={!!pending} onOpenChange={(v) => !v && setPending(null)} loading={revoke.isPending} onConfirm={confirmRevoke}
         title={t("Parar de compartilhar com {club}?", { club: clubName(pending?.club_id ?? null) })}
-        description={pending?.kind === "share_strava"
+        description={[pending?.kind === "share_strava"
           ? t("Seus treinadores deixam de ver suas atividades do Strava, e elas não marcam mais os treinos deste clube sozinhas. O clube vai ver que você parou de compartilhar. Você pode voltar a compartilhar quando quiser.")
-          : t("Seus treinadores deixam de ver suas atividades, ritmo e frequência cardíaca, e elas não marcam mais os treinos deste clube sozinhas. O clube vai ver que você parou de compartilhar. Você pode voltar a compartilhar quando quiser.")}
+          : t("Seus treinadores deixam de ver suas atividades, ritmo e frequência cardíaca, e elas não marcam mais os treinos deste clube sozinhas. O clube vai ver que você parou de compartilhar. Você pode voltar a compartilhar quando quiser."),
+          ends ? disconnectWarning() : ""].filter(Boolean).join(" ")}
         confirmLabel={t("Parar de compartilhar")} />
     </>
   );
@@ -119,6 +125,9 @@ function Clubs({ memberships }: { memberships: MembershipContext[] }) {
   const { club } = useClub();
   const leave = useLeaveClub();
   const [target, setTarget] = useState<MembershipContext | null>(null);
+  const consents = useConsents();
+  const conns = useConnections();
+  const ends = !!target && disconnectsStrava({ connected: !!conns.data?.find((c) => c.provider === "strava")?.connection, consents: consents.data, memberships, clubId: target.club.id });
   const confirm = () => target && leave.mutate(target.club.id, {
     onSuccess: async () => {
       const left = target;
@@ -149,7 +158,7 @@ function Clubs({ memberships }: { memberships: MembershipContext[] }) {
       <ConfirmDialog open={!!target} onOpenChange={(v) => !v && setTarget(null)} loading={leave.isPending} onConfirm={confirm}
         title={t("Sair de {club}?", { club: target?.club.name ?? "" })}
         description={target?.membership.role === "student"
-          ? t("Você deixa de receber treinos e o clube perde acesso aos seus dados. Suas atividades continuam na sua conta.")
+          ? [t("Você deixa de receber treinos e o clube perde acesso aos seus dados. Suas atividades continuam na sua conta."), ends ? disconnectWarning() : ""].filter(Boolean).join(" ")
           : t("Você perde acesso aos alunos e treinos do clube.")}
         confirmLabel={t("Sair do clube")} />
     </Section>

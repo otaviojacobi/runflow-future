@@ -16,6 +16,7 @@ import { distance, duration, km, localDate, longDate, pace, timeOf, upperFirst }
 import { useTheme } from "@/theme/ThemeProvider";
 import { Button, Card, Dialog, EmptyState, Screen, Skeleton, Text, toast } from "@/ui";
 import { ArrowRightLeft, ChevronRight, Link2, SearchX, Trash2 } from "@/ui/icons";
+import { StravaAttribution } from "@/components/strava";
 
 export default function ActivityScreen() {
   const { theme } = useTheme();
@@ -131,6 +132,7 @@ export default function ActivityScreen() {
         </Card>
       )}
 
+      {a.source === "strava" && <StravaAttribution externalId={a.external_id} />}
       {a.source === "manual" && (
         <Button variant="ghost" icon={Trash2} style={styles.start} onPress={() => setConfirm(true)}>{t("Remover atividade")}</Button>
       )}

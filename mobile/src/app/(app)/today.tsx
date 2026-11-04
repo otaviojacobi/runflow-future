@@ -23,6 +23,7 @@ import { useOnline } from "@/lib/offline";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Card, ProgressBar, Screen, Skeleton, Text } from "@/ui";
 import { ChevronRight, Coffee, Flame, ShieldAlert } from "@/ui/icons";
+import { PoweredByStrava } from "@/components/strava";
 
 const greet = () => { const h = new Date().getHours(); return h < 12 ? t("Bom dia") : h < 18 ? t("Boa tarde") : t("Boa noite"); };
 
@@ -201,7 +202,7 @@ function LastActivity({ a }: { a: NonNullable<MySummary["last_activity"]> }) {
     <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>
       <View style={styles.between}>
         <Text variant="titleSm" accessibilityRole="header">{t("Última atividade")}</Text>
-        <Text variant="caption" tone="muted">{a.source === "strava" ? t("via Strava") : t("manual")}</Text>
+        {a.source === "strava" ? <PoweredByStrava /> : <Text variant="caption" tone="muted">{t("manual")}</Text>}
       </View>
       <Text variant="bodySm" tone="muted" numberOfLines={1}>{a.name} · {shortDate(a.started_at.slice(0, 10))}</Text>
       <View style={[styles.row, { gap: theme.space[3] }]}>

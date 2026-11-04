@@ -12,13 +12,19 @@ export const useUpdateMe = () =>
 export const useConsents = () => useQuery({ queryKey: accountKeys.consents, queryFn: () => api.get<{ items: Consent[] }>("/me/consents").then((r) => r.items) });
 export const useGrantConsent = () =>
   useMutation({ mutationFn: (v: { kind: ConsentKind; club_id?: string | null }) => api.post<Consent>("/me/consents", { text_version: "2026-10", ...v }), onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.consents }) });
+/** Sharing ending can disconnect Strava (D-011, § Strava sharing): the connection and the activities are read again. */
+export const afterSharingEnds = () => {
+  void queryClient.invalidateQueries({ queryKey: accountKeys.consents });
+  void queryClient.invalidateQueries({ queryKey: accountKeys.connections });
+  void queryClient.invalidateQueries({ queryKey: ["me", "activities"] });
+};
 export const useRevokeConsent = () =>
-  useMutation({ mutationFn: (id: string) => api.del(`/me/consents/${id}`), onSuccess: () => queryClient.invalidateQueries({ queryKey: accountKeys.consents }) });
+  useMutation({ mutationFn: (id: string) => api.del(`/me/consents/${id}`), onSuccess: afterSharingEnds });
 
 export const useConnections = () => useQuery({ queryKey: accountKeys.connections, queryFn: () => api.get<{ items: ProviderStatus[] }>("/me/connections").then((r) => r.items) });
 export const useStravaStart = () => useMutation({ mutationFn: () => api.post<{ authorize_url: string; state: string }>("/me/connections/strava/start") });
 export const useStravaCallback = () =>
-  useMutation({ mutationFn: (v: { code: string; state?: string; scope?: string }) => api.post("/me/connections/strava/callback", v), onSuccess: () => { queryClient.invalidateQueries({ queryKey: accountKeys.connections }); queryClient.invalidateQueries({ queryKey: ["me", "activities"] }); } });
+  useMutation({ mutationFn: (v: { code: string; state?: string; scope?: string }) => api.post("/me/connections/strava/callback", v), onSuccess: () => { queryClient.invalidateQueries({ queryKey: accountKeys.connections }); queryClient.invalidateQueries({ queryKey: accountKeys.consents }); queryClient.invalidateQueries({ queryKey: ["me", "activities"] }); } });
 export const useDisconnect = () =>
   useMutation({ mutationFn: (provider: string) => api.del(`/me/connections/${provider}`), onSuccess: () => { queryClient.invalidateQueries({ queryKey: accountKeys.connections }); queryClient.invalidateQueries({ queryKey: accountKeys.consents }); } });
 
@@ -58,6 +64,6 @@ export const useRevokeSession = () => useMutation({ mutationFn: (id: string) => 
 export const useRevokeOtherSessions = () => useMutation({ mutationFn: () => api.post<{ revoked: number }>("/me/sessions/revoke-others"), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["me", "sessions"] }) });
 export const useUploadAvatar = () => useMutation({ mutationFn: (v: { data_url: string; width: number; height: number }) => api.post<Me>("/me/avatar", v), onSuccess: (me) => queryClient.setQueryData(meKey, me) });
 export const useRemoveAvatar = () => useMutation({ mutationFn: () => api.del<Me>("/me/avatar"), onSuccess: (me) => queryClient.setQueryData(meKey, me) });
-export const useLeaveClub = () => useMutation({ mutationFn: (clubId: string) => api.post(`/clubs/${clubId}/leave`), onSuccess: () => queryClient.invalidateQueries({ queryKey: meKey }) });
+export const useLeaveClub = () => useMutation({ mutationFn: (clubId: string) => api.post(`/clubs/${clubId}/leave`), onSuccess: () => { void queryClient.invalidateQueries({ queryKey: meKey }); afterSharingEnds(); } });
 export const useDeleteAccount = () => useMutation({ mutationFn: () => api.del("/me") });
 export const exportMyData = () => api.get<unknown>("/me/export");

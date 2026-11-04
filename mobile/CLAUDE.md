@@ -45,7 +45,9 @@ src/
               messages/ = conversation rows, the chat thread and composer, announcement cards, the stack's top bar;
               activity.tsx = an activity row; matching.tsx = activity matching (D-049): "Qual treino foi esta
               atividade?" (MatchQuestion, PendingMatches on Hoje) and the "Trocar/Escolher treino" sheet (MatchSheet);
-              connections/StravaConnect = the "Conectar com Strava" hook + mock sheet;
+              connections/StravaConnect = the connect panel (the sharing statement it requires, D-011, + the hook and
+              the mock sheet) and `disconnectsStrava` for the warnings; strava.tsx = Strava's brand: the official
+              button, "Powered by Strava", "View on Strava" (docs/strava-brand.md; artwork in assets/strava);
               club/ = color picker, theme preview (a phone in a club's colors), the one-by-one invite form,
               contrast report, the spreadsheet import; billing/ = plan copy (copy of the web's plans.ts), seat meters,
               the mock's Stripe checkout and portal sheets; shell/FrozenLayer = the frozen club's icy layer, D-043;
