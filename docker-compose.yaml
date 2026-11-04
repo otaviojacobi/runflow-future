@@ -47,6 +47,8 @@ services:
     restart: unless-stopped
     command: ["/garage", "server", "--single-node", "--default-bucket"]
     environment:
+      # Warnings and errors only: at info, every health check logs four lines (connection, admin calls).
+      RUST_LOG: garage=warn
       GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?set GARAGE_RPC_SECRET in .env (openssl rand -hex 32)}
       GARAGE_DEFAULT_BUCKET: ${S3_BUCKET:-runflow}
       GARAGE_DEFAULT_ACCESS_KEY: ${AWS_ACCESS_KEY_ID:?set AWS_ACCESS_KEY_ID in .env (GK + openssl rand -hex 16)}
@@ -58,9 +60,11 @@ services:
       - "127.0.0.1:${GARAGE_HOST_PORT:-3900}:3900"
     healthcheck:
       test: ["CMD", "/garage", "status"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
-      retries: 30
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
 
   # Valkey (D-047; Redis protocol): sign-in codes, rate-limit counters, the session and read caches. Postgres is the
   # record, so nothing is persisted here; every key has a TTL. Host port 6380 so a local Redis/Valkey on 6379 can stay.

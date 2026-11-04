@@ -43,6 +43,8 @@ services:
     restart: unless-stopped
     command: ["/garage", "server", "--single-node", "--default-bucket"]
     environment:
+      # Warnings and errors only: at info, every health check logs four lines (connection, admin calls).
+      RUST_LOG: garage=warn
       GARAGE_RPC_SECRET: ${GARAGE_RPC_SECRET:?set GARAGE_RPC_SECRET in ops/qa/.env (openssl rand -hex 32)}
       GARAGE_DEFAULT_BUCKET: ${S3_BUCKET:-runflow}
       GARAGE_DEFAULT_ACCESS_KEY: ${AWS_ACCESS_KEY_ID:?set AWS_ACCESS_KEY_ID in ops/qa/.env (GK + openssl rand -hex 16)}
@@ -52,9 +54,11 @@ services:
       - garage:/var/lib/garage
     healthcheck:
       test: ["CMD", "/garage", "status"]
-      interval: 5s
+      interval: 30s
       timeout: 5s
-      retries: 30
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
 
   api:
     image: ghcr.io/otaviojacobi/runflow-api:${RUNFLOW_TAG:-qa}
