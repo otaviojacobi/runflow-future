@@ -80,6 +80,7 @@ async fn list(
             group: None,
             only: None,
             drafts: false,
+            activity_since: None,
         },
     )
     .await?;
@@ -314,7 +315,7 @@ async fn complete(
                 kind: "feedback",
                 title: &format!("{} {what}", me.name),
                 body: Some(comment.as_deref().unwrap_or(&w.title)),
-                link: "/feedback",
+                link: &format!("/feedback?workout={}", w.id),
             },
         )
         .await?;
@@ -346,6 +347,7 @@ async fn summary(
             group: None,
             only: None,
             drafts: false,
+            activity_since: None,
         },
     )
     .await?;

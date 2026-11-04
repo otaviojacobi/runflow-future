@@ -1,26 +1,37 @@
-/** Trainer feedback inbox (W8): completions + threads from the last 30 days. */
+/** Trainer feedback inbox (W8): workouts with conversation or completion activity in the last 30 days (any workout
+ *  date: a question on an upcoming workout belongs here) or dated in the last 30 days. */
 export default function register(h) {
-  h.get("/v1/clubs/:club_id/feedback", (ctx) => {
-    const me = ctx.staff(ctx.params.club_id);
-    const filter = ctx.query.filter || "needs_reply";
+  const role = (mid) => h.db.memberships.find((m) => m.id === mid)?.role;
+  const flaggedOf = (c) => !!c && ((c.rpe ?? 0) >= 9 || ["bad", "awful"].includes(c.feeling));
+
+  /** The inbox's items for a staff member of a club (also `/me` memberships[].unread.feedback). */
+  h.feedbackItems = (clubId, viewerMid) => {
     const today = h.today();
     const since = h.addDays(today, -30);
-    const role = (mid) => h.db.memberships.find((m) => m.id === mid)?.role;
-    const items = h.db.planned_workouts
-      .filter((p) => p.club_id === ctx.params.club_id && p.date >= since && p.date <= today)
+    const sinceTs = new Date(Date.now() - 30 * 86400000).toISOString();
+    return h.db.planned_workouts
+      .filter((p) => p.club_id === clubId)
       .map((p) => {
         const c = h.db.workout_completions.find((x) => x.planned_workout_id === p.id) || null;
         const cs = h.db.comments.filter((x) => x.planned_workout_id === p.id && !x.deleted_at).sort((a, b) => a.created_at.localeCompare(b.created_at));
-        if (!c?.comment && !cs.length && !(c && ((c.rpe ?? 0) >= 9 || ["bad", "awful"].includes(c.feeling)))) return null;
+        const recent = cs.some((x) => x.created_at >= sinceTs) || (c && (c.updated_at ?? "") >= sinceTs);
+        if (!recent && !(p.date >= since && p.date <= today)) return null;
+        if (!c?.comment && !cs.length && !flaggedOf(c)) return null;
         const last = cs[cs.length - 1] || null;
         const staffReplied = cs.some((x) => role(x.author_membership_id) !== "student");
         const needs_reply = last ? role(last.author_membership_id) === "student" : !!c?.comment && !staffReplied;
-        const flagged = !!c && ((c.rpe ?? 0) >= 9 || ["bad", "awful"].includes(c.feeling));
-        const m = h.db.memberships.find((x) => x.id === p.athlete_membership_id);
-        const w = h.workoutOut(p, me.id);
-        return { workout: w, athlete: { membership_id: m.id, user: h.publicUser(h.db.users.find((u) => u.id === m.user_id)) }, last_comment: last, needs_reply, flagged, sort_at: last?.created_at || c?.updated_at || p.date };
+        return { p, c, last, needs_reply, flagged: flaggedOf(c), sort_at: [last?.created_at, c?.updated_at].filter(Boolean).sort().at(-1) || p.date };
       })
       .filter(Boolean);
+  };
+
+  h.get("/v1/clubs/:club_id/feedback", (ctx) => {
+    const me = ctx.staff(ctx.params.club_id);
+    const filter = ctx.query.filter || "needs_reply";
+    const items = h.feedbackItems(ctx.params.club_id, me.id).map(({ p, last, needs_reply, flagged, sort_at }) => {
+      const m = h.db.memberships.find((x) => x.id === p.athlete_membership_id);
+      return { workout: h.workoutOut(p, me.id), athlete: { membership_id: m.id, user: h.publicUser(h.db.users.find((u) => u.id === m.user_id)) }, last_comment: last, needs_reply, flagged, sort_at };
+    });
     const counts = { needs_reply: items.filter((x) => x.needs_reply).length, unread: items.filter((x) => x.workout.unread_count > 0).length, flagged: items.filter((x) => x.flagged).length, all: items.length };
     const shown = items
       .filter((x) => filter === "all" || (filter === "unread" ? x.workout.unread_count > 0 : filter === "flagged" ? x.flagged : x.needs_reply))

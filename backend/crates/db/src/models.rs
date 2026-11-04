@@ -144,6 +144,8 @@ pub struct MembershipContext {
 pub struct Unread {
     pub messages: i64,
     pub announcements: i64,
+    /// Staff: the feedback inbox's `needs_reply` count (W8); 0 for students.
+    pub feedback: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]

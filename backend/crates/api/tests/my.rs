@@ -339,9 +339,9 @@ async fn threads_notify_the_other_side_and_feed_the_inbox(db: PgPool) {
             n.body["items"][0]["link"].as_str()
         ),
         (
-            Some("comment"),
+            Some("feedback"),
             Some("Ana Souza comentou no treino"),
-            Some("/feedback")
+            Some(format!("/feedback?workout={w}").as_str())
         )
     );
 
@@ -422,5 +422,89 @@ async fn threads_notify_the_other_side_and_feed_the_inbox(db: PgPool) {
             .await
             .status,
         204
+    );
+}
+
+/// A question on an UPCOMING workout reaches the staff: a `feedback` notification (pushed by default) that opens it,
+/// the inbox (by activity, not by the workout's date) and the Feedbacks count in `/me`; replying clears both.
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn a_question_on_an_upcoming_workout_reaches_the_staff(db: PgPool) {
+    let app = TestApp::new(db);
+    let c = setup(&app).await;
+    // Students see future weeks right away (new clubs release weekly, D-031).
+    app.patch(
+        &format!("/v1/clubs/{}", c.id),
+        Some(&c.owner),
+        json!({ "release_mode": "immediate" }),
+    )
+    .await
+    .ok();
+    let w = assign(&app, &c, &c.ana.1, &day(9), "Intervalado").await;
+    app.post(
+        "/v1/me/push-tokens",
+        Some(&c.owner),
+        json!({ "platform": "android", "token": "ExponentPushToken[owner-phone]" }),
+    )
+    .await
+    .ok();
+    let count = |me: &serde_json::Value| me["memberships"][0]["unread"]["feedback"].as_i64();
+    assert_eq!(count(app.get("/v1/me", Some(&c.owner)).await.ok()), Some(0));
+
+    let thread = format!("/v1/clubs/{}/planned-workouts/{w}/comments", c.id);
+    app.post(
+        &thread,
+        Some(&c.ana.0),
+        json!({ "body": "Posso fazer os tiros na esteira?" }),
+    )
+    .await
+    .ok();
+
+    let n = app.get("/v1/me/notifications", Some(&c.owner)).await;
+    assert_eq!(
+        (
+            n.ok()["items"][0]["kind"].as_str(),
+            n.body["items"][0]["link"].as_str()
+        ),
+        (
+            Some("feedback"),
+            Some(format!("/feedback?workout={w}").as_str())
+        )
+    );
+    let pushed: Option<chrono::DateTime<Utc>> = sqlx::query_scalar(
+        "SELECT push_at FROM notifications WHERE kind = 'feedback' ORDER BY created_at DESC LIMIT 1",
+    )
+    .fetch_one(app.db())
+    .await
+    .unwrap();
+    assert!(pushed.is_some(), "feedback is pushed by default for staff");
+
+    let inbox = format!("/v1/clubs/{}/feedback", c.id);
+    let waiting = app.get(&inbox, Some(&c.owner)).await;
+    assert_eq!(waiting.ok()["counts"]["needs_reply"], 1);
+    assert_eq!(waiting.body["items"][0]["workout"]["id"], w);
+    assert_eq!(waiting.body["items"][0]["needs_reply"], true);
+    assert_eq!(count(app.get("/v1/me", Some(&c.owner)).await.ok()), Some(1));
+    assert_eq!(
+        count(app.get("/v1/me", Some(&c.ana.0)).await.ok()),
+        Some(0),
+        "students have no Feedbacks count"
+    );
+
+    // The trainer answers: nothing waits any more, and the student hears it as a comment.
+    app.post(
+        &thread,
+        Some(&c.owner),
+        json!({ "body": "Pode, mesmo ritmo." }),
+    )
+    .await
+    .ok();
+    assert_eq!(
+        app.get(&inbox, Some(&c.owner)).await.ok()["counts"]["needs_reply"],
+        0
+    );
+    assert_eq!(count(app.get("/v1/me", Some(&c.owner)).await.ok()), Some(0));
+    assert_eq!(
+        app.get("/v1/me/notifications", Some(&c.ana.0)).await.ok()["items"][0]["kind"],
+        "comment"
     );
 }

@@ -21,13 +21,16 @@ export default function register(h) {
       return { week_start: mon, pct: score(ps), planned: ps.length, done: ps.filter(done).length, current: mon === monday };
     });
 
-    // feedback waiting: completions with a comment or unread student comments, last 7 days
+    // feedback waiting: unread conversations with activity in the last 7 days (any workout date: questions on upcoming
+    // workouts too) and completion comments of the last 7 days no staff member answered; latest activity first
     const since = h.addDays(today, -7);
+    const sinceTs = new Date(Date.now() - 7 * 86400000).toISOString();
+    const lastAt = (x) => [h.db.comments.filter((cm) => cm.planned_workout_id === x.p.id && !cm.deleted_at).map((cm) => cm.created_at).sort().at(-1), x.c?.updated_at].filter(Boolean).sort().at(-1) || x.p.date;
     const feedback = planned
-      .filter((p) => p.date >= since && p.date <= today)
+      .filter((p) => (p.date >= since && p.date <= today) || h.db.comments.some((cm) => cm.planned_workout_id === p.id && !cm.deleted_at && cm.created_at >= sinceTs) || (comp(p)?.updated_at ?? "") >= sinceTs)
       .map((p) => ({ p, c: comp(p), th: h.workoutOut(p, me.id) }))
       .filter((x) => x.th.unread_count > 0 || (x.c?.comment && !h.db.comments.some((cm) => cm.planned_workout_id === x.p.id && h.db.memberships.find((m) => m.id === cm.author_membership_id)?.role !== "student")))
-      .sort((a, b) => (b.c?.updated_at || b.p.date).localeCompare(a.c?.updated_at || a.p.date))
+      .sort((a, b) => lastAt(b).localeCompare(lastAt(a)))
       .slice(0, 6)
       .map((x) => ({ workout: x.th, athlete: { membership_id: x.p.athlete_membership_id, user: userOf(x.p.athlete_membership_id) }, last_comment: h.db.comments.filter((cm) => cm.planned_workout_id === x.p.id).sort((a, b) => b.created_at.localeCompare(a.created_at))[0] || null }));
 

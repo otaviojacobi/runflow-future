@@ -102,7 +102,25 @@ pub async fn memberships(
                               SELECT 1 FROM group_members g WHERE g.membership_id = m.id AND g.group_id = ANY (a.group_ids)))
                         AND NOT EXISTS (
                               SELECT 1 FROM announcement_reads ar WHERE ar.announcement_id = a.id AND ar.membership_id = m.id))
-                  ELSE 0 END AS "announcements!"
+                  ELSE 0 END AS "announcements!",
+                  -- Staff: the feedback inbox's needs_reply count, same window and rule as GET /feedback (threads.rs):
+                  -- dated in the club's last 30 days, or a message / completion change in the last 30 days (any date);
+                  -- the last message is the student's, or with no messages the completion has a comment.
+                  CASE WHEN m.role <> 'student' THEN
+                    (SELECT count(*) FROM planned_workouts p
+                       JOIN clubs cl ON cl.id = p.club_id
+                       LEFT JOIN workout_completions wc ON wc.planned_workout_id = p.id
+                       LEFT JOIN LATERAL (
+                         SELECT am.role FROM comments x JOIN memberships am ON am.id = x.author_membership_id
+                          WHERE x.planned_workout_id = p.id AND x.deleted_at IS NULL
+                          ORDER BY x.created_at DESC LIMIT 1) last ON true
+                      WHERE p.club_id = m.club_id
+                        AND (p.date BETWEEN (now() AT TIME ZONE cl.timezone)::date - 30 AND (now() AT TIME ZONE cl.timezone)::date
+                             OR EXISTS (SELECT 1 FROM comments x WHERE x.planned_workout_id = p.id AND x.deleted_at IS NULL
+                                          AND x.created_at >= now() - interval '30 days')
+                             OR wc.updated_at >= now() - interval '30 days')
+                        AND CASE WHEN last.role IS NOT NULL THEN last.role = 'student' ELSE wc.comment IS NOT NULL END)
+                  ELSE 0 END AS "feedback!"
              FROM memberships m WHERE m.id = ANY ($1)"#,
         &ids
     )
@@ -115,6 +133,7 @@ pub async fn memberships(
             Unread {
                 messages: u.messages,
                 announcements: u.announcements,
+                feedback: u.feedback,
             },
         )
     })

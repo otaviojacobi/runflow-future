@@ -7,7 +7,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use chrono::Duration;
+use chrono::{Duration, Utc};
 use runflow_db::my::{self as db, CommentRow};
 use runflow_db::workouts;
 use serde::Deserialize;
@@ -97,13 +97,20 @@ async fn create(
     let author = runflow_db::auth::user_by_id(&mut *tx, auth.user_id)
         .await?
         .ok_or_else(Problem::unauthorized)?;
-    let (recipients, link) = if m.role == "student" {
+    // A student's message is feedback for the staff (pushed by default, opens that conversation in the inbox); the
+    // staff's reply is a comment for the student.
+    let (recipients, kind, link) = if m.role == "student" {
         (
             db::staff_memberships(&mut *tx, m.club_id).await?,
-            "/feedback".to_string(),
+            "feedback",
+            format!("/feedback?workout={}", w.id),
         )
     } else {
-        (vec![w.athlete_membership_id], format!("/workouts/{}", w.id))
+        (
+            vec![w.athlete_membership_id],
+            "comment",
+            format!("/workouts/{}", w.id),
+        )
     };
     let preview: String = text.chars().take(120).collect();
     for r in recipients {
@@ -112,7 +119,7 @@ async fn create(
             r,
             runflow_db::notifications::Notice {
                 club_id: m.club_id,
-                kind: "comment",
+                kind,
                 title: &format!("{} comentou no treino", author.name),
                 body: Some(&preview),
                 link: &link,
@@ -136,7 +143,8 @@ struct InboxQuery {
     limit: Option<usize>,
 }
 
-/// Last 30 days: completions with a comment or a warning sign (PSE ≥ 9, felt bad/awful) and every thread.
+/// Workouts with conversation or completion activity in the last 30 days (any date: questions on upcoming workouts)
+/// or dated in the last 30 days, that have a thread, a completion comment or a warning sign (PSE ≥ 9, felt bad/awful).
 async fn inbox(
     State(state): State<AppState>,
     auth: Auth,
@@ -159,6 +167,7 @@ async fn inbox(
             group: None,
             only: None,
             drafts: true,
+            activity_since: Some(Utc::now() - Duration::days(30)),
         },
     )
     .await?;
@@ -190,9 +199,12 @@ async fn inbox(
         {
             athletes.insert(w.athlete_membership_id, a);
         }
-        let sort_at = last
-            .map(|l| l.created_at.to_rfc3339())
-            .or_else(|| c.map(|c| c.updated_at.to_rfc3339()))
+        // Latest activity: the last message or the completion's last change.
+        let sort_at = [last.map(|l| l.created_at), c.map(|c| c.updated_at)]
+            .into_iter()
+            .flatten()
+            .max()
+            .map(|t| t.to_rfc3339())
             .unwrap_or_else(|| w.date.to_string());
         items.push((
             sort_at,

@@ -1,6 +1,6 @@
 //! Planned workouts (W4, W3, M1–M3), completions, notifications for students.
 
-use chrono::NaiveDate;
+use chrono::{DateTime, NaiveDate, Utc};
 use serde_json::Value;
 use sqlx::{PgConnection, PgExecutor};
 use uuid::Uuid;
@@ -16,6 +16,9 @@ pub struct Filter {
     pub only: Option<Uuid>,
     /// Include drafts (staff); students only ever get what was released to them (D-031).
     pub drafts: bool,
+    /// Also any workout, whatever its date, whose conversation had a message or whose completion changed since then
+    /// (the feedback inbox and the dashboard: a question on an upcoming workout).
+    pub activity_since: Option<DateTime<Utc>>,
 }
 
 /// Workouts with completion and thread counters for `viewer` (a membership id) and whether the student sees them.
@@ -38,7 +41,11 @@ pub async fn list(
                       AND (r.last_read_at IS NULL OR x.created_at > r.last_read_at)) AS "unread_count!",
                   coalesce(workout_released(p.club_id, p.athlete_membership_id, p.date), false) AS "visible!"
              FROM planned_workouts p LEFT JOIN workout_completions c ON c.planned_workout_id = p.id
-            WHERE p.club_id = $1 AND p.date BETWEEN $3 AND $4
+            WHERE p.club_id = $1
+              AND (p.date BETWEEN $3 AND $4
+                   OR ($9::timestamptz IS NOT NULL
+                       AND (EXISTS (SELECT 1 FROM comments x WHERE x.planned_workout_id = p.id AND x.deleted_at IS NULL AND x.created_at >= $9)
+                            OR c.updated_at >= $9)))
               AND ($5::uuid IS NULL OR p.athlete_membership_id = $5)
               AND ($6::uuid IS NULL OR p.athlete_membership_id IN (SELECT membership_id FROM group_members WHERE group_id = $6))
               AND ($7::uuid IS NULL OR p.id = $7)
@@ -51,7 +58,8 @@ pub async fn list(
         f.athlete,
         f.group,
         f.only,
-        f.drafts
+        f.drafts,
+        f.activity_since
     )
     .fetch_all(db)
     .await?;
@@ -117,6 +125,7 @@ pub async fn one(
             group: None,
             only: Some(id),
             drafts: true,
+            activity_since: None,
         },
     )
     .await?

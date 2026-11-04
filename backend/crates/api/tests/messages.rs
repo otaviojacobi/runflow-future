@@ -321,9 +321,11 @@ async fn the_mural_reaches_the_club_or_some_groups(db: PgPool) {
     );
 }
 
-/// `/me` memberships[].unread for the (only) club: what the apps badge Mensagens with.
+/// `/me` memberships[].unread for the (only) club: what the apps badge Mensagens with (the Feedbacks count,
+/// `unread.feedback`, is tested with the inbox in my.rs).
 async fn unread(app: &TestApp, token: &str) -> Value {
-    app.get("/v1/me", Some(token)).await.ok()["memberships"][0]["unread"].clone()
+    let u = app.get("/v1/me", Some(token)).await.ok()["memberships"][0]["unread"].clone();
+    json!({ "messages": u["messages"], "announcements": u["announcements"] })
 }
 
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]

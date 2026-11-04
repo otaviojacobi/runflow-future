@@ -85,7 +85,7 @@ export default function register(h) {
     // The trainer hears about it the first time the student reports (an automatic match alone doesn't notify).
     const coach = h.db.memberships.find((x) => x.id === p.created_by);
     const student = h.db.users.find((u) => u.id === m.user_id);
-    if (coach && first) h.notify({ id: h.uuid("n"), user_id: coach.user_id, club_id: p.club_id, kind: "feedback", title: `${student.name} ${b.status === "missed" ? "não fez o treino" : "registrou o treino"}`, body: c.comment || p.title, link: "/feedback", read_at: null, created_at: now });
+    if (coach && first) h.notify({ id: h.uuid("n"), user_id: coach.user_id, club_id: p.club_id, kind: "feedback", title: `${student.name} ${b.status === "missed" ? "não fez o treino" : "registrou o treino"}`, body: c.comment || p.title, link: `/feedback?workout=${p.id}`, read_at: null, created_at: now });
     return h.workoutOut(p, m.id);
   });
   h.get("/v1/clubs/:club_id/my/summary", (ctx) => {

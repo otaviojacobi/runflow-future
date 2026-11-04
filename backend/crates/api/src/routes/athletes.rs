@@ -611,6 +611,7 @@ async fn dashboard_json(state: &AppState, m: &Member, q: DashQuery) -> Result<Va
             group: None,
             only: None,
             drafts: true,
+            activity_since: None,
         },
     )
     .await?
@@ -631,11 +632,27 @@ async fn dashboard_json(state: &AppState, m: &Member, q: DashQuery) -> Result<Va
         })
         .collect();
 
-    // Feedback waiting (7 days): unread threads, or a completion comment no staff answered yet.
-    let recent: Vec<&Workout> = all
-        .iter()
-        .filter(|w| w.date >= today - Duration::days(7) && w.date <= today)
-        .collect();
+    // Feedback waiting (7 days): unread threads, or a completion comment no staff answered yet. Conversations count by
+    // activity, whatever the workout's date (a question on an upcoming workout).
+    let lately: Vec<Workout> = workouts::list(
+        &state.db,
+        m.club_id,
+        m.membership_id,
+        workouts::Filter {
+            from: today - Duration::days(7),
+            to: today,
+            athlete: None,
+            group: None,
+            only: None,
+            drafts: true,
+            activity_since: Some(Utc::now() - Duration::days(7)),
+        },
+    )
+    .await?
+    .into_iter()
+    .filter(|w| ids.contains(&w.athlete_membership_id))
+    .collect();
+    let recent: Vec<&Workout> = lately.iter().collect();
     let comments =
         runflow_db::my::comments(&state.db, &recent.iter().map(|w| w.id).collect::<Vec<_>>())
             .await?;
@@ -658,13 +675,19 @@ async fn dashboard_json(state: &AppState, m: &Member, q: DashQuery) -> Result<Va
             )
         })
         .collect();
-    let at = |w: &Workout| {
-        w.completion
-            .as_ref()
-            .map(|c| c.updated_at.to_rfc3339())
-            .unwrap_or_else(|| w.date.to_string())
+    // Latest activity first: the last message or the completion's last change.
+    let at = |w: &Workout, last: Option<&runflow_db::my::CommentRow>| {
+        [
+            last.map(|c| c.created_at),
+            w.completion.as_ref().map(|c| c.updated_at),
+        ]
+        .into_iter()
+        .flatten()
+        .max()
+        .map(|t| t.to_rfc3339())
+        .unwrap_or_else(|| w.date.to_string())
     };
-    waiting.sort_by_key(|(w, _)| std::cmp::Reverse(at(w)));
+    waiting.sort_by_key(|(w, last)| std::cmp::Reverse(at(w, *last)));
     let feedback: Vec<Value> = waiting
         .into_iter()
         .take(6)
