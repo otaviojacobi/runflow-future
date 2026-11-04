@@ -29,13 +29,8 @@ const Section = ({ id, title, description, children, edge }: { id: string; title
   </Card>
 );
 
-/** What each of the student's profile links holds (D-035: Atividades and Provas live here on mobile). */
-const PROFILE_HINT: Record<string, string> = {
-  "/account/profile": "Objetivo, nível, provas recentes e suas zonas",
-  "/activities": "Seus treinos sincronizados e registrados",
-  "/races": "As provas que você vai correr",
-};
-
+// The student's profile links (D-035: Atividades and Provas live here on mobile). Titles only: they say what's behind
+// them (founder, 2026-11-04: the descriptions under them were clutter).
 export function AccountScreen() {
   const { me, role } = useClub();
   if (!me) return null;
@@ -45,9 +40,9 @@ export function AccountScreen() {
       {role === "student" && (
         <nav aria-label={t("Seu perfil")} className="grid divide-y divide-line-subtle overflow-hidden rounded-lg border border-line bg-surface shadow-sm">
           {[{ to: "/account/profile", label: "Perfil de atleta", icon: UserRound }, ...profileLinksFor(role)].map((l) => (
-            <Link key={l.to} to={l.to} className="flex items-center gap-3 p-4 hover:bg-soft">
+            <Link key={l.to} to={l.to} className="flex items-center gap-3 px-4 py-3 hover:bg-soft">
               <span className="grid size-10 place-items-center rounded-full bg-brand-soft text-on-brand-soft"><l.icon className="size-5" /></span>
-              <span className="min-w-0 flex-1"><span className="block font-semibold">{t(l.label)}</span><span className="block text-sm text-fg-muted">{t(PROFILE_HINT[l.to] ?? "")}</span></span>
+              <span className="min-w-0 flex-1 font-semibold">{t(l.label)}</span>
               <ChevronRight className="size-5 text-fg-muted" />
             </Link>
           ))}
