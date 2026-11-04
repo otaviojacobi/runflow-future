@@ -73,7 +73,7 @@
         "expo-image-picker",
         {
           "photosPermission": "O Runflow usa a foto que você escolher como sua foto de perfil.",
-          "cameraPermission": false,
+          "cameraPermission": "O Runflow usa a câmera para ler o QR de check-in das aulas.",
           "microphonePermission": false
         }
       ],
