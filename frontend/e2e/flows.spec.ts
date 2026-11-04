@@ -79,3 +79,20 @@ test("hashtags: typed in quick text, saved, and used to filter the library", asy
   await page.getByRole("group", { name: "Filtrar por tag" }).getByRole("button", { name: "#pista" }).click();
   await expect(page.getByText(name)).toBeVisible();
 });
+
+test("activity matching: the student says which workout an ambiguous run was (D-049)", async ({ page }) => {
+  // The seed gives Ana a run from yesterday that fits two of her workouts about equally well.
+  await signIn(page, "ana.souza@email.com");
+  await page.goto("/today");
+  const question = page.getByRole("heading", { name: "Qual treino foi esta atividade?" });
+  await expect(question).toBeVisible();
+  const option = page.getByRole("button", { name: /Foi este/ }).first();
+  const title = (await option.locator("span.font-semibold").first().textContent())!;
+  await option.click();
+  await expect(page.getByText("Atividade ligada ao treino")).toBeVisible();
+  await expect(question).toHaveCount(0);
+  await page.goto("/activities");
+  await page.getByRole("link", { name: /Corrida matinal/ }).click();
+  await expect(page.getByText("Você escolheu este treino.")).toBeVisible();
+  await expect(page.getByRole("link", { name: new RegExp(title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) })).toBeVisible();
+});

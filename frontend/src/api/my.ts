@@ -23,7 +23,8 @@ export const useMySummary = (clubId: string | undefined) =>
 export const useSaveCompletion = (clubId: string) =>
   useMutation({
     mutationFn: ({ id, ...v }: { id: string; status: CompletionStatus; rpe: number | null; feeling: Feeling | null; comment: string; activity_id?: string | null }) => api.put<PlannedWorkout>(`/clubs/${clubId}/my/workouts/${id}/completion`, v),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: myKey(clubId) }),
+    // The completion can move an activity between workouts (D-049): the activities' matches change too.
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: myKey(clubId) }); queryClient.invalidateQueries({ queryKey: ["me", "activities"] }); },
   });
 
 export const useComments = (clubId: string | undefined, id: string | null) =>

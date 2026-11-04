@@ -1,11 +1,13 @@
 /** M4 · Atividade (detail): stats, per-km pace bars, matched workout. Route: /activities/$id */
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Shuffle, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { useDeleteActivity, useMyActivity } from "@/api/activities";
+import { ChangeMatchDialog, MatchQuestion } from "@/components/ActivityMatch";
 import { SportChip } from "@/components/sport";
 import { Stat } from "@/components/workout";
 import { t } from "@/i18n";
-import { distance, duration, km, localDate, longDate, pace, timeOf } from "@/lib/format";
+import { distance, duration, km, localDate, longDate, pace, shortDate, timeOf } from "@/lib/format";
 import { Button, ButtonLink, Card, Skeleton, toast } from "@/ui";
 
 export function ActivityDetailScreen() {
@@ -13,6 +15,7 @@ export function ActivityDetailScreen() {
   const q = useMyActivity(id);
   const del = useDeleteActivity();
   const navigate = useNavigate();
+  const [change, setChange] = useState(false);
   const a = q.data;
   if (q.isPending) return <Skeleton className="mx-auto h-80 max-w-2xl" />;
   if (!a) return <p className="text-fg-muted">{t("Atividade não encontrada.")}</p>;
@@ -33,12 +36,24 @@ export function ActivityDetailScreen() {
         {a.elevation_gain_m ? <Stat value={String(a.elevation_gain_m)} unit="m" label={t("Ganho de elevação")} /> : null}
         {a.calories ? <Stat value={String(a.calories)} unit="kcal" label={t("Calorias")} /> : null}
       </Card>
-      {m && (
-        <Link to="/workouts/$id" params={{ id: m.id }} className="flex items-center gap-4 rounded-lg border border-brand-line bg-brand-soft p-4">
-          <div className="min-w-0 flex-1"><div className="text-xs font-semibold text-on-brand-soft">{t("Treino planejado")}</div><div className="truncate font-semibold text-on-brand-soft">{m.title}</div><div className="text-sm text-on-brand-soft">{t("Planejado: {x}", { x: [m.est_distance_m && distance(m.est_distance_m), m.est_duration_s && duration(m.est_duration_s)].filter(Boolean).join(" · ") })}</div></div>
-          {m.compliance_pct != null && <div className="text-right"><div className="font-display text-2xl font-bold tabular-nums text-on-brand-soft">{m.compliance_pct}%</div><div className="text-xs text-on-brand-soft">{t("cumprido")}</div></div>}
-        </Link>
+      {a.match_state === "pending" && a.match_options.length ? <MatchQuestion a={a} withActivity={false} /> : m ? (
+        <div className="grid gap-2">
+          <Link to="/workouts/$id" params={{ id: m.id }} className="flex items-center gap-4 rounded-lg border border-brand-line bg-brand-soft p-4">
+            <div className="min-w-0 flex-1"><div className="text-xs font-semibold text-on-brand-soft">{t("Treino planejado")} · {shortDate(m.date)}</div><div className="truncate font-semibold text-on-brand-soft">{m.title}</div><div className="text-sm text-on-brand-soft">{t("Planejado: {x}", { x: [m.est_distance_m && distance(m.est_distance_m), m.est_duration_s && duration(m.est_duration_s)].filter(Boolean).join(" · ") })}</div></div>
+            {m.compliance_pct != null && <div className="text-right"><div className="font-display text-2xl font-bold tabular-nums text-on-brand-soft">{m.compliance_pct}%</div><div className="text-xs text-on-brand-soft">{t("cumprido")}</div></div>}
+          </Link>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
+            <span className="flex-1 text-sm text-fg-muted">{m.matched_by === "student" ? t("Você escolheu este treino.") : t("Ligada automaticamente pelo dia e pelo tamanho do treino.")}</span>
+            <Button variant="ghost" size="sm" icon={<Shuffle />} onClick={() => setChange(true)}>{t("Trocar treino")}</Button>
+          </div>
+        </div>
+      ) : (
+        <Card className="flex flex-wrap items-center gap-3 p-4">
+          <p className="min-w-48 flex-1 text-sm text-fg-muted">{a.match_state === "dismissed" ? t("Marcada como treino extra, fora do planejado.") : t("Nenhum treino planejado ligado a esta atividade.")}</p>
+          {a.match_options.length > 0 && <Button variant="secondary" size="sm" onClick={() => setChange(true)}>{t("Escolher treino")}</Button>}
+        </Card>
       )}
+      <ChangeMatchDialog a={a} open={change} onOpenChange={setChange} />
       {laps.length > 0 && (
         <Card className="grid gap-3 p-5">
           <div className="flex items-baseline justify-between"><h2 className="rf-text-title-md">{t("Parciais por km")}</h2><span className="text-xs text-fg-muted">{t("barra maior = mais rápido")}</span></div>

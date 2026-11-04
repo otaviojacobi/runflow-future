@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useConnections } from "@/api/account";
 import { useLogActivity, useMyActivities } from "@/api/activities";
 import type { ActivityItem, Sport } from "@/api/types";
+import { MatchQuestion } from "@/components/ActivityMatch";
 import { SPORT_ICON, SPORT_LABEL, SPORTS } from "@/components/sport";
 import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
@@ -86,7 +87,9 @@ export function ActivitiesScreen() {
         return (
           <section key={mon} className="grid gap-2">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 px-1"><h2 className="text-sm font-bold">{mon === mondayOf(todayFn()) ? t("Esta semana") : `${dayMonth(mon)} – ${dayMonth(addDays(mon, 6))}`}</h2><span className="text-xs text-fg-muted tabular-nums">{tn(acts.length, "{n} atividade", "{n} atividades")} · {duration(ds)}{dm ? ` · ${km(dm)} km` : ""}</span></div>
-            <Card className="divide-y divide-line-subtle p-1">{acts.map((a) => <ActivityRow key={a.id} a={a} />)}</Card>
+            <Card className="divide-y divide-line-subtle p-1">{acts.map((a) => a.match_state === "pending" && a.match_options.length ? (
+              <div key={a.id}><ActivityRow a={a} /><MatchQuestion a={a} embedded withActivity={false} heading="h3" /></div>
+            ) : <ActivityRow key={a.id} a={a} />)}</Card>
           </section>
         );
       })}

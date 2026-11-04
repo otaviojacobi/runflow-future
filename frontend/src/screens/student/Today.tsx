@@ -2,8 +2,10 @@
 import { Link } from "@tanstack/react-router";
 import { ChevronRight, CircleCheck, Coffee, Flame, MessageSquare, ShieldAlert } from "lucide-react";
 import { useState } from "react";
+import { usePendingMatches } from "@/api/activities";
 import { useMySummary, useMyWorkouts } from "@/api/my";
 import type { PlannedWorkout } from "@/api/types";
+import { MatchQuestion } from "@/components/ActivityMatch";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
 import { SportChip } from "@/components/sport";
 import { IntensityProfile, Stat, StatusBadge } from "@/components/workout";
@@ -33,7 +35,11 @@ export function WorkoutCard({ w, clubId, onFeedback }: { w: PlannedWorkout; club
       <Link to="/workouts/$id" params={{ id: w.id }} className="rf-text-title-lg hover:underline">{w.title}</Link>
       <IntensityProfile structure={w.structure} sport={w.sport} height={52} />
       {w.notes && <p className="rounded-md bg-brand-soft px-3 py-2 text-sm text-on-brand-soft">{w.notes}</p>}
-      {c ? (
+      {c && !c.reported_at ? (
+        // Completed by the activity matching (D-049): the PSE and how it felt are still the student's to say.
+        <div className="flex flex-wrap items-center gap-2"><StatusBadge status={c.status} /><span className="text-sm text-fg-muted">{t("pela sua atividade")}{c.compliance_pct != null ? ` · ${c.compliance_pct}%` : ""}</span>
+          <Button size="sm" className="ml-auto" icon={<MessageSquare />} onClick={onFeedback}>{t("Conte como foi")}</Button></div>
+      ) : c ? (
         <div className="flex flex-wrap items-center gap-2"><StatusBadge status={c.status} />{c.feeling && <span className="text-sm text-fg-muted">{t(FEELING[c.feeling])}</span>}{c.rpe && <span className="text-sm text-fg-muted">· {t("PSE {n}", { n: c.rpe })}</span>}
           <Button variant="ghost" size="sm" className="ml-auto" onClick={onFeedback}>{t("Editar")}</Button></div>
       ) : (
@@ -55,6 +61,7 @@ export function TodayScreen() {
   const [feedback, setFeedback] = useState<PlannedWorkout | null>(null);
   const week = useMyWorkouts(club?.id, monday, addDays(monday, 6));
   const summary = useMySummary(club?.id);
+  const pending = usePendingMatches();
   if (!club || !me) return null;
   const byDay = (d: string) => (week.data ?? []).filter((w) => w.date === d);
   const states = Object.fromEntries(Array.from({ length: 7 }, (_, i) => { const d = addDays(monday, i); return [d, dayState(byDay(d), d, today)]; }));
@@ -69,6 +76,7 @@ export function TodayScreen() {
         {s && s.streak_weeks > 0 && <span className="inline-flex h-8 items-center gap-1.5 rounded-full bg-accent-soft px-3 text-sm font-bold text-on-accent-soft ring-1 ring-inset ring-accent-line"><Flame className="size-4" />{tn(s.streak_weeks, "{n} semana", "{n} semanas")}</span>}
       </header>
       {s && !s.shares_data && <p className="flex items-start gap-2 rounded-md bg-warning-soft px-3 py-2 text-sm text-on-warning-soft"><ShieldAlert className="mt-0.5 size-4 shrink-0" />{t("Você não está compartilhando seus treinos com o clube. O treinador não vê seu progresso.")} <Link to="/account" className="font-semibold underline">{t("Ajustar")}</Link></p>}
+      {pending.data?.map((a) => <MatchQuestion key={a.id} a={a} />)}
       <WeekStrip monday={monday} states={states} selected={selected} onSelect={setSelected} />
       <section className="grid gap-3">
         <h2 className="rf-text-overline text-fg-muted">{selected === today ? t("Hoje") : shortDate(selected)}</h2>
