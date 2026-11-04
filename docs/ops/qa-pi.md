@@ -182,10 +182,13 @@ nano .env    # paste TUNNEL_TOKEN, RESEND_API_KEY, GOOGLE_CLIENT_ID, STRAVA_CLIE
 
 ---
 
-## 8. Backups: none (D-039)
+## 8. Backups: nightly, on the NUC (D-051)
 
-QA keeps no backups yet. Since D-051 (2026-11-04) its data is kept: schema changes arrive as migrations and nothing
-wipes it by itself; `./reset-db.sh --yes` is a manual, deliberate reset. Production's durability comes from Aurora (automated backups, point-in-time restore; D-040, P1).
+QA's data is kept since 2026-11-04 (real testers), so it's backed up every night at 03:30 by cron (the `runflow`
+user's crontab, installed with `./backup.sh --install`): `~/runflow-backups/runflow-YYYYMMDD-HHMM.sql.gz` (the whole
+database, checked complete before it counts) and `storage-YYYYMMDD-HHMM.tar.gz` (uploads), 14 days kept, a log in
+`~/runflow-backups/backup.log`. `./backup.sh` takes one now. `./restore-db.sh <file> --yes` puts the database back
+(replacing today's data). The copies live on the NUC's disk only: copy the folder elsewhere now and then.
 
 ---
 

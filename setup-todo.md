@@ -115,6 +115,8 @@ QA is live at **https://qa.runflow.club**:
 | Pin or roll back | `RUNFLOW_TAG=sha-<commit>` in `.env`, then `./update.sh` |
 | Health of everything | `docker compose run --rm api doctor` |
 | Drop the edge copy of the app | `./purge-edge.sh` |
+| Back up now (also nightly at 03:30, 14 days kept in `~/runflow-backups`, D-051) | `./backup.sh` |
+| Put the database back to a backup (replaces today's data) | `./restore-db.sh ~/runflow-backups/runflow-….sql.gz --yes` |
 | Start over with an empty database and storage (only if you really mean it: QA's data is kept since D-051) | `./reset-db.sh --yes` (nothing is kept) |
 
 ## Testing
