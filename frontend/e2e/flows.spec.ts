@@ -124,6 +124,7 @@ test("an open workout conversation shows the trainer's reply without leaving the
   const posted = await request.post(`${API}/clubs/${clubId}/planned-workouts/${workout.id}/comments`, { ...as(owner), data: { body: reply } });
   expect(posted.ok()).toBeTruthy();
   await expect(page.getByText(reply)).toBeVisible({ timeout: 15_000 });
+});
 
 test("groups: create one on Alunos, move students in, and take one out on the student's page", async ({ page }) => {
   await signIn(page, OWNER);
