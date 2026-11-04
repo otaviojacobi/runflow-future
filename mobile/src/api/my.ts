@@ -13,7 +13,7 @@ import { offline, savedData } from "@/lib/offline";
 import { queryClient } from "@/queryClient";
 import { actKey } from "./activities";
 import { meKey } from "./me";
-import type { Activity, Comment, CompletionStatus, Feeling, ID, ISODate, ISOTime, PlannedWorkout, User } from "./types";
+import type { Activity, Comment, CompletionStatus, Feeling, ID, ISODate, ISOTime, NextClass, PlannedWorkout, User } from "./types";
 
 // ---------- responses (the shared rows live in types.ts)
 /** GET /my/workouts/{id}: zone targets carry `resolved` ranges from the student's zones. */
@@ -24,6 +24,8 @@ export interface MyCalendar { items: PlannedWorkout[]; unreleased_weeks: Unrelea
 export interface MySummary {
   shares_data: boolean; streak_weeks: number; week: { planned: number; done: number; duration_s: number; distance_m: number };
   last_activity: Activity | null;
+  /** The next booked or waitlisted class (Aulas, D-052); null without one, absent on older APIs. */
+  next_class?: NextClass | null;
 }
 export interface CompletionInput { status: CompletionStatus; rpe: number | null; feeling: Feeling | null; comment: string; activity_id?: ID | null }
 

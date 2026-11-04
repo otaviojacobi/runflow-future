@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { prefetchWorkouts, useMyCalendar, useMySummary, useMyWorkout, type MySummary } from "@/api/my";
 import type { PlannedWorkout } from "@/api/types";
+import { NextClassCard } from "@/components/classes/NextClassCard";
 import { PendingMatches } from "@/components/matching";
 import { SportChip } from "@/components/sport";
 import { FeedbackSheet } from "@/components/workout/FeedbackSheet";
@@ -81,6 +82,8 @@ export default function TodayScreen() {
       {s && !s.shares_data && <NotSharing />}
       {/* An activity the matching engine couldn't place on its own (D-049): which workout was it? */}
       {online && strava && <PendingMatches />}
+      {/* The next class booked or waited for (Aulas, D-052): time-bound, so above the week. */}
+      {has(club, "classes") && s?.next_class && <NextClassCard next={s.next_class} tz={club.timezone} today={today} />}
 
       {cal.data ? (
         <>

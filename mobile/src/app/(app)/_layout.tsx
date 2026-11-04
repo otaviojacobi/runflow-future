@@ -76,6 +76,14 @@ function ClubTabs({ role, modalities, clubId, frozen }: { role: Role; modalities
       <Tabs.Protected guard={staff && has({ modalities }, "exercises")} redirectTo={homeFor(role)}>
         <Tabs.Screen name="exercises" options={{ title: t("Exercícios") }} />
       </Tabs.Protected>
+      {/* Aulas: funcional, musculação or natação (D-052). Students book and check in; staff run the day's classes. */}
+      <Tabs.Protected guard={!staff && has({ modalities }, "classes")} redirectTo={homeFor(role)}>
+        <Tabs.Screen name="classes" options={{ title: t("Aulas") }} />
+        <Tabs.Screen name="classes/check-in" options={{ title: t("Check-in") }} />
+      </Tabs.Protected>
+      <Tabs.Protected guard={staff && has({ modalities }, "classes")} redirectTo={homeFor(role)}>
+        <Tabs.Screen name="classes/manage" options={{ title: t("Aulas") }} />
+      </Tabs.Protected>
       <Tabs.Protected guard={role === "owner"} redirectTo={homeFor(role)}>
         <Tabs.Screen name="club/studio" options={{ title: t("Club Studio") }} />
         <Tabs.Screen name="club/members" options={{ title: t("Membros e convites") }} />

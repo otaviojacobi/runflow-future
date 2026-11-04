@@ -2,14 +2,14 @@
  * The club's navigation per role: a copy of the web's components/shell/nav.ts (keep them in sync), with `app` marking
  * what has a screen in the app. The rest (desktop tools: library, planilhas, Club Studio…) opens the web app.
  *
- * `tab`: in the bottom bar (students: exactly 4, D-035; staff: 4 + "Mais"). `inProfile`: reached from Perfil.
+ * `tab`: in the bottom bar (students: 4, D-035, plus Aulas where the club has classes, D-052; staff: 4 + "Mais"). `inProfile`: reached from Perfil.
  * `feature`: only for clubs whose modalities use it (D-052, lib/features.ts).
  */
 import type { Href } from "expo-router";
 import type { MembershipContext, Role, Sport } from "@/api/types";
 import { anyClubHas, has, type Feature } from "@/lib/features";
 import {
-  Activity, BarChart3, Calendar, CalendarRange, ClipboardList, CreditCard, Dumbbell, Flag, Gauge, LayoutDashboard, Library, MessageCircle, MessageSquare,
+  Activity, BarChart3, Calendar, CalendarClock, CalendarRange, ClipboardList, CreditCard, Dumbbell, Flag, Gauge, LayoutDashboard, Library, MessageCircle, MessageSquare,
   Palette, Settings, Sun, User, UserCog, Users, type Icon,
 } from "@/ui/icons";
 
@@ -21,6 +21,7 @@ const STAFF_MAIN: NavItem[] = [
   { to: "/students", label: "Alunos", icon: Users, tab: true, app: true },
   { to: "/planning", label: "Planejamento", icon: CalendarRange, tab: true, app: true },
   { to: "/feedback", label: "Feedbacks", icon: MessageSquare, tab: true, app: true },
+  { to: "/classes/manage", label: "Aulas", icon: CalendarClock, feature: "classes", app: true },
   { to: "/messages", label: "Mensagens", icon: MessageCircle, app: true },
 ];
 const STAFF_TRAINING: NavItem[] = [
@@ -42,6 +43,8 @@ const OWNER: NavItem[] = [
 const STUDENT: NavItem[] = [
   { to: "/today", label: "Hoje", icon: Sun, tab: true, app: true },
   { to: "/schedule", label: "Agenda", icon: Calendar, tab: true, app: true },
+  // Booking classes is a gym student's daily action: a tab of its own, only where the club has classes (D-052).
+  { to: "/classes", label: "Aulas", icon: CalendarClock, tab: true, feature: "classes", app: true },
   { to: "/messages", label: "Mensagens", icon: MessageCircle, tab: true, app: true },
   { to: "/races", label: "Provas", icon: Flag, inProfile: true, feature: "races", app: true },
   { to: "/activities", label: "Atividades", icon: Activity, inProfile: true, feature: "strava", app: true },

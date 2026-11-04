@@ -28,6 +28,8 @@ src/
               (rewrites `runflow://<host>/connect/strava` to that route); (app)/ = the signed-in app: _layout guards (session + club),
               applies the club theme and declares the role's tabs (Tabs.Protected per role); one file per web path
               (today, schedule, messages, account, dashboard, students, planning, feedback, more, notifications…);
+              classes (M6 Aulas: a student tab only where the club has classes, D-052; `?session=` opens one) +
+              classes/check-in (the venue QR's link: checks in once) + classes/manage (staff, from "Mais");
               dev/components = the UI kit preview
   api/        TanStack Query hooks per area + types.ts (wire types, identical to the contract), like the web's src/api
   domain/     pure logic copied from the web's src/domain (keep in sync): workout.ts = the workout structure types,
@@ -56,6 +58,11 @@ src/
               builder/ = the workout builder (quick text, block list, step/series/exercise sheets, summary, tags,
               "Descrever com IA", .FIT) and the template editor;
               races.tsx = race labels, distances, countdown, date tile, entry badge;
+              classes/ = Aulas (G5): parts (club-time times, seats, the booking badge, the session row, the check-in
+              window, parsing a scanned check-in link), StudentSessionSheet (book, waitlist, cancel, CheckInPanel: the
+              camera or the typed code), NextClassCard (Hoje), QrScanner (expo-camera; `.web.tsx` = no camera);
+              staff/ClassSessionSheet = roster, attendance, add a student, capacity, the check-in QR, cancel;
+              QrCode.tsx = a QR as one SVG path (qrcode-generator, plain JS on Hermes; dark on light in both themes);
               assessments.ts = the test protocols, names and result headlines);
               shell/ = nav.ts (copy of the web's nav per role, `app` = has a screen here, the rest opens the web) and
               Shell.tsx (top bar with the club switcher and bell, back bar, bottom tab bar); unread.tsx = Mensagens'

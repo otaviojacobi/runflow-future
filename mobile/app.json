@@ -78,6 +78,14 @@
         }
       ],
       [
+        "expo-camera",
+        {
+          "cameraPermission": "O Runflow usa a câmera para ler o QR de check-in das aulas.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
         "expo-notifications",
         {
           "icon": "./assets/images/android-icon-monochrome.png",

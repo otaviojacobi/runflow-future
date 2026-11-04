@@ -220,3 +220,31 @@ export interface TrainingPlan { id: ID; club_id: ID; author_membership_id: ID; n
 export interface PlanItem { id: ID; plan_id?: ID; week: number; weekday: number; template_id: ID | null; sport: Sport; title: string; structure: import("@/domain/workout").Structure; est_duration_s: number | null; est_distance_m: number | null; notes: string | null }
 export interface PlanAssignment { id: ID; plan_id: ID; athlete_membership_id: ID; start_date: ISODate; created_at: ISOTime; athlete: AthleteRef; workouts: number; done: number }
 export interface TrainingPlanDetail extends TrainingPlan { items: PlanItem[]; assignments: PlanAssignment[] }
+
+// ---- Aulas (D-052, api/endpoints.md § Aulas)
+export type LocationKind = "track" | "pool" | "gym" | "park" | "studio" | "other";
+export interface ClubLocation { id: ID; club_id: ID; name: string; kind: LocationKind; address: string | null; lanes: number | null }
+export interface ClassType { id: ID; club_id: ID; name: string; sport: Sport; description: string | null; default_capacity: number; duration_min: number }
+export type BookingStatus = "booked" | "waitlisted" | "cancelled" | "attended" | "no_show";
+export interface ClassBooking {
+  id: ID; session_id: ID; membership_id: ID; status: BookingStatus; waitlist_position: number | null;
+  checked_in_at: ISOTime | null; created_at: ISOTime; updated_at: ISOTime;
+}
+/** A session as students and lists get it (no check-in code): its type, venue, instructor, the counts and my booking. */
+export interface ClassSession {
+  id: ID; club_id: ID; class_type_id: ID; schedule_id: ID | null; location_id: ID | null; instructor_membership_id: ID | null;
+  starts_at: ISOTime; ends_at: ISOTime; capacity: number; status: "scheduled" | "cancelled"; cancel_reason: string | null; notes: string | null;
+  class_type: ClassType; location: ClubLocation | null; instructor: User | null;
+  booked: number; waitlist: number; my_booking: ClassBooking | null;
+}
+/** Staff GET of one session: the roster (seats first, then the waitlist in order), the check-in code and its link. */
+export interface StaffClassSession extends ClassSession {
+  checkin_code: string; checkin_url: string;
+  roster: (ClassBooking & { athlete: { membership_id: ID; user: User } })[];
+}
+/** /my/summary's `next_class`: the student's next booked or waitlisted class. */
+export interface NextClass {
+  booking: ClassBooking;
+  session: Omit<ClassSession, "class_type" | "location" | "instructor" | "booked" | "waitlist" | "my_booking">;
+  class_type: ClassType; location: ClubLocation | null;
+}
