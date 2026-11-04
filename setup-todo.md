@@ -115,7 +115,7 @@ QA is live at **https://qa.runflow.club**:
 | Pin or roll back | `RUNFLOW_TAG=sha-<commit>` in `.env`, then `./update.sh` |
 | Health of everything | `docker compose run --rm api doctor` |
 | Drop the edge copy of the app | `./purge-edge.sh` |
-| Start over with an empty database and storage (D-030) | `./reset-db.sh --yes` (nothing is kept, D-039) |
+| Start over with an empty database and storage (only if you really mean it: QA's data is kept since D-051) | `./reset-db.sh --yes` (nothing is kept) |
 
 ## Testing
 - **Full manual test round** (owner, trainer, student with your Strava; web and the Android app): [docs/ops/full-manual-test-round.md](docs/ops/full-manual-test-round.md).

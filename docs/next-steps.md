@@ -101,15 +101,15 @@ build (`mobile/eas.json`: QA builds call `qa.runflow.club`; production builds wi
 
 ---
 
-## 4. From "wipe anything" to incremental changes (when staging passes)
+## 4. From "wipe anything" to incremental changes (done early: D-051, 2026-11-04)
 
-D-030 says it: at the beta, freeze the bootstrap and return to one migration per change.
-- [ ] Freeze `backend/migrations/0001_bootstrap.sql` as applied; every schema change from then on is a new
-      `NNNN_*.sql`, never editing an applied one; `api/schema.sql` stays the full picture (the contract test keeps
-      proving migrations == schema).
+The founder made the switch on 2026-11-04, before the beta: testers use QA with real accounts.
+- [x] `backend/migrations/0001_bootstrap.sql` frozen as QA applied it; every schema change is a new `NNNN_*.sql`
+      (`backend/scripts/new-migration.sh`), never editing a shipped one (`scripts/applied-migrations.sha384` +
+      `check.sh`); `api/schema.sql` stays the full picture (the contract test proves migrations == schema).
 - [ ] **Expand, then contract** (`docs/hosting.md` §3): a release adds columns or tables and stops using old ones; a
       later release drops them. A rollback then never meets a schema it can't read.
-- [ ] QA stops resetting itself on schema changes (`ops/qa/update.sh`): it migrates like production, and
+- [x] QA stops resetting itself on schema changes (`ops/qa/update.sh`): it migrates like production, and
       `reset-db.sh` becomes a manual tool. That makes QA the rehearsal for every production migration.
 - [ ] Seed data for QA (a demo club with workouts) instead of an empty database after resets, so testing starts fast.
 - [ ] Release flow: every push to main → QA (as today); production deploys are **promoted** by hand from a release tag

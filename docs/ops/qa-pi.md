@@ -184,8 +184,8 @@ nano .env    # paste TUNNEL_TOKEN, RESEND_API_KEY, GOOGLE_CLIENT_ID, STRAVA_CLIE
 
 ## 8. Backups: none (D-039)
 
-QA keeps no backups: its data is disposable, `./reset-db.sh --yes` starts it over, and a schema change does that by
-itself. Production's durability comes from Aurora (automated backups, point-in-time restore; D-040, P1).
+QA keeps no backups yet. Since D-051 (2026-11-04) its data is kept: schema changes arrive as migrations and nothing
+wipes it by itself; `./reset-db.sh --yes` is a manual, deliberate reset. Production's durability comes from Aurora (automated backups, point-in-time restore; D-040, P1).
 
 ---
 

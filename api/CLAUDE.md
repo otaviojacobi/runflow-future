@@ -4,7 +4,7 @@ The **contract** between the apps and the backend (D-020). Future standalone rep
 
 | File | What it is |
 |---|---|
-| `schema.sql` | PostgreSQL schema: the source of truth for tables and columns. Backend migrations start from it. |
+| `schema.sql` | PostgreSQL schema: the source of truth for tables and columns, always the full current schema. Every change to it is also a new backend migration (`backend/migrations/NNNN_*.sql`, D-051); a contract test proves the migrations build exactly this. |
 | `endpoints.md` | REST catalog: paths, payloads, conventions, workout structure, error format. |
 | `mock/seed.mjs` | Deterministic generator for `mock/db.json` (realistic pt-BR data). |
 | `mock/db.json` | Seed data: one key per table, rows shaped exactly like `schema.sql`. |
@@ -28,6 +28,7 @@ The **contract** between the apps and the backend (D-020). Future standalone rep
 
 ## Rules
 
+- **A schema change is also a migration (D-051).** QA's data is kept: change `schema.sql` and add `backend/migrations/NNNN_name.sql` (`bash backend/scripts/new-migration.sh <name>`) in the same commit; the mock's seed follows `schema.sql` as before.
 - **Change the contract before the screen.** A new field or endpoint goes into `schema.sql`, then `endpoints.md`, then `seed.mjs` + `server.mjs`, all in the same commit as the screen that needs it.
 - **Mock rows mirror `schema.sql` exactly** (same table and column names). Computed fields in responses (counts, joins) are documented in `endpoints.md`.
 - **Dates stay current.** `db.json` has `meta.anchor_date`; on load the server shifts every date and timestamp by (today − anchor), so the demo always looks like "this week".

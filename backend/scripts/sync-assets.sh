@@ -7,10 +7,10 @@
 #   api/workout-text-examples.json                golden examples of the free-text grammar (domain tests)
 #   api/plans.json                                the plan catalog: seats per role and prices (D-043)
 #   api/activity-match-examples.json              golden examples of activity matching (D-049, domain tests)
-#   api/schema.sql → migrations/0001_bootstrap.sql  until the beta the only migration is the contract itself (D-030)
+# api/schema.sql is NOT copied any more: since D-051 (2026-11-04) schema changes are new files in migrations/, and
+# db/tests/contract.rs proves that all migrations together build exactly api/schema.sql.
 set -euo pipefail
 backend="$(cd "$(dirname "$0")/.." && pwd)"
 cp "$backend/../design/dist/tokens.json" "$backend/../design/dist/color-fixtures.json" "$backend/../design/dist/logo.json" "$backend/assets/design/"
 cp "$backend/../api/starter-library.json" "$backend/../api/exercise-catalog.json" "$backend/../api/workout-text-examples.json" "$backend/../api/plans.json" "$backend/../api/activity-match-examples.json" "$backend/assets/"
-cp "$backend/../api/schema.sql" "$backend/migrations/0001_bootstrap.sql"
-echo "synced design/dist + api/ artifacts → backend/assets, api/schema.sql → migrations/0001_bootstrap.sql"
+echo "synced design/dist + api/ artifacts → backend/assets"

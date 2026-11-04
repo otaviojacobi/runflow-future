@@ -11,12 +11,20 @@ cd "$backend"
 
 echo "› assets in sync with design/dist and api/"
 if [ -d "$root/design/dist" ]; then
-  for pair in "design/dist/tokens.json:assets/design/tokens.json" "design/dist/color-fixtures.json:assets/design/color-fixtures.json" "design/dist/logo.json:assets/design/logo.json" "api/starter-library.json:assets/starter-library.json" "api/exercise-catalog.json:assets/exercise-catalog.json" "api/workout-text-examples.json:assets/workout-text-examples.json" "api/plans.json:assets/plans.json" "api/activity-match-examples.json:assets/activity-match-examples.json" "api/schema.sql:migrations/0001_bootstrap.sql"; do
+  for pair in "design/dist/tokens.json:assets/design/tokens.json" "design/dist/color-fixtures.json:assets/design/color-fixtures.json" "design/dist/logo.json:assets/design/logo.json" "api/starter-library.json:assets/starter-library.json" "api/exercise-catalog.json:assets/exercise-catalog.json" "api/workout-text-examples.json:assets/workout-text-examples.json" "api/plans.json:assets/plans.json" "api/activity-match-examples.json:assets/activity-match-examples.json"; do
     if ! cmp -s "$root/${pair%%:*}" "${pair##*:}"; then
       echo "  ${pair##*:} is stale: run backend/scripts/sync-assets.sh"; exit 1
     fi
   done
 fi
+
+echo "› applied migrations unchanged (D-051)"
+# QA and production already ran every recorded migration: editing one makes the API refuse to start there.
+( cd migrations
+  sha384sum --quiet -c ../scripts/applied-migrations.sha384 || { echo "  a recorded migration changed: put the change in a new migration (scripts/new-migration.sh)"; exit 1; }
+  for f in [0-9][0-9][0-9][0-9]_*.sql; do
+    grep -q "  $f\$" ../scripts/applied-migrations.sha384 || { echo "  $f isn't recorded: run backend/scripts/freeze-migrations.sh when it's final"; exit 1; }
+  done ) || exit 1
 
 echo "› rustfmt"
 cargo fmt --all --check

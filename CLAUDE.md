@@ -39,7 +39,7 @@ api/        contract: schema.sql, endpoints.md, mock/     (mock API → :8787)
 frontend/   React · TypeScript · Vite SPA                 (web app → :8080, always running)
 mobile/     Expo · React Native · TypeScript              (Phase 3)
 backend/    Rust · axum · sqlx · PostgreSQL               (Phase 2, D-025)
-ops/        QA on the Pi (disposable, D-039); production setup comes in P1 (D-040)
+ops/        QA on the NUC (its data is kept and schema changes are migrations, D-051); production setup comes in P1
 ```
 
 Each area documents its own commands in its own `CLAUDE.md`, created in its bootstrap session.

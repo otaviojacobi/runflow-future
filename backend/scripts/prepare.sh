@@ -1,3 +1,6 @@
+# Migrations only move forward (D-051). If your dev database ran a migration that was later changed before it was
+# pushed, recreate it yourself: docker compose exec postgres dropdb/createdb, or `npm run up` after removing the volume.
+sqlx migrate run --source migrations
 #!/usr/bin/env bash
 # Refresh the committed sqlx offline data (.sqlx/) after adding or changing a `sqlx::query!`.
 # Migrates the dev database from the repo-root .env (docker compose `postgres`), then runs `cargo sqlx prepare`.
