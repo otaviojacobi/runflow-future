@@ -16,7 +16,12 @@ then `cd ~/runflow/ops/qa && ./reset-db.sh --yes` (database, uploads and Valkey;
 |---|---|---|
 | Owner | `you+owner@gmail.com` | e-mail code (web), or Google on the web if it's a Google account |
 | Trainer | `you+trainer@gmail.com` | e-mail code |
-| Student | the e-mail you want, **you connect your own Strava** | e-mail code (the app has no Google sign-in yet, X16) |
+| Student | the e-mail you want, **you connect your own Strava** | e-mail code, or Google in the app once its Android client exists (`setup-todo.md`) |
+
+The sign-in screens (web and app) start with **"Sou aluno" / "Sou treinador"**: the landing's "Criar meu clube grátis"
+opens it on "Sou treinador", and the choice is remembered on the device. It only changes the words and, for an account
+without a club, where it lands: a coach goes straight to creating the club, an athlete to "Tenho um convite". From an
+invite link (e-mail pre-filled) there's no switch.
 
 Gmail delivers `+alias` addresses to your inbox, and each alias is a separate Runflow account. Codes arrive from
 `contato@runflow.club` within seconds (check spam the first time).
@@ -58,7 +63,8 @@ Gmail delivers `+alias` addresses to your inbox, and each alias is a separate Ru
 What this build doesn't have yet:
 - **Phone push**: needs your Firebase and Expo push setup (`docs/ops/push-notifications.md`). The app's
   Perfil → Notificações shows the push card's state; notifications still land in the app's bell.
-- **Google sign-in in the app** (X16): use the e-mail code.
+- **Google sign-in in the app** works once the Android OAuth client exists (`setup-todo.md`, 2 minutes); before that,
+  "Continuar com Google" says it isn't configured yet: use the e-mail code. (In Expo Go there's no Google button.)
 - **Invite links opening the app**: the e-mail link opens the browser (App Links need the store signing key). Either
   accept the invite on the phone's browser and then sign in on the app, or copy the link and paste it in the app
   (club list → "Tenho um convite").

@@ -25,6 +25,12 @@ QA is live at **https://qa.runflow.club**:
 
 ## Now
 
+- [ ] **Google sign-in in the phone app (2 minutes, X16).** Google Cloud Console, the same project as the web client →
+  APIs & Services → Credentials → Create credentials → OAuth client ID → **Android**: package name `club.runflow.app`,
+  SHA-1 `A0:A4:43:E1:48:3F:50:D5:C5:D2:19:F7:82:7A:E9:58:99:C1:8C:C4` (the EAS keystore that signs the QA APKs). Save; no
+  server setting needed (`GOOGLE_ANDROID_CLIENT_ID` stays optional: the app asks Google for a token for the web client,
+  which the API already accepts). Until then "Continuar com Google" in the app says Google isn't configured yet. Later:
+  the Play Store's app-signing SHA-1 as another Android client, and an iOS client before the first iPhone build.
 - [x] ~~**Power-cycle the Pi** after the 2026-11-02 kernel update.~~ Done; it's running the new kernel.
 - [x] ~~**Google sign-in**: `https://qa.runflow.club` as an authorized JavaScript origin of the web client.~~ Done (set early on).
   "Continuar com Google" is live on QA (S9a). For local dev against the real API, also add `http://localhost:8080`.

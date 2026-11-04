@@ -21,7 +21,8 @@ the API URL (the local mock :8787 → :8080; a same-origin `<web>/api/v1`), else
 
 ```
 src/
-  app/        Expo Router routes only (_layout.tsx = splash + providers + the 401 handler): login (A2), invite/[token]
+  app/        Expo Router routes only (_layout.tsx = splash + providers + the 401 handler): login (A2: "Sou aluno" /
+              "Sou treinador" via `?perfil=`, remembered on the device; Google + e-mail code), invite/[token]
               (A3), clubs (A6/A7) and clubs/new (A5, the create-club wizard) in Runflow's theme; welcome (A4, the
               student's first steps, in the club's colors); connect/strava (Strava's answer as a link); +native-intent
               (rewrites `runflow://<host>/connect/strava` to that route); (app)/ = the signed-in app: _layout guards (session + club),
@@ -61,7 +62,11 @@ src/
               links (a notification's web path → the app's route when a screen matches), avatar (photo library →
               ≤ 512 px JPEG data URL), files (a text or binary file through the share sheet; `.web.ts` downloads
               it), fit (the .FIT workout encoder, a copy of the web's),
-              strava (connect: auth session or the deep link, the callback posted once per code), logo (photo
+              strava (connect: auth session or the deep link, the callback posted once per code), google (native
+              Google sign-in, X16: `@react-native-google-signin/google-signin` loaded only when its native module is in
+              the build, never in Expo Go; the web client id from `/public/config` → an ID token for POST /auth/google;
+              `.web.ts` = unavailable; Android needs the founder's Android OAuth client, iOS the plugin's
+              `iosUrlScheme`), logo (photo
               library → ≤ 512 px PNG data URL), push (this phone's push: permission, Expo token, register/forget,
               badge; `.web.ts` no-ops), csv (";", decimal comma, BOM → share sheet; `parseCsv` reads one in), pdf
               (HTML → PDF with expo-print → share sheet; `.web.ts` prints), video (YouTube/Vimeo links, thumbnails),
