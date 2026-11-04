@@ -48,6 +48,10 @@ pub fn routes() -> Router<AppState> {
             put(trainer_profile),
         )
         .route(
+            "/clubs/{club_id}/athletes/{membership_id}/groups",
+            put(set_groups),
+        )
+        .route(
             "/clubs/{club_id}/athletes/{membership_id}/zones",
             put(set_zones),
         )
@@ -406,6 +410,36 @@ async fn trainer_profile(
         .unwrap_or_else(|| empty_profile(s.membership.id));
     apply_profile(&mut p, &body, true)?;
     Ok(Json(db::save_profile(&state.db, &p).await?))
+}
+
+/// Exactly which of the club's groups this student is in (W2 bulk moves, W3, O2) → `{groups}` by name.
+async fn set_groups(
+    State(state): State<AppState>,
+    auth: Auth,
+    Path((club_id, id)): Path<(String, String)>,
+    body: Body,
+) -> Result<Json<Value>, Problem> {
+    let (m, s, _, _) = athlete(&state, &auth, &club_id, &id).await?;
+    let invalid = || Problem::field("group_ids", "Escolha grupos deste clube.");
+    let ids = body
+        .get("group_ids")
+        .and_then(Value::as_array)
+        .ok_or_else(invalid)?
+        .iter()
+        .map(|v| {
+            v.as_str()
+                .and_then(|s| Uuid::parse_str(s).ok())
+                .ok_or_else(invalid)
+        })
+        .collect::<Result<Vec<Uuid>, Problem>>()?;
+    let mut tx = state.db.begin().await?;
+    if !runflow_db::members::set_member_groups(&mut tx, m.club_id, s.membership.id, &ids).await? {
+        return Err(invalid());
+    }
+    tx.commit().await?;
+    Ok(Json(
+        json!({ "groups": db::groups_of(&state.db, s.membership.id).await? }),
+    ))
 }
 
 /// The student's view of their profile: no trainer notes, plus their zones (read-only).

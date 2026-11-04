@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM group_members x USING groups g\n          WHERE x.group_id = g.id AND g.club_id = $1 AND x.membership_id = $2 AND NOT (x.group_id = ANY($3))",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a627a8d9c2521f232be1e91ca43f27ea99d3fa7abf1eca4d24752256dc9c50b2"
+}

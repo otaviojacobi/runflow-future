@@ -244,6 +244,49 @@ pub async fn set_group_members(
     Ok(())
 }
 
+/// Puts one member in exactly these groups of the club: joins the missing ones, leaves the club's others (W2, W3,
+/// O2). False, with nothing changed, when an id isn't one of the club's groups.
+pub async fn set_member_groups(
+    tx: &mut PgConnection,
+    club_id: Uuid,
+    membership_id: Uuid,
+    group_ids: &[Uuid],
+) -> sqlx::Result<bool> {
+    let mut wanted = group_ids.to_vec();
+    wanted.sort();
+    wanted.dedup();
+    let known = sqlx::query_scalar!(
+        r#"SELECT count(*) AS "n!" FROM groups WHERE club_id = $1 AND id = ANY($2)"#,
+        club_id,
+        &wanted
+    )
+    .fetch_one(&mut *tx)
+    .await?;
+    if known != wanted.len() as i64 {
+        return Ok(false);
+    }
+    sqlx::query!(
+        "DELETE FROM group_members x USING groups g
+          WHERE x.group_id = g.id AND g.club_id = $1 AND x.membership_id = $2 AND NOT (x.group_id = ANY($3))",
+        club_id,
+        membership_id,
+        &wanted
+    )
+    .execute(&mut *tx)
+    .await?;
+    sqlx::query!(
+        "INSERT INTO group_members (group_id, membership_id)
+         SELECT g.id, $2 FROM groups g WHERE g.club_id = $1 AND g.id = ANY($3)
+         ON CONFLICT DO NOTHING",
+        club_id,
+        membership_id,
+        &wanted
+    )
+    .execute(&mut *tx)
+    .await?;
+    Ok(true)
+}
+
 /// An active student of the club (staff act on students: sign-ups, assessments, conversations).
 pub async fn is_active_student(
     db: impl PgExecutor<'_>,

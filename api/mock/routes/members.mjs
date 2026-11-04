@@ -77,6 +77,21 @@ export default function register(h) {
     h.db.group_members = h.db.group_members.filter((x) => x.group_id !== g.id).concat(ids.filter((id) => valid.has(id)).map((membership_id) => ({ group_id: g.id, membership_id, added_at: h.nowIso() })));
     return groupOut(g);
   });
+  // One student's groups, set at once (W2 bulk moves, W3 student page, O2 members).
+  h.put("/v1/clubs/:club_id/athletes/:membership_id/groups", (ctx) => {
+    ctx.staff(ctx.params.club_id);
+    const m = h.db.memberships.find((x) => x.id === ctx.params.membership_id && x.club_id === ctx.params.club_id && x.role === "student" && x.status === "active");
+    if (!m) h.fail(404, "athlete.not_found", "Aluno não encontrado", "Ele pode ter saído do clube.");
+    const ids = ctx.body?.group_ids;
+    const clubGroups = new Set(h.db.groups.filter((g) => g.club_id === m.club_id).map((g) => g.id));
+    if (!Array.isArray(ids) || ids.some((id) => typeof id !== "string" || !clubGroups.has(id))) h.invalid([{ field: "group_ids", message: "Escolha grupos deste clube." }]);
+    const want = new Set(ids);
+    const now = h.nowIso();
+    h.db.group_members = h.db.group_members.filter((x) => x.membership_id !== m.id || !clubGroups.has(x.group_id) || want.has(x.group_id));
+    for (const gid of want) if (!h.db.group_members.some((x) => x.group_id === gid && x.membership_id === m.id)) h.db.group_members.push({ group_id: gid, membership_id: m.id, added_at: now });
+    const groups = h.db.groups.filter((g) => want.has(g.id)).sort((a, b) => a.name.localeCompare(b.name, "pt-BR")).map((g) => ({ id: g.id, name: g.name }));
+    return { groups };
+  });
 
   // ---- students list for trainers (W2, W4)
   /** Per-student stats; exported for the dashboard (F13). */

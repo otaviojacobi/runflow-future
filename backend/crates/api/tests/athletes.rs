@@ -522,3 +522,139 @@ async fn a_write_to_the_club_refreshes_the_cached_dashboard(db: PgPool) {
         3
     );
 }
+
+/// W2/W3/O2: staff put one student in exactly the groups they pick (joining and leaving at once); the student's
+/// page, the group's members and the list filter follow. Another club's group, a non-student, a student caller and
+/// a bad body are refused, and nothing changes.
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn staff_set_a_students_groups(db: PgPool) {
+    let app = TestApp::new(db);
+    let c = setup(&app).await;
+    let mut ids = vec![];
+    for name in ["Maratona", "Iniciantes", "Turma das 6h"] {
+        let g = app
+            .post(
+                &format!("/v1/clubs/{}/groups", c.id),
+                Some(&c.owner),
+                json!({ "name": name }),
+            )
+            .await;
+        ids.push(g.ok()["id"].as_str().unwrap().to_string());
+    }
+    let (maratona, iniciantes, manha) = (ids[0].clone(), ids[1].clone(), ids[2].clone());
+    let put = |mid: &str, token: &str, body: Value| {
+        let path = format!("/v1/clubs/{}/athletes/{mid}/groups", c.id);
+        let (app, token) = (&app, token.to_string());
+        async move {
+            app.call(Method::PUT, &path, Some(&token), Some(body), &[])
+                .await
+        }
+    };
+    let names = |v: &Value| {
+        v["groups"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|g| g["name"].as_str().unwrap().to_string())
+            .collect::<Vec<_>>()
+    };
+    let get = |path: String| {
+        let (app, owner) = (&app, c.owner.clone());
+        async move { app.get(&path, Some(&owner)).await }
+    };
+    let detail = |mid: &str| get(format!("/v1/clubs/{}/athletes/{mid}", c.id));
+
+    // Ana joins two groups (by name in the answer).
+    let r = put(
+        &c.ana.1,
+        &c.owner,
+        json!({ "group_ids": [maratona, iniciantes] }),
+    )
+    .await;
+    assert_eq!(names(r.ok()), ["Iniciantes", "Maratona"]);
+    // Moved: out of Iniciantes, into the 6h class, still in Maratona.
+    let r = put(
+        &c.ana.1,
+        &c.owner,
+        json!({ "group_ids": [maratona, manha] }),
+    )
+    .await;
+    assert_eq!(names(r.ok()), ["Maratona", "Turma das 6h"]);
+    assert_eq!(
+        names(detail(&c.ana.1).await.ok()),
+        ["Maratona", "Turma das 6h"]
+    );
+    let filtered = |g: &str| get(format!("/v1/clubs/{}/athletes?group_id={g}", c.id));
+    assert_eq!(filtered(&iniciantes).await.ok()["items"], json!([]));
+    assert_eq!(
+        filtered(&manha).await.ok()["items"][0]["membership"]["id"],
+        c.ana.1.as_str()
+    );
+    // Bia's membership in Maratona isn't touched by Ana leaving it.
+    put(&c.bia.1, &c.owner, json!({ "group_ids": [maratona] }))
+        .await
+        .ok();
+    put(&c.ana.1, &c.owner, json!({ "group_ids": [] }))
+        .await
+        .ok();
+    let groups = app
+        .get(&format!("/v1/clubs/{}/groups", c.id), Some(&c.owner))
+        .await;
+    let m = groups.ok()["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|g| g["id"] == maratona.as_str())
+        .unwrap()
+        .clone();
+    assert_eq!(m["member_ids"], json!([c.bia.1]));
+
+    // Another club's group: 422, and Bia keeps what she had.
+    let rita = app.sign_in("rita@email.com").await;
+    let other = app
+        .post(
+            "/v1/clubs",
+            Some(&rita),
+            json!({ "name": "Equipe Maré", "modalities": ["swim"] }),
+        )
+        .await;
+    let other = other.body["club"]["id"].as_str().unwrap().to_string();
+    let foreign = app
+        .post(
+            &format!("/v1/clubs/{other}/groups"),
+            Some(&rita),
+            json!({ "name": "Natação" }),
+        )
+        .await;
+    let foreign = foreign.ok()["id"].as_str().unwrap().to_string();
+    let r = put(
+        &c.bia.1,
+        &c.owner,
+        json!({ "group_ids": [maratona, foreign] }),
+    )
+    .await;
+    assert_eq!(
+        r.problem(422, "validation.failed")["errors"][0]["field"],
+        "group_ids"
+    );
+    assert_eq!(names(detail(&c.bia.1).await.ok()), ["Maratona"]);
+    put(&c.bia.1, &c.owner, json!({ "group_ids": "Maratona" }))
+        .await
+        .problem(422, "validation.failed");
+    // The owner isn't a student; a student can't call it.
+    let me = app.get("/v1/me", Some(&c.owner)).await;
+    let owner_mid = me.ok()["memberships"][0]["membership"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    put(&owner_mid, &c.owner, json!({ "group_ids": [] }))
+        .await
+        .problem(404, "athlete.not_found");
+    assert_eq!(
+        put(&c.bia.1, &c.ana.0, json!({ "group_ids": [] }))
+            .await
+            .status
+            .as_u16(),
+        403
+    );
+}
