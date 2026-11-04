@@ -4,7 +4,7 @@ import {
   ArrowRight, BadgeCheck, CalendarCheck, CalendarClock, Check, ChevronDown, ClipboardList, Gauge, Library, MessageSquare,
   Smartphone, Sparkles, Users, Wallet, Wand2, Zap,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { IS_MOCK, useGoogleSignIn } from "@/api/auth";
 import { usePlans } from "@/api/billing";
 import type { Plan, Sport } from "@/api/types";
@@ -146,6 +146,19 @@ function BuilderDemo() {
   const est = estimate(structure, "run");
   const flat: Step[] = structure.blocks.flatMap((b) => (b.kind === "repeat" ? b.steps.map((s, i) => (i === 0 ? { ...s, note: `${b.count}×` } : s)) : b.kind === "step" ? [b] : []));
   const zones = segments(structure, "run");
+  // The box grows with the text, so workouts written over several lines (R2) stay readable.
+  const box = useRef<HTMLTextAreaElement>(null);
+  useLayoutEffect(() => {
+    const fit = () => {
+      const el = box.current;
+      if (!el) return;
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight + el.offsetHeight - el.clientHeight}px`;
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [text]);
   return (
     <section id="treinos" className="mx-auto grid max-w-6xl scroll-mt-20 gap-10 px-5 py-20 lg:grid-cols-[1fr_1.1fr] lg:items-center">
       <div className="grid gap-5">
@@ -158,7 +171,7 @@ function BuilderDemo() {
       </div>
       <div className="grid gap-4 rounded-2xl border border-line bg-surface p-5 shadow-lg">
         <label htmlFor="demo-qt" className="flex items-center gap-2 text-sm font-semibold"><Wand2 className="size-4 text-accent-text" />{t("Experimente: edite o texto")}</label>
-        <textarea id="demo-qt" rows={2} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} className="w-full resize-none rounded-md border border-line-strong bg-sunken px-3 py-2.5 font-mono text-[15px] focus:border-brand-ring focus:bg-surface focus:outline-none focus:ring-3 focus:ring-brand-ring/25" />
+        <textarea ref={box} id="demo-qt" rows={2} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} className="w-full resize-none overflow-hidden rounded-md border border-line-strong bg-sunken px-3 py-2.5 font-mono text-[15px] focus:border-brand-ring focus:bg-surface focus:outline-none focus:ring-3 focus:ring-brand-ring/25" />
         {warnings.length > 0 && <p className="text-sm text-warning-text">{t("Não entendi: {x}", { x: warnings.join(", ") })}</p>}
         <IntensityProfile structure={structure} sport="run" height={64} />
         <div className="flex gap-6"><div><div className="text-xs text-fg-muted">{t("Duração")}</div><div className="font-display text-2xl font-bold tabular-nums [font-stretch:110%]">{est.duration_s ? duration(est.duration_s) : "–"}</div></div><div><div className="text-xs text-fg-muted">{t("Distância")}</div><div className="font-display text-2xl font-bold tabular-nums [font-stretch:110%]">{est.distance_m ? distance(est.distance_m) : "–"}</div></div><div className="ml-auto self-end text-xs text-fg-muted">{zones.length} {t("etapas")}</div></div>
