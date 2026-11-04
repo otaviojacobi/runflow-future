@@ -48,7 +48,15 @@ export function PushBridge() {
     // A tap that launched the app, then taps while it runs.
     void Notifications.getLastNotificationResponseAsync().then(open).catch(() => undefined);
     const sub = Notifications.addNotificationResponseReceivedListener(open);
-    return () => sub.remove();
+    // A push that arrives while the app is open: refresh the bell, the student's cards and, at once, an open
+    // conversation on that workout (it also polls every 10 s, lib/live).
+    const received = Notifications.addNotificationReceivedListener((n) => {
+      const link = n.request.content.data?.link;
+      const workout = typeof link === "string" ? /(?:workouts\/|[?&]workout=)([\w-]+)/.exec(link)?.[1] : undefined;
+      void queryClient.invalidateQueries({ queryKey: meKey });
+      void queryClient.invalidateQueries({ predicate: (q) => q.queryKey.includes("my") || (q.queryKey.includes("thread") && (!workout || q.queryKey.includes(workout))) });
+    });
+    return () => { sub.remove(); received.remove(); };
   }, [signedIn]); // eslint-disable-line react-hooks/exhaustive-deps
   return null;
 }

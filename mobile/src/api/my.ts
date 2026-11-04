@@ -8,9 +8,11 @@
 import { useMutation, useQuery, type QueryKey } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { addDays } from "@/lib/format";
+import { liveQuery } from "@/lib/live";
 import { offline, savedData } from "@/lib/offline";
 import { queryClient } from "@/queryClient";
 import { actKey } from "./activities";
+import { meKey } from "./me";
 import type { Activity, Comment, CompletionStatus, Feeling, ID, ISODate, ISOTime, PlannedWorkout, User } from "./types";
 
 // ---------- responses (the shared rows live in types.ts)
@@ -123,12 +125,18 @@ export const useSaveCompletion = (clubId: string) =>
   });
 
 // ---------- thread (student ⇄ trainers)
-/** GET marks the thread as read, so the workout's unread count goes to zero everywhere. */
-export function useComments(clubId: string | undefined, id: ID, day: ISODate | undefined) {
+/**
+ * GET marks the thread as read, so the workout's unread count goes to zero everywhere. While its screen is focused
+ * (`live`) it is refetched every 10 s (lib/live), so a reply shows up without leaving the screen; when something new
+ * arrives the bell is refreshed too.
+ */
+export function useComments(clubId: string | undefined, id: ID, day: ISODate | undefined, live = true) {
   const key = threadKey(clubId ?? "", id);
   return useQuery({
-    queryKey: key, enabled: !!clubId && !!id, ...savedData<Comment[]>(key),
+    queryKey: key, enabled: !!clubId && !!id, ...savedData<Comment[]>(key), ...liveQuery(live),
     queryFn: saved(key, () => day, () => api.get<{ items: Comment[] }>(`/clubs/${clubId}/planned-workouts/${id}/comments`).then((r) => {
+      const before = queryClient.getQueryData<Comment[]>(key);
+      if (before && r.items.length > before.length) void queryClient.invalidateQueries({ queryKey: meKey });
       if (clubId) patchWorkout(clubId, id, { unread_count: 0, comments_count: r.items.length });
       return r.items;
     })),

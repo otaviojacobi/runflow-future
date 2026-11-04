@@ -1,7 +1,7 @@
 /** M2 · Treino (student): personal targets, notes, feedback, thread. Route: /workouts/$id */
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useLocation, useParams } from "@tanstack/react-router";
 import { ArrowLeft, CircleCheck, MessageSquare } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMyWorkout } from "@/api/my";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
 import { FitButton } from "@/components/FitExport";
@@ -20,6 +20,10 @@ export function WorkoutScreen() {
   const { club, ctx } = useClub();
   const q = useMyWorkout(club?.id, id);
   const [fb, setFb] = useState(false);
+  // "…mensagem nova do treinador" (#conversa) and the reply's notification (?conversa=1) open at the conversation.
+  const toConversation = useLocation({ select: (l) => l.hash.replace(/^#/, "") === "conversa" || /[?&]conversa=1\b/.test(l.searchStr) });
+  const loaded = !!q.data;
+  useEffect(() => { if (loaded && toConversation) document.getElementById("conversa")?.scrollIntoView({ block: "start" }); }, [loaded, toConversation]);
   if (!club || !ctx) return null;
   const w = q.data;
   if (q.isPending) return <div className="mx-auto grid max-w-2xl gap-4"><Skeleton className="h-8 w-40" /><Skeleton className="h-64" /></div>;
@@ -61,7 +65,7 @@ export function WorkoutScreen() {
           <div className="grid grid-cols-3 gap-3">{a.distance_m ? <Stat value={km(a.distance_m)} unit="km" label={t("Distância")} /> : null}<Stat value={duration(a.duration_s)} label={t("Tempo")} />{a.avg_pace_s_per_km ? <Stat value={pace(a.avg_pace_s_per_km)} unit="/km" label={t("Pace")} /> : null}{a.avg_hr ? <Stat value={String(a.avg_hr)} unit="bpm" label={t("FC média")} /> : null}</div>
         </Card>
       )}
-      <Card className="grid gap-3 p-4"><h2 className="rf-text-title-sm">{t("Conversa com o treinador")}</h2><Thread clubId={club.id} workoutId={w.id} meMembershipId={ctx.membership.id} placeholder={t("Dúvida sobre o treino? Escreva aqui")} /></Card>
+      <Card id="conversa" className="grid scroll-mt-20 gap-3 p-4"><h2 className="rf-text-title-sm">{t("Conversa com o treinador")}</h2><Thread clubId={club.id} workoutId={w.id} meMembershipId={ctx.membership.id} placeholder={t("Dúvida sobre o treino? Escreva aqui")} /></Card>
       <FeedbackDialog clubId={club.id} workout={w} activities={w.candidate_activities} open={fb} onOpenChange={setFb} />
     </div>
   );

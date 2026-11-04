@@ -35,6 +35,10 @@ src/
 - **Styling**: Tailwind utilities from the token mapping only (see the header of `src/styles.css`): `bg-surface`, `text-fg-muted`, `border-line`, `bg-brand text-on-brand`, `bg-run-soft text-on-run-soft`, `bg-z4`… Text styles: `rf-text-*` classes. No hex, no default Tailwind palette (it is removed).
 - **Club theme**: `brand` = the club's primary color, `accent` = its secondary. Never use them for data meaning (status, zones, sports have their own tokens). Public pages (landing, login, invite, club picker/creation, dev) always use Runflow's brand (D-024): add new public paths to `RUNFLOW_BRANDED` in `src/lib/theme.ts` **and** the inline script in `index.html`. Previews of a club's colors use scoped `themeVars`, never `applyClubTheme`.
 - **Data**: screens use hooks from `src/api/*`; only endpoints from `api/endpoints.md`. Errors are `ApiError` with pt-BR `title`/`detail`: show them as they are.
+- **Open conversations stay current**: there's no live channel, so a thread on screen polls (`lib/live.ts`
+  `liveQuery()`: 10 s while the tab is visible, again on focus; Mensagens polls the same way). A new message scrolls
+  into view only if the reader was at the end (`followNewest`). The e2e "open workout conversation" test guards it
+  (founder, 2026-11-04: a reply never showed on the student's open workout).
 - **Formats**: always `lib/format.ts` (pace `4:30`, `10,4 km`, `ter, 3 nov`, 24 h). A date in numbers is always
   dd/mm/aaaa (`brDate`), whatever the browser's language: date fields use the kit's `DateInput` (masked dd/mm/aaaa +
   a pt-BR month grid; future years grayed after `max`), never `<input type="date">`, which follows the browser (an

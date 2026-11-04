@@ -5,6 +5,7 @@
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { liveQuery } from "@/lib/live";
 import { queryClient } from "@/queryClient";
 import { meKey } from "./me";
 import type { Structure } from "@/domain/workout";
@@ -131,13 +132,18 @@ export const useFeedback = (clubId: string | undefined, filter: FeedbackFilter) 
 /** POST /feedback/read: these threads (or all of them, without ids) as read. */
 export const useMarkRead = (clubId: string) =>
   useMutation({ mutationFn: (workout_ids?: string[]) => api.post(`/clubs/${clubId}/feedback/read`, workout_ids ? { workout_ids } : {}), onSuccess: () => refreshUnread(clubId) });
-/** The thread on a planned workout. GET marks it as read, so the unread counts elsewhere refresh after it. */
-export const useComments = (clubId: string | undefined, id: string | null) =>
+/**
+ * The thread on a planned workout. GET marks it as read, so the unread counts elsewhere refresh after it. While it is
+ * open on a focused screen (`live`) it is refetched every 10 s (lib/live): a student's new message shows up by itself.
+ */
+export const useComments = (clubId: string | undefined, id: string | null, live = true) =>
   useQuery({
-    queryKey: staffKeys.thread(clubId ?? "", id ?? ""), enabled: !!clubId && !!id,
+    queryKey: staffKeys.thread(clubId ?? "", id ?? ""), enabled: !!clubId && !!id, ...liveQuery(live),
     queryFn: async () => {
       const r = await api.get<{ items: Comment[] }>(`/clubs/${clubId}/planned-workouts/${id}/comments`);
-      refreshUnread(clubId!);
+      // The first read and anything new change the counts; a poll with nothing new doesn't.
+      const before = queryClient.getQueryData<Comment[]>(staffKeys.thread(clubId!, id!));
+      if (!before || r.items.length !== before.length) refreshUnread(clubId!);
       return r.items;
     },
   });

@@ -9,7 +9,7 @@
 import { tokens } from "@runflow/design/tokens";
 import { router, useLocalSearchParams } from "expo-router";
 import { useRef, useState, type ReactNode } from "react";
-import { RefreshControl, ScrollView, StyleSheet, View, type ScrollViewInstance } from "react-native";
+import { RefreshControl, ScrollView, StyleSheet, View, type NativeScrollEvent, type NativeSyntheticEvent, type ScrollViewInstance } from "react-native";
 import { useMyWorkout, type MyWorkoutDetail } from "@/api/my";
 import type { Activity } from "@/api/types";
 import { SportChip } from "@/components/sport";
@@ -23,18 +23,19 @@ import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
 import { duration, km, longDate, pace, timeOf, today as todayFn, upperFirst } from "@/lib/format";
+import { followNewest, isAtEnd } from "@/lib/live";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar, Button, Card, EmptyState, KeyboardAvoid, Skeleton, Text, useFocusedInputVisible } from "@/ui";
 import { CircleCheck, Link2, SearchX } from "@/ui/icons";
 import { PoweredByStrava } from "@/components/strava";
 
 export default function WorkoutScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, conversa } = useLocalSearchParams<{ id: string; conversa?: string }>();
   // A new id is a new screen: the sheet, the draft message and the scroll start over.
-  return <WorkoutBody key={id} id={String(id ?? "")} />;
+  return <WorkoutBody key={id} id={String(id ?? "")} openConversation={conversa === "1"} />;
 }
 
-function WorkoutBody({ id }: { id: string }) {
+function WorkoutBody({ id, openConversation }: { id: string; openConversation: boolean }) {
   const { theme } = useTheme();
   const { club, ctx } = useClub();
   const q = useMyWorkout(club?.id, id);
@@ -42,6 +43,13 @@ function WorkoutBody({ id }: { id: string }) {
   const [refreshing, setRefreshing] = useState(false);
   const scroll = useRef<ScrollViewInstance>(null);
   const keepVisible = useFocusedInputVisible(scroll);
+  // The conversation is the workout's last section: following it = scrolling to the end.
+  const atEnd = useRef(false);
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => { keepVisible.onScroll(e); atEnd.current = isAtEnd(e.nativeEvent); };
+  const toEnd = (animated: boolean) => setTimeout(() => scroll.current?.scrollToEnd({ animated }), 60); // after the new layout
+  const onGrow = (g: { before: number; after: number; lastIsMine: boolean }) => { if (followNewest({ ...g, atEnd: atEnd.current })) toEnd(true); };
+  // "…mensagem nova do treinador" / "Nova resposta" open the workout at its conversation (`?conversa=1`).
+  const onLoad = () => { if (openConversation) toEnd(false); };
   if (!club || !ctx) return null;
   const w = q.data;
   const gone = q.error instanceof ApiError && q.error.status === 404 ? q.error : null;
@@ -60,7 +68,7 @@ function WorkoutBody({ id }: { id: string }) {
     );
   } else if (w) {
     body = <Detail w={w} placeholder={q.isPlaceholderData} clubTz={club.timezone} professor={club.trainer_label === "professor"} onFeedback={() => setSheet(true)}
-      thread={<Thread club={club} workoutId={w.id} day={w.date} meMembershipId={ctx.membership.id} placeholder={t("Dúvida sobre o treino? Escreva aqui")} />} />;
+      thread={<Thread club={club} workoutId={w.id} day={w.date} meMembershipId={ctx.membership.id} placeholder={t("Dúvida sobre o treino? Escreva aqui")} onGrow={onGrow} onLoad={onLoad} />} />;
   } else if (q.isPending) {
     body = (
       <View style={{ gap: theme.space[4] }} accessibilityLabel={t("Carregando…")}>
@@ -76,7 +84,7 @@ function WorkoutBody({ id }: { id: string }) {
   return (
     // The keyboard never covers the conversation's composer (ui/keyboard.tsx: Android is edge-to-edge).
     <KeyboardAvoid style={{ backgroundColor: theme.color.canvas }}>
-      <ScrollView ref={scroll} {...keepVisible} style={styles.fill} keyboardShouldPersistTaps="handled"
+      <ScrollView ref={scroll} {...keepVisible} onScroll={onScroll} style={styles.fill} keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.content, { paddingHorizontal: theme.space[4], paddingTop: theme.space[5], paddingBottom: theme.space[8], gap: theme.space[5], maxWidth: theme.size.readingMax }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={theme.color.brand.solid} colors={[theme.color.brand.solid]} progressBackgroundColor={theme.color.surface} />}>
         {!gone && <OfflineBanner />}

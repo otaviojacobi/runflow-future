@@ -1,6 +1,6 @@
 /** M3 · Agenda (student): week list and month calendar; weeks still in preparation say so (D-031). Route: /schedule */
 import { Link } from "@tanstack/react-router";
-import { CalendarClock, ChevronLeft, ChevronRight, Printer } from "lucide-react";
+import { CalendarClock, ChevronLeft, ChevronRight, MessageSquare, Printer } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMyUnreleasedWeeks, useMyWorkouts } from "@/api/my";
 import { sportBar } from "@/components/sport";
@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/workout";
 import { t } from "@/i18n";
 import { useClub } from "@/lib/club";
 import { addDays, dateTimeShort, dayMonth, duration, mondayOf, today as todayFn, weekdayShort } from "@/lib/format";
-import { Card, EmptyState, IconButton, PageHeader, Segmented, cn } from "@/ui";
+import { Badge, Card, EmptyState, IconButton, PageHeader, Segmented, cn } from "@/ui";
 
 const MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
@@ -50,9 +50,10 @@ export function ScheduleScreen() {
                 <div className="text-center"><div className={cn("text-xs font-bold uppercase", d === today ? "text-brand-text" : "text-fg-muted")}>{weekdayShort(d)}</div><div className="font-display text-xl font-bold tabular-nums">{Number(d.slice(8))}</div></div>
                 <div className="grid content-center gap-2">
                   {ws.length ? ws.map((w) => (
-                    <Link key={w.id} to="/workouts/$id" params={{ id: w.id }} className="flex items-center gap-3 rounded-md p-1 hover:bg-soft">
+                    <Link key={w.id} to="/workouts/$id" params={{ id: w.id }} hash={w.unread_count ? "conversa" : undefined} className="flex items-center gap-3 rounded-md p-1 hover:bg-soft">
                       <span className={cn("h-9 w-1 rounded-full", sportBar[w.sport])} />
                       <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{w.title}</span><span className="text-xs text-fg-muted">{w.est_duration_s ? `≈ ${duration(w.est_duration_s)}` : ""}</span></span>
+                      {w.unread_count > 0 && <Badge tone="brand" icon={<MessageSquare />}>{t("Nova resposta")}</Badge>}
                       {w.completion ? <StatusBadge status={w.completion.status} /> : d < today ? null : <ChevronRight className="size-4 text-fg-subtle" />}
                     </Link>
                   )) : <span className="text-sm text-fg-subtle">{t("Descanso")}</span>}

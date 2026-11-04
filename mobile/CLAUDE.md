@@ -124,6 +124,12 @@ Preview every change at `/dev/components` (light and dark side by side, demo clu
   expo-navigation-bar gives white buttons (`app.json` plugin `style: "light"`, `enforceContrast: false`, plus
   `setStyle("light")` at start: in its native code "light" means light buttons). The window background follows the
   theme's canvas (expo-system-ui), never the splash's brand color.
+- **Open conversations stay current** (founder, 2026-11-04: a reply never showed on the student's open workout).
+  There's no live channel, so a thread on screen polls: `lib/live.ts` (`liveQuery(live)`, 10 s, again on returning to
+  the app; `live` = `useIsFocused()`), like Mensagens; a push received while the app is open refreshes that workout's
+  thread at once (`PushBridge`). New messages scroll into view only if the reader was at the end (`followNewest`).
+  Unread replies show as "…mensagem nova" on Hoje and "Nova resposta" on Agenda; both open the workout at its
+  conversation (`openWorkout(id, { conversation: true })` → `?conversa=1`, the reply notification's link too).
 - **"Sem internet" comes from the global connection state, never from one query's error.** `useOnline()` = the OS is
   connected AND the API answered last time (`lib/reachability`); after a request gets no answer the app probes
   `/health` (2, 5, 10, 20, 30, 60 s) and refetches on the first answer, so the banner clears by itself. A thrown

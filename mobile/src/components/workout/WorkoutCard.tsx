@@ -14,7 +14,9 @@ import { ChevronRight, CircleCheck, MessageSquare } from "@/ui/icons";
 import { estimateText } from "@/domain/workout";
 import { IntensityProfile, StatusBadge, feelingLabel } from "./workout";
 
-export const openWorkout = (id: string) => router.push({ pathname: "/workouts/[id]", params: { id } });
+/** Opens a workout; `conversation` opens it at its conversation (a new reply waits there). */
+export const openWorkout = (id: string, opts?: { conversation?: boolean }) =>
+  router.push({ pathname: "/workouts/[id]", params: opts?.conversation ? { id, conversa: "1" } : { id } });
 
 export function WorkoutCard({ w, onFeedback, professor }: { w: PlannedWorkout; onFeedback: () => void; professor: boolean }) {
   const { theme } = useTheme();
@@ -58,7 +60,7 @@ export function WorkoutCard({ w, onFeedback, professor }: { w: PlannedWorkout; o
         </View>
       )}
       {w.comments_count > 0 && (
-        <Pressable accessibilityRole="link" onPress={() => openWorkout(w.id)} hitSlop={theme.space[2]}
+        <Pressable accessibilityRole="link" onPress={() => openWorkout(w.id, { conversation: true })} hitSlop={theme.space[2]}
           style={({ pressed }) => [styles.row, styles.center, { gap: theme.space["1.5"], minHeight: theme.size.touchMin - theme.space[3], opacity: pressed ? 0.7 : 1 }]}>
           <MessageSquare size={theme.size.iconSm} color={c.brand.text} aria-hidden />
           <Text variant="labelSm" tone="brand">

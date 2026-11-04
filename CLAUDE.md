@@ -23,6 +23,7 @@ Runflow is a training platform for Brazilian clubs (running, gyms, swimming, hyb
 - **Runflow is the app; clubs only theme it (D-018).** No white-label app features.
 - **Keep `root.md` an index** (under ~600 lines). Move detail into `docs/<area>/` and link it.
 - **Secrets live only in `.env`** (git-ignored). Never commit it, print it, or copy values from it into code, docs or logs.
+- **Every bug fix lands with a test that fails without it** (founder, 2026-11-04): a backend test, a web unit or e2e test (the app has no test runner: test the shared logic or the API it relies on). Run it once without the fix to see it fail.
 - **Port 8080 always shows the current app.** Keep `npm run dev` running (mock API :8787 + web :8080) while you work; the founder checks progress there, and `/dev/status` renders `docs/build-plan.md` live. Never stop it or move it to another port.
 
 ## Layout

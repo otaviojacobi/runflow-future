@@ -109,7 +109,8 @@ async fn create(
         (
             vec![w.athlete_membership_id],
             "comment",
-            format!("/workouts/{}", w.id),
+            // Opens the workout at its conversation (web and app read `conversa=1`).
+            format!("/workouts/{}?conversa=1", w.id),
         )
     };
     let preview: String = text.chars().take(120).collect();

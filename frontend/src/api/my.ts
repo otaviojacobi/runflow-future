@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, qs } from "@/lib/api";
+import { liveQuery } from "@/lib/live";
 import { queryClient } from "@/queryClient";
 import { meKey } from "./me";
 import type { Comment, CompletionStatus, Feeling, MySummary, MyWorkoutDetail, PlannedWorkout, UnreleasedWeek } from "./types";
@@ -28,8 +29,25 @@ export const useSaveCompletion = (clubId: string) =>
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: myKey(clubId) }); queryClient.invalidateQueries({ queryKey: ["me", "activities"] }); },
   });
 
+/**
+ * A workout's conversation (student ⇄ staff). It stays current while on screen (lib/live: polled every 10 s, again on
+ * focus); the GET marks it read, so when something new arrives the bell, the Feedbacks count, the inbox and the
+ * student's cards ("mensagem nova") are refreshed too.
+ */
 export const useComments = (clubId: string | undefined, id: string | null) =>
-  useQuery({ queryKey: threadKey(clubId ?? "", id ?? ""), enabled: !!clubId && !!id, queryFn: () => api.get<{ items: Comment[] }>(`/clubs/${clubId}/planned-workouts/${id}/comments`).then((r) => r.items) });
+  useQuery({
+    queryKey: threadKey(clubId ?? "", id ?? ""), enabled: !!clubId && !!id, ...liveQuery(),
+    queryFn: async () => {
+      const items = (await api.get<{ items: Comment[] }>(`/clubs/${clubId}/planned-workouts/${id}/comments`)).items;
+      const before = queryClient.getQueryData<Comment[]>(threadKey(clubId!, id!));
+      if (before && items.length > before.length) {
+        void queryClient.invalidateQueries({ queryKey: meKey });
+        void queryClient.invalidateQueries({ queryKey: myKey(clubId!) });
+        void queryClient.invalidateQueries({ queryKey: ["clubs", clubId!, "feedback"] });
+      }
+      return items;
+    },
+  });
 export const usePostComment = (clubId: string, id: string) =>
   useMutation({
     mutationFn: (body: string) => api.post<Comment>(`/clubs/${clubId}/planned-workouts/${id}/comments`, { body }),

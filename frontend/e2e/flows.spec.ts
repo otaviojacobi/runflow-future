@@ -96,3 +96,32 @@ test("activity matching: the student says which workout an ambiguous run was (D-
   await expect(page.getByText("Você escolheu este treino.")).toBeVisible();
   await expect(page.getByRole("link", { name: new RegExp(title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")) })).toBeVisible();
 });
+
+test("an open workout conversation shows the trainer's reply without leaving the page (regression, 2026-11-04)", async ({ page, request }) => {
+  // The founder replied to a student on QA and she never saw it: the open conversation was fetched once.
+  const API = "http://localhost:8788/v1";
+  const token = async (email: string) => {
+    await request.post(`${API}/auth/email/start`, { data: { email } });
+    return (await (await request.post(`${API}/auth/email/verify`, { data: { email, code: "000000" } })).json()).token as string;
+  };
+  const as = (t: string) => ({ headers: { authorization: `Bearer ${t}` } });
+  const student = await token(STUDENT);
+  const me = await (await request.get(`${API}/me`, as(student))).json();
+  const clubId = me.memberships.find((m: { membership: { role: string } }) => m.membership.role === "student").club.id;
+  const day = (n: number) => new Date(Date.now() - 3 * 3600_000 + n * 86_400_000).toISOString().slice(0, 10);
+  const calendar = await (await request.get(`${API}/clubs/${clubId}/my/workouts?from=${day(-7)}&to=${day(7)}`, as(student))).json();
+  const workout = calendar.items[0];
+  expect(workout, "the student has a visible workout").toBeTruthy();
+
+  await signIn(page, STUDENT);
+  const loaded = page.waitForResponse((r) => r.url().includes(`/planned-workouts/${workout.id}/comments`) && r.request().method() === "GET");
+  await page.goto(`/workouts/${workout.id}`);
+  await expect(page.getByRole("heading", { name: "Conversa com o treinador" })).toBeVisible();
+  await loaded;
+
+  const reply = `Vamos ajustar no próximo treino (${Date.now()})`;
+  const owner = await token(OWNER);
+  const posted = await request.post(`${API}/clubs/${clubId}/planned-workouts/${workout.id}/comments`, { ...as(owner), data: { body: reply } });
+  expect(posted.ok()).toBeTruthy();
+  await expect(page.getByText(reply)).toBeVisible({ timeout: 15_000 });
+});

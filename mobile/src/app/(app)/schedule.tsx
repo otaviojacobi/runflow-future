@@ -18,8 +18,8 @@ import { useClub } from "@/lib/club";
 import { addDays, dayMonth, mondayOf, monthTitle, today as todayFn, upperFirst, weekdayLong, weekdayShort } from "@/lib/format";
 import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Button, Card, EmptyState, IconButton, PageHeader, Screen, Segmented, Skeleton, Text } from "@/ui";
-import { CalendarClock, ChevronLeft, ChevronRight, Coffee } from "@/ui/icons";
+import { Badge, Button, Card, EmptyState, IconButton, PageHeader, Screen, Segmented, Skeleton, Text } from "@/ui";
+import { CalendarClock, ChevronLeft, ChevronRight, Coffee, MessageSquare } from "@/ui/icons";
 
 type Span = "week" | "month";
 
@@ -127,13 +127,14 @@ function WorkoutRow({ w, today }: { w: PlannedWorkout; today: string }) {
   const status = statusOf(w, today);
   const est = estimateText(w);
   return (
-    <Pressable accessibilityRole="link" onPress={() => openWorkout(w.id)}
-      accessibilityLabel={[t(SPORT_LABEL[w.sport]), w.title, est, status ? statusLabel(status) : null].filter(Boolean).join(", ")}
+    <Pressable accessibilityRole="link" onPress={() => openWorkout(w.id, { conversation: w.unread_count > 0 })}
+      accessibilityLabel={[t(SPORT_LABEL[w.sport]), w.title, est, status ? statusLabel(status) : null, w.unread_count > 0 ? t("Nova resposta") : null].filter(Boolean).join(", ")}
       style={({ pressed }) => [styles.row, styles.center, { gap: theme.space[3], minHeight: theme.size.touchMin + theme.space[2], padding: theme.space["1.5"], borderRadius: theme.radius.md, backgroundColor: pressed ? c.soft : "transparent" }]}>
       <View aria-hidden style={{ width: theme.space[1], alignSelf: "stretch", borderRadius: theme.radius.full, backgroundColor: c.sport[w.sport].solid }} />
       <View style={styles.flex}>
         <Text variant="labelMd" numberOfLines={1}>{w.title}</Text>
         <Text variant="caption" tone="muted" numberOfLines={1}>{[t(SPORT_LABEL[w.sport]), est].filter(Boolean).join(" · ")}</Text>
+        {w.unread_count > 0 && <Badge tone="brand" icon={MessageSquare} style={{ alignSelf: "flex-start", marginTop: theme.space[1] }}>{t("Nova resposta")}</Badge>}
       </View>
       {status ? <StatusBadge status={status} /> : <ChevronRight size={theme.size.iconMd} color={c.fgSubtle} aria-hidden />}
     </Pressable>

@@ -34,7 +34,7 @@ export default function register(h) {
       ? h.db.memberships.filter((x) => x.club_id === p.club_id && x.role !== "student" && x.status === "active").map((x) => x.user_id)
       : [h.db.memberships.find((x) => x.id === p.athlete_membership_id)?.user_id].filter(Boolean);
     // A student's message is feedback for the staff (pushed by default); the staff's reply is a comment for the student.
-    for (const uid of recipients) h.notify({ id: h.uuid("n"), user_id: uid, club_id: p.club_id, kind: m.role === "student" ? "feedback" : "comment", title: `${author.name} comentou no treino`, body: body.slice(0, 120), link: m.role === "student" ? `/feedback?workout=${p.id}` : `/workouts/${p.id}`, read_at: null, created_at: c.created_at });
+    for (const uid of recipients) h.notify({ id: h.uuid("n"), user_id: uid, club_id: p.club_id, kind: m.role === "student" ? "feedback" : "comment", title: `${author.name} comentou no treino`, body: body.slice(0, 120), link: m.role === "student" ? `/feedback?workout=${p.id}` : `/workouts/${p.id}?conversa=1`, read_at: null, created_at: c.created_at });
     return { __status: 201, data: out(c) };
   });
 }

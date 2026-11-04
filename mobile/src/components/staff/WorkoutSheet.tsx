@@ -3,6 +3,7 @@
  * notes, how it went, the synced activity; quick edits (move to another day, title and note, remove after a
  * confirmation; the steps through the builder, X12) and the conversation with the student.
  */
+import { useIsFocused } from "expo-router";
 import { useState } from "react";
 import { Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { useComments, useDeletePlanned, usePlannedDetail, usePostComment, useUpdatePlanned } from "@/api/staff";
@@ -52,7 +53,8 @@ export function WorkoutSheet({ seed, onClose }: { seed: WorkoutSeed | null; onCl
   const open = !!seed;
   const id = s?.workout.id ?? null;
   const detail = usePlannedDetail(clubId, open ? id : null);
-  const thread = useComments(clubId, open && mode === "thread" ? id : null);
+  // Live while the sheet shows the conversation on a focused screen (lib/live): a student's message appears by itself.
+  const thread = useComments(clubId, open && mode === "thread" ? id : null, useIsFocused());
   const update = useUpdatePlanned(clubId);
   const del = useDeletePlanned(clubId);
   const post = usePostComment(clubId, id ?? "");

@@ -83,7 +83,7 @@ Every notification lands in the app: the notification center (W11) and the unrea
 | `comment` · `message` · `announcement` | both | off (Mensagens shows the unread count, § `/me`) |
 | `feedback` · `member_joined` | staff | on |
 
-`feedback` is everything a student says about a workout: a report ("Concluir" / "Conte como foi") and a message in a workout's conversation, on any workout date (an upcoming one included). Its link is `/feedback?workout=<id>`, which opens that workout's conversation in the inbox (W8). `comment` is the staff's reply in that conversation, to the student (link `/workouts/<id>`).
+`feedback` is everything a student says about a workout: a report ("Concluir" / "Conte como foi") and a message in a workout's conversation, on any workout date (an upcoming one included). Its link is `/feedback?workout=<id>`, which opens that workout's conversation in the inbox (W8). `comment` is the staff's reply in that conversation, to the student (link `/workouts/<id>?conversa=1`: the workout opened at its conversation). The apps keep an open conversation current by refetching its thread every 10 s while it is on screen (the contract has no live channel).
 | `billing` | owner | on |
 
 Defaults set by the founder on 2026-11-04: students hear about the week's release and changed workouts; staff about feedback, new members and billing.

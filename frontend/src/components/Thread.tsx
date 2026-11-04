@@ -3,15 +3,37 @@ import { useEffect, useRef, useState } from "react";
 import { useComments, usePostComment } from "@/api/my";
 import { t } from "@/i18n";
 import { ago } from "@/lib/format";
+import { followNewest } from "@/lib/live";
 import { Avatar, Button, Skeleton, cn, toast } from "@/ui";
 
-/** Conversation on a planned workout. `meMembershipId` aligns own messages to the right. */
+/**
+ * Conversation on a planned workout. `meMembershipId` aligns own messages to the right. It stays current on its own
+ * (useComments polls while on screen); a new message scrolls into view only if the reader was at the end or sent it.
+ */
 export function Thread({ clubId, workoutId, meMembershipId, placeholder, quickReplies }: { clubId: string; workoutId: string; meMembershipId: string; placeholder?: string; quickReplies?: string[] }) {
   const list = useComments(clubId, workoutId);
   const post = usePostComment(clubId, workoutId);
   const [text, setText] = useState("");
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => { end.current?.scrollIntoView({ block: "nearest" }); }, [list.data?.length]);
+  const atEnd = useRef(true);
+  const seen = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const el = end.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => { atEnd.current = e.isIntersecting; });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  useEffect(() => { seen.current = undefined; }, [workoutId]); // another conversation (Feedbacks reuses this)
+  useEffect(() => {
+    const items = list.data;
+    if (!items) return;
+    const last = items[items.length - 1];
+    if (followNewest({ before: seen.current, after: items.length, atEnd: atEnd.current, lastIsMine: last?.author_membership_id === meMembershipId })) {
+      end.current?.scrollIntoView({ block: "nearest" });
+    }
+    seen.current = items.length;
+  }, [list.data, meMembershipId]);
   const send = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;

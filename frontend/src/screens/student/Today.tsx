@@ -49,7 +49,7 @@ export function WorkoutCard({ w, clubId, onFeedback }: { w: PlannedWorkout; club
           <Button size="lg" icon={<CircleCheck />} onClick={onFeedback}>{t("Concluir")}</Button>
         </div>
       )}
-      {w.comments_count > 0 && <Link to="/workouts/$id" params={{ id: w.id }} className="flex items-center gap-1.5 text-sm font-semibold text-brand-text"><MessageSquare className="size-4" />{w.unread_count ? tn(w.unread_count, "{n} mensagem nova do treinador", "{n} mensagens novas do treinador") : tn(w.comments_count, "{n} mensagem", "{n} mensagens")}</Link>}
+      {w.comments_count > 0 && <Link to="/workouts/$id" params={{ id: w.id }} hash="conversa" className="flex items-center gap-1.5 text-sm font-semibold text-brand-text"><MessageSquare className="size-4" />{w.unread_count ? tn(w.unread_count, "{n} mensagem nova do treinador", "{n} mensagens novas do treinador") : tn(w.comments_count, "{n} mensagem", "{n} mensagens")}</Link>}
     </Card>
   );
 }

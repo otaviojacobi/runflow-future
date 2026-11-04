@@ -1,8 +1,11 @@
 /**
  * The conversation on a planned workout, student ⇄ trainers (the web's components/Thread.tsx): bubbles (own on the
  * right in the club's color), a composer that grows with the text, and the send button. Reading it marks it as read.
+ * It stays current while its screen is focused (polled every 10 s, lib/live); `onGrow` tells the screen when new
+ * messages arrive, so it can follow them if the reader was at the end.
  */
-import { useState } from "react";
+import { useIsFocused } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useComments, usePostComment } from "@/api/my";
 import type { Club, Comment } from "@/api/types";
@@ -14,12 +17,22 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar, IconButton, Input, Skeleton, Text, toast } from "@/ui";
 import { Send } from "@/ui/icons";
 
-export function Thread({ club, workoutId, day, meMembershipId, placeholder, onComposerFocus }: {
+export function Thread({ club, workoutId, day, meMembershipId, placeholder, onComposerFocus, onGrow, onLoad }: {
   club: Pick<Club, "id" | "trainer_label">; workoutId: string; day: string | undefined; meMembershipId: string; placeholder?: string; onComposerFocus?: () => void;
+  onGrow?: (g: { before: number; after: number; lastIsMine: boolean }) => void; onLoad?: () => void;
 }) {
   const { theme } = useTheme();
-  const list = useComments(club.id, workoutId, day);
+  const list = useComments(club.id, workoutId, day, useIsFocused());
   const post = usePostComment(club.id, workoutId);
+  const seen = useRef<number | undefined>(undefined);
+  useEffect(() => {
+    const items = list.data;
+    if (!items) return;
+    const before = seen.current;
+    seen.current = items.length;
+    if (before === undefined) onLoad?.();
+    else if (items.length > before) onGrow?.({ before, after: items.length, lastIsMine: items[items.length - 1].author_membership_id === meMembershipId });
+  }, [list.data]); // eslint-disable-line react-hooks/exhaustive-deps
   const [text, setText] = useState("");
   const send = () => {
     const body = text.trim();

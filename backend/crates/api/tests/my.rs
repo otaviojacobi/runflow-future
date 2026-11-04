@@ -376,7 +376,7 @@ async fn threads_notify_the_other_side_and_feed_the_inbox(db: PgPool) {
         .ok();
     assert_eq!(
         app.get("/v1/me/notifications", Some(&c.ana.0)).await.ok()["items"][0]["link"],
-        format!("/workouts/{w}")
+        format!("/workouts/{w}?conversa=1")
     );
     let after = app.get(&inbox, Some(&c.owner)).await;
     assert_eq!(
@@ -543,5 +543,118 @@ async fn a_question_on_an_upcoming_workout_reaches_the_staff(db: PgPool) {
     assert_eq!(
         app.get("/v1/me/notifications", Some(&c.ana.0)).await.ok()["items"][0]["kind"],
         "comment"
+    );
+}
+
+/// Regression (founder, 2026-11-04): the owner answered a student's question on QA and she didn't see it (her open
+/// conversation never refreshed; the apps now refetch it every 10 s). What the apps rely on: the student's next read
+/// of the thread has every staff reply, the owner's and a trainer's, with their roles, in order; her workout counts
+/// them as unread until she reads it ("Nova resposta" on Hoje/Agenda); the reply's notification opens the workout at
+/// its conversation.
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn the_student_sees_every_staff_reply_in_the_workout_conversation(db: PgPool) {
+    let app = TestApp::new(db);
+    let c = setup(&app).await;
+    let invite = app
+        .post(
+            &format!("/v1/clubs/{}/invites", c.id),
+            Some(&c.owner),
+            json!({ "email": "julia@email.com", "role": "trainer" }),
+        )
+        .await;
+    let julia = app.sign_in("julia@email.com").await;
+    app.post(
+        &format!(
+            "/v1/invites/{}/accept",
+            token_of(invite.ok()["url"].as_str().unwrap())
+        ),
+        Some(&julia),
+        json!({}),
+    )
+    .await
+    .ok();
+    let w = assign(&app, &c, &c.ana.1, &day(0), "Rodagem leve 6 km").await;
+    let thread = format!("/v1/clubs/{}/planned-workouts/{w}/comments", c.id);
+    app.post(
+        &thread,
+        Some(&c.ana.0),
+        json!({ "body": "Colocar rotas com banheiro?" }),
+    )
+    .await
+    .ok();
+    // She has the conversation open (her app read it once), then the staff answer.
+    assert_eq!(
+        app.get(&thread, Some(&c.ana.0)).await.ok()["items"]
+            .as_array()
+            .unwrap()
+            .len(),
+        1
+    );
+    for (who, body) in [
+        (&c.owner, "Vamos ajustar o próximo treino."),
+        (&julia, "Separei duas rotas com banheiro."),
+    ] {
+        app.post(&thread, Some(who), json!({ "body": body }))
+            .await
+            .ok();
+    }
+
+    // Until she reads it, her calendar marks the workout ("Nova resposta").
+    let calendar = format!(
+        "/v1/clubs/{}/my/workouts?from={}&to={}",
+        c.id,
+        day(0),
+        day(0)
+    );
+    let unread = |v: &serde_json::Value| {
+        v["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|x| x["id"] == w)
+            .map(|x| x["unread_count"].as_i64())
+    };
+    assert_eq!(
+        unread(app.get(&calendar, Some(&c.ana.0)).await.ok()),
+        Some(Some(2))
+    );
+
+    // Her next read (the apps poll it while the conversation is on screen) has both replies, with their roles.
+    let read = app.get(&thread, Some(&c.ana.0)).await;
+    let got: Vec<(&str, &str)> = read.ok()["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|x| {
+            (
+                x["author"]["role"].as_str().unwrap(),
+                x["body"].as_str().unwrap(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        got,
+        vec![
+            ("student", "Colocar rotas com banheiro?"),
+            ("owner", "Vamos ajustar o próximo treino."),
+            ("trainer", "Separei duas rotas com banheiro."),
+        ]
+    );
+    assert_eq!(
+        unread(app.get(&calendar, Some(&c.ana.0)).await.ok()),
+        Some(Some(0))
+    );
+
+    // The reply's notification opens the workout at its conversation.
+    let n = app.get("/v1/me/notifications", Some(&c.ana.0)).await;
+    assert_eq!(
+        (
+            n.ok()["items"][0]["kind"].as_str(),
+            n.body["items"][0]["link"].as_str()
+        ),
+        (
+            Some("comment"),
+            Some(format!("/workouts/{w}?conversa=1").as_str())
+        )
     );
 }
