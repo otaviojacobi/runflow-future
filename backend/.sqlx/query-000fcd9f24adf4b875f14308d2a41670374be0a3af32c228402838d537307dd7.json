@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO class_sessions (id, club_id, class_type_id, schedule_id, location_id, instructor_membership_id,\n                                       starts_at, ends_at, capacity, checkin_code)\n           SELECT gen_random_uuid(), sc.club_id, sc.class_type_id, sc.id, sc.location_id, sc.instructor_membership_id,\n                  (d.day + sc.start_time) AT TIME ZONE c.timezone,\n                  ((d.day + sc.start_time) AT TIME ZONE c.timezone) + make_interval(mins => sc.duration_min),\n                  sc.capacity,\n                  upper(substr(md5(random()::text || clock_timestamp()::text || sc.id::text || d.day::text), 1, 6))\n             FROM class_schedules sc\n             JOIN clubs c ON c.id = sc.club_id AND c.deleted_at IS NULL\n            CROSS JOIN LATERAL (\n                  SELECT g::date AS day\n                    FROM generate_series(\n                           greatest(sc.valid_from, ($1::timestamptz AT TIME ZONE c.timezone)::date)::timestamp,\n                           least(coalesce(sc.valid_until, 'infinity'::date),\n                                 ($1::timestamptz AT TIME ZONE c.timezone)::date + $2::int)::timestamp,\n                           interval '1 day') g) d\n            WHERE extract(isodow FROM d.day)::int = sc.weekday\n              AND (sc.valid_until IS NULL OR sc.valid_until >= ($1::timestamptz AT TIME ZONE c.timezone)::date)\n              AND ($3::uuid[] IS NULL OR sc.id = ANY($3))\n           ON CONFLICT (schedule_id, starts_at) WHERE schedule_id IS NOT NULL DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Int4",
+        "UuidArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "000fcd9f24adf4b875f14308d2a41670374be0a3af32c228402838d537307dd7"
+}

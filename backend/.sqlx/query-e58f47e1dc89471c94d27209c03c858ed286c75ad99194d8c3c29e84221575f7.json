@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE class_types SET name = $2, sport = $3, description = $4, default_capacity = $5, duration_min = $6\n            WHERE id = $1 RETURNING to_jsonb(class_types.*) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "e58f47e1dc89471c94d27209c03c858ed286c75ad99194d8c3c29e84221575f7"
+}

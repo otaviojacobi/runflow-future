@@ -5,7 +5,7 @@
 
 use serde_json::{Map, Value, json};
 
-pub const KINDS: [&str; 9] = [
+pub const KINDS: [&str; 11] = [
     "workout_assigned",
     "workout_changed",
     "week_released",
@@ -15,15 +15,24 @@ pub const KINDS: [&str; 9] = [
     "billing",
     "message",
     "announcement",
+    "class_cancelled",
+    "waitlist_promoted",
 ];
 
-/// Push by default (founder, 2026-11-04): students get the week's release and changed workouts; staff get feedback,
-/// new members and billing. Everything else (new workouts, comments, messages, announcements) starts off: it still
-/// lands in the app, and Mensagens shows its unread count.
+/// Push by default (founder, 2026-11-04): students get the week's release and changed workouts, and their own class
+/// news (a cancelled class, a seat from the waitlist; D-052); staff get feedback, new members and billing.
+/// Everything else (new workouts, comments, messages, announcements) starts off: it still lands in the app, and
+/// Mensagens shows its unread count.
 pub fn push_default(kind: &str) -> bool {
     matches!(
         kind,
-        "week_released" | "workout_changed" | "feedback" | "member_joined" | "billing"
+        "week_released"
+            | "workout_changed"
+            | "feedback"
+            | "member_joined"
+            | "billing"
+            | "class_cancelled"
+            | "waitlist_promoted"
     )
 }
 
@@ -98,7 +107,9 @@ mod tests {
                 "week_released",
                 "feedback",
                 "member_joined",
-                "billing"
+                "billing",
+                "class_cancelled",
+                "waitlist_promoted"
             ]
         );
     }

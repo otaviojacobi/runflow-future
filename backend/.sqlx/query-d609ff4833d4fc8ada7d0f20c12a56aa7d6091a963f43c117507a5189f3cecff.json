@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE locations SET name = coalesce($2, name), kind = coalesce($3, kind),\n                  address = CASE WHEN $4 THEN $5 ELSE address END,\n                  lanes = CASE WHEN $6 THEN $7 ELSE lanes END\n            WHERE id = $1\n        RETURNING to_jsonb(locations.*) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Bool",
+        "Text",
+        "Bool",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d609ff4833d4fc8ada7d0f20c12a56aa7d6091a963f43c117507a5189f3cecff"
+}

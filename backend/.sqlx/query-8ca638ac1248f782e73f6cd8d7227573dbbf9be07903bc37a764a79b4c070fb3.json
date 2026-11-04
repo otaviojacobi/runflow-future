@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO class_bookings (id, session_id, membership_id, status, waitlist_position)\n           VALUES ($1, $2, $3, $4, $5)\n           ON CONFLICT (session_id, membership_id) DO UPDATE\n              SET status = EXCLUDED.status, waitlist_position = EXCLUDED.waitlist_position, checked_in_at = NULL,\n                  updated_at = now()\n        RETURNING to_jsonb(class_bookings.*) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "8ca638ac1248f782e73f6cd8d7227573dbbf9be07903bc37a764a79b4c070fb3"
+}

@@ -99,8 +99,8 @@ async fn preferences_are_push_switches_per_kind(db: PgPool) {
     let app = TestApp::new(db);
     let c = setup(&app).await;
 
-    // Defaults: push on for the week's release, changed workouts, feedback, new members and billing; off for the rest.
-    // Nothing but the switches and the pause.
+    // Defaults: push on for the week's release, changed workouts, feedback, new members, billing and a student's own
+    // class news (D-052); off for the rest. Nothing but the switches and the pause.
     let p = app.get("/v1/me/prefs", Some(&c.owner)).await;
     let body = p.ok();
     for (kind, on) in [
@@ -113,10 +113,12 @@ async fn preferences_are_push_switches_per_kind(db: PgPool) {
         ("billing", true),
         ("message", false),
         ("announcement", false),
+        ("class_cancelled", true),
+        ("waitlist_promoted", true),
     ] {
         assert_eq!(body["kinds"][kind], json!({ "push": on }), "{kind}");
     }
-    assert_eq!(body["kinds"].as_object().unwrap().len(), 9);
+    assert_eq!(body["kinds"].as_object().unwrap().len(), 11);
     assert_eq!(body["paused"], false);
     let mut keys: Vec<&String> = body.as_object().unwrap().keys().collect();
     keys.sort();

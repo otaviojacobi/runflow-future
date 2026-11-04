@@ -249,6 +249,9 @@ pub async fn delete_account(tx: &mut PgConnection, user_id: Uuid) -> sqlx::Resul
     )
     .execute(&mut *tx)
     .await?;
+    // Leaving every club: open class bookings go and their waitlists move up (D-052).
+    let memberships = crate::classes::memberships_of(&mut *tx, user_id).await?;
+    crate::classes::cancel_open_bookings(tx, &memberships).await?;
     sqlx::query!("UPDATE memberships SET status = 'left', left_at = now() WHERE user_id = $1 AND status <> 'left'", user_id)
         .execute(&mut *tx)
         .await?;
@@ -296,6 +299,7 @@ pub async fn export(db: impl PgExecutor<'_>, user_id: Uuid) -> sqlx::Result<Valu
              'completions', (SELECT coalesce(jsonb_agg(to_jsonb(c)), '[]') FROM workout_completions c
                               JOIN planned_workouts p ON p.id = c.planned_workout_id WHERE p.athlete_membership_id IN (SELECT id FROM mine)),
              'comments', (SELECT coalesce(jsonb_agg(to_jsonb(c) ORDER BY c.created_at), '[]') FROM comments c WHERE c.author_membership_id IN (SELECT id FROM mine)),
+             'class_bookings', (SELECT coalesce(jsonb_agg(to_jsonb(b) ORDER BY b.created_at), '[]') FROM class_bookings b WHERE b.membership_id IN (SELECT id FROM mine)),
              'notifications', (SELECT coalesce(jsonb_agg(to_jsonb(n) ORDER BY n.created_at DESC), '[]') FROM notifications n WHERE n.user_id = $1)
            ) AS "export!""#,
         user_id

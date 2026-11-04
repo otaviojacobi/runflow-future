@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE class_bookings SET status = 'cancelled', waitlist_position = NULL, updated_at = now() WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "bb09923dea8103128dde4bfcf106d6cd6f888b7f262be1f90f3b3cfc90a048b4"
+}

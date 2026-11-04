@@ -106,6 +106,8 @@ pub async fn leave(
     )
     .execute(&mut *tx)
     .await?;
+    // Open class bookings go and their waitlists move up (D-052).
+    crate::classes::cancel_open_bookings(tx, &[membership_id]).await?;
     if revoke_consents {
         sqlx::query!(
             "UPDATE consents c SET revoked_at = now() FROM memberships m

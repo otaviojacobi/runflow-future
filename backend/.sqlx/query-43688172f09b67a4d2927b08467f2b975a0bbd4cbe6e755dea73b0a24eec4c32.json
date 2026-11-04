@@ -1,0 +1,48 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT m.id AS membership_id, u.name, user_json(u) AS \"user!\"\n             FROM memberships m JOIN users u ON u.id = m.user_id\n            WHERE m.club_id = $1 AND m.role = 'student' AND m.status = 'active'\n              AND ($2::uuid IS NULL OR EXISTS (SELECT 1 FROM group_members g WHERE g.group_id = $2 AND g.membership_id = m.id))\n            ORDER BY u.name, m.id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "membership_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "memberships",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "users",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "user!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "43688172f09b67a4d2927b08467f2b975a0bbd4cbe6e755dea73b0a24eec4c32"
+}

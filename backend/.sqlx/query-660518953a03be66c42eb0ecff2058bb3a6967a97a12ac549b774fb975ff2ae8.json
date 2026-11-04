@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE locations SET archived_at = coalesce(archived_at, now()) WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "660518953a03be66c42eb0ecff2058bb3a6967a97a12ac549b774fb975ff2ae8"
+}

@@ -26,7 +26,9 @@ crates/
                  per-club version bump after writes), routes/ (one module per contract section)
   db/            pool, migrations (embedded), models.rs (JSON row shapes), one query module per area,
                  matching.rs (a student's activity-matching pass, D-049: the scope, writing only the changes, the
-                 student's own links, the `match.activities` job), tests/contract.rs (migrations == api/schema.sql)
+                 student's own links, the `match.activities` job), classes.rs (Aulas, D-052: schedules expanded 8 weeks
+                 ahead in club time, bookings with a waitlist that moves up under a row lock, check-in, the
+                 attendance report's rows), tests/contract.rs (migrations == api/schema.sql)
   kv/            Valkey over the Redis protocol (D-047): codes (sign-in codes + per-address limits), rate
                  (fixed-window limits), sessions (session lookup cache with tombstones), cache (per-club versions,
                  cached reads); Lua where atomic
@@ -34,7 +36,8 @@ crates/
                  estimates, the free-text workout grammar (workout_text.rs), activity matching (matching.rs, D-049),
                  week release timing, notification rules, assessment formulas, the assistant's rules engine
   jobs/          the worker: Postgres queue (FOR UPDATE SKIP LOCKED, woken by NOTIFY on commit), retries with backoff;
-                 job kinds (invite e-mails, Strava, Stripe, push, activity matching)
+                 job kinds (invite e-mails, Strava, Stripe, push, activity matching); a once-a-minute `tick` for
+                 time-based work (automatic week releases, every class schedule kept 8 weeks ahead: idempotent)
   integrations/  email (Resend + log with a dev outbox, token-based layout), google (ID-token verification),
                  strava, stripe (Checkout, portal, webhook signatures), webpush (RFC 8291 + VAPID), storage
 migrations/      0001_bootstrap.sql (frozen as QA applied it) + one NNNN_name.sql per later schema change (D-051);

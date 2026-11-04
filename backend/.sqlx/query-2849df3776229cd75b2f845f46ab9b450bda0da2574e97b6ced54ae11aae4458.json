@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE class_sessions SET\n            notes = CASE WHEN $2 THEN $3 ELSE notes END,\n            location_id = CASE WHEN $4 THEN $5 ELSE location_id END,\n            instructor_membership_id = CASE WHEN $6 THEN $7 ELSE instructor_membership_id END\n          WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Bool",
+        "Text",
+        "Bool",
+        "Uuid",
+        "Bool",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "2849df3776229cd75b2f845f46ab9b450bda0da2574e97b6ced54ae11aae4458"
+}

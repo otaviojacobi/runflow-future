@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE class_sessions SET capacity = $2 WHERE id = $1 AND status = 'scheduled'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Int4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b8ed494a0d1825ab8223a9df8523a1922dd9bfeb996ab214717fb1b7d741ac0b"
+}

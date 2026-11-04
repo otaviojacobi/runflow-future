@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE class_types SET archived_at = coalesce(archived_at, now()) WHERE id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "7a2a6f45e8a5c50d8f03c7e41973e265aeea02920647144152bad461066030f1"
+}

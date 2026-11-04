@@ -297,7 +297,7 @@ async fn todays_summary_counts_the_week_and_the_streak(db: PgPool) {
         (
             s["shares_data"].as_bool(),
             s["last_activity"]["distance_m"].as_i64(),
-            s.get("next_class").is_none()
+            s["next_class"].is_null()
         ),
         (Some(false), Some(5000), true)
     );

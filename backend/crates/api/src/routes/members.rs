@@ -196,6 +196,10 @@ async fn update(
     }
     let mut tx = state.db.begin().await?;
     db::update(&mut *tx, t.id, role.as_deref(), status.as_deref()).await?;
+    // Suspended: open class bookings go and their waitlists move up (D-052).
+    if status.as_deref() == Some("suspended") && t.status != "suspended" {
+        runflow_db::classes::cancel_open_bookings(&mut tx, &[t.id]).await?;
+    }
     // Suspended (or no longer a student): a Strava sync no other club sees is disconnected (D-011).
     runflow_db::providers::enforce_sharing(&mut tx, t.user_id).await?;
     runflow_db::clubs::audit(

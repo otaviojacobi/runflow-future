@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE class_bookings b SET status = 'cancelled', waitlist_position = NULL, updated_at = now()\n           FROM class_sessions s\n          WHERE s.id = b.session_id AND b.membership_id = ANY($1) AND b.status IN ('booked', 'waitlisted')\n            AND s.starts_at > now()\n         RETURNING b.session_id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "session_id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "class_bookings",
+            "name": "session_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "639b52d223fadc587fa543dec6b05bf7904eedfb5fffb5c2bfb2e4f7526a4f6d"
+}

@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE class_bookings b SET waitlist_position = r.pos\n           FROM (SELECT id, row_number() OVER (ORDER BY waitlist_position, created_at)::int AS pos\n                   FROM class_bookings WHERE session_id = $1 AND status = 'waitlisted') r\n          WHERE b.id = r.id AND b.waitlist_position IS DISTINCT FROM r.pos",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "546c42ea81a5a010a38feb6d65868e4b37f5e3fa7be9602478d2438a6f70709b"
+}

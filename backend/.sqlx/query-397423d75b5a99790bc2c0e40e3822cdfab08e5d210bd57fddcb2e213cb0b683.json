@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT status, capacity FROM class_sessions WHERE id = $1 FOR UPDATE",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "class_sessions",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "capacity",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "class_sessions",
+            "name": "capacity"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false
+    ]
+  },
+  "hash": "397423d75b5a99790bc2c0e40e3822cdfab08e5d210bd57fddcb2e213cb0b683"
+}

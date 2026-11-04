@@ -181,10 +181,15 @@ impl Worker {
         Ok(batch.len())
     }
 
-    /// Time-based work, once a minute: automatic week releases (D-031) and the queue's backlog metrics. Returns how
-    /// many clubs released a week.
+    /// Time-based work, once a minute: automatic week releases (D-031), every class schedule kept 8 weeks ahead
+    /// (D-052; idempotent, so a minute's run finds nothing new until a new day comes into the window) and the queue's
+    /// backlog metrics. Returns how many clubs released a week.
     pub async fn tick(&self, now: DateTime<Utc>) -> sqlx::Result<usize> {
         let released = week_release::run(self, now).await?;
+        let created = runflow_db::classes::expand(&self.db, now, None).await?;
+        if created > 0 {
+            tracing::info!(sessions = created, "class sessions created ahead");
+        }
         let (due, oldest_s) = jobs::backlog(&self.db).await?;
         metrics::backlog(due, oldest_s);
         Ok(released)

@@ -1,0 +1,41 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT status, waitlist_position FROM class_bookings WHERE session_id = $1 AND membership_id = $2",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "status",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "class_bookings",
+            "name": "status"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "waitlist_position",
+        "type_info": "Int4",
+        "origin": {
+          "Table": {
+            "table": "class_bookings",
+            "name": "waitlist_position"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "6ba0534a025467ab3491de8f77c9ba30a76f764325e3b78d8fea407c9606463c"
+}

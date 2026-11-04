@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT to_jsonb(sc) || jsonb_build_object(\n                  'start_time', to_char(sc.start_time, 'HH24:MI'),\n                  'class_type', to_jsonb(ct),\n                  'location', (SELECT to_jsonb(l) FROM locations l WHERE l.id = sc.location_id),\n                  'instructor', (SELECT user_json(u) FROM memberships im JOIN users u ON u.id = im.user_id\n                                  WHERE im.id = sc.instructor_membership_id)) AS \"x!\"\n             FROM class_schedules sc\n             JOIN class_types ct ON ct.id = sc.class_type_id\n             JOIN clubs c ON c.id = sc.club_id\n            WHERE sc.club_id = $1\n              AND ($2::uuid[] IS NOT NULL OR sc.valid_until IS NULL OR sc.valid_until >= (now() AT TIME ZONE c.timezone)::date)\n              AND ($2::uuid[] IS NULL OR sc.id = ANY($2))\n            ORDER BY sc.weekday, sc.start_time, sc.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "UuidArray"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "410e0ccd715e1643da665db8a386c1e18bc060cd1388a8814bad2a3e04ab8406"
+}

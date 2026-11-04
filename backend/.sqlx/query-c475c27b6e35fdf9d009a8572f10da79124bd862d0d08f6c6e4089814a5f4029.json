@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE class_sessions SET status = 'cancelled', cancel_reason = $2 WHERE id = $1 AND status = 'scheduled'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c475c27b6e35fdf9d009a8572f10da79124bd862d0d08f6c6e4089814a5f4029"
+}

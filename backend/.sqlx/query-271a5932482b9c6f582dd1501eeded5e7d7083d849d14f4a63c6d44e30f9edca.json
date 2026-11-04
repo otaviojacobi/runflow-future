@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO class_types (id, club_id, name, sport, description, default_capacity, duration_min)\n           VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING to_jsonb(class_types.*) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Int4",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "271a5932482b9c6f582dd1501eeded5e7d7083d849d14f4a63c6d44e30f9edca"
+}

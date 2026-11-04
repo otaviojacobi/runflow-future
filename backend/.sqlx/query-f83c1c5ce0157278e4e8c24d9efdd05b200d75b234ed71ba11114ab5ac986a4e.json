@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT to_jsonb(l) AS \"x!\" FROM locations l WHERE l.club_id = $1 AND l.archived_at IS NULL ORDER BY l.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "f83c1c5ce0157278e4e8c24d9efdd05b200d75b234ed71ba11114ab5ac986a4e"
+}

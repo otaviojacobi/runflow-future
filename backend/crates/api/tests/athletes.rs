@@ -417,9 +417,10 @@ async fn the_dashboard_puts_the_day_week_feedback_and_alerts_together(db: PgPool
         json!({ "logo": false, "colors": false, "students": true, "workouts": true, "groups": false, "strava": false })
     );
     assert_eq!(d["subscription"]["active_students"], 3);
-    assert!(
-        d.get("upcoming_classes").is_none(),
-        "classes are gone (D-035)"
+    assert_eq!(
+        d["upcoming_classes"],
+        json!([]),
+        "Aulas are back (D-052): a club without classes has none coming"
     );
 
     let earlier = app

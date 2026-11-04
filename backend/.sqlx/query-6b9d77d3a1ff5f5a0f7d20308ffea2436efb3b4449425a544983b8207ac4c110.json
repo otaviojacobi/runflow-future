@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE class_bookings SET status = $2, waitlist_position = NULL, updated_at = now(),\n                  checked_in_at = CASE WHEN $2 = 'attended' THEN coalesce(checked_in_at, now()) ELSE NULL END\n            WHERE id = $1 RETURNING to_jsonb(class_bookings.*) AS \"x!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "6b9d77d3a1ff5f5a0f7d20308ffea2436efb3b4449425a544983b8207ac4c110"
+}

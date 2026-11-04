@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT (to_jsonb(s) - 'checkin_code') || jsonb_build_object(\n                  'class_type', to_jsonb(ct),\n                  'location', (SELECT to_jsonb(l) FROM locations l WHERE l.id = s.location_id),\n                  'instructor', (SELECT user_json(u) FROM memberships im JOIN users u ON u.id = im.user_id\n                                  WHERE im.id = s.instructor_membership_id),\n                  'booked', (SELECT count(*) FROM class_bookings b WHERE b.session_id = s.id AND b.status IN ('booked', 'attended')),\n                  'waitlist', (SELECT count(*) FROM class_bookings b WHERE b.session_id = s.id AND b.status = 'waitlisted'),\n                  'my_booking', (SELECT to_jsonb(b) FROM class_bookings b\n                                  WHERE b.session_id = s.id AND b.membership_id = $2 AND b.status <> 'cancelled'))\n               || CASE WHEN $3 THEN jsonb_build_object(\n                  'checkin_code', s.checkin_code,\n                  'checkin_url', $4 || '/classes/check-in?session=' || s.id || '&code=' || s.checkin_code,\n                  'roster', coalesce((\n                     SELECT jsonb_agg(to_jsonb(b) || jsonb_build_object('athlete', jsonb_build_object('membership_id', m.id, 'user', user_json(u)))\n                                      ORDER BY (b.status = 'waitlisted'), coalesce(b.waitlist_position, 0), b.created_at)\n                       FROM class_bookings b JOIN memberships m ON m.id = b.membership_id JOIN users u ON u.id = m.user_id\n                      WHERE b.session_id = s.id AND b.status <> 'cancelled'), '[]'::jsonb))\n                  ELSE '{}'::jsonb END AS \"x!\"\n             FROM class_sessions s\n             JOIN class_types ct ON ct.id = s.class_type_id\n             JOIN clubs c ON c.id = s.club_id\n            WHERE s.club_id = $1\n              AND ($3 OR $7::uuid IS NOT NULL OR s.status = 'scheduled')\n              AND ($5::date IS NULL OR (s.starts_at AT TIME ZONE c.timezone)::date >= $5)\n              AND ($6::date IS NULL OR (s.starts_at AT TIME ZONE c.timezone)::date <= $6)\n              AND ($7::uuid IS NULL OR s.id = $7)\n            ORDER BY s.starts_at, s.created_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bool",
+        "Text",
+        "Date",
+        "Date",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "41fead0e286c064384a988ef64cd2c165f5eba03a30d4258acb6c3f368953c4c"
+}

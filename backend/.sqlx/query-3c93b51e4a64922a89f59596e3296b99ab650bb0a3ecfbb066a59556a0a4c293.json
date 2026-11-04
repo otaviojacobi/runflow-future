@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT jsonb_build_object(\n                  'booking', to_jsonb(b),\n                  'session', to_jsonb(s) - 'checkin_code',\n                  'class_type', to_jsonb(ct),\n                  'location', (SELECT to_jsonb(l) FROM locations l WHERE l.id = s.location_id)) AS \"x!\"\n             FROM class_bookings b\n             JOIN class_sessions s ON s.id = b.session_id\n             JOIN class_types ct ON ct.id = s.class_type_id\n            WHERE b.membership_id = $1 AND b.status IN ('booked', 'waitlisted')\n              AND s.status = 'scheduled' AND s.ends_at > now()\n            ORDER BY s.starts_at LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x!",
+        "type_info": "Jsonb",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "3c93b51e4a64922a89f59596e3296b99ab650bb0a3ecfbb066a59556a0a4c293"
+}
