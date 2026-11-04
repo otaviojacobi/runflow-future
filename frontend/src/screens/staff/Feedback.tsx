@@ -2,7 +2,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { AlertTriangle, ArrowLeft, CheckCheck, Inbox, MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useFeedback, useMarkAllRead } from "@/api/feedback";
+import { useFeedback, useMarkAllRead, useMarkFeedbackRead } from "@/api/feedback";
 import type { FeedbackFilter, FeedbackItem } from "@/api/types";
 import { usePlannedDetail } from "@/api/workouts";
 import { StravaAttribution } from "@/components/strava";
@@ -22,6 +22,9 @@ function Detail({ item, clubId, meId, onBack }: { item: FeedbackItem; clubId: st
   const d = usePlannedDetail(clubId, item.workout.id);
   const w = d.data;
   const c = item.workout.completion;
+  // Opening it reads it: the item and the Feedbacks count clear, even before (or without) a reply.
+  const markRead = useMarkFeedbackRead(clubId);
+  useEffect(() => { if (item.unread) markRead.mutate(item.workout.id); }, [item.workout.id]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="grid content-start gap-4">
       <button onClick={onBack} className="flex w-fit items-center gap-1 text-sm font-semibold text-fg-muted lg:hidden"><ArrowLeft className="size-4" />{t("Voltar")}</button>
@@ -89,7 +92,7 @@ export function FeedbackScreen() {
                     <span className="min-w-0 flex-1">
                       <span className="flex min-w-0 items-center gap-2"><span className="min-w-0 truncate font-semibold">{i.athlete.user.name}</span>{i.flagged && <AlertTriangle className="size-3.5 shrink-0 text-warning-text" aria-label={t("Sinal de alerta")} />}<span className="ml-auto shrink-0 text-xs text-fg-muted">{i.last_comment ? ago(i.last_comment.created_at) : shortDate(i.workout.date)}</span></span>
                       <span className="block truncate text-xs text-fg-muted">{i.workout.title}{i.workout.completion?.feeling ? ` · ${t(FEELING[i.workout.completion.feeling])}` : ""}{i.workout.completion?.rpe ? ` · ${t("PSE {n}", { n: i.workout.completion.rpe })}` : ""}</span>
-                      <span className="mt-0.5 flex items-center gap-1.5 text-sm"><MessageSquare className="size-3.5 shrink-0 text-fg-subtle" /><span className={cn("min-w-0 truncate", i.workout.unread_count ? "font-semibold text-fg" : "text-fg-muted")}>{i.last_comment?.body ?? i.workout.completion?.comment ?? t("Sem comentário")}</span>{i.workout.unread_count > 0 && <span className="ml-auto size-2 shrink-0 rounded-full bg-brand" aria-label={t("Não lido")} />}</span>
+                      <span className="mt-0.5 flex items-center gap-1.5 text-sm"><MessageSquare className="size-3.5 shrink-0 text-fg-subtle" /><span className={cn("min-w-0 truncate", (i.unread ?? i.workout.unread_count > 0) ? "font-semibold text-fg" : "text-fg-muted")}>{i.last_comment?.body ?? i.workout.completion?.comment ?? t("Sem comentário")}</span>{(i.unread ?? i.workout.unread_count > 0) && <span className="ml-auto size-2 shrink-0 rounded-full bg-brand" aria-label={t("Não lido")} />}</span>
                     </span>
                   </button>
                 </li>

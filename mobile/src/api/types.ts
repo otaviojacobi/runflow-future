@@ -178,7 +178,7 @@ export interface AthleteDetail extends AthleteSummary {
   weekly: { week_start: ISODate; current: boolean; planned_s: number; done_s: number; distance_m: number; sessions: number }[];
   recent_activities: ActivityItem[]; groups: { id: ID; name: string }[];
 }
-export interface FeedbackItem { workout: PlannedWorkout; athlete: AthleteRef; last_comment: Omit<Comment, "author"> | null; needs_reply: boolean; flagged: boolean }
+export interface FeedbackItem { workout: PlannedWorkout; athlete: AthleteRef; last_comment: Omit<Comment, "author"> | null; needs_reply: boolean; unread?: boolean; flagged: boolean }
 export type FeedbackFilter = "needs_reply" | "unread" | "flagged" | "all";
 
 export type InviteStatus = "pending" | "expired" | "accepted";

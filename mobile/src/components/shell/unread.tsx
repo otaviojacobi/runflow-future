@@ -10,21 +10,21 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { Text } from "@/ui";
 
 export const unreadOf = (m: MembershipContext | null | undefined) => (m?.unread?.messages ?? 0) + (m?.unread?.announcements ?? 0);
-/** Staff: the feedback inbox's conversations waiting for a reply (`unread.feedback`; 0 for students). */
+/** Staff: the feedback inbox items unread by this person (`unread.feedback`; 0 for students). */
 export const feedbackOf = (m: MembershipContext | null | undefined) => m?.unread?.feedback ?? 0;
 /** Everything waiting in a club (Mensagens + Feedbacks): the club switcher's dot and counts. */
 export const waitingOf = (m: MembershipContext | null | undefined) => unreadOf(m) + feedbackOf(m);
 
 /** The words a screen reader adds after the label: ", 3 novas". Empty when there's nothing. */
 export const unreadLabel = (n: number) => (n > 0 ? tn(n, ", {n} nova", ", {n} novas") : "");
-/** Feedbacks' words: ", 3 sem resposta". */
-export const waitingLabel = (n: number) => (n > 0 ? tn(n, ", {n} sem resposta", ", {n} sem resposta") : "");
-/** What a count on a screen's link means, read out ("/feedback" waits for replies, the rest is new). */
+/** Feedbacks' words: ", 3 não lidos". */
+export const waitingLabel = (n: number) => (n > 0 ? tn(n, ", {n} não lido", ", {n} não lidos") : "");
+/** What a count on a screen's link means, read out ("/feedback": unread, the rest: new). */
 export const countLabel = (to: string, n: number) => (to.replace(/^\//, "") === "feedback" ? waitingLabel(n) : unreadLabel(n));
-/** "Mais" (staff): ", 2 mensagens novas, 3 feedbacks sem resposta" for the counts behind it (by route name). */
+/** "Mais" (staff): ", 2 mensagens novas, 3 feedbacks não lidos" for the counts behind it (by route name). */
 export const moreLabel = (counts: Record<string, number>) => [
   (counts.messages ?? 0) > 0 ? tn(counts.messages!, ", {n} mensagem nova", ", {n} mensagens novas") : "",
-  (counts.feedback ?? 0) > 0 ? tn(counts.feedback!, ", {n} feedback sem resposta", ", {n} feedbacks sem resposta") : "",
+  (counts.feedback ?? 0) > 0 ? tn(counts.feedback!, ", {n} feedback não lido", ", {n} feedbacks não lidos") : "",
 ].join("");
 
 /** A small count ("9+" at most), hidden from screen readers (the label says it). `ring` = the color around it. */

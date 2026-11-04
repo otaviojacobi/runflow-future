@@ -173,6 +173,24 @@ pub async fn insert_comment(
     .await
 }
 
+/// When `viewer` last read each of these workouts' conversations (the feedback inbox's `unread`).
+pub async fn last_reads(
+    db: impl PgExecutor<'_>,
+    viewer: Uuid,
+    ids: &[Uuid],
+) -> sqlx::Result<Vec<(Uuid, DateTime<Utc>)>> {
+    Ok(sqlx::query!(
+        "SELECT planned_workout_id, last_read_at FROM thread_reads WHERE membership_id = $1 AND planned_workout_id = ANY($2)",
+        viewer,
+        ids
+    )
+    .fetch_all(db)
+    .await?
+    .into_iter()
+    .map(|r| (r.planned_workout_id, r.last_read_at))
+    .collect())
+}
+
 pub async fn mark_read(
     db: impl PgExecutor<'_>,
     membership_id: Uuid,

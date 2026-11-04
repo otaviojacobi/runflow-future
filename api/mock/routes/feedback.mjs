@@ -20,7 +20,10 @@ export default function register(h) {
         const last = cs[cs.length - 1] || null;
         const staffReplied = cs.some((x) => role(x.author_membership_id) !== "student");
         const needs_reply = last ? role(last.author_membership_id) === "student" : !!c?.comment && !staffReplied;
-        return { p, c, last, needs_reply, flagged: flaggedOf(c), sort_at: [last?.created_at, c?.updated_at].filter(Boolean).sort().at(-1) || p.date };
+        // Unread for this viewer: a message from someone else, or the student's completion comment, after their last read.
+        const read = h.db.thread_reads.find((r) => r.membership_id === viewerMid && r.planned_workout_id === p.id)?.last_read_at ?? "";
+        const unread = cs.some((x) => x.author_membership_id !== viewerMid && x.created_at > read) || (!!c?.comment && !!c.reported_at && c.reported_at > read);
+        return { p, c, last, needs_reply, unread, flagged: flaggedOf(c), sort_at: [last?.created_at, c?.updated_at].filter(Boolean).sort().at(-1) || p.date };
       })
       .filter(Boolean);
   };
@@ -28,13 +31,13 @@ export default function register(h) {
   h.get("/v1/clubs/:club_id/feedback", (ctx) => {
     const me = ctx.staff(ctx.params.club_id);
     const filter = ctx.query.filter || "needs_reply";
-    const items = h.feedbackItems(ctx.params.club_id, me.id).map(({ p, last, needs_reply, flagged, sort_at }) => {
+    const items = h.feedbackItems(ctx.params.club_id, me.id).map(({ p, last, needs_reply, unread, flagged, sort_at }) => {
       const m = h.db.memberships.find((x) => x.id === p.athlete_membership_id);
-      return { workout: h.workoutOut(p, me.id), athlete: { membership_id: m.id, user: h.publicUser(h.db.users.find((u) => u.id === m.user_id)) }, last_comment: last, needs_reply, flagged, sort_at };
+      return { workout: h.workoutOut(p, me.id), athlete: { membership_id: m.id, user: h.publicUser(h.db.users.find((u) => u.id === m.user_id)) }, last_comment: last, needs_reply, unread, flagged, sort_at };
     });
-    const counts = { needs_reply: items.filter((x) => x.needs_reply).length, unread: items.filter((x) => x.workout.unread_count > 0).length, flagged: items.filter((x) => x.flagged).length, all: items.length };
+    const counts = { needs_reply: items.filter((x) => x.needs_reply).length, unread: items.filter((x) => x.unread).length, flagged: items.filter((x) => x.flagged).length, all: items.length };
     const shown = items
-      .filter((x) => filter === "all" || (filter === "unread" ? x.workout.unread_count > 0 : filter === "flagged" ? x.flagged : x.needs_reply))
+      .filter((x) => filter === "all" || (filter === "unread" ? x.unread : filter === "flagged" ? x.flagged : x.needs_reply))
       .sort((a, b) => b.sort_at.localeCompare(a.sort_at));
     return { ...h.list(shown, ctx, 100), counts };
   });

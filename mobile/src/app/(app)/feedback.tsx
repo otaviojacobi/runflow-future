@@ -2,7 +2,8 @@
  * W8 · Feedbacks (staff), phone-sized: the inbox of completions and comments from the last 30 days with its filters
  * (to reply, unread, warning signs, all). Tapping opens the workout's thread in a sheet (opening marks it as read):
  * quick replies or a message. A long press offers "mark as read" and the student; the header marks everything read.
- * `?workout=<id>` (a `feedback` notification, the dashboard) opens that workout's conversation right away.
+ * `?workout=<id>` (a `feedback` notification, the dashboard) opens that workout's conversation right away; opening
+ * one marks it read (POST /feedback/read), which clears it from the Feedbacks count.
  */
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -32,7 +33,7 @@ function Row({ i, divider, onOpen, onMore }: { i: FeedbackItem; divider: boolean
   const { theme } = useTheme();
   const c = theme.color;
   const w = i.workout;
-  const unread = w.unread_count > 0;
+  const unread = i.unread ?? w.unread_count > 0;
   const when = i.last_comment ? ago(i.last_comment.created_at) : shortDate(w.date);
   const meta = [w.title, w.completion?.feeling ? feelingLabel(w.completion.feeling) : null, w.completion?.rpe ? t("PSE {n}", { n: w.completion.rpe }) : null].filter(Boolean).join(" · ");
   const text = i.last_comment?.body ?? w.completion?.comment ?? t("Sem comentário");
@@ -78,13 +79,18 @@ export default function FeedbackScreen() {
     const i = q.data?.items.find((x) => x.workout.id === target);
     if (!i) return;
     opened.current = target;
-    setSheet({ workout: i.workout, athlete: i.athlete, mode: "thread" });
+    openItem(i);
     router.setParams({ workout: undefined });
-  }, [target, filter, q.data]);
+  }, [target, filter, q.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Opening a conversation reads it: the item and the Feedbacks count (`/me`) clear, even without a reply.
+  function openItem(i: FeedbackItem) {
+    setSheet({ workout: i.workout, athlete: i.athlete, mode: "thread" });
+    if (i.unread ?? i.workout.unread_count > 0) read.mutate([i.workout.id]);
+  }
   if (!club) return null;
   const items = q.data?.items ?? [];
   const counts = q.data?.counts;
-  const open = (i: FeedbackItem) => setSheet({ workout: i.workout, athlete: i.athlete, mode: "thread" });
+  const open = openItem;
   return (
     <Screen refreshing={q.isRefetching && !q.isPending} onRefresh={() => void q.refetch()}>
       <PageHeader title={t("Feedbacks")} subtitle={t("Como os alunos estão se sentindo nos últimos 30 dias.")}
@@ -116,7 +122,7 @@ export default function FeedbackScreen() {
         {more && (
           <View accessibilityRole="menu">
             <ListItem title={t("Abrir conversa")} icon={MessageSquare} accessibilityRole="menuitem" onPress={() => { const i = more; setMore(null); open(i); }} />
-            {more.workout.unread_count > 0 && (
+            {(more.unread ?? more.workout.unread_count > 0) && (
               <ListItem title={t("Marcar como lido")} icon={CheckCheck} accessibilityRole="menuitem"
                 onPress={() => { const id = more.workout.id; setMore(null); read.mutate([id], { onSuccess: () => toast.success(t("Marcado como lido")), onError: toast.error }); }} />
             )}

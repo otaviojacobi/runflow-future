@@ -12,12 +12,12 @@ export default function register(h) {
   const msgOut = (x) => ({ ...x, body: x.deleted_at ? "" : x.body, author: { membership_id: x.author_membership_id, role: h.db.memberships.find((m) => m.id === x.author_membership_id)?.role, user: userOfM(x.author_membership_id) } });
   /** `/me` memberships[].unread: messages from others after the last read (a student's own conversation; every active
    *  student's for staff), for students the announcements they can see and haven't read, and for staff the feedback
-   *  inbox's needs_reply count (W8). */
+   *  inbox's items unread by them (W8 `counts.unread`): opening a conversation clears it. */
   h.unreadFor = (m) => {
     const active = (mid) => h.db.memberships.some((x) => x.id === mid && x.status === "active");
     const convs = h.db.conversations.filter((c) => c.club_id === m.club_id && (m.role === "student" ? c.student_membership_id === m.id : active(c.student_membership_id)));
     const messages = convs.reduce((n, c) => n + unread(c, m), 0);
-    if (m.role !== "student") return { messages, announcements: 0, feedback: h.feedbackItems(m.club_id, m.id).filter((x) => x.needs_reply).length };
+    if (m.role !== "student") return { messages, announcements: 0, feedback: h.feedbackItems(m.club_id, m.id).filter((x) => x.unread).length };
     const mine = new Set(h.db.group_members.filter((g) => g.membership_id === m.id).map((g) => g.group_id));
     const announcements = h.db.announcements.filter((a) => a.club_id === m.club_id && !a.deleted_at && (!a.group_ids.length || a.group_ids.some((g) => mine.has(g))) && !h.db.announcement_reads.some((r) => r.announcement_id === a.id && r.membership_id === m.id)).length;
     return { messages, announcements, feedback: 0 };

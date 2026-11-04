@@ -414,6 +414,20 @@ export function generate(anchor) {
   }
   if (PW["bruno:" + today]) comment(PW["bruno:" + today], "paceforte:bruno", "Tiros saíram mais fáceis que semana passada!", at(today, "07:02"));
 
+  // The staff have read the feedback older than two days (the morning after each workout), so the demo's Feedbacks
+  // count is what a trainer would really see: the latest reports and questions.
+  {
+    const staffOf = (clubId) => t("memberships").filter((m) => m.club_id === clubId && m.role !== "student");
+    for (const p of t("planned_workouts").filter((x) => x.date < addDays(anchor, -2))) {
+      const c = t("workout_completions").find((x) => x.planned_workout_id === p.id);
+      if (!c?.comment && !t("comments").some((x) => x.planned_workout_id === p.id)) continue;
+      for (const s of staffOf(p.club_id)) {
+        if (t("thread_reads").some((r) => r.membership_id === s.id && r.planned_workout_id === p.id)) continue;
+        t("thread_reads").push({ membership_id: s.id, planned_workout_id: p.id, last_read_at: at(addDays(p.date, 1), "08:00") });
+      }
+    }
+  }
+
   // ---- assessments (F23)
   const assess = (key, mk, kind, day, data, notes = null) => {
     const { result } = computeAssessment(kind, data);

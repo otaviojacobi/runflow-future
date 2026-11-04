@@ -176,6 +176,11 @@ async fn inbox(
     for c in db::comments(&state.db, &ids).await? {
         by_workout.entry(c.planned_workout_id).or_default().push(c);
     }
+    let reads: HashMap<Uuid, chrono::DateTime<Utc>> =
+        db::last_reads(&state.db, m.membership_id, &ids)
+            .await?
+            .into_iter()
+            .collect();
     let mut athletes: HashMap<Uuid, Value> = HashMap::new();
     let mut items = Vec::new();
     for w in ws {
@@ -194,6 +199,13 @@ async fn inbox(
             Some(l) => l.author_role == "student",
             None => has_comment && !staff_replied,
         };
+        // Unread for the caller: a message from someone else (`unread_count`), or the student's completion comment
+        // reported after their last read of this workout.
+        let read = reads.get(&w.id).copied();
+        let unread = w.unread_count > 0
+            || c.is_some_and(|c| {
+                c.comment.is_some() && c.reported_at.is_some_and(|t| read.is_none_or(|r| t > r))
+            });
         if !athletes.contains_key(&w.athlete_membership_id)
             && let Some((_, a)) = workouts::athlete(&state.db, w.athlete_membership_id).await?
         {
@@ -210,10 +222,10 @@ async fn inbox(
             sort_at,
             needs_reply,
             flagged,
-            w.unread_count > 0,
+            unread,
             json!({
                 "workout": w, "athlete": athletes.get(&w.athlete_membership_id), "last_comment": last.map(comment_json),
-                "needs_reply": needs_reply, "flagged": flagged,
+                "needs_reply": needs_reply, "unread": unread, "flagged": flagged,
             }),
         ));
     }

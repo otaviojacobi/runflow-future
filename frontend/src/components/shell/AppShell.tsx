@@ -16,7 +16,7 @@ import { moreFor, navFor, tabsFor, type NavItem } from "./nav";
 
 /** What waits in a club's Mensagens (`/me` memberships[].unread). */
 export const unreadOf = (m: MembershipContext | null | undefined) => (m?.unread?.messages ?? 0) + (m?.unread?.announcements ?? 0);
-/** Staff: the feedback inbox's conversations waiting for a reply (`unread.feedback`; 0 for students). */
+/** Staff: the feedback inbox items unread by this person (`unread.feedback`; 0 for students). */
 export const feedbackOf = (m: MembershipContext | null | undefined) => m?.unread?.feedback ?? 0;
 const capped = (n: number) => (n > 9 ? "9+" : String(n));
 
@@ -25,10 +25,10 @@ function Badge({ n, className }: { n: number; className?: string }) {
   if (n <= 0) return null;
   return <span aria-hidden className={cn("grid min-w-[18px] place-items-center rounded-full bg-danger px-1 text-[11px] font-bold leading-[18px] text-on-danger", className)}>{capped(n)}</span>;
 }
-/** The count read out with the label: "Mensagens, 3 novas" / "Feedbacks, 3 sem resposta" (`waiting`). */
+/** The count read out with the label: "Mensagens, 3 novas" / "Feedbacks, 3 não lidos" (`waiting`). */
 function CountText({ n, waiting }: { n: number; waiting?: boolean }) {
   if (n <= 0) return null;
-  return <span className="sr-only">{waiting ? tn(n, ", {n} sem resposta", ", {n} sem resposta") : tn(n, ", {n} nova", ", {n} novas")}</span>;
+  return <span className="sr-only">{waiting ? tn(n, ", {n} não lido", ", {n} não lidos") : tn(n, ", {n} nova", ", {n} novas")}</span>;
 }
 function Count({ n, className, waiting }: { n: number; className?: string; waiting?: boolean }) {
   return <><Badge n={n} className={className} /><CountText n={n} waiting={waiting} /></>;
@@ -223,11 +223,11 @@ export function AppShell() {
   const frozen = role !== "student" && !!ctx.subscription?.frozen && !isActive("/club/billing");
   const counts: Record<string, number> = { "/messages": unreadOf(ctx), "/feedback": feedbackOf(ctx) };
   const extraCount = extra.reduce((n, it) => n + (counts[it.to] ?? 0), 0);
-  // What the "Mais" tab's dot stands for, read out: ", 2 mensagens novas, 3 feedbacks sem resposta".
+  // What the "Mais" tab's dot stands for, read out: ", 2 mensagens novas, 3 feedbacks não lidos".
   const inExtra = (to: string) => (extra.some((e) => e.to === to) ? counts[to] ?? 0 : 0);
   const extraText = [
     inExtra("/messages") > 0 && tn(inExtra("/messages"), ", {n} mensagem nova", ", {n} mensagens novas"),
-    inExtra("/feedback") > 0 && tn(inExtra("/feedback"), ", {n} feedback sem resposta", ", {n} feedbacks sem resposta"),
+    inExtra("/feedback") > 0 && tn(inExtra("/feedback"), ", {n} feedback não lido", ", {n} feedbacks não lidos"),
   ].filter(Boolean).join("");
 
   return (

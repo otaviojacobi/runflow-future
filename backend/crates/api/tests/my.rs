@@ -426,7 +426,8 @@ async fn threads_notify_the_other_side_and_feed_the_inbox(db: PgPool) {
 }
 
 /// A question on an UPCOMING workout reaches the staff: a `feedback` notification (pushed by default) that opens it,
-/// the inbox (by activity, not by the workout's date) and the Feedbacks count in `/me`; replying clears both.
+/// the inbox (by activity, not by the workout's date) and the Feedbacks count in `/me` (unread for that person:
+/// opening the conversation clears it, without replying).
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]
 async fn a_question_on_an_upcoming_workout_reaches_the_staff(db: PgPool) {
     let app = TestApp::new(db);
@@ -481,14 +482,50 @@ async fn a_question_on_an_upcoming_workout_reaches_the_staff(db: PgPool) {
     let inbox = format!("/v1/clubs/{}/feedback", c.id);
     let waiting = app.get(&inbox, Some(&c.owner)).await;
     assert_eq!(waiting.ok()["counts"]["needs_reply"], 1);
+    assert_eq!(waiting.body["counts"]["unread"], 1);
     assert_eq!(waiting.body["items"][0]["workout"]["id"], w);
-    assert_eq!(waiting.body["items"][0]["needs_reply"], true);
+    assert_eq!(
+        (
+            &waiting.body["items"][0]["needs_reply"],
+            &waiting.body["items"][0]["unread"]
+        ),
+        (&json!(true), &json!(true))
+    );
     assert_eq!(count(app.get("/v1/me", Some(&c.owner)).await.ok()), Some(1));
     assert_eq!(
         count(app.get("/v1/me", Some(&c.ana.0)).await.ok()),
         Some(0),
         "students have no Feedbacks count"
     );
+
+    // The trainer only OPENS the conversation: read, so the count clears, though it still waits for a reply.
+    app.get(&thread, Some(&c.owner)).await.ok();
+    assert_eq!(count(app.get("/v1/me", Some(&c.owner)).await.ok()), Some(0));
+    let opened = app.get(&inbox, Some(&c.owner)).await;
+    assert_eq!(
+        (
+            &opened.ok()["counts"]["unread"],
+            &opened.body["counts"]["needs_reply"]
+        ),
+        (&json!(0), &json!(1))
+    );
+
+    // A second question makes it unread again; the inbox's read call (what the apps send on open) clears it too.
+    app.post(
+        &thread,
+        Some(&c.ana.0),
+        json!({ "body": "E o aquecimento?" }),
+    )
+    .await
+    .ok();
+    assert_eq!(count(app.get("/v1/me", Some(&c.owner)).await.ok()), Some(1));
+    app.post(
+        &format!("{inbox}/read"),
+        Some(&c.owner),
+        json!({ "workout_ids": [w] }),
+    )
+    .await;
+    assert_eq!(count(app.get("/v1/me", Some(&c.owner)).await.ok()), Some(0));
 
     // The trainer answers: nothing waits any more, and the student hears it as a comment.
     app.post(

@@ -144,7 +144,7 @@ pub struct MembershipContext {
 pub struct Unread {
     pub messages: i64,
     pub announcements: i64,
-    /// Staff: the feedback inbox's `needs_reply` count (W8); 0 for students.
+    /// Staff: the feedback inbox items unread by this person (W8 `counts.unread`); 0 for students.
     pub feedback: i64,
 }
 

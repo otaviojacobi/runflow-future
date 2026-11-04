@@ -170,7 +170,7 @@ export interface AthleteDetail extends AthleteSummary {
   recent_activities: ActivityItem[]; groups: { id: ID; name: string }[];
 }
 
-export interface FeedbackItem { workout: PlannedWorkout; athlete: AthleteRef; last_comment: Omit<Comment, "author"> | null; needs_reply: boolean; flagged: boolean }
+export interface FeedbackItem { workout: PlannedWorkout; athlete: AthleteRef; last_comment: Omit<Comment, "author"> | null; needs_reply: boolean; unread?: boolean; flagged: boolean }
 export type FeedbackFilter = "needs_reply" | "unread" | "flagged" | "all";
 
 export interface TrainingPlan { id: ID; club_id: ID; author_membership_id: ID; name: string; description: string | null; weeks: number; created_at: ISOTime; updated_at: ISOTime; items_count: number; weekly_duration_s: number[]; active_assignments: number }
