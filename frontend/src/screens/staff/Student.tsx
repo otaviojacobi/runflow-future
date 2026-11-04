@@ -11,8 +11,8 @@ import { ComplianceBar, Stat, ZoneTable } from "@/components/workout";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
-import { addDays, dayMonth, duration, km, mondayOf, pace, today as todayFn } from "@/lib/format";
-import { Avatar, Badge, Button, ButtonLink, Card, Field, IconButton, Input, Select, Skeleton, Tabs, Textarea, cn, toast } from "@/ui";
+import { addDays, brDate, dayMonth, duration, km, mondayOf, pace, today as todayFn } from "@/lib/format";
+import { Avatar, Badge, Button, ButtonLink, Card, DateInput, Field, IconButton, Input, Select, Skeleton, Tabs, Textarea, cn, toast } from "@/ui";
 import { GOALS, LEVELS, parseTime } from "../onboarding/Welcome";
 import { ActivityRow } from "../student/Activities";
 import { AssignDialog } from "./planning/AssignDialog";
@@ -38,7 +38,7 @@ function VolumeChart({ weeks }: { weeks: AthleteDetail["weekly"] }) {
         ))}
       </div>
       <div className="flex gap-[2px] text-[10px] text-fg-subtle" aria-hidden>{weeks.map((w) => <span key={w.week_start} className="flex-1 text-center tabular-nums">{w.week_start.slice(8)}/{w.week_start.slice(5, 7)}</span>)}</div>
-      <table className="sr-only"><caption>{t("Volume semanal")}</caption><tbody>{weeks.map((w) => <tr key={w.week_start}><td>{w.week_start}</td><td>{duration(w.done_s)}</td><td>{duration(w.planned_s)}</td></tr>)}</tbody></table>
+      <table className="sr-only"><caption>{t("Volume semanal")}</caption><tbody>{weeks.map((w) => <tr key={w.week_start}><td>{brDate(w.week_start)}</td><td>{duration(w.done_s)}</td><td>{duration(w.planned_s)}</td></tr>)}</tbody></table>
     </figure>
   );
 }
@@ -119,7 +119,7 @@ function ProfileTab({ a, clubId }: { a: AthleteDetail; clubId: string }) {
     <Card className="grid gap-4 p-5">
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label={t("Objetivo")}>{(id) => <Select id={id} value={p.goal ?? ""} onChange={(e) => set("goal", (e.target.value || null) as Goal | null)}><option value="">–</option>{GOALS.map((g) => <option key={g.value} value={g.value}>{t(g.label)}</option>)}</Select>}</Field>
-        <Field label={t("Data da prova-alvo")} optional>{(id) => <Input id={id} type="date" value={p.goal_date ?? ""} onChange={(e) => set("goal_date", e.target.value || null)} />}</Field>
+        <Field label={t("Data da prova-alvo")} optional>{(id) => <DateInput id={id} value={p.goal_date ?? ""} onChange={(v) => set("goal_date", v || null)} />}</Field>
         <Field label={t("Nível")}>{(id) => <Select id={id} value={p.level ?? ""} onChange={(e) => set("level", (e.target.value || null) as Level | null)}><option value="">–</option>{LEVELS.map((l) => <option key={l.value} value={l.value}>{t(l.label)}</option>)}</Select>}</Field>
         <Field label={t("Treinos por semana")}>{(id) => <Input id={id} type="number" min={0} max={14} value={p.weekly_sessions ?? ""} onChange={(e) => set("weekly_sessions", e.target.value ? Number(e.target.value) : null)} />}</Field>
         <Field label={t("FC de repouso")} optional>{(id) => <Input id={id} type="number" value={p.resting_hr ?? ""} onChange={(e) => set("resting_hr", e.target.value ? Number(e.target.value) : null)} />}</Field>

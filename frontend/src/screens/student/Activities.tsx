@@ -12,7 +12,7 @@ import { SPORT_ICON, SPORT_LABEL, SPORTS } from "@/components/sport";
 import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { dayMonth, distance, duration, km, mondayOf, pace, shortDate, timeOf, today as todayFn, localDate, addDays } from "@/lib/format";
-import { Button, Card, Dialog, EmptyState, Field, Input, PageHeader, Select, Skeleton, cn, toast } from "@/ui";
+import { Button, Card, DateInput, Dialog, EmptyState, Field, Input, PageHeader, Select, Skeleton, cn, toast } from "@/ui";
 import { parseClock } from "@/components/builder/BlockEditor";
 
 const SOLID: Record<Sport, string> = { run: "bg-run text-on-run", swim: "bg-swim text-on-swim", bike: "bg-bike text-on-bike", strength: "bg-strength text-on-strength", mobility: "bg-mobility text-on-mobility", other: "bg-other text-on-other" };
@@ -54,7 +54,7 @@ function LogDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (v: bo
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("Modalidade")}>{(id) => <Select id={id} value={sport} onChange={(e) => setSport(e.target.value as Sport)}>{SPORTS.map((s) => <option key={s} value={s}>{t(SPORT_LABEL[s])}</option>)}</Select>}</Field>
           <Field label={t("Nome")} optional>{(id) => <Input id={id} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("Ex.: Corrida no parque")} />}</Field>
-          <Field label={t("Data")} error={err?.fieldError("started_at")}>{(id) => <Input id={id} type="date" value={date} onChange={(e) => setDate(e.target.value)} />}</Field>
+          <Field label={t("Data")} error={err?.fieldError("started_at")}>{(id) => <DateInput id={id} value={date} onChange={setDate} />}</Field>
           <Field label={t("Hora")}>{(id) => <Input id={id} type="time" value={time} onChange={(e) => setTime(e.target.value)} />}</Field>
           <Field label={t("Duração")} error={err?.fieldError("duration_s")} hint={t("Minutos ou h:mm:ss")}>{(id, d) => <Input id={id} aria-describedby={d} value={dur} onChange={(e) => setDur(e.target.value)} placeholder="45" inputMode="numeric" />}</Field>
           <Field label={sport === "swim" ? t("Distância (m)") : t("Distância (km)")} optional>{(id) => <Input id={id} value={dist} onChange={(e) => setDist(e.target.value)} placeholder={sport === "swim" ? "1500" : "8,5"} inputMode="decimal" />}</Field>

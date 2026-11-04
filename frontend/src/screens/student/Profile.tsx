@@ -11,7 +11,7 @@ import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
 import { clock, fullDate, pace } from "@/lib/format";
-import { Button, Card, Field, Input, PageHeader, Select, Skeleton, toast } from "@/ui";
+import { Button, Card, DateInput, Field, Input, PageHeader, Select, Skeleton, toast } from "@/ui";
 import { GOALS, LEVELS, parseTime } from "../onboarding/Welcome";
 
 const RACES = [{ m: 5000, label: "5 km" }, { m: 10000, label: "10 km" }, { m: 21097, label: "Meia maratona" }, { m: 42195, label: "Maratona" }];
@@ -52,7 +52,7 @@ function Form({ clubId, p }: { clubId: string; p: AthleteProfile }) {
         {v.goal === "other" && (
           <Field label={t("Qual é o seu objetivo?")} error={err?.fieldError("goal_note")} className="sm:col-span-2">{(id) => <Input id={id} value={v.goal_note} onChange={(e) => set({ goal_note: e.target.value })} maxLength={120} placeholder={t("Ex.: voltar a correr depois de uma lesão")} />}</Field>
         )}
-        <Field label={t("Data da prova")} optional error={err?.fieldError("goal_date")}>{(id) => <Input id={id} type="date" value={v.goal_date} onChange={(e) => set({ goal_date: e.target.value })} />}</Field>
+        <Field label={t("Data da prova")} optional error={err?.fieldError("goal_date")}>{(id) => <DateInput id={id} value={v.goal_date} onChange={(goal_date) => set({ goal_date })} />}</Field>
         <Field label={t("Nível")} error={err?.fieldError("level")}>{(id) => <Select id={id} value={v.level} onChange={(e) => set({ level: e.target.value })}><option value="">{t("Escolha…")}</option>{LEVELS.map((l) => <option key={l.value} value={l.value}>{t(l.label)}</option>)}</Select>}</Field>
         <Field label={t("Treinos por semana")} error={err?.fieldError("weekly_sessions")}>{(id) => <Input id={id} type="number" min={0} max={14} value={v.weekly_sessions} onChange={(e) => set({ weekly_sessions: e.target.value })} />}</Field>
 

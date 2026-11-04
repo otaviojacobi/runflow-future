@@ -10,7 +10,7 @@ import { sportBar, sportSoft } from "@/components/sport";
 import { t, tn } from "@/i18n";
 import { useClub } from "@/lib/club";
 import { addDays, dayMonth, duration, mondayOf, today as todayFn } from "@/lib/format";
-import { Avatar, Button, ButtonLink, Card, Dialog, Field, IconButton, Input, ProgressBar, Skeleton, Textarea, cn, toast } from "@/ui";
+import { Avatar, Button, ButtonLink, Card, DateInput, Dialog, Field, IconButton, ProgressBar, Skeleton, Textarea, cn, toast } from "@/ui";
 
 const WD = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 let seq = 0;
@@ -132,7 +132,7 @@ function ApplyDialog({ clubId, planId, weeks, open, onOpenChange }: { clubId: st
     <Dialog open={open} onOpenChange={onOpenChange} title={t("Aplicar planilha")} description={t("Os treinos entram na agenda dos alunos a partir da data escolhida.")}
       footer={<><span className="mr-auto self-center text-sm text-fg-muted">{sel.size ? t("{n} alunos · até {d}", { n: sel.size, d: dayMonth(addDays(start, weeks * 7 - 1)) }) : ""}</span><Button variant="secondary" onClick={() => onOpenChange(false)}>{t("Cancelar")}</Button><Button disabled={!sel.size} loading={assign.isPending} onClick={() => assign.mutate({ athlete_ids: [...sel], start_date: start }, { onSuccess: (r) => { toast.success(tn(r.workouts, "{n} treino criado", "{n} treinos criados"), tn(r.assignments, "Para {n} aluno.", "Para {n} alunos.")); onOpenChange(false); setSel(new Set()); }, onError: toast.error })}>{t("Aplicar")}</Button></>}>
       <div className="grid gap-4">
-        <Field label={t("Começa na segunda-feira")} hint={t("Semana 1 começa nesta data.")}>{(id, d) => <Input id={id} aria-describedby={d} type="date" value={start} step={7} onChange={(e) => setStart(mondayOf(e.target.value))} />}</Field>
+        <Field label={t("Começa na segunda-feira")} hint={t("Semana 1 começa nesta data.")}>{(id, d) => <DateInput id={id} aria-describedby={d} value={start} onChange={(v) => v && setStart(mondayOf(v))} />}</Field>
         <div className="flex flex-wrap gap-1.5">{(groups.data ?? []).map((g) => <button key={g.id} type="button" onClick={() => { const n = new Set(sel); g.member_ids.forEach((x) => n.add(x)); setSel(n); }} className="h-7 rounded-full border border-line px-2.5 text-xs font-semibold text-fg-muted hover:bg-soft">+ {g.name}</button>)}</div>
         <ul className="grid max-h-64 gap-0.5 overflow-y-auto">{(athletes.data ?? []).map((a) => (
           <li key={a.membership.id}><label className="flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 hover:bg-soft"><input type="checkbox" className="size-[18px] accent-brand" checked={sel.has(a.membership.id)} onChange={() => toggle(a.membership.id)} /><Avatar name={a.user.name} size={26} /><span className="text-sm font-medium">{a.user.name}</span></label></li>

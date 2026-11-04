@@ -25,6 +25,18 @@ describe("format (pt-BR)", () => {
     expect(initials("Ana Souza")).toBe("AS");
     expect(ago(new Date(Date.now() - 5 * 60000).toISOString())).toBe("há 5 min");
   });
+  it("writes and reads dates in numbers as dd/mm/aaaa", async () => {
+    const { brDate, brToIso, maskDate } = await import("./format");
+    expect(brDate("2026-11-03")).toBe("03/11/2026");
+    expect(brDate("2026-11-03T10:00:00Z")).toBe("03/11/2026");
+    expect(maskDate("14091988")).toBe("14/09/1988");
+    expect(maskDate("14/0")).toBe("14/0");
+    expect(maskDate("1409198899")).toBe("14/09/1988");
+    expect(brToIso("14/09/1988")).toBe("1988-09-14");
+    expect(brToIso("31/02/2026")).toBeNull();
+    expect(brToIso("14/09/88")).toBeNull();
+    expect(brToIso("01/01/1850")).toBeNull();
+  });
 });
 
 describe("money input", () => {

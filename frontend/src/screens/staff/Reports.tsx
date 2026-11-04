@@ -10,7 +10,7 @@ import { t } from "@/i18n";
 import { downloadCsv } from "@/lib/csv";
 import { useClub } from "@/lib/club";
 import { addDays, duration, fullDate, km, mondayOf, today as todayFn } from "@/lib/format";
-import { Avatar, Button, Card, Field, Input, PageHeader, Segmented, Skeleton, cn } from "@/ui";
+import { Avatar, Button, Card, DateInput, Field, PageHeader, Segmented, Skeleton, cn } from "@/ui";
 
 type Preset = "4w" | "month" | "last_month" | "3m" | "custom";
 function range(p: Preset, today: string): { from: string; to: string } {
@@ -46,7 +46,7 @@ export function ReportsScreen() {
         actions={<div data-print="hide" className="flex gap-2"><Button variant="secondary" icon={<Download />} onClick={exportCsv}>{t("Exportar CSV")}</Button><Button variant="secondary" icon={<Printer />} onClick={() => window.print()}>{t("Imprimir ou PDF")}</Button></div>} />
       <div data-print="hide" className="flex flex-wrap items-end gap-3">
         <Segmented label={t("Período")} value={preset} onChange={setPreset} size="sm" options={[{ value: "4w", label: t("4 semanas") }, { value: "month", label: t("Este mês") }, { value: "last_month", label: t("Mês passado") }, { value: "3m", label: t("3 meses") }, { value: "custom", label: t("Outro") }]} />
-        {preset === "custom" && <div className="flex gap-2"><Field label={t("De")}>{(id) => <Input id={id} type="date" value={custom.from} max={custom.to} onChange={(e) => setCustom({ ...custom, from: e.target.value })} className="h-9" />}</Field><Field label={t("Até")}>{(id) => <Input id={id} type="date" value={custom.to} min={custom.from} max={today} onChange={(e) => setCustom({ ...custom, to: e.target.value })} className="h-9" />}</Field></div>}
+        {preset === "custom" && <div className="flex gap-2"><Field label={t("De")}>{(id) => <DateInput id={id} value={custom.from} max={custom.to} onChange={(from) => from && setCustom({ ...custom, from })} className="h-9" />}</Field><Field label={t("Até")}>{(id) => <DateInput id={id} value={custom.to} min={custom.from} max={today} onChange={(to) => to && setCustom({ ...custom, to })} className="h-9" />}</Field></div>}
         <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("Grupo")}>
           {[{ id: "", name: t("Todos") }, ...(groups.data ?? [])].map((g) => <button key={g.id} onClick={() => setGroup(g.id)} aria-pressed={group === g.id} className={cn("h-8 rounded-full border px-3 text-[13px] font-semibold", group === g.id ? "border-brand-ring bg-brand-soft text-on-brand-soft" : "border-line bg-surface text-fg-muted hover:bg-soft")}>{g.name}</button>)}
         </div>

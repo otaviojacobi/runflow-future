@@ -6,7 +6,7 @@
  */
 import { useState } from "react";
 import { t } from "@/i18n";
-import { dayMonth } from "@/lib/format";
+import { brDate, dayMonth } from "@/lib/format";
 import { cn } from "@/ui";
 
 export interface TrendPoint { week_start: string; pct: number | null; planned: number; done: number; current: boolean }
@@ -40,7 +40,7 @@ export function ComplianceTrend({ data, height = 140 }: { data: TrendPoint[]; he
       </div>
       <div className="flex gap-[2px] pr-8 text-[10px] text-fg-subtle" aria-hidden>{data.map((d) => <span key={d.week_start} className="flex-1 text-center tabular-nums">{dayMonth(d.week_start).split(" ")[0]}/{d.week_start.slice(5, 7)}</span>)}</div>
       <table className="sr-only"><caption>{t("Aderência por semana")}</caption><thead><tr><th>{t("Semana")}</th><th>{t("Aderência")}</th><th>{t("Treinos feitos")}</th></tr></thead>
-        <tbody>{data.map((d) => <tr key={d.week_start}><td>{d.week_start}</td><td>{d.pct ?? "–"}%</td><td>{d.done}/{d.planned}</td></tr>)}</tbody></table>
+        <tbody>{data.map((d) => <tr key={d.week_start}><td>{brDate(d.week_start)}</td><td>{d.pct ?? "–"}%</td><td>{d.done}/{d.planned}</td></tr>)}</tbody></table>
     </figure>
   );
 }

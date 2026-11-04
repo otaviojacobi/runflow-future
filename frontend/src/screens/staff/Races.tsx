@@ -10,7 +10,7 @@ import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
 import { clock, longDate, today as todayFn } from "@/lib/format";
-import { Avatar, Badge, Button, Card, Dialog, EmptyState, Field, IconButton, Input, Menu, PageHeader, Segmented, Select, Skeleton, Textarea, cn, toast } from "@/ui";
+import { Avatar, Badge, Button, Card, DateInput, Dialog, EmptyState, Field, IconButton, Input, Menu, PageHeader, Segmented, Select, Skeleton, Textarea, cn, toast } from "@/ui";
 import { parseTime } from "../onboarding/Welcome";
 
 const UF = "AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO".split(" ");
@@ -85,7 +85,7 @@ function RaceFormBody({ club, value, onClose }: { club: Club; value: Race | null
       <Field label={t("Nome da prova")} error={err?.fieldError("name")} className="sm:col-span-2">{(id) => <Input id={id} value={v.name} onChange={(e) => set({ name: e.target.value })} placeholder={t("Ex.: Meia Maratona de Santos")} autoFocus />}</Field>
       <Field label={t("Modalidade")}>{(id) => <Select id={id} value={sport} onChange={(e) => set({ sport: e.target.value as RaceSport, distances_m: [] })}>{RACE_SPORTS.map((s) => <option key={s} value={s}>{t(RACE_SPORT_LABEL[s])}</option>)}</Select>}</Field>
       <div className="grid grid-cols-[1fr_auto] gap-3">
-        <Field label={t("Data")} error={err?.fieldError("date")}>{(id) => <Input id={id} type="date" value={v.date} onChange={(e) => set({ date: e.target.value })} />}</Field>
+        <Field label={t("Data")} error={err?.fieldError("date")}>{(id) => <DateInput id={id} value={v.date} onChange={(date) => set({ date })} />}</Field>
         <Field label={t("Largada")} optional>{(id) => <Input id={id} type="time" value={v.start_time ?? ""} onChange={(e) => set({ start_time: e.target.value })} className="w-28" />}</Field>
       </div>
       <fieldset className="grid gap-2 sm:col-span-2">

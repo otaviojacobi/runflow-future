@@ -9,7 +9,8 @@ import { ClubLogo } from "@/components/brand";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
-import { Button, Card, Checkbox, Field, Input, toast } from "@/ui";
+import { today as todayFn, yearsAgo } from "@/lib/format";
+import { Button, Card, Checkbox, DateInput, Field, Input, toast } from "@/ui";
 
 export const GOALS: { value: Goal; label: string }[] = [
   { value: "5k", label: "5 km" }, { value: "10k", label: "10 km" }, { value: "21k", label: "Meia maratona" }, { value: "42k", label: "Maratona" },
@@ -74,7 +75,7 @@ export function WelcomeScreen() {
         <Card className="grid gap-4 p-5">
           <Field label={t("Nome completo")} error={nameError ?? err?.fieldError("name")}>{(id) => <Input id={id} value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" placeholder={t("Nome e sobrenome")} />}</Field>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label={t("Data de nascimento")} optional>{(id) => <Input id={id} type="date" value={birth} onChange={(e) => setBirth(e.target.value)} />}</Field>
+            <Field label={t("Data de nascimento")} optional>{(id) => <DateInput id={id} value={birth} onChange={setBirth} max={todayFn()} initialMonth={yearsAgo(30)} autoComplete="bday" />}</Field>
             <Field label={t("WhatsApp")} optional hint={t("Para o treinador falar com você.")}>{(id, dd) => <Input id={id} aria-describedby={dd} type="tel" inputMode="tel" placeholder="(11) 98765-4321" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />}</Field>
           </div>
         </Card>

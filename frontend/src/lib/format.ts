@@ -53,6 +53,21 @@ export const fullDate = (d: string) => { const p = parts(d); return `${p.day} ${
 export const longDate = (d: string) => fmt({ weekday: "long", day: "numeric", month: "long" }).format(asUtc(d));
 /** "2026-11-03" → "3 nov". */
 export const dayMonth = (d: string) => { const p = parts(d); return `${p.day} ${p.mon}`; };
+/** "2026-11-03" → "03/11/2026": a date in numbers is always dd/mm/aaaa (founder, 2026-11-04). */
+export const brDate = (d: string) => (/^\d{4}-\d{2}-\d{2}/.test(d) ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : d);
+/** "14091988" → "14/09/1988" as the person types (digits only, slashes inserted). */
+export function maskDate(text: string): string {
+  const d = text.replace(/\D/g, "").slice(0, 8);
+  return [d.slice(0, 2), d.slice(2, 4), d.slice(4, 8)].filter(Boolean).join("/");
+}
+/** "14/09/1988" → "1988-09-14"; null when it isn't a real calendar date. */
+export function brToIso(text: string): string | null {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text.trim());
+  if (!m) return null;
+  const iso = `${m[3]}-${m[2]}-${m[1]}`;
+  const d = new Date(`${iso}T12:00:00Z`);
+  return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso && Number(m[3]) >= 1900 ? iso : null;
+}
 /** "2026-11-03" → "ter". */
 export const weekdayShort = (d: string) => clean(fmt({ weekday: "short" }).format(asUtc(d)));
 /** ISO timestamp → "06:30" in the club timezone. */
@@ -63,6 +78,8 @@ export const dateTimeShort = (iso: string, tz = "America/Sao_Paulo") => `${short
 export const localDate = (iso: string, tz = "America/Sao_Paulo") => new Intl.DateTimeFormat("en-CA", { timeZone: tz }).format(new Date(iso));
 /** Today, club-local. */
 export const today = (tz = "America/Sao_Paulo") => localDate(new Date().toISOString(), tz);
+/** The first day of this month n years ago: where a birth-date calendar opens. */
+export const yearsAgo = (n: number, from = today()) => `${+from.slice(0, 4) - n}-${from.slice(5, 7)}-01`;
 export const addDays = (d: string, n: number) => new Date(Date.parse(d + "T00:00:00Z") + n * 86400000).toISOString().slice(0, 10);
 export const isoWeekday = (d: string) => ((new Date(d + "T00:00:00Z").getUTCDay() + 6) % 7) + 1;
 export const mondayOf = (d: string) => addDays(d, 1 - isoWeekday(d));

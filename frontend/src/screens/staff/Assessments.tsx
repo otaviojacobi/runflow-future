@@ -11,7 +11,7 @@ import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
 import { fullDate, number, today as todayFn } from "@/lib/format";
-import { Avatar, Badge, Button, Card, Dialog, EmptyState, Field, IconButton, Input, PageHeader, Select, Skeleton, Switch, Textarea, cn, toast } from "@/ui";
+import { Avatar, Badge, Button, Card, DateInput, Dialog, EmptyState, Field, IconButton, Input, PageHeader, Select, Skeleton, Switch, Textarea, cn, toast } from "@/ui";
 import { parseTime } from "../onboarding/Welcome";
 
 export function AssessmentsScreen() {
@@ -137,7 +137,7 @@ function RecordBody({ club, kind, athleteId, onClose }: { club: Club; kind: Asse
     <form className="grid gap-5" onSubmit={(e) => { e.preventDefault(); submit(); }}>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={t("Aluno")} error={err?.fieldError("membership_id")}>{(id) => <Select id={id} value={who} onChange={(e) => setWho(e.target.value)}><option value="">{t("Escolha…")}</option>{(athletes.data ?? []).map((a) => <option key={a.membership.id} value={a.membership.id}>{a.user.name}</option>)}</Select>}</Field>
-        <Field label={t("Data")} error={err?.fieldError("date")}>{(id) => <Input id={id} type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} />}</Field>
+        <Field label={t("Data")} error={err?.fieldError("date")}>{(id) => <DateInput id={id} value={date} max={today} onChange={setDate} />}</Field>
         {fields}
       </div>
       <div className="grid gap-3 rounded-lg bg-sunken p-4" aria-live="polite">

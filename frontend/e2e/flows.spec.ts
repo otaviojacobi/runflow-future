@@ -41,7 +41,7 @@ test("owner adds a race and the student signs up", async ({ page, browser }) => 
   await page.getByRole("button", { name: "Nova prova" }).click();
   const d = page.getByRole("dialog");
   await d.getByLabel("Nome da prova").fill("Corrida E2E");
-  await d.getByLabel("Data").fill("2027-03-14");
+  await d.getByLabel("Data").fill("14/03/2027");
   await d.getByRole("button", { name: "10 km" }).click();
   await d.getByRole("button", { name: "Adicionar prova" }).click();
   await expect(page.getByText("Prova adicionada ao calendário")).toBeVisible();

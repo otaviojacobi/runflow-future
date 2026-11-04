@@ -35,6 +35,9 @@ src/
 - **Styling**: Tailwind utilities from the token mapping only (see the header of `src/styles.css`): `bg-surface`, `text-fg-muted`, `border-line`, `bg-brand text-on-brand`, `bg-run-soft text-on-run-soft`, `bg-z4`… Text styles: `rf-text-*` classes. No hex, no default Tailwind palette (it is removed).
 - **Club theme**: `brand` = the club's primary color, `accent` = its secondary. Never use them for data meaning (status, zones, sports have their own tokens). Public pages (landing, login, invite, club picker/creation, dev) always use Runflow's brand (D-024): add new public paths to `RUNFLOW_BRANDED` in `src/lib/theme.ts` **and** the inline script in `index.html`. Previews of a club's colors use scoped `themeVars`, never `applyClubTheme`.
 - **Data**: screens use hooks from `src/api/*`; only endpoints from `api/endpoints.md`. Errors are `ApiError` with pt-BR `title`/`detail`: show them as they are.
-- **Formats**: always `lib/format.ts` (pace `4:30`, `10,4 km`, `ter, 3 nov`, 24 h).
+- **Formats**: always `lib/format.ts` (pace `4:30`, `10,4 km`, `ter, 3 nov`, 24 h). A date in numbers is always
+  dd/mm/aaaa (`brDate`), whatever the browser's language: date fields use the kit's `DateInput` (masked dd/mm/aaaa +
+  a pt-BR month grid; future years grayed after `max`), never `<input type="date">`, which follows the browser (an
+  English Chrome shows mm/dd/yyyy).
 - **Accessibility**: real buttons and links, labels on inputs, visible focus, 44 px touch targets on mobile layouts. Accessible names must contain the visible text (prefer `sr-only` spans over `aria-label`), and anything `sr-only` needs a `relative` ancestor inside scroll areas. `npm run e2e` runs axe on the main screens.
 - **Performance**: route-level code splitting for heavy screens (builder, planning); keep the initial JS under 200 KB gzip (§7.7).

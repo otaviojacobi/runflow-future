@@ -16,11 +16,11 @@ import { NotificationSettings } from "@/components/account/NotificationSettings"
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { ROLE_LABEL, selectClub, useClub } from "@/lib/club";
-import { ago, fullDate, localDate, today as todayFn } from "@/lib/format";
+import { ago, fullDate, localDate, today as todayFn, yearsAgo } from "@/lib/format";
 import { promptInstall, useInstall } from "@/lib/pwa";
 import { getColorMode, setColorMode, type ColorMode } from "@/lib/theme";
 import { queryClient } from "@/queryClient";
-import { Avatar, Badge, Button, Card, Dialog, Field, Input, PageHeader, Segmented, Select, Skeleton, Switch, toast } from "@/ui";
+import { Avatar, Badge, Button, Card, DateInput, Dialog, Field, Input, PageHeader, Segmented, Select, Skeleton, Switch, toast } from "@/ui";
 
 const Section = ({ id, title, description, children, edge }: { id: string; title: string; description?: string; children: React.ReactNode; edge?: "danger" }) => (
   <Card id={id} edge={edge} className="grid scroll-mt-24 gap-4 p-5 sm:p-6">
@@ -94,7 +94,7 @@ function Profile({ user }: { user: User }) {
       <form className="grid gap-4 sm:grid-cols-2" onSubmit={(e) => { e.preventDefault(); update.mutate({ name: v.name, phone: v.phone || null, birth_date: v.birth_date || null, sex: (v.sex || null) as User["sex"] }, { onSuccess: () => toast.success(t("Perfil salvo")) }); }}>
         <Field label={t("Nome completo")} error={err?.fieldError("name")} className="sm:col-span-2">{(id) => <Input id={id} value={v.name} onChange={(e) => set({ name: e.target.value })} autoComplete="name" />}</Field>
         <Field label={t("Celular")} optional>{(id) => <Input id={id} type="tel" value={v.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="(11) 91234-5678" autoComplete="tel" />}</Field>
-        <Field label={t("Nascimento")} optional error={err?.fieldError("birth_date")}>{(id) => <Input id={id} type="date" value={v.birth_date} onChange={(e) => set({ birth_date: e.target.value })} />}</Field>
+        <Field label={t("Nascimento")} optional error={err?.fieldError("birth_date")}>{(id) => <DateInput id={id} value={v.birth_date} onChange={(birth_date) => set({ birth_date })} max={todayFn()} initialMonth={yearsAgo(30)} autoComplete="bday" />}</Field>
         <Field label={t("Sexo")} optional hint={t("Usado só para estimar zonas e calorias.")}>{(id, d) => <Select id={id} aria-describedby={d} value={v.sex} onChange={(e) => set({ sex: e.target.value })}><option value="">{t("Prefiro não informar")}</option><option value="female">{t("Feminino")}</option><option value="male">{t("Masculino")}</option><option value="other">{t("Outro")}</option></Select>}</Field>
         <Field label={t("E-mail")} hint={t("É com ele que você entra.")}>{(id, d) => <Input id={id} aria-describedby={d} value={user.email} readOnly disabled />}</Field>
         <div className="flex justify-end gap-2 sm:col-span-2">{dirty && <Button variant="ghost" onClick={() => setV(init)}>{t("Descartar")}</Button>}<Button type="submit" disabled={!dirty} loading={update.isPending}>{t("Salvar")}</Button></div>
