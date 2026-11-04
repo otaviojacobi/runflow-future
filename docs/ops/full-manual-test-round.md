@@ -114,16 +114,28 @@ next week stays a draft until released.
 - DB: `planned_workouts`, `week_releases`, `training_plans`, `plan_assignments`, `notifications`.
 
 ## 6. Train for real: Strava → Runflow → trainer
+Activities are matched to the plan by day and size (D-049, `docs/activity-matching.md`): a workout done a day or two
+early or late, cut short, or swapped with another day is found and marked done; only when two workouts are about
+equally likely does the student get a question.
 - [ ] Record a short activity with Strava (phone or watch) **on a day with a planned workout** (or create a manual
       activity on strava.com for that date).
 - [ ] Within ~1 minute: the student's Atividades shows it, linked to the planned workout ("Treino planejado", %
-      cumprido); the workout shows the activity.
-- [ ] Student: "Concluir treino" → PSE, feeling, comment → the trainer gets the feedback (Feedbacks inbox +
-      notification); trainer replies in the thread → the student sees the reply (bell, the workout's conversation).
-- [ ] Rename the activity on Strava → the new name arrives; delete it on Strava → it disappears from Runflow.
+      cumprido); the workout is done and says it was completed with the activity, inviting "Conte como foi".
+- [ ] **Swapped day:** plan a short run tomorrow and a long one the day after; run the long distance tomorrow → it
+      links to the long workout (the day after), not tomorrow's.
+- [ ] **A real doubt:** plan 8 km on one day and 8 km two days later, nothing in between, and run ~8 km on the day in
+      between (a manual activity on strava.com with that date works) → Hoje and Atividades ask "Qual treino foi esta
+      atividade?" → pick one → it's linked; "Trocar treino" on the activity moves it; "Nenhum destes" leaves it as an
+      extra session.
+- [ ] Student: "Conte como foi" → PSE, feeling, comment → the trainer gets the feedback (Feedbacks inbox +
+      notification, only on this first report, not when the activity was matched); trainer replies in the thread →
+      the student sees the reply (bell, the workout's conversation).
+- [ ] Rename the activity on Strava → the new name arrives; delete it on Strava → it disappears from Runflow and the
+      workout it completed is open again (unless the student had already reported on it).
 - [ ] Perfil → Relógios e apps → Desconectar → Strava's activities are deleted and the trainer stops seeing them;
-      connect again.
-- DB: `webhook_events`, `jobs`, `activities`, `workout_completions`, `comments`, `notifications`.
+      connect again → the last 30 days come back and are matched again.
+- DB: `webhook_events`, `jobs` (`match.activities`), `activities` (`match_state`), `activity_match_options`,
+  `workout_completions` (`matched_by`, `reported_at`), `comments`, `notifications`.
 - If nothing arrives: Grafana → Loki, search `strava`; `webhook_events` shows whether Strava called at all.
 
 ## 7. Messages and the mural
