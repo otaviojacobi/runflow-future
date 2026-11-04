@@ -52,6 +52,8 @@ export { default as FileSpreadsheet } from "lucide-react-native/icons/file-sprea
 export { default as Flag } from "lucide-react-native/icons/flag";
 export { default as Flame } from "lucide-react-native/icons/flame";
 export { default as FlaskConical } from "lucide-react-native/icons/flask-conical";
+export { default as FolderMinus } from "lucide-react-native/icons/folder-minus";
+export { default as FolderPlus } from "lucide-react-native/icons/folder-plus";
 export { default as Footprints } from "lucide-react-native/icons/footprints";
 export { default as Gauge } from "lucide-react-native/icons/gauge";
 export { default as Heart } from "lucide-react-native/icons/heart";
@@ -63,6 +65,7 @@ export { default as LayoutDashboard } from "lucide-react-native/icons/layout-das
 export { default as Library } from "lucide-react-native/icons/library";
 export { default as Lightbulb } from "lucide-react-native/icons/lightbulb";
 export { default as Link2 } from "lucide-react-native/icons/link-2";
+export { default as ListChecks } from "lucide-react-native/icons/list-checks";
 export { default as Lock } from "lucide-react-native/icons/lock";
 export { default as LogIn } from "lucide-react-native/icons/log-in";
 export { default as LogOut } from "lucide-react-native/icons/log-out";

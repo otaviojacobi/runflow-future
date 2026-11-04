@@ -81,6 +81,19 @@ export const useSaveGroup = (clubId: string) =>
   });
 export const useDeleteGroup = (clubId: string) =>
   useMutation({ mutationFn: (id: string) => api.del(`/clubs/${clubId}/groups/${id}`), onSuccess: () => refreshClub(clubId) });
+/** A group's members, replaced (bulk "Adicionar ao grupo" / "Remover do grupo" on Alunos). */
+export const useSetGroupMembers = (clubId: string) =>
+  useMutation({
+    mutationFn: (v: { id: string; member_ids: string[] }) => api.put<Group>(`/clubs/${clubId}/groups/${v.id}/members`, { membership_ids: v.member_ids }),
+    onSuccess: () => refreshClub(clubId),
+  });
+/** One student's groups, exactly (the student page, Membros): joins the missing ones, leaves the others. */
+export const useSetAthleteGroups = (clubId: string) =>
+  useMutation({
+    mutationFn: (v: { membershipId: string; group_ids: string[] }) =>
+      api.put<{ groups: { id: string; name: string }[] }>(`/clubs/${clubId}/athletes/${v.membershipId}/groups`, { group_ids: v.group_ids }),
+    onSuccess: () => refreshClub(clubId),
+  });
 
 // ---------- W6 library: api/library.ts (the same key, so staff lists refresh with it)
 export { useTemplates } from "./library";

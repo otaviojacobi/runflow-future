@@ -1,6 +1,7 @@
 /**
  * W2 · Grupos (the web's GroupsDialog as a bottom sheet): the club's groups, then one group's name and members.
- * Deleting asks first; students stay in the club.
+ * Deleting asks first; students stay in the club. `start` opens straight on one group, or on a new one (with
+ * `member_ids` already ticked: the students selected on Alunos); saving it then closes the sheet.
  */
 import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -12,7 +13,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar, Button, Dialog, EmptyState, Field, IconButton, Input, Skeleton, Text, toast } from "@/ui";
 import { ArrowLeft, Check, Pencil, Plus, Trash2, Users } from "@/ui/icons";
 
-export function GroupsSheet({ clubId, open, onOpenChange }: { clubId: string; open: boolean; onOpenChange: (v: boolean) => void }) {
+export function GroupsSheet({ clubId, open, onOpenChange, start }: { clubId: string; open: boolean; onOpenChange: (v: boolean) => void; start?: Partial<Group> | null }) {
   const { theme } = useTheme();
   const c = theme.color;
   const groups = useGroups(clubId);
@@ -25,15 +26,17 @@ export function GroupsSheet({ clubId, open, onOpenChange }: { clubId: string; op
   const [members, setMembers] = useState<Set<string>>(new Set());
   const edit = (g: Partial<Group>) => { save.reset(); setEditing(g); setName(g.name ?? ""); setMembers(new Set(g.member_ids ?? [])); };
   const close = (v: boolean) => { onOpenChange(v); if (!v) { setEditing(null); setRemoving(null); } };
+  const [seen, setSeen] = useState(false);
+  if (open !== seen) { setSeen(open); if (open) { setRemoving(null); if (start) edit(start); else setEditing(null); } }
   const err = save.error instanceof ApiError ? save.error.fieldError("name") : null;
   const submit = () => save.mutate({ id: editing?.id, name: name.trim(), member_ids: [...members] }, {
-    onSuccess: () => { toast.success(t("Grupo salvo")); setEditing(null); },
+    onSuccess: () => { toast.success(t("Grupo salvo"), name.trim()); if (start) close(false); else setEditing(null); },
     onError: (e) => { if (!(e instanceof ApiError && e.errors.length)) toast.error(e); },
   });
   const remove = (g: Group) => del.mutate(g.id, { onSuccess: () => { toast.success(t("Grupo excluído")); setRemoving(null); }, onError: toast.error });
 
   const title = removing ? t("Excluir o grupo?") : editing ? (editing.id ? t("Editar grupo") : t("Novo grupo")) : t("Grupos");
-  const description = removing ? removing.name : editing ? null : t("Agrupe alunos para atribuir treinos e liberar semanas de uma vez.");
+  const description = removing ? removing.name : editing ? null : t("Agrupe alunos para atribuir treinos e planilhas de uma vez.");
   const footer = removing ? (
     <>
       <Button variant="secondary" onPress={() => setRemoving(null)}>{t("Cancelar")}</Button>
@@ -86,7 +89,7 @@ export function GroupsSheet({ clubId, open, onOpenChange }: { clubId: string; op
               </View>
               <View style={styles.flex}>
                 <Text variant="labelMd" numberOfLines={1}>{g.name}</Text>
-                <Text variant="bodySm" tone="muted">{tn(g.member_ids.length, "{n} aluno", "{n} alunos")}</Text>
+                <Text variant="bodySm" tone="muted">{g.member_ids.length ? tn(g.member_ids.length, "{n} aluno", "{n} alunos") : t("Nenhum aluno ainda")}</Text>
               </View>
               <IconButton icon={Pencil} variant="ghost" label={t("Editar {name}", { name: g.name })} onPress={() => edit(g)} />
               <IconButton icon={Trash2} variant="ghost" label={t("Excluir {name}", { name: g.name })} onPress={() => setRemoving(g)} />

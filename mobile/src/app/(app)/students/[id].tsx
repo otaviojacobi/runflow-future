@@ -12,6 +12,7 @@ import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { useAthlete, usePlanned, useSaveAthleteProfile, useSetZones, type ZonesInput } from "@/api/staff";
 import type { AthleteDetail, AthleteProfile, Goal, Level, Zone } from "@/api/types";
 import { AssignSheet } from "@/components/staff/AssignSheet";
+import { StudentGroups } from "@/components/staff/GroupPicker";
 import { brToIso, isoToBr, maskDate } from "@/components/account/inputs";
 import { GOAL_LABEL, LEVEL_LABEL, parsePace, parseTime } from "@/components/staff/athlete";
 import { ZoneTable } from "@/components/account/parts";
@@ -85,7 +86,7 @@ function Student({ id, q }: { id: string; q: ReturnType<typeof useAthlete> }) {
   const avgWeek = last4.length ? last4.reduce((s, w) => s + w.done_s, 0) / last4.length : 0;
   return (
     <Screen refreshing={q.isRefetching} onRefresh={() => void q.refetch()}>
-      <Header a={a} onAssign={() => setAssign(true)} />
+      <Header a={a} clubId={club.id} onAssign={() => setAssign(true)} />
       <View style={{ gap: theme.space[3] }}>
         <View style={[styles.row, styles.stretch, { gap: theme.space[3] }]}>
           <Card style={[styles.flex, { padding: theme.space[4], gap: theme.space[2] }]}>
@@ -114,7 +115,7 @@ function Student({ id, q }: { id: string; q: ReturnType<typeof useAthlete> }) {
   );
 }
 
-function Header({ a, onAssign }: { a: AthleteDetail; onAssign: () => void }) {
+function Header({ a, clubId, onAssign }: { a: AthleteDetail; clubId: string; onAssign: () => void }) {
   const { theme } = useTheme();
   const goal = a.goal === "other" && a.profile.goal_note ? a.profile.goal_note : a.goal ? t(GOAL_LABEL[a.goal]) : null;
   const line = [goal, a.profile.goal_date ? t("prova em {d}", { d: dayMonth(a.profile.goal_date) }) : null, a.level ? t(LEVEL_LABEL[a.level]) : null].filter(Boolean).join(" · ");
@@ -129,10 +130,10 @@ function Header({ a, onAssign }: { a: AthleteDetail; onAssign: () => void }) {
         </View>
       </View>
       <View style={[styles.row, styles.wrap, { gap: theme.space["1.5"] }]}>
-        {a.groups.map((g) => <Badge key={g.id}>{g.name}</Badge>)}
         {a.consents.training_data ? <Badge tone="success" icon={ShieldCheck}>{t("Compartilha dados")}</Badge> : <Badge tone="warning" icon={ShieldOff}>{t("Não compartilha os treinos")}</Badge>}
         {a.strava !== "none" && <Badge tone={a.strava === "shared" ? "info" : "neutral"}>{a.strava === "shared" ? t("Strava compartilhado") : t("Não compartilha o Strava")}</Badge>}
       </View>
+      <StudentGroups clubId={clubId} membershipId={a.membership.id} studentName={a.user.name.split(" ")[0]} groups={a.groups} />
       <View style={[styles.row, { gap: theme.space[2] }]}>
         <Button icon={Plus} onPress={onAssign} style={styles.flex}>{t("Atribuir treino")}</Button>
         {phone ? (

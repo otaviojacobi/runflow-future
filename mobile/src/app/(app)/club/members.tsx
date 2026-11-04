@@ -9,8 +9,10 @@ import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useInvites, useResendInvite, useRevokeInvite } from "@/api/clubs";
 import { useMembers, useRemoveMember, useUpdateMember } from "@/api/members";
+import { useGroups, useSetAthleteGroups } from "@/api/staff";
 import type { Invitation, Member } from "@/api/types";
 import { SeatsSummary } from "@/components/billing/Seats";
+import { GroupPickerSheet } from "@/components/staff/GroupPicker";
 import { ImportStudentsSheet } from "@/components/club/ImportStudents";
 import { InviteForm } from "@/components/club/InviteForm";
 import { t } from "@/i18n";
@@ -18,7 +20,7 @@ import { ROLE_LABEL, useClub } from "@/lib/club";
 import { ago, fullDate, localDate } from "@/lib/format";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar, Badge, Button, Card, Dialog, EmptyState, IconButton, Menu, Screen, Skeleton, Tabs, Text, toast, type Tone } from "@/ui";
-import { Ban, Copy, Ellipsis, FileSpreadsheet, Mail, RotateCcw, Send, Trash2, UserMinus, UserPlus } from "@/ui/icons";
+import { Ban, Copy, Ellipsis, FileSpreadsheet, Mail, RotateCcw, Send, Trash2, UserMinus, UserPlus, Users } from "@/ui/icons";
 
 type Tab = "students" | "staff" | "invites";
 const INVITE_STATUS: Record<Invitation["status"], { label: string; tone: Tone }> = {
@@ -40,13 +42,23 @@ export default function MembersScreen() {
   const [inviting, setInviting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [grouping, setGrouping] = useState<Member | null>(null);
+  const groups = useGroups(club?.id);
+  const setGroups = useSetAthleteGroups(club?.id ?? "");
   if (!club || !ctx) return null;
   const sub = ctx.subscription;
   const me = ctx.membership.id;
   const pending = invites.data?.filter((i) => i.status === "pending").length;
-  const refresh = async () => { setRefreshing(true); await Promise.all([staff.refetch(), students.refetch(), invites.refetch()]); setRefreshing(false); };
+  const refresh = async () => { setRefreshing(true); await Promise.all([staff.refetch(), students.refetch(), invites.refetch(), groups.refetch()]); setRefreshing(false); };
+  const groupNames = (m: Member) => m.group_ids.map((id) => groups.data?.find((g) => g.id === id)?.name).filter(Boolean).join(" · ");
+  const first = (m: Member) => m.user.name.split(" ")[0];
+  const saveGroups = (ids: string[]) => grouping && setGroups.mutate({ membershipId: grouping.membership.id, group_ids: ids }, {
+    onSuccess: (r) => { toast.success(t("Grupos atualizados"), r.groups.map((g) => g.name).join(", ") || t("{name} não está em nenhum grupo", { name: first(grouping) })); setGrouping(null); },
+    onError: toast.error,
+  });
 
   const actionsFor = (m: Member) => [
+    ...(m.membership.role === "student" && m.membership.status === "active" ? [{ label: t("Grupos…"), icon: Users, onSelect: () => setGrouping(m) }] : []),
     ...(m.membership.role === "student"
       ? [m.membership.status === "suspended"
         ? { label: t("Reativar acesso"), icon: RotateCcw, onSelect: () => update.mutate({ id: m.membership.id, status: "active" }, { onSuccess: () => toast.success(t("Acesso reativado")), onError: toast.error }) }
@@ -62,6 +74,7 @@ export default function MembersScreen() {
       <View style={styles.flex}>
         <Text variant="labelMd" numberOfLines={1}>{m.user.name}{m.membership.id === me ? <Text variant="bodyMd" tone="muted"> ({t("você")})</Text> : null}</Text>
         <Text variant="caption" tone="muted" numberOfLines={1}>{m.user.email} · {t("desde {when}", { when: ago(m.membership.joined_at) })}</Text>
+        {m.membership.role === "student" && groupNames(m) ? <Text variant="caption" tone="subtle" numberOfLines={1}>{groupNames(m)}</Text> : null}
       </View>
       {m.membership.status === "suspended" ? <Badge tone="warning">{t("Suspenso")}</Badge> : <Badge tone={m.membership.role === "owner" ? "brand" : "neutral"}>{t(ROLE_LABEL[m.membership.role])}</Badge>}
       {m.membership.id !== me ? (
@@ -115,6 +128,10 @@ export default function MembersScreen() {
         {inviting && <InviteForm club={club} onSent={() => { setTab("invites"); }} />}
       </Dialog>
       <ImportStudentsSheet clubId={club.id} open={importing} onOpenChange={setImporting} />
+      <GroupPickerSheet clubId={club.id} open={!!grouping} onOpenChange={(v) => !v && setGrouping(null)}
+        title={grouping ? t("Grupos de {name}", { name: first(grouping) }) : t("Grupos")}
+        description={t("Marque os grupos deste aluno. Treinos e planilhas podem ser atribuídos a um grupo inteiro.")}
+        selected={grouping?.group_ids ?? []} saving={setGroups.isPending} onSave={saveGroups} />
       <Dialog open={!!confirm} onOpenChange={(v) => !v && setConfirm(null)} title={t("Remover {name}?", { name: confirm?.user.name ?? "" })}
         description={confirm?.membership.role === "student" ? t("O aluno perde o acesso aos treinos do clube. O histórico fica guardado e ele pode voltar com um novo convite.") : t("A pessoa deixa de ver os alunos e os treinos do clube.")}
         footer={<>
