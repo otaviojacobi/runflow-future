@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO consents (user_id, club_id, kind, text_version)\n           SELECT $1, m.club_id, k.kind, $2\n             FROM memberships m\n             JOIN clubs c ON c.id = m.club_id\n            CROSS JOIN (VALUES ('share_training_data'), ('share_strava')) AS k(kind)\n            WHERE m.user_id = $1 AND m.role = 'student' AND m.status = 'active' AND c.deleted_at IS NULL\n              AND NOT EXISTS (SELECT 1 FROM consents s WHERE s.user_id = $1 AND s.club_id = m.club_id\n                                 AND s.kind = k.kind AND s.revoked_at IS NULL)\n           RETURNING club_id AS \"club_id!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "club_id!",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "consents",
+            "name": "club_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "6080af5e9dfcfd14f76943ad2a0aef24e5a555edc85909d88bef7b28d7ccc944"
+}

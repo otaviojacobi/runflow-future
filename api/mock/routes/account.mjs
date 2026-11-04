@@ -168,8 +168,9 @@ export default function register(h) {
     Object.assign(m, { status: "left", left_at: now });
     h.db.group_members = h.db.group_members.filter((g) => g.membership_id !== m.id);
     for (const c of h.db.consents.filter((c) => c.user_id === m.user_id && c.club_id === m.club_id && !c.revoked_at)) c.revoked_at = now;
-    // Automatic links to that club's workouts go (D-011, D-049).
+    // Automatic links to that club's workouts go (D-011, D-049); a Strava sync no club sees any more is disconnected.
     h.rematch(m.user_id, h.addDays(h.today(), -30), h.today());
+    h.enforceStravaSharing(m.user_id);
     h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: m.club_id, actor_user_id: m.user_id, action: "member.left", target_type: "membership", target_id: m.id, data: null, created_at: now });
   });
 
@@ -196,7 +197,10 @@ export default function register(h) {
     if (!c) h.fail(404, "consent.not_found", "Consentimento não encontrado", "Ele pode já ter sido revogado.");
     if (c.kind === "terms" || c.kind === "privacy") h.fail(409, "consent.required", "Este consentimento é obrigatório", "Para revogar os termos, exclua sua conta.");
     c.revoked_at = h.nowIso();
-    if (c.kind.startsWith("share_")) h.rematch(c.user_id, h.addDays(h.today(), -30), h.today());
+    if (c.kind.startsWith("share_")) {
+      h.rematch(c.user_id, h.addDays(h.today(), -30), h.today());
+      h.enforceStravaSharing(c.user_id);
+    }
   });
 
   // ---- notifications

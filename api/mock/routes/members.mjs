@@ -29,6 +29,8 @@ export default function register(h) {
     if (nextStatus === "active" && (m.status !== "active" || nextRole !== m.role)) h.ensureSeat(ctx.params.club_id, nextRole);
     if (role) m.role = role;
     if (status) m.status = status;
+    // A suspended (or no longer student) person's Strava sync no club sees is disconnected (D-011).
+    h.enforceStravaSharing(m.user_id);
     h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: m.club_id, actor_user_id: ctx.user().id, action: "member.updated", target_type: "membership", target_id: m.id, data: { role, status }, created_at: h.nowIso() });
     return memberOut(m);
   });
@@ -38,6 +40,7 @@ export default function register(h) {
     if (m.id === me.id) h.fail(409, "member.self", "Você não pode se remover", "Para sair, transfira a gestão do clube primeiro.");
     Object.assign(m, { status: "left", left_at: h.nowIso() });
     h.db.group_members = h.db.group_members.filter((g) => g.membership_id !== m.id);
+    h.enforceStravaSharing(m.user_id);
     h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: m.club_id, actor_user_id: ctx.user().id, action: "member.removed", target_type: "membership", target_id: m.id, data: null, created_at: h.nowIso() });
   });
 

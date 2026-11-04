@@ -167,6 +167,116 @@ pub async fn revoke(tx: &mut PgConnection, user_id: Uuid, provider: &str) -> sql
     Ok(())
 }
 
+/// The job that tells Strava a connection ended without the person pressing "Desconectar" (an automatic disconnect,
+/// [`enforce_sharing`]): `{access_token_enc, refresh_token_enc, token_expires_at}`, the tokens still encrypted (hex).
+pub const STRAVA_DEAUTHORIZE: &str = "strava.deauthorize";
+
+/// Hex for the encrypted tokens in a job payload (they stay encrypted at rest there, as in `provider_connections`).
+pub fn to_hex(b: &[u8]) -> String {
+    b.iter().map(|x| format!("{x:02x}")).collect()
+}
+pub fn from_hex(s: &str) -> Option<Vec<u8>> {
+    if !s.len().is_multiple_of(2) {
+        return None;
+    }
+    (0..s.len())
+        .step_by(2)
+        .map(|i| u8::from_str_radix(s.get(i..i + 2)?, 16).ok())
+        .collect()
+}
+
+/// Connecting Strava shares it with every club where the person is an active student (D-011, endpoints.md § Strava
+/// sharing): `share_training_data` and `share_strava`, where missing. Returns the clubs that changed.
+pub async fn share_with_student_clubs(
+    tx: &mut PgConnection,
+    user_id: Uuid,
+    text_version: &str,
+) -> sqlx::Result<Vec<Uuid>> {
+    let mut clubs = sqlx::query_scalar!(
+        r#"INSERT INTO consents (user_id, club_id, kind, text_version)
+           SELECT $1, m.club_id, k.kind, $2
+             FROM memberships m
+             JOIN clubs c ON c.id = m.club_id
+            CROSS JOIN (VALUES ('share_training_data'), ('share_strava')) AS k(kind)
+            WHERE m.user_id = $1 AND m.role = 'student' AND m.status = 'active' AND c.deleted_at IS NULL
+              AND NOT EXISTS (SELECT 1 FROM consents s WHERE s.user_id = $1 AND s.club_id = m.club_id
+                                 AND s.kind = k.kind AND s.revoked_at IS NULL)
+           RETURNING club_id AS "club_id!""#,
+        user_id,
+        text_version
+    )
+    .fetch_all(&mut *tx)
+    .await?;
+    clubs.sort();
+    clubs.dedup();
+    Ok(clubs)
+}
+
+/// A club's students who are connected to Strava (their sharing is checked again when the club closes, D-011).
+pub async fn connected_students(db: impl PgExecutor<'_>, club_id: Uuid) -> sqlx::Result<Vec<Uuid>> {
+    sqlx::query_scalar!(
+        r#"SELECT DISTINCT m.user_id AS "user_id!" FROM memberships m
+             JOIN provider_connections c ON c.user_id = m.user_id AND c.provider = 'strava' AND c.status <> 'revoked'
+            WHERE m.club_id = $1 AND m.role = 'student'"#,
+        club_id
+    )
+    .fetch_all(db)
+    .await
+}
+
+/// Whether the person is an active student of a club that isn't closed (only they may connect Strava, D-011).
+pub async fn is_student(db: impl PgExecutor<'_>, user_id: Uuid) -> sqlx::Result<bool> {
+    sqlx::query_scalar!(
+        r#"SELECT EXISTS (SELECT 1 FROM memberships m JOIN clubs c ON c.id = m.club_id
+                           WHERE m.user_id = $1 AND m.role = 'student' AND m.status = 'active' AND c.deleted_at IS NULL) AS "x!""#,
+        user_id
+    )
+    .fetch_one(db)
+    .await
+}
+
+/// No sync without sharing (D-011, endpoints.md § Strava sharing): a person connected to Strava whom no club can see
+/// (an active student membership, club not closed, holding both `share_training_data` and `share_strava`) is
+/// disconnected as if they had pressed "Desconectar": [`revoke`] in this transaction, and Strava deauthorized by the
+/// [`STRAVA_DEAUTHORIZE`] job enqueued in it. Returns whether it disconnected.
+pub async fn enforce_sharing(tx: &mut PgConnection, user_id: Uuid) -> sqlx::Result<bool> {
+    let Some(c) = sqlx::query!(
+        r#"SELECT c.access_token_enc, c.refresh_token_enc, c.token_expires_at,
+                  EXISTS (SELECT 1 FROM memberships m JOIN clubs k ON k.id = m.club_id
+                           WHERE m.user_id = c.user_id AND m.role = 'student' AND m.status = 'active' AND k.deleted_at IS NULL
+                             AND EXISTS (SELECT 1 FROM consents s WHERE s.user_id = m.user_id AND s.club_id = m.club_id
+                                            AND s.kind = 'share_training_data' AND s.revoked_at IS NULL)
+                             AND EXISTS (SELECT 1 FROM consents s WHERE s.user_id = m.user_id AND s.club_id = m.club_id
+                                            AND s.kind = 'share_strava' AND s.revoked_at IS NULL)) AS "visible!"
+             FROM provider_connections c
+            WHERE c.user_id = $1 AND c.provider = 'strava' AND c.status <> 'revoked'"#,
+        user_id
+    )
+    .fetch_optional(&mut *tx)
+    .await?
+    else {
+        return Ok(false);
+    };
+    if c.visible {
+        return Ok(false);
+    }
+    revoke(&mut *tx, user_id, "strava").await?;
+    if let Some(access) = c.access_token_enc.as_deref() {
+        crate::jobs::enqueue(
+            &mut *tx,
+            STRAVA_DEAUTHORIZE,
+            &serde_json::json!({
+                "access_token_enc": to_hex(access),
+                "refresh_token_enc": c.refresh_token_enc.as_deref().map(to_hex),
+                "token_expires_at": c.token_expires_at,
+            }),
+            None,
+        )
+        .await?;
+    }
+    Ok(true)
+}
+
 pub struct NewActivity {
     pub external_id: Option<String>,
     pub sport: String,

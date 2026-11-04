@@ -332,6 +332,10 @@ async fn revoke_consent(
     let mut tx = state.db.begin().await?;
     db::revoke_consent(&mut *tx, id).await?;
     rematch_after_sharing(&mut tx, auth.user_id, &c.kind).await?;
+    // A Strava sync no club can see any more is disconnected (D-011, § Strava sharing).
+    if c.kind.starts_with("share_") {
+        runflow_db::providers::enforce_sharing(&mut tx, auth.user_id).await?;
+    }
     tx.commit().await?;
     sharing_changed(&state, c.club_id).await;
     Ok(StatusCode::NO_CONTENT)

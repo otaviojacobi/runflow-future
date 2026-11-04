@@ -95,6 +95,8 @@ export default function register(h) {
     c.deleted_at = now; c.updated_at = now;
     for (const sub of h.db.club_subscriptions.filter((x) => x.club_id === c.id && x.status !== "canceled")) Object.assign(sub, { status: "canceled", cancel_at_period_end: false, updated_at: now });
     for (const inv of h.db.invitations.filter((x) => x.club_id === c.id && !x.revoked_at)) inv.revoked_at = now;
+    // Its students' Strava syncs that no other club sees are disconnected (D-011).
+    for (const m of h.db.memberships.filter((x) => x.club_id === c.id && x.role === "student")) h.enforceStravaSharing(m.user_id);
     h.db.audit_log.push({ id: h.db.audit_log.length + 1, club_id: c.id, actor_user_id: ctx.user().id, action: "club.closed", target_type: "club", target_id: c.id, data: null, created_at: now });
   });
 

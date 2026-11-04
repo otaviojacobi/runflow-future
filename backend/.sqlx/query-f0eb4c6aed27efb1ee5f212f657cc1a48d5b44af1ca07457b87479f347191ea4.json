@@ -1,0 +1,59 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.access_token_enc, c.refresh_token_enc, c.token_expires_at,\n                  EXISTS (SELECT 1 FROM memberships m JOIN clubs k ON k.id = m.club_id\n                           WHERE m.user_id = c.user_id AND m.role = 'student' AND m.status = 'active' AND k.deleted_at IS NULL\n                             AND EXISTS (SELECT 1 FROM consents s WHERE s.user_id = m.user_id AND s.club_id = m.club_id\n                                            AND s.kind = 'share_training_data' AND s.revoked_at IS NULL)\n                             AND EXISTS (SELECT 1 FROM consents s WHERE s.user_id = m.user_id AND s.club_id = m.club_id\n                                            AND s.kind = 'share_strava' AND s.revoked_at IS NULL)) AS \"visible!\"\n             FROM provider_connections c\n            WHERE c.user_id = $1 AND c.provider = 'strava' AND c.status <> 'revoked'",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "access_token_enc",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "access_token_enc"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "refresh_token_enc",
+        "type_info": "Bytea",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "refresh_token_enc"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "token_expires_at",
+        "type_info": "Timestamptz",
+        "origin": {
+          "Table": {
+            "table": "provider_connections",
+            "name": "token_expires_at"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "visible!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      null
+    ]
+  },
+  "hash": "f0eb4c6aed27efb1ee5f212f657cc1a48d5b44af1ca07457b87479f347191ea4"
+}

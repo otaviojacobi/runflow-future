@@ -84,6 +84,65 @@ async fn fake_strava() -> (String, Arc<Mutex<Fake>>) {
     (url, fake)
 }
 
+/// A new club (immediate release) owned by `owner`'s account → its id.
+async fn club(app: &TestApp, owner: &str, name: &str) -> String {
+    let id = app
+        .post(
+            "/v1/clubs",
+            Some(owner),
+            json!({ "name": name, "modalities": ["run"] }),
+        )
+        .await
+        .body["club"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    app.patch(
+        &format!("/v1/clubs/{id}"),
+        Some(owner),
+        json!({ "release_mode": "immediate" }),
+    )
+    .await
+    .ok();
+    id
+}
+
+/// `email` joins `club` as a student through an invite → (their token, their membership id). Only students connect
+/// Strava (D-011).
+async fn student(app: &TestApp, owner: &str, club: &str, email: &str) -> (String, String) {
+    let token = app.sign_in(email).await;
+    let membership = join(app, owner, club, email, &token).await;
+    (token, membership)
+}
+
+/// The signed-in `email` (`token`) accepts an invite to `club` as a student → the membership id.
+async fn join(app: &TestApp, owner: &str, club: &str, email: &str, token: &str) -> String {
+    let invite = app
+        .post(
+            &format!("/v1/clubs/{club}/invites"),
+            Some(owner),
+            json!({ "email": email }),
+        )
+        .await;
+    let link = invite.body["url"]
+        .as_str()
+        .unwrap()
+        .rsplit('/')
+        .next()
+        .unwrap()
+        .to_string();
+    app.post(
+        &format!("/v1/invites/{link}/accept"),
+        Some(token),
+        json!({}),
+    )
+    .await
+    .body["membership"]["id"]
+        .as_str()
+        .unwrap()
+        .to_string()
+}
+
 async fn connect(app: &TestApp, token: &str) -> Value {
     let start = app
         .post("/v1/me/connections/strava/start", Some(token), json!({}))
@@ -103,7 +162,9 @@ async fn connect(app: &TestApp, token: &str) -> Value {
 async fn connect_sync_and_disconnect(db: PgPool) {
     let (url, fake) = fake_strava().await;
     let app = TestApp::new(db).with_strava(&url);
-    let ana = app.sign_in("ana@email.com").await;
+    let owner = app.sign_in("marcos@email.com").await;
+    let pace = club(&app, &owner, "Pace Forte").await;
+    let (ana, _) = student(&app, &owner, &pace, "ana@email.com").await;
 
     let conns = app.get("/v1/me/connections", Some(&ana)).await;
     assert_eq!(
@@ -158,7 +219,7 @@ async fn connect_sync_and_disconnect(db: PgPool) {
     )
     .await
     .problem(400, "strava.state_invalid");
-    let bia = app.sign_in("bia@email.com").await;
+    let (bia, _) = student(&app, &owner, &pace, "bia@email.com").await;
     app.post(cb, Some(&bia), json!({ "code": "good", "state": state }))
         .await
         .problem(400, "strava.state_invalid");
@@ -268,7 +329,9 @@ async fn connect_sync_and_disconnect(db: PgPool) {
 async fn webhooks_refresh_and_athlete_revocation(db: PgPool) {
     let (url, fake) = fake_strava().await;
     let app = TestApp::new(db).with_strava(&url);
-    let ana = app.sign_in("ana@email.com").await;
+    let owner = app.sign_in("marcos@email.com").await;
+    let pace = club(&app, &owner, "Pace Forte").await;
+    let (ana, _) = student(&app, &owner, &pace, "ana@email.com").await;
     connect(&app, &ana).await;
     app.run_jobs().await;
 
@@ -405,6 +468,174 @@ async fn without_strava_config_and_manual_activities(db: PgPool) {
             .status,
         204
     );
+}
+
+/// D-011, § Strava sharing: only students connect; connecting shares Strava with every club where they're a student;
+/// a sync that no club can see any more is disconnected (deleted here, deauthorized at Strava).
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn strava_needs_a_club_and_follows_sharing(db: PgPool) {
+    let (url, fake) = fake_strava().await;
+    let app = TestApp::new(db).with_strava(&url);
+    let owner = app.sign_in("marcos@email.com").await;
+    let pace = club(&app, &owner, "Pace Forte").await;
+    let mare_owner = app.sign_in("renata@email.com").await;
+    let mare = club(&app, &mare_owner, "Equipe Maré").await;
+
+    // Staff only (no student membership): no Strava, at start and at the callback.
+    app.post("/v1/me/connections/strava/start", Some(&owner), json!({}))
+        .await
+        .problem(409, "strava.no_club");
+    app.post(
+        "/v1/me/connections/strava/callback",
+        Some(&owner),
+        json!({ "code": "good", "state": "x.y" }),
+    )
+    .await
+    .problem(400, "strava.state_invalid");
+
+    // Ana trains with both clubs and hasn't consented to anything yet: connecting shares with both.
+    let (ana, _) = student(&app, &owner, &pace, "ana@email.com").await;
+    join(&app, &mare_owner, &mare, "ana@email.com", &ana).await;
+    connect(&app, &ana).await;
+    app.run_jobs().await;
+    let active = |kind: &'static str| {
+        let app = &app;
+        let ana = ana.clone();
+        async move {
+            let mut clubs: Vec<String> = app.get("/v1/me/consents", Some(&ana)).await.ok()["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .filter(|c| c["kind"] == kind && c["revoked_at"].is_null())
+                .map(|c| c["club_id"].as_str().unwrap().to_string())
+                .collect();
+            clubs.sort();
+            clubs
+        }
+    };
+    let mut both = vec![pace.clone(), mare.clone()];
+    both.sort();
+    assert_eq!(active("share_training_data").await, both);
+    assert_eq!(active("share_strava").await, both);
+    let synced = || async {
+        app.get("/v1/me/activities", Some(&ana)).await.ok()["items"]
+            .as_array()
+            .unwrap()
+            .len()
+    };
+    assert_eq!(synced().await, 2);
+    let consent = |kind: &'static str, club: String| {
+        let app = &app;
+        let ana = ana.clone();
+        async move {
+            app.get("/v1/me/consents", Some(&ana)).await.ok()["items"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|c| {
+                    c["kind"] == kind && c["club_id"] == club.as_str() && c["revoked_at"].is_null()
+                })
+                .unwrap()["id"]
+                .as_str()
+                .unwrap()
+                .to_string()
+        }
+    };
+
+    // Stopping Strava sharing with one club: Equipe Maré still sees it, the connection stays.
+    let id = consent("share_strava", pace.clone()).await;
+    assert_eq!(
+        app.delete(&format!("/v1/me/consents/{id}"), Some(&ana))
+            .await
+            .status,
+        204
+    );
+    app.run_jobs().await;
+    let conns = app.get("/v1/me/connections", Some(&ana)).await;
+    assert_eq!(conns.ok()["items"][0]["connection"]["status"], "active");
+    assert_eq!(synced().await, 2);
+    assert!(
+        !fake
+            .lock()
+            .unwrap()
+            .calls
+            .contains(&"deauthorize".to_string())
+    );
+
+    // Stopping training-data sharing with the last club that saw it: nobody sees the sync, so it's disconnected.
+    let id = consent("share_training_data", mare.clone()).await;
+    assert_eq!(
+        app.delete(&format!("/v1/me/consents/{id}"), Some(&ana))
+            .await
+            .status,
+        204
+    );
+    app.run_jobs().await;
+    assert_eq!(
+        app.get("/v1/me/connections", Some(&ana)).await.ok()["items"][0]["connection"],
+        Value::Null
+    );
+    assert_eq!(synced().await, 0);
+    assert!(active("share_strava").await.is_empty());
+    assert!(
+        fake.lock()
+            .unwrap()
+            .calls
+            .contains(&"deauthorize".to_string()),
+        "Strava told too"
+    );
+}
+
+/// D-011: being suspended by the owner, or the club closing, leaves no club seeing the sync → disconnected.
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn suspension_and_closing_disconnect_strava(db: PgPool) {
+    let (url, _fake) = fake_strava().await;
+    let app = TestApp::new(db).with_strava(&url);
+    let owner = app.sign_in("marcos@email.com").await;
+    let pace = club(&app, &owner, "Pace Forte").await;
+    let (ana, member) = student(&app, &owner, &pace, "ana@email.com").await;
+    connect(&app, &ana).await;
+    app.run_jobs().await;
+    let connected = |token: String| {
+        let app = &app;
+        async move {
+            !app.get("/v1/me/connections", Some(&token)).await.ok()["items"][0]["connection"]
+                .is_null()
+        }
+    };
+    assert!(connected(ana.clone()).await);
+    app.patch(
+        &format!("/v1/clubs/{pace}/members/{member}"),
+        Some(&owner),
+        json!({ "status": "suspended" }),
+    )
+    .await
+    .ok();
+    assert!(!connected(ana.clone()).await, "suspended: disconnected");
+
+    // Reactivated, connected again; then the owner closes the club.
+    app.patch(
+        &format!("/v1/clubs/{pace}/members/{member}"),
+        Some(&owner),
+        json!({ "status": "active" }),
+    )
+    .await
+    .ok();
+    connect(&app, &ana).await;
+    assert!(connected(ana.clone()).await);
+    assert_eq!(
+        app.call(
+            axum::http::Method::DELETE,
+            &format!("/v1/clubs/{pace}"),
+            Some(&owner),
+            Some(json!({ "confirm_name": "Pace Forte" })),
+            &[],
+        )
+        .await
+        .status,
+        204
+    );
+    assert!(!connected(ana.clone()).await, "club closed: disconnected");
 }
 
 /// R3 (D-049): synced runs are matched to the plan by the worker, and a better fit arriving later takes the workout.

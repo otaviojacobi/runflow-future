@@ -27,6 +27,8 @@ pub use invite_email::INVITE_EMAIL;
 pub use push_jobs::PUSH_SEND;
 /// A matching pass for one student (D-049): `{user_id, from, to}`.
 pub use runflow_db::matching::JOB as MATCH_ACTIVITIES;
+/// Deauthorize at Strava after an automatic disconnect (D-011): the encrypted tokens.
+pub use runflow_db::providers::STRAVA_DEAUTHORIZE;
 pub use strava_jobs::{STRAVA_EVENT, STRAVA_SYNC};
 
 const MAX_ATTEMPTS: i32 = 8;
@@ -270,6 +272,7 @@ impl Worker {
             INVITE_EMAIL => invite_email::run(self, &job.payload).await,
             STRAVA_SYNC => strava_jobs::sync(self, &job.payload).await,
             STRAVA_EVENT => strava_jobs::event(self, &job.payload).await,
+            STRAVA_DEAUTHORIZE => strava_jobs::deauthorize(self, &job.payload).await,
             STRIPE_EVENT => billing_jobs::event(self, &job.payload).await,
             STRIPE_SEATS => billing_jobs::seats(self, &job.payload).await,
             PUSH_SEND => push_jobs::send(self, &job.payload).await,

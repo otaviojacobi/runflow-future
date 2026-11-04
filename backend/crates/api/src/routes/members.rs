@@ -194,9 +194,12 @@ async fn update(
     {
         crate::access::ensure_seat(&state, me.club_id, next_role, 1).await?;
     }
-    db::update(&state.db, t.id, role.as_deref(), status.as_deref()).await?;
+    let mut tx = state.db.begin().await?;
+    db::update(&mut *tx, t.id, role.as_deref(), status.as_deref()).await?;
+    // Suspended (or no longer a student): a Strava sync no other club sees is disconnected (D-011).
+    runflow_db::providers::enforce_sharing(&mut tx, t.user_id).await?;
     runflow_db::clubs::audit(
-        &state.db,
+        &mut *tx,
         Some(me.club_id),
         auth.user_id,
         "member.updated",
@@ -204,6 +207,7 @@ async fn update(
         t.id,
     )
     .await?;
+    tx.commit().await?;
     crate::routes::billing::seats_changed(&state, me.club_id).await?;
     Ok(Json(row(&state, me.club_id, t.id).await?))
 }
@@ -225,6 +229,8 @@ async fn remove(
     }
     let mut tx = state.db.begin().await?;
     db::leave(&mut tx, t.id, false).await?;
+    // A Strava sync no other club sees is disconnected (D-011).
+    runflow_db::providers::enforce_sharing(&mut tx, t.user_id).await?;
     runflow_db::clubs::audit(
         &mut *tx,
         Some(me.club_id),
@@ -256,8 +262,10 @@ async fn leave(
     }
     let mut tx = state.db.begin().await?;
     db::leave(&mut tx, me.membership_id, true).await?;
-    // Leaving revokes the club's sharing consents: automatic links to its workouts go (D-011, D-049).
+    // Leaving revokes the club's sharing consents: automatic links to its workouts go (D-011, D-049), and a Strava
+    // sync no other club sees is disconnected.
     crate::routes::me::rematch_after_sharing(&mut tx, auth.user_id, "share_training_data").await?;
+    runflow_db::providers::enforce_sharing(&mut tx, auth.user_id).await?;
     runflow_db::clubs::audit(
         &mut *tx,
         Some(me.club_id),

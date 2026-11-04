@@ -390,6 +390,10 @@ async fn close(
     }
     let mut tx = state.db.begin().await?;
     db::close_club(&mut tx, club.id).await?;
+    // Its students' Strava syncs that no other club sees are disconnected (D-011, § Strava sharing).
+    for user in runflow_db::providers::connected_students(&mut *tx, club.id).await? {
+        runflow_db::providers::enforce_sharing(&mut tx, user).await?;
+    }
     db::audit(
         &mut *tx,
         Some(club.id),

@@ -83,6 +83,36 @@ async fn access_token(w: &Worker, c: &Connection) -> Result<String, JobError> {
     Ok(t.access_token)
 }
 
+/// `strava.deauthorize`: Strava is told a connection ended that the person didn't end themselves (no club could see
+/// the sync any more, `providers::enforce_sharing`). The data is already gone; this only revokes our access on
+/// Strava's side, refreshing the token first when it expired. Strava refusing the token means it's already revoked.
+pub(crate) async fn deauthorize(w: &Worker, payload: &Value) -> Result<(), JobError> {
+    let Some(s) = w.strava.as_ref() else {
+        return Ok(());
+    };
+    let dec = |key: &str| -> Option<String> {
+        let raw = providers::from_hex(payload[key].as_str()?)?;
+        String::from_utf8(s.cipher.decrypt(&raw).ok()?).ok()
+    };
+    let fresh = payload["token_expires_at"]
+        .as_str()
+        .and_then(|t| chrono::DateTime::parse_from_rfc3339(t).ok())
+        .is_some_and(|t| t > Utc::now() + Duration::minutes(2));
+    let token = match (fresh, dec("access_token_enc"), dec("refresh_token_enc")) {
+        (true, Some(t), _) | (false, Some(t), None) => t,
+        (false, _, Some(r)) => match s.client.refresh(&r).await {
+            Ok(t) => t.access_token,
+            Err(StravaError::Rejected(..)) => return Ok(()),
+            Err(e) => return Err(strava_err(e)),
+        },
+        _ => return Ok(()),
+    };
+    match s.client.deauthorize(&token).await {
+        Ok(()) | Err(StravaError::Rejected(..)) => Ok(()),
+        Err(e) => Err(strava_err(e)),
+    }
+}
+
 /// Mark the connection broken when Strava refuses our tokens (the person revoked access, or it expired).
 async fn fail_connection(w: &Worker, c: &Connection, e: JobError) -> Result<(), JobError> {
     if !e.retry {

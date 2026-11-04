@@ -35,6 +35,16 @@ pub fn routes() -> Router<AppState> {
         .route("/me/activities/{id}/match", put(choose))
 }
 
+/// Only a club's student connects Strava: the connection exists for their trainers (D-011, § Strava sharing).
+fn no_club() -> Problem {
+    Problem::new(
+        StatusCode::CONFLICT,
+        "strava.no_club",
+        "Entre em um clube para conectar o Strava",
+        "A conexão com o Strava existe para os seus treinadores acompanharem seus treinos. Peça o convite ao seu clube.",
+    )
+}
+
 fn unavailable() -> Problem {
     Problem::new(
         StatusCode::SERVICE_UNAVAILABLE,
@@ -100,6 +110,9 @@ async fn strava_start(
         Some("app") => true,
         Some(_) => return Err(Problem::field("client", "Cliente inválido.")),
     };
+    if !db::is_student(&state.db, auth.user_id).await? {
+        return Err(no_club());
+    }
     let st = sign_state(&state, auth.user_id, Utc::now().timestamp() + STATE_TTL_S);
     let web = state.settings.public_app_url.trim_end_matches('/');
     let (authorize_url, redirect) = if app {
@@ -164,6 +177,9 @@ async fn strava_callback(
             "Marque a permissão de atividades ao autorizar no Strava.",
         ));
     }
+    if !db::is_student(&state.db, auth.user_id).await? {
+        return Err(no_club());
+    }
     let tokens = client.exchange_code(&code).await.map_err(|e| {
         tracing::info!(error = %e, "strava code exchange failed");
         denied()
@@ -173,8 +189,11 @@ async fn strava_callback(
         .timestamp_opt(tokens.expires_at, 0)
         .single()
         .unwrap_or_else(Utc::now);
+    // The connection, sharing it with every club where the person is a student (D-011) and the first import commit
+    // together.
+    let mut tx = state.db.begin().await?;
     let row = db::upsert_connection(
-        &state.db,
+        &mut *tx,
         db::NewConnection {
             user_id: auth.user_id,
             provider: "strava",
@@ -203,12 +222,22 @@ async fn strava_callback(
         }
         Err(e) => return Err(e.into()),
     };
+    let shared =
+        db::share_with_student_clubs(&mut tx, auth.user_id, runflow_db::auth::TERMS_VERSION)
+            .await?;
     runflow_jobs::enqueue(
-        &state.db,
+        &mut *tx,
         runflow_jobs::STRAVA_SYNC,
         json!({ "connection_id": id, "days": 30 }),
     )
     .await?;
+    tx.commit().await?;
+    // Those clubs' cached reads (dashboard, report) now see the student's sync.
+    if !shared.is_empty()
+        && let Err(e) = runflow_kv::cache::bump(&state.kv, &shared).await
+    {
+        tracing::warn!(error = %e, "cache: version bump failed; reads refresh at their TTL");
+    }
     let c = db::connection_by_id(&state.db, id)
         .await?
         .ok_or_else(Problem::internal)?;

@@ -96,6 +96,11 @@ stay allowed, but staff still don't see the activity itself without the consent 
 automatic links follow the switch both ways; the club's cached dashboard and report are dropped at once. Turning a
 switch off asks first in both apps, and the club sees it on the dashboard for 14 days (`sharing_off`).
 
+Strava's sharing is also what the connection is for (founder, 2026-11-04; endpoints.md § Strava sharing): connecting
+requires being a club's student and shares Strava with every such club, and a revoke, a leave, a suspension, a removal
+or a closed club that leaves no club seeing the sync disconnects Strava (its activities deleted, so the automatic
+completions they made go too, unless the student had reported on them).
+
 ## Why not more signals
 
 Pace, heart rate and lap structure could tell intervals from an easy run, but they aren't comparable across watches
