@@ -1,5 +1,5 @@
 /** W4 · Planejamento: students × week grid. Route: /planning */
-import { Check, ChevronLeft, ChevronRight, Copy, EyeOff, Flag, MessageSquare, Minus, Plus, Printer, Search, Sparkles, Star, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, CircleDashed, Copy, EyeOff, Flag, MessageSquare, Minus, Plus, Printer, Search, Sparkles, Star, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAthletes, useGroups } from "@/api/members";
 import { useRaces } from "@/api/races";
@@ -23,13 +23,15 @@ function Chip({ w, onOpen, today }: { w: PlannedWorkout; onOpen: () => void; tod
   const pending = !st && w.date < today;
   return (
     <button type="button" draggable onDragStart={(e) => { e.dataTransfer.setData("text/plain", `${w.id}|${w.athlete_membership_id}`); e.dataTransfer.effectAllowed = "move"; }} onClick={onOpen}
-      className={cn("group relative flex w-full items-center gap-1 overflow-hidden rounded-[8px] py-1.5 pl-2.5 pr-1.5 text-left text-[11.5px] font-semibold leading-tight transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-brand-ring", sportSoft[w.sport], pending && "opacity-60", !w.visible && "border border-dashed border-line-strong")}
+      className={cn("group relative flex w-full items-center gap-1 overflow-hidden rounded-[8px] py-1.5 pl-2.5 pr-1.5 text-left text-[11.5px] font-semibold leading-tight transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-brand-ring", sportSoft[w.sport], !w.visible && "border border-dashed border-line-strong")}
       title={w.visible ? w.title : `${w.title} · ${t("rascunho: o aluno ainda não vê")}`}>
       <span aria-hidden className={cn("absolute inset-y-0 left-0 w-[3px]", sportBar[w.sport])} />
       <span className="line-clamp-2 min-w-0 flex-1">{w.title}</span>
       {!w.visible && <EyeOff className="size-3 shrink-0 opacity-70" aria-label={t("Rascunho")} />}
       {w.unread_count > 0 && <span className="grid size-4 shrink-0 place-items-center rounded-full bg-danger text-[9px] font-bold text-on-danger" aria-label={t("{n} comentário(s) novo(s)", { n: w.unread_count })}>{w.unread_count}</span>}
       {w.unread_count === 0 && w.comments_count > 0 && <MessageSquare className="size-3 shrink-0 opacity-70" />}
+      {/* Past with nothing recorded yet: an icon, not a faded chip (fading failed the text contrast). */}
+      {pending && <CircleDashed className="size-3.5 shrink-0 opacity-70" aria-label={t("Sem registro")} />}
       {Icon && <Icon className={cn("size-3.5 shrink-0 stroke-[3]", st === "completed" ? "text-success-text" : st === "partial" ? "text-warning-text" : "text-danger-text")} aria-label={t(st === "completed" ? "Concluído" : st === "partial" ? "Parcial" : "Não realizado")} />}
     </button>
   );
