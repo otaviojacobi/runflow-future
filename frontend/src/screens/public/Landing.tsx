@@ -16,7 +16,7 @@ import { SPORT_ICON, SPORT_LABEL, SportChip } from "@/components/sport";
 import { IntensityProfile, zoneBg } from "@/components/workout";
 import { parseQuickText } from "@/domain/quicktext";
 import { estimate, segments, stepText, type Step } from "@/domain/workout";
-import { t } from "@/i18n";
+import { t, tn } from "@/i18n";
 import { activeMembership, homeFor, selectClub } from "@/lib/club";
 import { distance, duration } from "@/lib/format";
 import { session } from "@/lib/session";
@@ -174,7 +174,7 @@ function BuilderDemo() {
         <textarea ref={box} id="demo-qt" rows={2} value={text} onChange={(e) => setText(e.target.value)} spellCheck={false} className="w-full resize-none overflow-hidden rounded-md border border-line-strong bg-sunken px-3 py-2.5 font-mono text-[15px] focus:border-brand-ring focus:bg-surface focus:outline-none focus:ring-3 focus:ring-brand-ring/25" />
         {warnings.length > 0 && <p className="text-sm text-warning-text">{t("Não entendi: {x}", { x: warnings.join(", ") })}</p>}
         <IntensityProfile structure={structure} sport="run" height={64} />
-        <div className="flex gap-6"><div><div className="text-xs text-fg-muted">{t("Duração")}</div><div className="font-display text-2xl font-bold tabular-nums [font-stretch:110%]">{est.duration_s ? duration(est.duration_s) : "–"}</div></div><div><div className="text-xs text-fg-muted">{t("Distância")}</div><div className="font-display text-2xl font-bold tabular-nums [font-stretch:110%]">{est.distance_m ? distance(est.distance_m) : "–"}</div></div><div className="ml-auto self-end text-xs text-fg-muted">{zones.length} {t("etapas")}</div></div>
+        <div className="flex gap-6"><div><div className="text-xs text-fg-muted">{t("Duração")}</div><div className="font-display text-2xl font-bold tabular-nums [font-stretch:110%]">{est.duration_s ? duration(est.duration_s) : "–"}</div></div><div><div className="text-xs text-fg-muted">{t("Distância")}</div><div className="font-display text-2xl font-bold tabular-nums [font-stretch:110%]">{est.distance_m ? distance(est.distance_m) : "–"}</div></div><div className="ml-auto self-end text-xs text-fg-muted">{tn(zones.length, "{n} etapa", "{n} etapas")}</div></div>
         <ol className="grid gap-1.5">
           {flat.map((s, i) => <li key={i} className="flex items-center gap-2.5 text-sm"><i className={cn("size-2.5 shrink-0 rounded-[3px]", zoneBg[zones.find((z) => z.intent === s.intent)?.zone ?? 2])} /><span className="font-mono text-xs text-fg-muted">{s.note?.endsWith("×") ? s.note : ""}</span>{stepText({ ...s, note: undefined }, "run")}</li>)}
         </ol>
