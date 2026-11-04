@@ -52,7 +52,7 @@ export interface KindPref { push: boolean }
 export interface NotificationPrefs { kinds: Record<NotificationKind, KindPref>; paused: boolean }
 export type PrefsPatch = { kinds?: Partial<Record<NotificationKind, KindPref>>; paused?: boolean };
 export interface Me { user: User; memberships: MembershipContext[]; prefs: NotificationPrefs | null; unread_notifications: number }
-export type NotificationKind = "workout_assigned" | "workout_changed" | "week_released" | "comment" | "feedback" | "member_joined" | "billing" | "message" | "announcement";
+export type NotificationKind = "workout_assigned" | "workout_changed" | "week_released" | "comment" | "feedback" | "member_joined" | "billing" | "message" | "announcement" | "class_cancelled" | "waitlist_promoted";
 export interface AppNotification { id: ID; user_id: ID; club_id: ID | null; kind: NotificationKind; title: string; body: string | null; link: string | null; read_at: ISOTime | null; created_at: ISOTime }
 export interface UserSession { id: ID; kind: "web" | "mobile"; user_agent: string | null; created_at: ISOTime; last_seen_at: ISOTime; current: boolean }
 export interface AuthResult { token: string; user: User; is_new: boolean }
@@ -134,6 +134,8 @@ export interface MyWorkoutDetail extends PlannedWorkout { activity: Activity | n
 export interface MySummary {
   shares_data: boolean; streak_weeks: number; week: { planned: number; done: number; duration_s: number; distance_m: number };
   last_activity: Activity | null;
+  /** The student's next booked or waitlisted class (Aulas, D-052), or null. */
+  next_class: { booking: Booking; session: ClassSessionRow; class_type: ClassType; location: Venue | null } | null;
 }
 
 export interface AthleteRef { membership_id: ID; user: User }
@@ -152,6 +154,8 @@ export interface Dashboard {
   compliance_trend: { week_start: ISODate; pct: number | null; planned: number; done: number; current: boolean }[];
   feedback: { workout: PlannedWorkout; athlete: AthleteRef; last_comment: Omit<Comment, "author"> | null }[];
   alerts: { kind: "missed_streak" | "high_rpe" | "no_sync" | "birthday" | "new_member" | "plan_limit" | "sharing_off"; severity: "danger" | "warning" | "info" | "accent" | "brand"; athlete: AthleteRef | null; text: string; link: string }[];
+  /** The next 3 scheduled classes (Aulas, D-052); empty without Aulas. */
+  upcoming_classes: { session: ClassSessionRow; class_type: ClassType; booked: number; waitlist: number }[];
   onboarding: { logo: boolean; colors: boolean; students: boolean; workouts: boolean; groups: boolean; strava: boolean };
   subscription: Subscription;
 }
@@ -216,6 +220,35 @@ export interface TrainingReport {
   totals: { athletes: number; planned: number; done: number; partial: number; missed: number; compliance_pct: number | null; planned_s: number; done_s: number; distance_m: number; sharing: number };
   weekly: { week_start: ISODate; pct: number | null; planned: number; done: number; current: boolean }[];
   athletes: { membership_id: ID; user: User; group_ids: ID[]; planned: number; done: number; partial: number; missed: number; compliance_pct: number | null; planned_s: number; shares_data: boolean; activities: number | null; done_s: number | null; distance_m: number | null }[];
+}
+
+// ---- Aulas (D-052; api/endpoints.md § Aulas)
+export type VenueKind = "track" | "pool" | "gym" | "park" | "studio" | "other";
+export interface Venue { id: ID; club_id: ID; name: string; kind: VenueKind; address: string | null; lanes: number | null; created_at: ISOTime; archived_at: ISOTime | null }
+export interface ClassType { id: ID; club_id: ID; name: string; sport: Sport; description: string | null; default_capacity: number; duration_min: number; created_at: ISOTime; archived_at: ISOTime | null }
+export interface ClassSchedule {
+  id: ID; club_id: ID; class_type_id: ID; location_id: ID | null; instructor_membership_id: ID | null;
+  weekday: number; start_time: string; duration_min: number; capacity: number; valid_from: ISODate; valid_until: ISODate | null; created_at: ISOTime;
+  class_type: ClassType; location: Venue | null; instructor: User | null;
+}
+export type BookingStatus = "booked" | "waitlisted" | "cancelled" | "attended" | "no_show";
+export interface Booking { id: ID; session_id: ID; membership_id: ID; status: BookingStatus; waitlist_position: number | null; checked_in_at: ISOTime | null; created_at: ISOTime; updated_at: ISOTime }
+/** A session's own columns (without the check-in code, which only staff get). */
+export interface ClassSessionRow {
+  id: ID; club_id: ID; class_type_id: ID; schedule_id: ID | null; location_id: ID | null; instructor_membership_id: ID | null;
+  starts_at: ISOTime; ends_at: ISOTime; capacity: number; status: "scheduled" | "cancelled"; cancel_reason: string | null; notes: string | null; created_at: ISOTime;
+}
+export interface ClassSession extends ClassSessionRow {
+  class_type: ClassType; location: Venue | null; instructor: User | null; booked: number; waitlist: number; my_booking: Booking | null;
+}
+export interface RosterEntry extends Booking { athlete: { membership_id: ID; user: User } }
+/** Staff GET adds the roster and the check-in code and link (shown as a QR at the venue). */
+export interface ClassSessionDetail extends ClassSession { roster?: RosterEntry[]; checkin_code?: string; checkin_url?: string }
+export interface AttendanceReport {
+  from: ISODate; to: ISODate;
+  totals: { sessions: number; cancelled: number; booked: number; attended: number; no_show: number; occupancy_pct: number | null; attendance_pct: number | null };
+  by_type: { class_type: { id: ID; name: string; sport: Sport }; sessions: number; cancelled: number; capacity: number; booked: number; attended: number; no_show: number; occupancy_pct: number | null; attendance_pct: number | null }[];
+  athletes: { membership_id: ID; user: User; booked: number; attended: number; no_show: number; attendance_pct: number | null }[];
 }
 
 // ---- exercise library (F28)

@@ -1,5 +1,5 @@
 import {
-  Activity, BarChart3, Calendar, CalendarRange, ClipboardList, CreditCard, Dumbbell, Flag, Gauge, LayoutDashboard, Library, MessageCircle, MessageSquare,
+  Activity, BarChart3, Calendar, CalendarClock, CalendarRange, ClipboardList, CreditCard, Dumbbell, Flag, Gauge, LayoutDashboard, Library, MessageCircle, MessageSquare,
   Palette, Settings, Sun, User, UserCog, Users, type LucideIcon,
 } from "lucide-react";
 import type { MembershipContext, Role, Sport } from "@/api/types";
@@ -17,6 +17,7 @@ const STAFF_MAIN: NavItem[] = [
   { to: "/dashboard", label: "Painel", icon: LayoutDashboard, tab: true },
   { to: "/students", label: "Alunos", icon: Users, tab: true },
   { to: "/planning", label: "Planejamento", icon: CalendarRange, tab: true },
+  { to: "/classes/manage", label: "Aulas", icon: CalendarClock, feature: "classes" },
   { to: "/feedback", label: "Feedbacks", icon: MessageSquare, tab: true },
   { to: "/messages", label: "Mensagens", icon: MessageCircle },
 ];
@@ -39,6 +40,7 @@ const OWNER: NavItem[] = [
 const STUDENT: NavItem[] = [
   { to: "/today", label: "Hoje", icon: Sun, tab: true },
   { to: "/schedule", label: "Agenda", icon: Calendar, tab: true },
+  { to: "/classes", label: "Aulas", icon: CalendarClock, inProfile: true, feature: "classes" },
   { to: "/messages", label: "Mensagens", icon: MessageCircle, tab: true },
   { to: "/races", label: "Provas", icon: Flag, inProfile: true, feature: "races" },
   { to: "/activities", label: "Atividades", icon: Activity, inProfile: true, sidebar: false, feature: "strava" },

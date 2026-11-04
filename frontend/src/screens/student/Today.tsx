@@ -1,10 +1,11 @@
 /** M1 · Hoje (student home). Route: /today */
 import { Link } from "@tanstack/react-router";
-import { ChevronRight, CircleCheck, Coffee, Flame, MessageSquare, ShieldAlert } from "lucide-react";
+import { CalendarClock, ChevronRight, CircleCheck, Coffee, Flame, MapPin, MessageSquare, ShieldAlert } from "lucide-react";
 import { useState } from "react";
 import { usePendingMatches } from "@/api/activities";
 import { useMySummary, useMyWorkouts } from "@/api/my";
-import type { PlannedWorkout } from "@/api/types";
+import type { Club, MySummary, PlannedWorkout } from "@/api/types";
+import { BookingBadge, checkinOpen } from "@/components/classes";
 import { PoweredByStrava } from "@/components/strava";
 import { MatchQuestion } from "@/components/ActivityMatch";
 import { FeedbackDialog } from "@/components/FeedbackDialog";
@@ -14,7 +15,7 @@ import { WeekStrip, type DayState } from "@/components/week";
 import { t, tn } from "@/i18n";
 import { useClub } from "@/lib/club";
 import { has } from "@/lib/features";
-import { addDays, distance, duration, km, longDate, mondayOf, pace, shortDate, today as todayFn } from "@/lib/format";
+import { addDays, distance, duration, km, localDate, longDate, mondayOf, pace, shortDate, timeOf, today as todayFn } from "@/lib/format";
 import { Button, ButtonLink, Card, Skeleton } from "@/ui";
 import { FEELING } from "../staff/planning/WorkoutDialogs";
 
@@ -88,6 +89,7 @@ export function TodayScreen() {
           <Card className="flex items-center gap-4 p-5"><span className="grid size-12 place-items-center rounded-full bg-soft"><Coffee className="size-6 text-fg-muted" /></span><div><div className="font-semibold">{t("Dia de descanso")}</div><p className="text-sm text-fg-muted">{selected >= today ? t("Recuperar também é treino. Aproveite!") : t("Nenhum treino neste dia.")}</p></div></Card>
         )}
       </section>
+      {has(club, "classes") && s?.next_class && <NextClass club={club} c={s.next_class} />}
       {s && s.week.planned > 0 && (
         <Card className="grid gap-3 p-4">
           <div className="flex items-center justify-between"><h2 className="rf-text-title-sm">{t("Sua semana")}</h2><Link to="/schedule" className="flex items-center text-sm font-semibold text-brand-text">{t("Agenda")}<ChevronRight className="size-4" /></Link></div>
@@ -112,5 +114,25 @@ export function TodayScreen() {
       )}
       {feedback && <FeedbackDialog clubId={club.id} workout={feedback} open={!!feedback} onOpenChange={(v) => !v && setFeedback(null)} />}
     </div>
+  );
+}
+
+/** Hoje's next class (Aulas, D-052): when, where, the booking (or waitlist place), and the check-in when it's open. */
+function NextClass({ club, c }: { club: Club; c: NonNullable<MySummary["next_class"]> }) {
+  const open = c.booking.status === "booked" && checkinOpen(c.session);
+  return (
+    <Card className="grid gap-3 p-4">
+      <div className="flex items-center justify-between"><h2 className="rf-text-title-sm">{t("Próxima aula")}</h2><Link to="/classes" search={{}} className="flex items-center text-sm font-semibold text-brand-text">{t("Aulas")}<ChevronRight className="size-4" aria-hidden /></Link></div>
+      <div className="flex items-start gap-3">
+        <span className="grid size-11 shrink-0 place-items-center rounded-full bg-soft"><CalendarClock className="size-5 text-fg-muted" aria-hidden /></span>
+        <div className="min-w-0 flex-1">
+          <div className="font-semibold">{c.class_type.name}</div>
+          <div className="text-sm text-fg-muted first-letter:uppercase">{shortDate(localDate(c.session.starts_at, club.timezone))} · {timeOf(c.session.starts_at, club.timezone)}–{timeOf(c.session.ends_at, club.timezone)}</div>
+          {c.location && <div className="mt-0.5 flex items-center gap-1 text-sm text-fg-muted"><MapPin className="size-3.5" aria-hidden />{c.location.name}</div>}
+        </div>
+        <BookingBadge status={c.booking.status} position={c.booking.waitlist_position} />
+      </div>
+      {open && <ButtonLink to="/classes" search={{}} block>{t("Fazer check-in")}</ButtonLink>}
+    </Card>
   );
 }

@@ -28,7 +28,13 @@ src/
               strava = Strava's brand: the official button, "Powered by Strava", "View on Strava", docs/strava-brand.md;
               account/StravaConnect = the connect panel with the sharing statement it requires, D-011;
               club/GroupPicker = a student's groups as removable chips + the picker that also creates a group, on the
-              student page and Membros; Alunos adds "+ Novo grupo", "Editar grupo" and bulk moves of selected students)
+              student page and Membros; Alunos adds "+ Novo grupo", "Editar grupo" and bulk moves of selected students;
+              classes = Aulas' shared bits (D-052): occupancy, booking badges, the check-in window, a 24 h TimeInput
+              (masked HH:MM: the browser's time field shows AM/PM in English); QrCode = the venue's check-in QR)
+              Aulas screens: staff/classes/ (W9 week grid, recurring schedules, types and venues, the session dialog
+              with roster, attendance, capacity, cancel and the QR), student/Classes (M6: book, waitlist, cancel, my
+              bookings, history; `?session=` opens the class a notification links to) and student/ClassCheckIn
+              (`/classes/check-in?session&code`, the QR's page: finds which of the student's clubs holds the session)
   domain/     pure logic (workout structure, quick-text parser, estimates): unit-tested. quicktext.ts is one of
               three ports of the free-text grammar (docs/workout-text.md): its test checks api/workout-text-examples.json
   screens/    one folder per area; one file per screen (screen IDs in comments)

@@ -1,6 +1,6 @@
 /** W11 · Notificações: list, unread filter, mark all read, deep links (switching club when needed). Route: /notifications */
 import { useNavigate } from "@tanstack/react-router";
-import { Bell, CalendarCheck, CheckCheck, ClipboardList, CreditCard, Megaphone, MessageCircle, MessageSquare, Pencil, UserPlus, type LucideIcon } from "lucide-react";
+import { Bell, CalendarCheck, CalendarX, CheckCheck, ClipboardList, CreditCard, Megaphone, MessageCircle, MessageSquare, Pencil, Ticket, UserPlus, type LucideIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useMarkNotificationsRead, useNotifications } from "@/api/account";
 import type { AppNotification, NotificationKind } from "@/api/types";
@@ -19,6 +19,8 @@ const KIND: Record<NotificationKind, { icon: LucideIcon; tone: string }> = {
   billing: { icon: CreditCard, tone: "bg-warning-soft text-on-warning-soft" },
   message: { icon: MessageCircle, tone: "bg-brand-soft text-on-brand-soft" },
   announcement: { icon: Megaphone, tone: "bg-accent-soft text-on-accent-soft" },
+  class_cancelled: { icon: CalendarX, tone: "bg-danger-soft text-on-danger-soft" },
+  waitlist_promoted: { icon: Ticket, tone: "bg-success-soft text-on-success-soft" },
 };
 
 function groupOf(n: AppNotification, today: string): string {

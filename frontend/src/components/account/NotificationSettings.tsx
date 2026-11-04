@@ -7,6 +7,7 @@ import { usePrefs, useUpdatePrefs } from "@/api/account";
 import type { MembershipContext, NotificationKind, PrefsPatch } from "@/api/types";
 import { t } from "@/i18n";
 import { type DevicePush as DevicePushState, devicePushState, disableDevicePush, enableDevicePush, refreshDevicePush } from "@/lib/push";
+import { has } from "@/lib/features";
 import { Button, Skeleton, Switch, toast } from "@/ui";
 
 const INFO: Record<NotificationKind, { label: string; hint: string }> = {
@@ -19,6 +20,8 @@ const INFO: Record<NotificationKind, { label: string; hint: string }> = {
   feedback: { label: "Feedbacks dos alunos", hint: "Um aluno registrou ou comentou um treino" },
   member_joined: { label: "Novos membros", hint: "Alguém entrou no clube" },
   billing: { label: "Plano e cobrança", hint: "Limite de alunos e avisos do plano" },
+  class_cancelled: { label: "Aula cancelada", hint: "Uma aula que você reservou foi cancelada" },
+  waitlist_promoted: { label: "Vaga liberada", hint: "Você saiu da lista de espera de uma aula" },
 };
 const STUDENT: NotificationKind[] = ["week_released", "workout_assigned", "workout_changed", "comment", "message", "announcement"];
 const STAFF: NotificationKind[] = ["feedback", "comment", "message", "member_joined"];
@@ -28,6 +31,8 @@ function kindsFor(memberships: MembershipContext[]): NotificationKind[] {
   const roles = new Set(memberships.map((m) => m.membership.role));
   const out: NotificationKind[] = [];
   if (roles.has("student")) out.push(...STUDENT);
+  // Aulas news only where a club the person studies at has classes (D-052).
+  if (memberships.some((m) => m.membership.role === "student" && m.membership.status === "active" && has(m.club, "classes"))) out.push("class_cancelled", "waitlist_promoted");
   if (roles.has("trainer") || roles.has("owner")) out.push(...STAFF);
   if (roles.has("owner")) out.push("billing");
   return [...new Set(out)];

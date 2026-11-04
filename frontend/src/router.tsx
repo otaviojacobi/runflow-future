@@ -101,6 +101,7 @@ const staffRoutes = [
   r(S, "/reports", lazyRouteComponent(() => import("./screens/staff/Reports"), "ReportsScreen")),
   r(S, "/assessments", lazyRouteComponent(() => import("./screens/staff/Assessments"), "AssessmentsScreen")),
   r(S, "/races/manage", lazyRouteComponent(() => import("./screens/staff/Races"), "RacesManageScreen")),
+  r(S, "/classes/manage", lazyRouteComponent(() => import("./screens/staff/classes/ClassesManage"), "ClassesManageScreen")),
 ];
 const ownerRoutes = [
   r(O, "/club/studio", lazyRouteComponent(() => import("./screens/owner/Studio"), "StudioScreen")),
@@ -115,12 +116,18 @@ const studentRoutes = [
   r(St, "/activities", lazyRouteComponent(() => import("./screens/student/Activities"), "ActivitiesScreen")),
   r(St, "/activities/$id", lazyRouteComponent(() => import("./screens/student/ActivityDetail"), "ActivityDetailScreen")),
   r(St, "/races", lazyRouteComponent(() => import("./screens/student/Races"), "RacesScreen")),
+  // Aulas (D-052). `?session=<id>`: the class_cancelled / waitlist_promoted notifications open that class.
+  createRoute({ getParentRoute: St, path: "/classes", component: lazyRouteComponent(() => import("./screens/student/Classes"), "ClassesScreen"),
+    validateSearch: (s: Record<string, unknown>): { session?: string } => ({ session: str(s.session) }) }),
   r(St, "/account/profile", lazyRouteComponent(() => import("./screens/student/Profile"), "ProfileScreen")),
 ];
 const commonRoutes = [
   r(Sh, "/messages", lazyRouteComponent(() => import("./screens/common/messages/Messages"), "MessagesScreen")),
   r(Sh, "/notifications", lazyRouteComponent(() => import("./screens/common/Notifications"), "NotificationsScreen")),
   r(Sh, "/account", lazyRouteComponent(() => import("./screens/common/Account"), "AccountScreen")),
+  // The venue QR's link (any active club: the page finds the student's club that holds the session, D-052).
+  createRoute({ getParentRoute: Sh, path: "/classes/check-in", component: lazyRouteComponent(() => import("./screens/student/ClassCheckIn"), "ClassCheckInScreen"),
+    validateSearch: (s: Record<string, unknown>): { session?: string; code?: string } => ({ session: str(s.session), code: str(s.code) }) }),
   createRoute({ getParentRoute: Sh, path: "/connect/strava", component: lazyRouteComponent(() => import("./screens/common/ConnectStrava"), "ConnectStravaScreen"),
     validateSearch: (s: Record<string, unknown>): { code?: string; state?: string; scope?: string; error?: string } => ({ code: str(s.code), state: str(s.state), scope: str(s.scope), error: str(s.error) }) }),
 ];

@@ -54,8 +54,9 @@ describe("features (D-052)", () => {
 
   it("Perfil's links come from the person's clubs, and all of them without memberships (routing)", () => {
     const only = (...modalities: Sport[]) => [{ membership: { status: "active" }, club: { modalities } } as unknown as MembershipContext];
-    expect(profileLinksFor("student", only("mobility")).map((i) => i.label)).toEqual([]);
+    expect(profileLinksFor("student", only("mobility")).map((i) => i.label)).toEqual(["Aulas"]);
     expect(profileLinksFor("student", only("run")).map((i) => i.label)).toEqual(["Provas", "Atividades"]);
-    expect(profileLinksFor("student").map((i) => i.label)).toEqual(["Provas", "Atividades"]);
+    expect(profileLinksFor("student", only("run", "swim")).map((i) => i.label)).toEqual(["Aulas", "Provas", "Atividades"]);
+    expect(profileLinksFor("student").map((i) => i.label)).toEqual(["Aulas", "Provas", "Atividades"]);
   });
 });

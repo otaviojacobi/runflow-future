@@ -5,7 +5,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useDashboard } from "@/api/dashboard";
-import type { Dashboard } from "@/api/types";
+import type { Club, Dashboard } from "@/api/types";
 import { ComplianceTrend } from "@/components/ComplianceTrend";
 import { InviteDialog } from "@/components/club/InviteDialog";
 import { sportBar } from "@/components/sport";
@@ -13,7 +13,7 @@ import { StatusBadge } from "@/components/workout";
 import { t } from "@/i18n";
 import { useClub } from "@/lib/club";
 import { has } from "@/lib/features";
-import { duration, km, longDate, shortDate } from "@/lib/format";
+import { duration, km, localDate, longDate, shortDate, timeOf } from "@/lib/format";
 import { Avatar, Button, ButtonLink, Card, ProgressBar, Skeleton, cn } from "@/ui";
 import { FEELING } from "./planning/WorkoutDialogs";
 
@@ -106,6 +106,7 @@ export function DashboardScreen() {
                   </ul>
                 )}
               </Card>
+              {has(club, "classes") && <UpcomingClasses club={club} items={x.upcoming_classes ?? []} />}
               <Card className="grid gap-3 p-5">
                 <div className="flex items-center justify-between"><h2 className="rf-text-title-md">{t("Feedbacks")}</h2><Link to="/feedback" className="text-sm font-semibold text-brand-text">{t("Abrir caixa")}</Link></div>
                 {x.feedback.length === 0 ? <p className="text-fg-muted">{t("Nenhum feedback novo.")}</p> : (
@@ -126,5 +127,25 @@ export function DashboardScreen() {
       )}
       <InviteDialog club={club} open={invite} onOpenChange={setInvite} />
     </div>
+  );
+}
+
+/** The next three classes (Aulas, D-052): when, seats taken and the waitlist. */
+function UpcomingClasses({ club, items }: { club: Club; items: Dashboard["upcoming_classes"] }) {
+  return (
+    <Card className="grid gap-3 p-5">
+      <div className="flex items-center justify-between"><h2 className="rf-text-title-md">{t("Próximas aulas")}</h2><Link to="/classes/manage" className="text-sm font-semibold text-brand-text">{t("Ver grade")}</Link></div>
+      {items.length === 0 ? <p className="text-fg-muted">{t("Nenhuma aula marcada.")}</p> : (
+        <ul className="divide-y divide-line-subtle">
+          {items.map(({ session: s, class_type: ct, booked, waitlist }) => (
+            <li key={s.id} className="flex items-center gap-3 py-2.5">
+              <i aria-hidden className={cn("h-8 w-1 shrink-0 rounded-full", sportBar[ct.sport])} />
+              <div className="min-w-0 flex-1"><div className="truncate font-semibold">{ct.name}</div><div className="text-sm text-fg-muted first-letter:uppercase">{shortDate(localDate(s.starts_at, club.timezone))} · {timeOf(s.starts_at, club.timezone)}</div></div>
+              <div className="grid justify-items-end text-sm tabular-nums"><span className="font-semibold">{booked}/{s.capacity}</span>{waitlist > 0 && <span className="text-xs font-semibold text-warning-text">{t("{n} na fila", { n: waitlist })}</span>}</div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
   );
 }
