@@ -31,3 +31,11 @@ export function useClub() {
 
 /** pt-BR role names (pass through t()). */
 export const ROLE_LABEL = { owner: "Gestor(a)", trainer: "Treinador(a)", student: "Aluno(a)" } as const;
+
+/** Accepts a full invite link (…/invite/abc) or just the code. */
+export function inviteTokenFrom(input: string): string | null {
+  const s = input.trim();
+  if (!s) return null;
+  const m = s.match(/invite\/([\w-]+)/);
+  return m ? m[1]! : /^[\w-]{3,}$/.test(s) ? s : null;
+}

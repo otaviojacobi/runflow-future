@@ -76,7 +76,7 @@ function Header() {
         </nav>
         <div className="ml-auto flex items-center gap-2">
           {signed ? <ButtonLink to="/app" iconRight={<ArrowRight />}>{t("Abrir o app")}</ButtonLink> : (
-            <><ButtonLink to="/login" variant="ghost" className="hidden sm:inline-flex">{t("Entrar")}</ButtonLink><ButtonLink to="/login">{t("Criar clube grátis")}</ButtonLink></>
+            <><ButtonLink to="/login" variant="ghost" className="hidden sm:inline-flex">{t("Entrar")}</ButtonLink><ButtonLink to="/login" search={{ perfil: "treinador" }}>{t("Criar clube grátis")}</ButtonLink></>
           )}
         </div>
       </div>
@@ -98,7 +98,7 @@ function Hero() {
           <h1 className="rf-text-display-lg text-balance sm:text-[56px] sm:leading-[1.02]">{t("O treino do seu clube,")} <span className="text-accent-text">{t("no ritmo certo.")}</span></h1>
           <p className="max-w-xl text-lg text-fg-muted">{t("Monte treinos em segundos, acompanhe cada aluno e deixe o app com a cara do seu clube. Corrida, natação, academia e tudo junto.")}</p>
           <div className="flex flex-wrap gap-3">
-            <ButtonLink to="/login" size="lg" iconRight={<ArrowRight />}>{t("Criar meu clube grátis")}</ButtonLink>
+            <ButtonLink to="/login" search={{ perfil: "treinador" }} size="lg" iconRight={<ArrowRight />}>{t("Criar meu clube grátis")}</ButtonLink>
             <a href="#treinos" className="inline-flex h-12 items-center rounded-md border border-line px-5 font-semibold text-fg hover:bg-soft">{t("Ver como funciona")}</a>
           </div>
           <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-fg-muted">
@@ -263,7 +263,7 @@ function Pricing() {
               <div><div className="rf-text-title-lg">{p.name}</div><p className="text-sm text-fg-muted">{p.desc}</p></div>
               <div className="flex items-baseline gap-2"><span className="font-display text-[40px] font-extrabold leading-none tracking-tight [font-stretch:110%]">{p.price}</span><span className="text-fg-muted">{p.per}</span></div>
               <ul className="grid gap-2">{p.items.map((x) => <li key={x} className="flex items-start gap-2"><Check className="mt-1 size-4 shrink-0 text-success-text" />{x}</li>)}</ul>
-              <ButtonLink to="/login" variant={p.hl ? "primary" : "secondary"} block>{p.cta}</ButtonLink>
+              <ButtonLink to="/login" search={{ perfil: "treinador" }} variant={p.hl ? "primary" : "secondary"} block>{p.cta}</ButtonLink>
             </div>
           ))}
         </div>
@@ -334,7 +334,7 @@ export function LandingScreen() {
           <div className="mx-auto grid max-w-4xl justify-items-center gap-6 px-5 py-20 text-center">
             <h2 className="rf-text-display-md text-balance">{t("Seu clube no Runflow em 5 minutos.")}</h2>
             <p className="max-w-xl text-lg text-fg-muted">{t("Crie o clube, coloque o logo, convide os alunos por e-mail. Pronto.")}</p>
-            <div className="flex flex-wrap justify-center gap-3"><ButtonLink to="/login" size="lg" iconRight={<ArrowRight />}>{t("Criar meu clube grátis")}</ButtonLink><ButtonLink to="/login" size="lg" variant="secondary">{t("Já tenho conta")}</ButtonLink></div>
+            <div className="flex flex-wrap justify-center gap-3"><ButtonLink to="/login" search={{ perfil: "treinador" }} size="lg" iconRight={<ArrowRight />}>{t("Criar meu clube grátis")}</ButtonLink><ButtonLink to="/login" size="lg" variant="secondary">{t("Já tenho conta")}</ButtonLink></div>
             <div className="flex flex-wrap justify-center gap-2 pt-2">{(["run", "swim", "bike", "mobility"] as Sport[]).map((s) => <SportChip key={s} sport={s} size="sm" />)}</div>
           </div>
         </section>

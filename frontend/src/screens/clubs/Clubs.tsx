@@ -7,17 +7,11 @@ import { useMe } from "@/api/me";
 import type { MembershipContext } from "@/api/types";
 import { ClubLogo, RunflowHomeLink } from "@/components/brand";
 import { t } from "@/i18n";
-import { ROLE_LABEL, activeMembership, homeFor, selectClub } from "@/lib/club";
+import { ROLE_LABEL, activeMembership, homeFor, inviteTokenFrom, selectClub } from "@/lib/club";
 import { Badge, Button, ButtonLink, Card, Field, Input, Skeleton } from "@/ui";
 
 
-/** Accepts a full invite link (…/invite/abc) or just the code. */
-export function inviteTokenFrom(input: string): string | null {
-  const s = input.trim();
-  if (!s) return null;
-  const m = s.match(/invite\/([\w-]+)/);
-  return m ? m[1]! : /^[\w-]{3,}$/.test(s) ? s : null;
-}
+export { inviteTokenFrom } from "@/lib/club";
 
 export function ClubsScreen() {
   const me = useMe();

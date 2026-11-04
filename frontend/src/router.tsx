@@ -40,7 +40,7 @@ const appHome = createRoute({
 const signIn = createRoute({
   getParentRoute: () => root, path: "/login", component: SignInScreen,
   // `email`: from an invite (pre-filled and locked: only the invited address can accept it, D-023).
-  validateSearch: (s: Record<string, unknown>): { redirect?: string; email?: string } => ({ redirect: typeof s.redirect === "string" ? s.redirect : undefined, email: typeof s.email === "string" ? s.email : undefined }),
+  validateSearch: (s: Record<string, unknown>): { redirect?: string; email?: string; perfil?: "aluno" | "treinador" } => ({ redirect: typeof s.redirect === "string" ? s.redirect : undefined, email: typeof s.email === "string" ? s.email : undefined, perfil: s.perfil === "aluno" || s.perfil === "treinador" ? s.perfil : undefined }),
   beforeLoad: () => { if (session.isSignedIn()) throw redirect({ to: "/app" }); },
 });
 const invite = createRoute({ getParentRoute: () => root, path: "/invite/$token", component: lazyRouteComponent(() => import("./screens/onboarding/Invite"), "InviteScreen") });

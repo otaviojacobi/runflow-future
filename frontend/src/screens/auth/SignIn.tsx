@@ -1,6 +1,10 @@
-/** A2 · Entrar: Google (mock chooser in dev) or a 6-digit code by e-mail. Route: /login */
+/**
+ * A2 · Entrar: Google (mock chooser in dev) or a 6-digit code by e-mail. Route: /login?perfil=aluno|treinador.
+ * "Sou aluno" / "Sou treinador" only changes the words and where a person without a club lands (the invite guidance or
+ * the club wizard); the choice is remembered on this device. From an invite (e-mail pre-filled) there's no switch.
+ */
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { ArrowLeft, CalendarCheck, Mail, Users, Zap } from "lucide-react";
+import { ArrowLeft, CalendarCheck, ClipboardList, Footprints, Mail, Ticket, Users, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { IS_MOCK, useEmailStart, useEmailVerify, useGoogleSignIn, useMockAccounts, usePublicConfig } from "@/api/auth";
 import { GoogleButton } from "./GoogleButton";
@@ -10,8 +14,9 @@ import { IntensityProfile } from "@/components/workout";
 import type { Structure } from "@/domain/workout";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
-import { activeMembership, homeFor, selectClub } from "@/lib/club";
-import { Avatar, Button, Dialog, Field, Input, toast } from "@/ui";
+import { activeMembership, homeFor, inviteTokenFrom, selectClub } from "@/lib/club";
+import { storage } from "@/lib/storage";
+import { Avatar, Button, Dialog, Field, Input, Segmented, toast } from "@/ui";
 import { GoogleIcon } from "./GoogleIcon";
 
 const HERO: Structure = { v: 1, blocks: [
@@ -22,10 +27,18 @@ const HERO: Structure = { v: 1, blocks: [
   { kind: "step", intent: "cooldown", duration: { type: "time", s: 600 }, target: { type: "zone", metric: "pace", zone: 1 } },
 ] };
 const ROLE: Record<string, string> = { owner: "gestor(a)", trainer: "treinador(a)", student: "aluno(a)" };
+export type SignInRole = "aluno" | "treinador";
+const ROLE_KEY = "rf.signin-role";
+const savedRole = (): SignInRole => (storage.get(ROLE_KEY) === "treinador" ? "treinador" : "aluno");
 
 export function SignInScreen() {
-  const { redirect, email: invited } = useSearch({ from: "/login" });
+  const { redirect, email: invited, perfil } = useSearch({ from: "/login" });
   const navigate = useNavigate();
+  const [role, setRoleState] = useState<SignInRole>(() => perfil ?? savedRole());
+  const setRole = (r: SignInRole) => { setRoleState(r); storage.set(ROLE_KEY, r); };
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteLink, setInviteLink] = useState("");
+  const [inviteError, setInviteError] = useState<string | null>(null);
   const [step, setStep] = useState<"start" | "code">("start");
   // From an invite: the invited address, locked (only it can accept, D-023) unless the person chooses another.
   const [email, setEmail] = useState(invited ?? "");
@@ -50,8 +63,17 @@ export function SignInScreen() {
   const done = (r: { me: Me; is_new: boolean }) => {
     const m = activeMembership(r.me);
     selectClub(m);
+    if (!invited) storage.set(ROLE_KEY, role);
     if (r.is_new) toast.success(t("Conta criada. Bem-vindo(a) ao Runflow!"));
-    navigate({ to: redirect && redirect.startsWith("/") ? redirect : homeFor(m?.membership.role), replace: true });
+    // Without a club yet: a coach goes straight to creating one, an athlete to the invite guidance.
+    const home = m ? homeFor(m.membership.role) : role === "treinador" ? "/clubs/new" : "/clubs";
+    navigate({ to: redirect && redirect.startsWith("/") ? redirect : home, replace: true });
+  };
+  const openInvite = (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = inviteTokenFrom(inviteLink);
+    if (!token) return setInviteError(t("Cole o link do convite que chegou no seu e-mail, como runflow.club/invite/…"));
+    navigate({ to: "/invite/$token", params: { token } });
   };
   const sendCode = (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -87,9 +109,17 @@ export function SignInScreen() {
         <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 py-10">
           {step === "start" ? (
             <>
+              {!invited && (
+                <Segmented label={t("Como você usa o Runflow")} size="lg" className="w-full" value={role} onChange={setRole}
+                  options={[{ value: "aluno", label: t("Sou aluno"), icon: <Footprints /> }, { value: "treinador", label: t("Sou treinador"), icon: <ClipboardList /> }]} />
+              )}
               <div className="grid gap-2">
-                <h2 className="rf-text-display-sm">{t("Entrar no Runflow")}</h2>
-                <p className="text-fg-muted">{googleId || IS_MOCK ? t("Use sua conta Google ou receba um código por e-mail. Sem senha para lembrar.") : t("Receba um código por e-mail. Sem senha para lembrar.")}</p>
+                <h2 className="rf-text-display-sm">{invited ? t("Entrar no Runflow") : role === "treinador" ? t("Entre ou crie o seu clube grátis") : t("Entre para ver seus treinos")}</h2>
+                <p className="text-fg-muted">
+                  {invited
+                    ? googleId || IS_MOCK ? t("Use sua conta Google ou receba um código por e-mail. Sem senha para lembrar.") : t("Receba um código por e-mail. Sem senha para lembrar.")
+                    : role === "treinador" ? t("Treinador convidado por um clube? Use o e-mail do convite.") : t("Use o e-mail em que você recebeu o convite do seu clube. Ainda não tem convite? Peça ao seu treinador.")}
+                </p>
               </div>
               <div className="grid gap-4">
                 {IS_MOCK ? (
@@ -108,6 +138,19 @@ export function SignInScreen() {
                   <Button type="submit" size="lg" block icon={<Mail />} loading={start.isPending}>{t("Receber código por e-mail")}</Button>
                 </form>
               </div>
+              {!invited && role === "aluno" && (inviteOpen ? (
+                <form onSubmit={openInvite} className="grid gap-3 rounded-lg border border-line-subtle p-4" noValidate>
+                  <Field label={t("Link do convite")} error={inviteError} hint={t("Cole o link que chegou no seu e-mail.")}>
+                    {(id, d) => <Input id={id} aria-describedby={d} placeholder="runflow.club/invite/…" value={inviteLink} invalid={!!inviteError} autoFocus
+                      onChange={(e) => { setInviteLink(e.target.value); setInviteError(null); }} />}
+                  </Field>
+                  <Button type="submit" variant="secondary" icon={<Ticket />}>{t("Abrir convite")}</Button>
+                </form>
+              ) : (
+                <button type="button" onClick={() => setInviteOpen(true)} className="-mt-4 flex min-h-11 w-fit items-center gap-2 text-sm font-semibold text-brand-text hover:underline">
+                  <Ticket className="size-4" />{t("Tenho um link de convite")}
+                </button>
+              ))}
               {IS_MOCK && <a href="/dev/status" className="w-fit rounded-md bg-info-soft px-3 py-2 text-sm font-semibold text-on-info-soft hover:underline">{t("Modo de demonstração: ver o status do desenvolvimento")}</a>}
               <p className="text-sm text-fg-muted">
                 {t("Ao continuar, você aceita os")} <a href="#" className="font-semibold text-brand-text underline-offset-2 hover:underline">{t("Termos de uso")}</a> {t("e a")} <a href="#" className="font-semibold text-brand-text underline-offset-2 hover:underline">{t("Política de privacidade")}</a>.

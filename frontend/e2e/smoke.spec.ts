@@ -10,6 +10,19 @@ test("landing page leads to sign-in", async ({ page }) => {
   check();
 });
 
+test("a new coach from the landing goes straight to creating a club", async ({ page }) => {
+  const check = failOnPageErrors(page);
+  await page.goto("/");
+  await page.getByRole("link", { name: "Criar meu clube grátis" }).first().click();
+  await expect(page.getByRole("radio", { name: "Sou treinador" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("heading", { name: "Entre ou crie o seu clube grátis" })).toBeVisible();
+  await page.getByLabel("E-mail").fill(`novo.treinador.${Date.now()}@email.com`);
+  await page.getByRole("button", { name: "Receber código por e-mail" }).click();
+  await page.getByLabel("Código").fill("000000");
+  await expect(page).toHaveURL(/\/clubs\/new/);
+  check();
+});
+
 test("owner lands on the dashboard", async ({ page }) => {
   const check = failOnPageErrors(page);
   await signIn(page, OWNER);

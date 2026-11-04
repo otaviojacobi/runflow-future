@@ -66,13 +66,13 @@ export function Switch({ checked, onCheckedChange, label, description, disabled 
   );
 }
 /** Segmented control (radio group). */
-export function Segmented<T extends string>({ value, onChange, options, label, size = "md", className }: { value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode; icon?: ReactNode }[]; label: string; size?: "sm" | "md"; className?: string }) {
+export function Segmented<T extends string>({ value, onChange, options, label, size = "md", className }: { value: T; onChange: (v: T) => void; options: { value: T; label: ReactNode; icon?: ReactNode }[]; label: string; size?: "sm" | "md" | "lg"; className?: string }) {
   return (
     <div role="radiogroup" aria-label={label} className={cn("inline-flex gap-0.5 rounded-md bg-soft p-[3px]", className)}>
       {options.map((o) => (
         <button key={o.value} type="button" role="radio" aria-checked={value === o.value} onClick={() => onChange(o.value)}
           className={cn("inline-flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-[8px] px-3 font-semibold text-fg-muted transition-colors [&_svg]:size-4",
-            size === "sm" ? "h-7 text-[13px]" : "h-[34px] text-sm",
+            size === "sm" ? "h-7 text-[13px]" : size === "lg" ? "h-[38px] text-[15px] [&_svg]:size-[18px]" : "h-[34px] text-sm",
             value === o.value ? "bg-surface text-fg shadow-sm" : "hover:text-fg")}>
           {o.icon}{o.label}
         </button>
