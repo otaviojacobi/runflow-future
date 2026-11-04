@@ -44,4 +44,32 @@ export default function register(h) {
     const sum = (k) => athletes.reduce((s, a) => s + (a[k] || 0), 0);
     return { from, to, group_id: ctx.query.group_id || null, totals: { athletes: athletes.length, planned: sum("planned"), done: sum("done"), partial: sum("partial"), missed: sum("missed"), compliance_pct: score(planned), planned_s: sum("planned_s"), done_s: sum("done_s"), distance_m: sum("distance_m"), sharing: athletes.filter((a) => a.shares_data).length }, weekly, athletes };
   });
+
+  // Aulas attendance (D-052): classes already held in the period. Waitlist places and cancelled bookings don't count.
+  h.get("/v1/clubs/:club_id/reports/attendance", (ctx) => {
+    const me = ctx.staff(ctx.params.club_id);
+    const { from, to } = period(ctx.query);
+    const nowIso = h.nowIso();
+    const sessions = h.db.class_sessions.filter((s) => s.club_id === me.club_id && localDate(s.starts_at) >= from && localDate(s.starts_at) <= to && s.starts_at <= nowIso);
+    const held = sessions.filter((s) => s.status === "scheduled");
+    const heldIds = new Set(held.map((s) => s.id));
+    const seats = h.db.class_bookings.filter((b) => heldIds.has(b.session_id) && ["booked", "attended", "no_show"].includes(b.status));
+    const tally = (bs) => {
+      const attended = bs.filter((b) => b.status === "attended").length, no_show = bs.filter((b) => b.status === "no_show").length;
+      return { booked: bs.length, attended, no_show, attendance_pct: pct(attended, attended + no_show) };
+    };
+    const capacity = (ss) => ss.reduce((n, s) => n + s.capacity, 0);
+    const by_type = h.db.class_types.filter((t) => t.club_id === me.club_id).map((t) => {
+      const ss = held.filter((s) => s.class_type_id === t.id), ids = new Set(ss.map((s) => s.id));
+      const bs = seats.filter((b) => ids.has(b.session_id));
+      return { class_type: { id: t.id, name: t.name, sport: t.sport }, sessions: ss.length, cancelled: sessions.filter((s) => s.class_type_id === t.id && s.status === "cancelled").length, capacity: capacity(ss), ...tally(bs), occupancy_pct: pct(bs.length, capacity(ss)) };
+    }).filter((x) => x.sessions || x.cancelled);
+    const athletes = studentsOf(me.club_id, ctx.query.group_id)
+      .map((m) => ({ membership_id: m.id, user: userOfM(m.id), ...tally(seats.filter((b) => b.membership_id === m.id)) }))
+      .filter((a) => a.booked)
+      .sort((a, b) => b.attended - a.attended || a.user.name.localeCompare(b.user.name));
+    const groupIds = ctx.query.group_id ? new Set(studentsOf(me.club_id, ctx.query.group_id).map((m) => m.id)) : null;
+    const counted = groupIds ? seats.filter((b) => groupIds.has(b.membership_id)) : seats;
+    return { from, to, group_id: ctx.query.group_id || null, totals: { sessions: held.length, cancelled: sessions.length - held.length, ...tally(counted), occupancy_pct: pct(seats.length, capacity(held)) }, by_type, athletes };
+  });
 }

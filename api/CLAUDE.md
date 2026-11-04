@@ -17,7 +17,7 @@ The **contract** between the apps and the backend (D-020). Future standalone rep
 
 - `npm run dev:api` starts the mock. State persists in `api/mock/.data/` (gitignored). Add `-- --reset` to start from the seed again.
 - `node api/mock/seed.mjs` regenerates `db.json`.
-- `npm run check:api` validates `schema.sql` on real PostgreSQL (PGlite) and smoke-tests the mock, including the workout text examples.
+- `npm run check:api` validates `schema.sql` on real PostgreSQL (PGlite) and smoke-tests the mock, including the workout text examples, the activity matching examples and the Aulas booking flow (`node api/mock/aulas-smoke.mjs` on its own: a throwaway mock on a free port).
 - `node api/mock/workout-text-examples.mjs run "6x1km @4:30 c/ 2' trote"` shows what the free-text grammar understands (any sport instead of `run`).
 
 ## Workout text examples (how the founder adds one)

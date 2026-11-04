@@ -1,9 +1,9 @@
 /** Notifications (D-045, N1): every notification goes through h.notify and always lands in the app; the person only
  * switches push to their devices on or off per kind, or pauses it. No notification e-mails. */
-const KINDS = ["workout_assigned", "workout_changed", "week_released", "comment", "feedback", "member_joined", "billing", "message", "announcement"];
+const KINDS = ["workout_assigned", "workout_changed", "week_released", "comment", "feedback", "member_joined", "billing", "message", "announcement", "class_cancelled", "waitlist_promoted"];
 /** Push by default (endpoints.md § Notifications): the week's release and changed workouts (students), feedback, new
- *  members and billing (staff); everything else starts off. */
-const PUSH_ON_BY_DEFAULT = ["week_released", "workout_changed", "feedback", "member_joined", "billing"];
+ *  members and billing (staff), a student's own class news (D-052); everything else starts off. */
+const PUSH_ON_BY_DEFAULT = ["week_released", "workout_changed", "feedback", "member_joined", "billing", "class_cancelled", "waitlist_promoted"];
 
 export default function register(h) {
   const blank = (userId) => ({ user_id: userId, kinds: {}, paused: false, updated_at: h.nowIso() });

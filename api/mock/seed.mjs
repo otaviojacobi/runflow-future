@@ -508,6 +508,74 @@ export function generate(anchor) {
   note("marcos", PF, "member_joined", "Isabela Freitas entrou no clube", null, "/students", at(addDays(anchor, -2), "19:12"), true);
   note("marcos", PF, "billing", "9 de 10 alunos no plano Free", "Faça upgrade para o Pro e tenha até 30 alunos.", "/club/billing", at(addDays(anchor, -2), "19:13"));
 
+  // ---- aulas (D-052): Pace Forte's funcional and musculação classes, Equipe Maré's pool. Built without rand() so the
+  // data above stays the same. Sessions for two past weeks (attendance history), this week and the next; the mock
+  // creates the rest of the 8-week window when sessions are listed.
+  {
+    const loc = (key, clubRow, name, kind, address, lanes = null) => { const row = { id: uuid("loc:" + key), club_id: clubRow.id, name, kind, address, lanes, created_at: createdLongAgo, archived_at: null }; t("locations").push(row); return row; };
+    const estudio = loc("estudio", PF, "Estúdio Pace Forte", "studio", "R. Harmonia, 520, São Paulo");
+    const academia = loc("academia", PF, "Academia Parceira Vila Madalena", "gym", "R. Aspicuelta, 180, São Paulo");
+    const piscina = loc("piscina", MARE, "Piscina Sesc Santos", "pool", "Av. Conselheiro Ribas, 136, Santos", 6);
+    const ctype = (key, clubRow, name, sport, cap, dur, description) => { const row = { id: uuid("ct:" + key), club_id: clubRow.id, name, sport, description, default_capacity: cap, duration_min: dur, created_at: createdLongAgo, archived_at: null }; t("class_types").push(row); return row; };
+    const funcional = ctype("funcional", PF, "Funcional para corredores", "mobility", 12, 50, "Força, estabilidade e mobilidade para quem corre.");
+    const musculacao = ctype("musculacao", PF, "Musculação: força para corredores", "strength", 8, 60, "Treino de força com cargas, em grupo pequeno.");
+    const natIni = ctype("natini", MARE, "Natação adulto: iniciante", "swim", 8, 45, "Adaptação e técnica básica.");
+    const natAv = ctype("natav", MARE, "Natação adulto: avançado", "swim", 10, 60, "Séries de volume e intensidade.");
+    const schedule = (key, clubRow, ct, location, instructor, weekday, start) => { const row = { id: uuid("cs:" + key), club_id: clubRow.id, class_type_id: ct.id, location_id: location.id, instructor_membership_id: instructor, weekday, start_time: start, duration_min: ct.duration_min, capacity: ct.default_capacity, valid_from: addDays(W0, -56), valid_until: null, created_at: createdLongAgo }; t("class_schedules").push(row); return row; };
+    const julia = M["paceforte:julia"].id, renata = M["equipemare:renata"].id;
+    const scheds = [
+      schedule("pf-func-seg", PF, funcional, estudio, julia, 1, "19:00"),
+      schedule("pf-func-qua", PF, funcional, estudio, julia, 3, "19:00"),
+      schedule("pf-musc-ter", PF, musculacao, academia, julia, 2, "07:00"),
+      schedule("pf-musc-qui", PF, musculacao, academia, julia, 4, "07:00"),
+      schedule("mare-ini-seg", MARE, natIni, piscina, renata, 1, "07:00"),
+      schedule("mare-ini-qua", MARE, natIni, piscina, renata, 3, "07:00"),
+      schedule("mare-av-ter", MARE, natAv, piscina, renata, 2, "19:30"),
+      schedule("mare-av-qui", MARE, natAv, piscina, renata, 4, "19:30"),
+    ];
+    const pools = { [PF.id]: PF_STUDENTS.map((s) => "paceforte:" + s[0]), [MARE.id]: ["ana", ...MARE_STUDENTS.map((s) => s[0])].map((k) => "equipemare:" + k) };
+    const sessions = [];
+    for (let w = -2; w <= 1; w++) for (const sc of scheds) {
+      const date = addDays(W0, w * 7 + sc.weekday - 1);
+      const starts = at(date, sc.start_time);
+      const s = { id: uuid(`sess:${sc.id}:${date}`), club_id: sc.club_id, class_type_id: sc.class_type_id, schedule_id: sc.id, location_id: sc.location_id, instructor_membership_id: sc.instructor_membership_id, starts_at: starts, ends_at: new Date(Date.parse(starts) + sc.duration_min * 60000).toISOString(), capacity: sc.capacity, status: "scheduled", cancel_reason: null, notes: null, checkin_code: uuid("code:" + sc.id + date).replace(/[^0-9a-f]/g, "").slice(0, 6).toUpperCase(), created_at: createdLongAgo };
+      t("class_sessions").push(s);
+      sessions.push({ s, date, sc });
+    }
+    // Who books: a rotating slice of the club's students (about two thirds), the same every time the seed runs.
+    sessions.forEach(({ s, date }, i) => {
+      const pool = pools[s.club_id];
+      const n = Math.max(3, Math.round(pool.length * 0.66) - (i % 3));
+      const chosen = Array.from({ length: Math.min(n, pool.length) }, (_, j) => pool[(i + j * 2) % pool.length]).filter((k, j, a) => a.indexOf(k) === j);
+      chosen.forEach((mk, j) => {
+        const past = date < anchor;
+        const seat = j < s.capacity;
+        const status = past ? ((i + j) % 7 === 3 ? "no_show" : "attended") : seat ? "booked" : "waitlisted";
+        if (past && !seat) return;
+        t("class_bookings").push({ id: uuid(`bk:${s.id}:${mk}`), session_id: s.id, membership_id: M[mk].id, status, waitlist_position: status === "waitlisted" ? j - s.capacity + 1 : null, checked_in_at: status === "attended" ? s.starts_at : null, created_at: at(addDays(date, -2), "12:00"), updated_at: at(addDays(date, -2), "12:00") });
+      });
+    });
+    // The next beginner swim is full: every student booked, four seats, the rest waiting in order.
+    const full = sessions.find(({ sc, date }) => sc.id === uuid("cs:mare-ini-qua") && date > anchor) || sessions.find(({ sc, date }) => sc.club_id === MARE.id && date > anchor);
+    if (full) {
+      full.s.capacity = 4;
+      T.class_bookings = t("class_bookings").filter((b) => b.session_id !== full.s.id);
+      pools[MARE.id].forEach((mk, j) => t("class_bookings").push({ id: uuid(`bk:${full.s.id}:${mk}`), session_id: full.s.id, membership_id: M[mk].id, status: j < 4 ? "booked" : "waitlisted", waitlist_position: j < 4 ? null : j - 3, checked_in_at: null, created_at: at(addDays(full.date, -3), String(10 + j).padStart(2, "0") + ":00"), updated_at: at(addDays(full.date, -3), String(10 + j).padStart(2, "0") + ":00") }));
+    }
+    // Next week's Thursday musculação is cancelled; its bookings went with it and Ana was told.
+    const off = sessions.find(({ sc, date }) => sc.id === uuid("cs:pf-musc-qui") && date > addDays(anchor, 2));
+    if (off) {
+      Object.assign(off.s, { status: "cancelled", cancel_reason: "A professora estará em um curso nesse dia." });
+      for (const b of t("class_bookings").filter((x) => x.session_id === off.s.id)) Object.assign(b, { status: "cancelled", waitlist_position: null });
+      note("ana", PF, "class_cancelled", "Aula cancelada", `Musculação: força para corredores · ${off.date.slice(8, 10)}/${off.date.slice(5, 7)} às 07:00: a professora estará em um curso nesse dia.`, `/classes?session=${off.s.id}`, at(addDays(anchor, -1), "17:30"));
+    }
+    // Ana has a seat in the next funcional class (her "próxima aula" on Hoje).
+    const next = sessions.find(({ sc, date }) => sc.club_id === PF.id && sc.class_type_id === funcional.id && date >= anchor);
+    if (next && !t("class_bookings").some((b) => b.session_id === next.s.id && b.membership_id === M["paceforte:ana"].id)) {
+      t("class_bookings").push({ id: uuid(`bk:${next.s.id}:paceforte:ana`), session_id: next.s.id, membership_id: M["paceforte:ana"].id, status: "booked", waitlist_position: null, checked_in_at: null, created_at: at(addDays(anchor, -1), "08:00"), updated_at: at(addDays(anchor, -1), "08:00") });
+    }
+  }
+
   // empty tables (present so the mock and the check know them)
   for (const k of ["sessions", "assets", "plan_assignments", "webhook_events", "push_tokens", "audit_log", "jobs"]) t(k);
   return { meta: { anchor_date: anchor, generated_at: new Date().toISOString(), version: 1 }, ...T };

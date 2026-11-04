@@ -108,7 +108,7 @@ export default function register(h) {
     // LGPD: anonymize; training history stays with the clubs under the anonymized account.
     Object.assign(u, { deleted_at: now, email: `deleted+${u.id}@runflow.club`, name: "Conta excluída", phone: null, birth_date: null, sex: null, avatar_url: null });
     h.db.auth_identities = h.db.auth_identities.filter((i) => i.user_id !== u.id);
-    for (const m of h.db.memberships.filter((m) => m.user_id === u.id)) Object.assign(m, { status: "left", left_at: now });
+    for (const m of h.db.memberships.filter((m) => m.user_id === u.id)) { h.cancelOpenBookings(m.id); Object.assign(m, { status: "left", left_at: now }); }
     for (const s of h.db.sessions.filter((s) => s.user_id === u.id)) s.revoked_at = now;
     for (const c of h.db.provider_connections.filter((c) => c.user_id === u.id)) c.status = "revoked";
   });
@@ -120,6 +120,7 @@ export default function register(h) {
       exported_at: h.nowIso(), user: h.publicUser(u), memberships: mine("memberships"), consents: mine("consents"), activities: mine("activities"),
       planned_workouts: h.db.planned_workouts.filter((p) => mids.includes(p.athlete_membership_id) && h.visible(p)),
       completions: h.db.workout_completions.filter((c) => h.db.planned_workouts.some((p) => p.id === c.planned_workout_id && mids.includes(p.athlete_membership_id))),
+      class_bookings: h.db.class_bookings.filter((b) => mids.includes(b.membership_id)),
       notifications: mine("notifications"),
     };
   });
@@ -167,6 +168,7 @@ export default function register(h) {
     const now = h.nowIso();
     Object.assign(m, { status: "left", left_at: now });
     h.db.group_members = h.db.group_members.filter((g) => g.membership_id !== m.id);
+    h.cancelOpenBookings(m.id); // D-052: open class bookings go and the waitlists move up
     for (const c of h.db.consents.filter((c) => c.user_id === m.user_id && c.club_id === m.club_id && !c.revoked_at)) c.revoked_at = now;
     // Automatic links to that club's workouts go (D-011, D-049); a Strava sync no club sees any more is disconnected.
     h.rematch(m.user_id, h.addDays(h.today(), -30), h.today());

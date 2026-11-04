@@ -106,7 +106,7 @@ export default function register(h) {
     return {
       shares_data: shareOk(m), streak_weeks: streak,
       week: { planned: week.length, done: week.filter((p) => ["completed", "partial"].includes(status(p))).length, duration_s: week.reduce((s, p) => s + (p.est_duration_s || 0), 0), distance_m: week.reduce((s, p) => s + (p.est_distance_m || 0), 0) },
-      last_activity: last,
+      last_activity: last, next_class: h.nextClass(m.id),
     };
   });
 }

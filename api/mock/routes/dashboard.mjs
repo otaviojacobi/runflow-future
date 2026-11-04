@@ -70,7 +70,7 @@ export default function register(h) {
       date: today, students: students.length,
       today: { planned: todays.length, done: todays.filter((x) => ["completed", "partial"].includes(x.workout.completion?.status)).length, items: todays },
       week: { planned: week.length, done: week.filter(done).length, compliance_pct: score(week), duration_s: week.reduce((s, p) => s + (p.est_duration_s || 0), 0), distance_m: week.reduce((s, p) => s + (p.est_distance_m || 0), 0) },
-      compliance_trend: trend, feedback, alerts, onboarding, subscription: sub,
+      compliance_trend: trend, feedback, alerts, upcoming_classes: h.upcomingClasses(clubId), onboarding, subscription: sub,
     };
   });
 }
