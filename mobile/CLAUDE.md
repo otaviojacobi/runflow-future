@@ -115,6 +115,11 @@ Preview every change at `/dev/components` (light and dark side by side, demo clu
   where it starts in the window, since React Native measures the view relative to its parent) and scroll with
   `useFocusedInputVisible` / `KeyboardScrollView`. `Screen` and `Dialog` already do both. Plain React Native on purpose:
   react-native-keyboard-controller isn't in Expo Go.
+- **Android's navigation buttons sit on black** (founder, 2026-11-04): the bar is transparent (edge-to-edge), so
+  `ui/SystemBar`'s `SystemBarStrip` paints the bottom inset with `color.systemBar` (root layout + every sheet) and
+  expo-navigation-bar gives white buttons (`app.json` plugin `style: "light"`, `enforceContrast: false`, plus
+  `setStyle("light")` at start: in its native code "light" means light buttons). The window background follows the
+  theme's canvas (expo-system-ui), never the splash's brand color.
 - **"Sem internet" comes from the global connection state, never from one query's error.** `useOnline()` = the OS is
   connected AND the API answered last time (`lib/reachability`); after a request gets no answer the app probes
   `/health` (2, 5, 10, 20, 30, 60 s) and refetches on the first answer, so the banner clears by itself. A thrown
