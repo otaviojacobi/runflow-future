@@ -42,5 +42,5 @@ export default defineConfig({
   // `vite preview` serves the production build (service worker, PWA) with the same API proxy.
   preview: { port: 4173, strictPort: true, proxy: { "/api": { target: API, rewrite: (p) => p.replace(/^\/api/, "") } } },
   build: { chunkSizeWarningLimit: 400 },
-  test: { environment: "node", include: ["src/**/*.test.ts"] },
+  test: { environment: "node", include: ["src/**/*.test.ts", "src/**/*.test.tsx"] },
 });

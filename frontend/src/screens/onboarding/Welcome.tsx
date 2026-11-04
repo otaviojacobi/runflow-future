@@ -36,6 +36,8 @@ export function WelcomeScreen() {
   const conns = useConnections();
   const consents = useConsents();
   const [shareStrava, setShareStrava] = useState(true);
+  // Every hook above the early return: /me can arrive after the first render (Rules of Hooks).
+  const [nameError, setNameError] = useState<string | null>(null);
   if (!me || !club) return null;
   const connected = !!conns.data?.find((c) => c.provider === "strava")?.connection;
   const sharesStrava = !!consents.data?.some((c) => c.kind === "share_strava" && c.club_id === club.id && !c.revoked_at);
@@ -45,7 +47,6 @@ export function WelcomeScreen() {
   };
   const first = name.split(" ")[0] || me.user.name.split(" ")[0];
   const err = updateMe.error instanceof ApiError ? updateMe.error : null;
-  const [nameError, setNameError] = useState<string | null>(null);
   // The watch step only in clubs whose modalities sync activities (D-052): a funcional gym's student skips it.
   const strava = has(club, "strava");
   const total = strava ? 3 : 2;
