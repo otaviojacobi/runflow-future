@@ -107,7 +107,7 @@ export function DashboardScreen() {
                 {x.feedback.length === 0 ? <p className="text-fg-muted">{t("Nenhum feedback novo.")}</p> : (
                   <ul className="grid gap-3">
                     {x.feedback.map(({ workout: w, athlete: a, last_comment }) => (
-                      <li key={w.id}><Link to="/feedback" className="flex gap-3 rounded-md p-1 hover:bg-soft">
+                      <li key={w.id}><Link to="/feedback" search={{ workout: w.id }} className="flex gap-3 rounded-md p-1 hover:bg-soft">
                         <Avatar name={a.user.name} size={32} />
                         <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="truncate text-sm font-semibold">{a.user.name}</span>{w.unread_count > 0 && <span className="rounded-full bg-danger px-1.5 text-[10px] font-bold text-on-danger">{w.unread_count}</span>}<span className="ml-auto shrink-0 text-xs text-fg-muted">{shortDate(w.date)}</span></div>
                           <p className="line-clamp-2 text-sm text-fg-muted"><MessageSquare className="mr-1 inline size-3.5" />{last_comment?.body ?? w.completion?.comment ?? w.title}</p></div>

@@ -1,5 +1,5 @@
 /** W8 · Feedbacks: inbox of completions and conversations, with the thread beside it. Route: /feedback */
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { AlertTriangle, ArrowLeft, CheckCheck, Inbox, MessageSquare } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useFeedback, useMarkAllRead } from "@/api/feedback";
@@ -51,13 +51,18 @@ function Detail({ item, clubId, meId, onBack }: { item: FeedbackItem; clubId: st
 
 export function FeedbackScreen() {
   const { club, ctx } = useClub();
-  const [filter, setFilter] = useState<FeedbackFilter>("needs_reply");
-  const [sel, setSel] = useState<string | null>(null);
+  // `?workout=<id>` (a notification, the dashboard) opens that conversation; "Todos" so it's there even if answered.
+  const target = useRouterState({ select: (s) => (s.location.search as { workout?: string }).workout });
+  const navigate = useNavigate();
+  const [filter, setFilter] = useState<FeedbackFilter>(target ? "all" : "needs_reply");
+  const [sel, setSel] = useState<string | null>(target ?? null);
+  useEffect(() => { if (target) { setFilter("all"); setSel(target); } }, [target]);
   const q = useFeedback(club?.id, filter);
   const readAll = useMarkAllRead(club?.id ?? "");
   const items = q.data?.items ?? [];
   const current = items.find((i) => i.workout.id === sel) ?? null;
   useEffect(() => { if (!sel && items[0] && window.matchMedia("(min-width: 1024px)").matches) setSel(items[0].workout.id); }, [items, sel]);
+  const back = () => { setSel(null); if (target) navigate({ to: "/feedback", search: {}, replace: true }); };
   if (!club || !ctx) return null;
   const tabs: { v: FeedbackFilter; l: string }[] = [{ v: "needs_reply", l: "Para responder" }, { v: "unread", l: "Não lidos" }, { v: "flagged", l: "Sinais de alerta" }, { v: "all", l: "Todos" }];
   return (
@@ -92,7 +97,7 @@ export function FeedbackScreen() {
             </ul>
           )}
         </Card>
-        {current ? <Detail key={current.workout.id} item={current} clubId={club.id} meId={ctx.membership.id} onBack={() => setSel(null)} /> : <Card className="hidden lg:block"><EmptyState icon={<MessageSquare />} title={t("Escolha uma conversa")} /></Card>}
+        {current ? <Detail key={current.workout.id} item={current} clubId={club.id} meId={ctx.membership.id} onBack={back} /> : <Card className="hidden lg:block"><EmptyState icon={<MessageSquare />} title={t("Escolha uma conversa")} /></Card>}
       </div>
     </div>
   );

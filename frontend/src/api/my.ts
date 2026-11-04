@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api, qs } from "@/lib/api";
 import { queryClient } from "@/queryClient";
+import { meKey } from "./me";
 import type { Comment, CompletionStatus, Feeling, MySummary, MyWorkoutDetail, PlannedWorkout, UnreleasedWeek } from "./types";
 
 export const myKey = (clubId: string) => ["clubs", clubId, "my"] as const;
@@ -32,5 +33,6 @@ export const useComments = (clubId: string | undefined, id: string | null) =>
 export const usePostComment = (clubId: string, id: string) =>
   useMutation({
     mutationFn: (body: string) => api.post<Comment>(`/clubs/${clubId}/planned-workouts/${id}/comments`, { body }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: threadKey(clubId, id) }); queryClient.invalidateQueries({ queryKey: ["clubs", clubId] }); },
+    // A staff reply can clear the Feedbacks count (`/me` memberships[].unread.feedback).
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: threadKey(clubId, id) }); queryClient.invalidateQueries({ queryKey: ["clubs", clubId] }); queryClient.invalidateQueries({ queryKey: meKey }); },
   });
