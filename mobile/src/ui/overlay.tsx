@@ -10,6 +10,7 @@ import { t } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
 import { IconButton } from "./Button";
 import { ListItem, Divider } from "./display";
+import { SystemBarStrip } from "./SystemBar";
 import { KeyboardAvoid, useFocusedInputVisible } from "./keyboard";
 import { X, type Icon } from "./icons";
 import { nativeDriver, useReducedMotion } from "./motion";
@@ -73,6 +74,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
             {footer && <View style={[styles.footer, { gap: theme.space[2], paddingHorizontal: theme.space[5], paddingVertical: theme.space[4], borderTopColor: c.lineSubtle }]}>{footer}</View>}
           </Animated.View>
         </KeyboardAvoid>
+        {!keyboard && <SystemBarStrip />}
         <Toaster layer={layer} />
       </View>
     </Modal>

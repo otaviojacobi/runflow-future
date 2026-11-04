@@ -18,6 +18,7 @@ export function buildTheme(mode: Mode, club: ClubColors = { primary: null, secon
     mode,
     color: {
       canvas: s.bg.canvas, surface: s.bg.surface, raised: s.bg.surfaceRaised, sunken: s.bg.sunken, soft: s.bg.muted, inverse: s.bg.inverse,
+      systemBar: s.bg.systemBar,
       fg: s.fg.default, fgMuted: s.fg.muted, fgSubtle: s.fg.subtle, fgDisabled: s.fg.disabled, fgInverse: s.fg.inverse,
       line: s.border.default, lineSubtle: s.border.subtle, lineStrong: s.border.strong, overlay: s.overlay,
       brand: strip(Color.roles(resolved.primary, mode, tokens.env[mode])),

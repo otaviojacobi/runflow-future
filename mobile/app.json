@@ -85,7 +85,14 @@
           "defaultChannel": "default"
         }
       ],
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-navigation-bar",
+        {
+          "enforceContrast": false,
+          "style": "light"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

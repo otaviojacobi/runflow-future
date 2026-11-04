@@ -6,6 +6,7 @@ export * from "./Button";
 export * from "./form";
 export * from "./display";
 export * from "./overlay";
+export * from "./SystemBar";
 export * from "./toast";
 export * from "./Text";
 export * from "./Screen";

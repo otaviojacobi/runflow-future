@@ -159,6 +159,7 @@
   --rf-bg-sunken: #F3F4F8;
   --rf-bg-muted: #E8EBF1;
   --rf-bg-inverse: #1A1E26;
+  --rf-bg-system-bar: #000000;
   --rf-fg-default: #12151B;
   --rf-fg-muted: #5E636F;
   --rf-fg-subtle: #696F7B;
@@ -292,6 +293,7 @@
   --rf-bg-sunken: #0A0C11;
   --rf-bg-muted: #242830;
   --rf-bg-inverse: #F3F4F8;
+  --rf-bg-system-bar: #000000;
   --rf-fg-default: #F9FAFC;
   --rf-fg-muted: #BCC1CB;
   --rf-fg-subtle: #898F9B;
@@ -426,6 +428,7 @@
     --rf-bg-sunken: #0A0C11;
     --rf-bg-muted: #242830;
     --rf-bg-inverse: #F3F4F8;
+    --rf-bg-system-bar: #000000;
     --rf-fg-default: #F9FAFC;
     --rf-fg-muted: #BCC1CB;
     --rf-fg-subtle: #898F9B;

@@ -130,7 +130,8 @@ export const tokens = {
         "surfaceRaised": "#FFFFFF",
         "sunken": "#F3F4F8",
         "muted": "#E8EBF1",
-        "inverse": "#1A1E26"
+        "inverse": "#1A1E26",
+        "systemBar": "#000000"
       },
       "fg": {
         "default": "#12151B",
@@ -307,7 +308,8 @@ export const tokens = {
         "surfaceRaised": "#1A1E26",
         "sunken": "#0A0C11",
         "muted": "#242830",
-        "inverse": "#F3F4F8"
+        "inverse": "#F3F4F8",
+        "systemBar": "#000000"
       },
       "fg": {
         "default": "#F9FAFC",
