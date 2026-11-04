@@ -12,7 +12,8 @@ import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { useAthlete, usePlanned, useSaveAthleteProfile, useSetZones, type ZonesInput } from "@/api/staff";
 import type { AthleteDetail, AthleteProfile, Goal, Level, Zone } from "@/api/types";
 import { AssignSheet } from "@/components/staff/AssignSheet";
-import { GOAL_LABEL, LEVEL_LABEL, dateInput, parseDate, parsePace, parseTime } from "@/components/staff/athlete";
+import { brToIso, isoToBr, maskDate } from "@/components/account/inputs";
+import { GOAL_LABEL, LEVEL_LABEL, parsePace, parseTime } from "@/components/staff/athlete";
 import { ZoneTable } from "@/components/account/parts";
 import { ActivityRow } from "@/components/activity";
 import { ComplianceBar, Section, WorkoutRow } from "@/components/staff/workout";
@@ -338,7 +339,7 @@ function Profile({ clubId, a }: { clubId: string; a: AthleteDetail }) {
   const p = a.profile;
   const [goal, setGoal] = useState<Goal | "">(p.goal ?? "");
   const [goalNote, setGoalNote] = useState(p.goal_note ?? "");
-  const [goalDate, setGoalDate] = useState(dateInput(p.goal_date));
+  const [goalDate, setGoalDate] = useState(isoToBr(p.goal_date));
   const [level, setLevel] = useState<Level | "">(p.level ?? "");
   const [sessions, setSessions] = useState(p.weekly_sessions != null ? String(p.weekly_sessions) : "");
   const [restHr, setRestHr] = useState(p.resting_hr ? String(p.resting_hr) : "");
@@ -347,8 +348,8 @@ function Profile({ clubId, a }: { clubId: string; a: AthleteDetail }) {
   const [dateErr, setDateErr] = useState<string | null>(null);
   const err = save.error instanceof ApiError ? save.error : null;
   const submit = () => {
-    const goal_date = parseDate(goalDate);
-    if (goal_date === undefined) return setDateErr(t("Use dia/mês/ano, ex.: 15/03/2027."));
+    const goal_date = goalDate.trim() ? brToIso(goalDate) : null;
+    if (goalDate.trim() && !goal_date) return setDateErr(t("Use o formato dd/mm/aaaa, como 15/03/2027."));
     setDateErr(null);
     const body: Partial<AthleteProfile> = {
       goal: goal || null, goal_note: goal === "other" ? goalNote.trim() || null : null, goal_date, level: level || null,
@@ -373,8 +374,8 @@ function Profile({ clubId, a }: { clubId: string; a: AthleteDetail }) {
             {(f) => <Input {...f} value={goalNote} onChangeText={setGoalNote} placeholder={t("Ex.: correr com a filha")} maxLength={120} />}
           </Field>
         )}
-        <Field label={t("Data da prova-alvo")} optional hint={t("dia/mês/ano")} error={dateErr ?? err?.fieldError("goal_date")}>
-          {(f) => <Input {...f} value={goalDate} onChangeText={setGoalDate} placeholder="15/03/2027" keyboardType="numbers-and-punctuation" maxLength={10} />}
+        <Field label={t("Data da prova-alvo")} optional hint={t("dd/mm/aaaa")} error={dateErr ?? err?.fieldError("goal_date")}>
+          {(f) => <Input {...f} value={goalDate} onChangeText={(x) => setGoalDate(maskDate(x))} placeholder="15/03/2027" keyboardType="number-pad" maxLength={10} />}
         </Field>
         <View style={{ gap: theme.space[2] }}>
           <Text variant="labelSm">{t("Nível")}</Text>

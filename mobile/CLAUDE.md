@@ -109,6 +109,9 @@ Preview every change at `/dev/components` (light and dark side by side, demo clu
   `cd mobile && eas build -p android --profile development`, profiles in `eas.json` point at QA) and the founder's
   Expo project and credentials (`docs/ops/push-notifications.md`); in Expo Go the device card says so.
 - Accessibility: `accessibilityRole`/`accessibilityState` on touchables, 44 pt touch targets, visible text = accessible name.
+- **Dates in numbers are dd/mm/aaaa** (founder, 2026-11-04): typed with `components/account/inputs.ts` (`maskDate`, the
+  number pad, `brToIso`; the error says "Use o formato dd/mm/aaaa"), shown with `brDate` (`lib/format.ts`). Words stay
+  words ("ter, 3 nov").
 - **The keyboard never covers an input.** Android is edge-to-edge (SDK 54+): the window no longer resizes for the
   keyboard, so `KeyboardAvoidingView behavior={ios ? "padding" : undefined}` does nothing there (the founder's phone
   hid the workout conversation's composer). Use ui's `KeyboardAvoid` (padding on both platforms, offset measured from

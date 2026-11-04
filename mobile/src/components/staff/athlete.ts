@@ -15,14 +15,3 @@ export const parseTime = (s: string) => {
 };
 /** "4:30" → 270 s per km, or null. */
 export const parsePace = (s: string) => { const m = s.trim().match(/^(\d{1,2}):(\d{2})$/); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
-/** "15/03/2027" → "2027-03-15" (a real day), "" → null, anything else → undefined (invalid). */
-export function parseDate(s: string): string | null | undefined {
-  if (!s.trim()) return null;
-  const m = s.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (!m) return undefined;
-  const iso = `${m[3]}-${m[2]!.padStart(2, "0")}-${m[1]!.padStart(2, "0")}`;
-  const d = new Date(`${iso}T00:00:00Z`);
-  return !isNaN(d.getTime()) && d.toISOString().slice(0, 10) === iso ? iso : undefined;
-}
-/** "2027-03-15" → "15/03/2027" (what the date fields show). */
-export const dateInput = (iso: string | null | undefined) => (iso ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}` : "");

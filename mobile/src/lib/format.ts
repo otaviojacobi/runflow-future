@@ -53,6 +53,9 @@ export const fullDate = (d: string) => { const p = parts(d); return `${p.day} ${
 export const longDate = (d: string) => fmt({ weekday: "long", day: "numeric", month: "long" }).format(asUtc(d));
 /** "2026-11-03" → "3 nov". */
 export const dayMonth = (d: string) => { const p = parts(d); return `${p.day} ${p.mon}`; };
+/** "2026-11-03" → "03/11/2026": a date in numbers is always dd/mm/aaaa (founder, 2026-11-04). Typed dates:
+ *  components/account/inputs.ts (maskDate, brToIso, isoToBr). */
+export const brDate = (d: string) => (/^\d{4}-\d{2}-\d{2}/.test(d) ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}` : d);
 /** "2026-11-03" → "ter". */
 export const weekdayShort = (d: string) => clean(fmt({ weekday: "short" }).format(asUtc(d)));
 /** "2026-11-03" → "terça". */
