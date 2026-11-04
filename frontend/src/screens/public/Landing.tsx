@@ -187,7 +187,7 @@ function Features() {
   const f = [
     { I: CalendarCheck, title: "Planejamento em grade", text: "Alunos × dias da semana. Arraste para mudar de dia, copie a semana inteira em um clique." },
     { I: Library, title: "Biblioteca e planilhas", text: "Modelos prontos e planilhas de várias semanas para aplicar em quem você quiser." },
-    { I: Gauge, title: "Strava sincroniza sozinho", text: "O aluno treina, a atividade chega e o Runflow cruza com o planejado." },
+    { I: Gauge, title: "Compatível com Strava", text: "O aluno treina, a atividade chega sozinha e o Runflow cruza com o planejado." },
     { I: MessageSquare, title: "Feedback de cada treino", text: "Como o aluno se sentiu, esforço percebido e conversa direto no treino." },
     { I: CalendarClock, title: "Aulas e reservas", text: "Horários, vagas, lista de espera e check-in por QR code para academias e natação." },
     { I: Smartphone, title: "App do aluno rápido", text: "Abre em menos de 2 segundos e mostra o treino do dia mesmo sem internet." },
