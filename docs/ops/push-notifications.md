@@ -45,9 +45,10 @@ Needs the **Apple Developer Program** (US$ 99/year; as a company you also need a
 ### 2. Google (Android)
 1. console.firebase.google.com → create a project (e.g. "Runflow") → **Add app → Android**, package
    `club.runflow.app` → download **`google-services.json`**.
-2. Put it at `mobile/google-services.json` and set `"android": { "googleServicesFile": "./google-services.json" }` in
-   `app.json`. (It identifies the app; it isn't a secret, but keep it out of public repos if you prefer: EAS can
-   provide it as a file secret.)
+2. Done 2026-11-04 (Firebase project `runflow-b7085`): the file is an EAS **file variable** `GOOGLE_SERVICES_JSON`
+   (secret, environments development/preview/production; `npm run eas -- env:set --name GOOGLE_SERVICES_JSON --type
+   file --value <path> --visibility secret --environment preview …` replaces it), read by `mobile/app.config.js`.
+   A local copy at `mobile/google-services.json` is git-ignored and only used by local builds.
 3. Firebase → Project settings → **Service accounts** → generate a private key (JSON) for **FCM HTTP v1**.
 4. Give it to EAS: `eas credentials` → Android → **Google Service Account Key for FCM V1** → upload the JSON. Keep the
    JSON in the password manager, never in the repo.
