@@ -14,6 +14,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { endSession } from "@/api/auth";
 import { PushBridge } from "@/components/PushBridge";
 import { setUnauthorizedHandler } from "@/lib/api";
+import { withErrorReporting } from "@/lib/sentry";
 import { session } from "@/lib/session";
 import { queryClient } from "@/queryClient";
 import { ThemeProvider, useTheme } from "@/theme/ThemeProvider";
@@ -50,7 +51,7 @@ function Shell() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [ready, setReady] = useState(false);
   useEffect(() => { session.load().finally(() => setReady(true)); }, []);
   useEffect(() => { if (ready) SplashScreen.hide(); }, [ready]);
@@ -65,3 +66,5 @@ export default function RootLayout() {
     </SafeAreaProvider>
   );
 }
+
+export default withErrorReporting(RootLayout);

@@ -9,7 +9,9 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://qa.runflow.club/api/v1",
-        "EXPO_PUBLIC_WEB_URL": "https://qa.runflow.club"
+        "EXPO_PUBLIC_WEB_URL": "https://qa.runflow.club",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://fb0045c66189099d9239b96272a806cc@o4512368529178624.ingest.us.sentry.io/4512375055187968",
+        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "qa"
       },
       "android": {
         "buildType": "apk"
@@ -21,7 +23,9 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://qa.runflow.club/api/v1",
         "EXPO_PUBLIC_WEB_URL": "https://qa.runflow.club",
-        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a"
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a",
+        "EXPO_PUBLIC_SENTRY_DSN": "https://fb0045c66189099d9239b96272a806cc@o4512368529178624.ingest.us.sentry.io/4512375055187968",
+        "EXPO_PUBLIC_SENTRY_ENVIRONMENT": "qa"
       },
       "android": {
         "buildType": "apk"

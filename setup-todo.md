@@ -25,6 +25,11 @@ QA is live at **https://qa.runflow.club**:
 
 ## Now
 
+- [ ] **Sentry for the phone app (2 minutes, before the next APK).** The project `runflow-mobile-qa` exists (org
+  `runflow-zw`) and the app reports errors to it. For readable stack traces each EAS build uploads source maps, which
+  needs a token: Sentry → Settings → Developer Settings → Organization Tokens → Create, then from the repo folder
+  `npm run eas -- env:set --name SENTRY_AUTH_TOKEN --value <token> --visibility secret --environment preview --environment production`.
+  Without it the Android build can fail at the upload step, so I check it's there before building.
 - [x] ~~**Google sign-in in the phone app (X16).**~~ Done 2026-11-04: the Android OAuth client (package `club.runflow.app`,
   SHA-1 `A0:A4:43:E1:48:3F:50:D5:C5:D2:19:F7:82:7A:E9:58:99:C1:8C:C4`, the EAS keystore that signs the QA APKs) exists in
   the web client's project, and QA's `.env` has `GOOGLE_ANDROID_CLIENT_ID` (optional: the app asks Google for a token

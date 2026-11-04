@@ -87,6 +87,14 @@
       ],
       "@react-native-google-signin/google-signin",
       [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "organization": "runflow-zw",
+          "project": "runflow-mobile-qa"
+        }
+      ],
+      [
         "expo-navigation-bar",
         {
           "enforceContrast": false,

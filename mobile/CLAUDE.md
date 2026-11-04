@@ -77,6 +77,9 @@ src/
               badge; `.web.ts` no-ops), csv (";", decimal comma, BOM → share sheet; `parseCsv` reads one in), pdf
               (HTML → PDF with expo-print → share sheet; `.web.ts` prints), video (YouTube/Vimeo links, thumbnails),
               textfile (pick a text file: the document picker; `.web.ts` reads the browser's File);
+              sentry (errors only, D-045's sibling rule: Sentry's free features; started at import so startup crashes
+              are reported; DSN from eas.json `EXPO_PUBLIC_SENTRY_DSN`, none in local dev/Expo Go; the user's id, never the
+              e-mail; source maps uploaded by EAS builds with the `SENTRY_AUTH_TOKEN` secret; `.web.ts` no-ops);
               components/PushBridge = opens a tapped push in its club
   theme/      theme.ts (tokens → RN theme, club roles via @runflow/design/color), ThemeProvider (Runflow's theme,
               color mode) + ThemeScope (re-theme a subtree: a club's colors, forced light/dark)
