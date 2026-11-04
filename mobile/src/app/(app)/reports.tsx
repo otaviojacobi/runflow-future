@@ -15,6 +15,7 @@ import { ComplianceBar, FilterChips } from "@/components/staff/workout";
 import { t } from "@/i18n";
 import { shareCsv } from "@/lib/csv";
 import { useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { addDays, duration, fullDate, km, mondayOf, today as todayFn } from "@/lib/format";
 import { sharePdf } from "@/lib/pdf";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -95,7 +96,7 @@ export default function ReportsScreen() {
         )}
       </View>
 
-      {r ? <Training r={r} /> : <Skeleton style={{ height: theme.space[20] * 4 }} />}
+      {r ? <Training r={r} volume={has(club, "strava")} /> : <Skeleton style={{ height: theme.space[20] * 4 }} />}
     </Screen>
   );
 }
@@ -111,7 +112,8 @@ function Kpi({ label, value, sub }: { label: string; value: string; sub?: string
   );
 }
 
-function Training({ r }: { r: TrainingReport }) {
+/** `volume`: time and distance from synced activities, only for clubs whose modalities sync them (D-052). */
+function Training({ r, volume }: { r: TrainingReport; volume: boolean }) {
   const { theme } = useTheme();
   const c = theme.color;
   const [sort, setSort] = useState<"name" | "compliance">("name");
@@ -122,8 +124,10 @@ function Training({ r }: { r: TrainingReport }) {
       <View style={[styles.wrap, { gap: theme.space[3] }]}>
         <Kpi label={t("Aderência")} value={pct(T.compliance_pct)} sub={t("parcial conta meio treino")} />
         <Kpi label={t("Treinos feitos")} value={`${T.done + T.partial}/${T.planned}`} sub={t("{n} não realizados", { n: T.missed })} />
-        <Kpi label={t("Tempo de treino")} value={duration(T.done_s)} sub={t("planejado: {d}", { d: duration(T.planned_s) })} />
-        <Kpi label={t("Distância")} value={`${km(T.distance_m)} km`} sub={t("{n} de {t} alunos compartilham dados", { n: T.sharing, t: T.athletes })} />
+        {volume ? <>
+          <Kpi label={t("Tempo de treino")} value={duration(T.done_s)} sub={t("planejado: {d}", { d: duration(T.planned_s) })} />
+          <Kpi label={t("Distância")} value={`${km(T.distance_m)} km`} sub={t("{n} de {t} alunos compartilham dados", { n: T.sharing, t: T.athletes })} />
+        </> : <Kpi label={t("Tempo planejado")} value={duration(T.planned_s)} sub={t("{n} de {t} alunos compartilham dados", { n: T.sharing, t: T.athletes })} />}
       </View>
       <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>
         <View style={[styles.row, styles.between, { gap: theme.space[3] }]}>
@@ -151,7 +155,7 @@ function Training({ r }: { r: TrainingReport }) {
                 <Text variant="caption" tone="muted" style={styles.tabular}>{t("Parciais {n}", { n: a.partial })}</Text>
                 <Text variant="caption" color={a.missed > 2 ? c.danger.text : c.fgMuted} style={styles.tabular}>{t("Faltas {n}", { n: a.missed })}</Text>
                 <Text variant="caption" tone="muted" style={styles.tabular}>{t("Planejado {d}", { d: duration(a.planned_s) })}</Text>
-                {a.shares_data ? (
+                {!volume ? null : a.shares_data ? (
                   <Text variant="caption" tone="muted" style={styles.tabular}>{t("Treinado {d} · {k} km", { d: duration(a.done_s), k: km(a.distance_m) })}</Text>
                 ) : (
                   <View style={[styles.row, { gap: theme.space[1] }]}>
@@ -170,9 +174,11 @@ function Training({ r }: { r: TrainingReport }) {
 
 const hours = (s: number | null) => (s == null ? null : Math.round((s / 3600) * 10) / 10);
 function csvTraining(club: Club, r: TrainingReport) {
+  // The activity columns only where the club's modalities sync activities (D-052).
+  const volume = has(club, "strava");
   return shareCsv(`${club.slug}-treinos-${r.from}-a-${r.to}.csv`,
-    [t("Aluno"), t("E-mail"), t("Aderência (%)"), t("Planejados"), t("Feitos"), t("Parciais"), t("Não realizados"), t("Horas planejadas"), t("Horas treinadas"), t("Distância (km)"), t("Atividades")],
-    r.athletes.map((a) => [a.user.name, a.user.email, a.compliance_pct, a.planned, a.done, a.partial, a.missed, hours(a.planned_s), hours(a.done_s), a.distance_m == null ? null : Math.round(a.distance_m / 100) / 10, a.activities]),
+    [t("Aluno"), t("E-mail"), t("Aderência (%)"), t("Planejados"), t("Feitos"), t("Parciais"), t("Não realizados"), t("Horas planejadas"), ...(volume ? [t("Horas treinadas"), t("Distância (km)"), t("Atividades")] : [])],
+    r.athletes.map((a) => [a.user.name, a.user.email, a.compliance_pct, a.planned, a.done, a.partial, a.missed, hours(a.planned_s), ...(volume ? [hours(a.done_s), a.distance_m == null ? null : Math.round(a.distance_m / 100) / 10, a.activities] : [])]),
     t("Relatório de treinos"));
 }
 
@@ -180,8 +186,9 @@ function csvTraining(club: Club, r: TrainingReport) {
 const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]!);
 function reportHtml(club: Club, r: TrainingReport, groupName: string) {
   const T = r.totals;
+  const volume = has(club, "strava"); // activity time and distance only where the modalities sync them (D-052)
   const kpi = (label: string, value: string, sub: string) => `<div class="kpi"><div class="l">${esc(label)}</div><div class="v">${esc(value)}</div><div class="s">${esc(sub)}</div></div>`;
-  const rows = [...r.athletes].sort((a, b) => a.user.name.localeCompare(b.user.name)).map((a) => `<tr><td>${esc(a.user.name)}</td><td class="n">${pct(a.compliance_pct)}</td><td class="n">${a.done}/${a.planned}</td><td class="n">${a.partial}</td><td class="n">${a.missed}</td><td class="n">${esc(duration(a.planned_s))}</td>${a.shares_data ? `<td class="n">${esc(duration(a.done_s))}</td><td class="n">${esc(km(a.distance_m))} km</td>` : `<td class="n m" colspan="2">${esc(t("não compartilha"))}</td>`}</tr>`).join("");
+  const rows = [...r.athletes].sort((a, b) => a.user.name.localeCompare(b.user.name)).map((a) => `<tr><td>${esc(a.user.name)}</td><td class="n">${pct(a.compliance_pct)}</td><td class="n">${a.done}/${a.planned}</td><td class="n">${a.partial}</td><td class="n">${a.missed}</td><td class="n">${esc(duration(a.planned_s))}</td>${!volume ? "" : a.shares_data ? `<td class="n">${esc(duration(a.done_s))}</td><td class="n">${esc(km(a.distance_m))} km</td>` : `<td class="n m" colspan="2">${esc(t("não compartilha"))}</td>`}</tr>`).join("");
   const weeks = r.weekly.map((w) => `<tr><td>${esc(fullDate(w.week_start))}${w.current ? ` (${esc(t("em andamento"))})` : ""}</td><td class="n">${pct(w.pct)}</td><td class="n">${w.done}/${w.planned}</td></tr>`).join("");
   // A PDF is paper: always the light theme's tokens, whatever the app's color mode.
   const L = tokens.semantic.light, sp = tokens.space, rd = tokens.radius, tx = tokens.text;
@@ -192,9 +199,9 @@ table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:${sp["1.
 </style></head><body>
 <h1>${esc(t("Relatório de treinos"))} · ${esc(club.name)}</h1>
 <div class="meta">${esc(fullDate(r.from))} – ${esc(fullDate(r.to))} · ${esc(groupName)}</div>
-<div class="kpis">${kpi(t("Aderência"), pct(T.compliance_pct), t("parcial conta meio treino"))}${kpi(t("Treinos feitos"), `${T.done + T.partial}/${T.planned}`, t("{n} não realizados", { n: T.missed }))}${kpi(t("Tempo de treino"), duration(T.done_s), t("planejado: {d}", { d: duration(T.planned_s) }))}${kpi(t("Distância"), `${km(T.distance_m)} km`, t("{n} de {t} alunos compartilham dados", { n: T.sharing, t: T.athletes }))}</div>
+<div class="kpis">${kpi(t("Aderência"), pct(T.compliance_pct), t("parcial conta meio treino"))}${kpi(t("Treinos feitos"), `${T.done + T.partial}/${T.planned}`, t("{n} não realizados", { n: T.missed }))}${volume ? `${kpi(t("Tempo de treino"), duration(T.done_s), t("planejado: {d}", { d: duration(T.planned_s) }))}${kpi(t("Distância"), `${km(T.distance_m)} km`, t("{n} de {t} alunos compartilham dados", { n: T.sharing, t: T.athletes }))}` : kpi(t("Tempo planejado"), duration(T.planned_s), t("{n} de {t} alunos compartilham dados", { n: T.sharing, t: T.athletes }))}</div>
 <h2>${esc(t("Aderência por semana"))}</h2><table><thead><tr><th>${esc(t("Semana"))}</th><th class="n">${esc(t("Aderência"))}</th><th class="n">${esc(t("Feitos"))}</th></tr></thead><tbody>${weeks}</tbody></table>
-<h2>${esc(t("Alunos"))}</h2><table><thead><tr><th>${esc(t("Aluno"))}</th><th class="n">${esc(t("Aderência"))}</th><th class="n">${esc(t("Feitos"))}</th><th class="n">${esc(t("Parciais"))}</th><th class="n">${esc(t("Faltas"))}</th><th class="n">${esc(t("Planejado"))}</th><th class="n">${esc(t("Treinado"))}</th><th class="n">${esc(t("Distância"))}</th></tr></thead><tbody>${rows}</tbody></table>
+<h2>${esc(t("Alunos"))}</h2><table><thead><tr><th>${esc(t("Aluno"))}</th><th class="n">${esc(t("Aderência"))}</th><th class="n">${esc(t("Feitos"))}</th><th class="n">${esc(t("Parciais"))}</th><th class="n">${esc(t("Faltas"))}</th><th class="n">${esc(t("Planejado"))}</th>${volume ? `<th class="n">${esc(t("Treinado"))}</th><th class="n">${esc(t("Distância"))}</th>` : ""}</tr></thead><tbody>${rows}</tbody></table>
 </body></html>`;
 }
 

@@ -24,6 +24,7 @@ import { Stat } from "@/components/workout/workout";
 import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { addDays, dayMonth, distance, duration, mondayOf, monthTitle, pace, today as todayFn, upperFirst, weekdayLong } from "@/lib/format";
 import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -84,9 +85,19 @@ function Student({ id, q }: { id: string; q: ReturnType<typeof useAthlete> }) {
   }
   const last4 = a.weekly.slice(-5, -1);
   const avgWeek = last4.length ? last4.reduce((s, w) => s + w.done_s, 0) / last4.length : 0;
+  // Activities (volume, the synced list, the Strava state), zones and race dates only where the club's modalities
+  // use them (D-052).
+  const strava = has(club, "strava"), zones = has(club, "zones"), races = has(club, "races");
+  const tabs: { value: Tab; label: string }[] = [
+    { value: "workouts", label: t("Treinos") },
+    ...(strava ? [{ value: "activities" as const, label: t("Atividades") }] : []),
+    ...(zones ? [{ value: "zones" as const, label: t("Zonas") }] : []),
+    { value: "profile", label: t("Perfil") },
+  ];
+  const shown: Tab = tabs.some((x) => x.value === tab) ? tab : "workouts";
   return (
     <Screen refreshing={q.isRefetching} onRefresh={() => void q.refetch()}>
-      <Header a={a} clubId={club.id} onAssign={() => setAssign(true)} />
+      <Header a={a} clubId={club.id} onAssign={() => setAssign(true)} strava={strava} races={races} />
       <View style={{ gap: theme.space[3] }}>
         <View style={[styles.row, styles.stretch, { gap: theme.space[3] }]}>
           <Card style={[styles.flex, { padding: theme.space[4], gap: theme.space[2] }]}>
@@ -95,30 +106,33 @@ function Student({ id, q }: { id: string; q: ReturnType<typeof useAthlete> }) {
           </Card>
           <Card style={[styles.flex, { padding: theme.space[4] }]}><Stat value={`${a.week.done}/${a.week.planned}`} label={t("Nesta semana")} /></Card>
         </View>
-        <View style={[styles.row, styles.stretch, { gap: theme.space[3] }]}>
-          <Card style={[styles.flex, { padding: theme.space[4] }]}><Stat value={duration(avgWeek)} label={t("Média semanal (4 sem.)")} /></Card>
-          <Card style={[styles.flex, { padding: theme.space[4] }]}>
-            <Stat value={a.profile.threshold_pace_s_per_km ? pace(a.profile.threshold_pace_s_per_km) : "–"} unit={a.profile.threshold_pace_s_per_km ? "/km" : undefined} label={t("Pace de limiar")} />
-          </Card>
-        </View>
+        {(strava || zones) && (
+          <View style={[styles.row, styles.stretch, { gap: theme.space[3] }]}>
+            {strava && <Card style={[styles.flex, { padding: theme.space[4] }]}><Stat value={duration(avgWeek)} label={t("Média semanal (4 sem.)")} /></Card>}
+            {zones && (
+              <Card style={[styles.flex, { padding: theme.space[4] }]}>
+                <Stat value={a.profile.threshold_pace_s_per_km ? pace(a.profile.threshold_pace_s_per_km) : "–"} unit={a.profile.threshold_pace_s_per_km ? "/km" : undefined} label={t("Pace de limiar")} />
+              </Card>
+            )}
+          </View>
+        )}
       </View>
 
-      <Tabs<Tab> label={t("Seções do aluno")} value={tab} onValueChange={setTab}
-        items={[{ value: "workouts", label: t("Treinos") }, { value: "activities", label: t("Atividades") }, { value: "zones", label: t("Zonas") }, { value: "profile", label: t("Perfil") }]} />
-      {tab === "workouts" ? <Workouts clubId={club.id} a={a} tz={club.timezone} onOpen={setSheet} />
-        : tab === "activities" ? <Activities a={a} />
-        : tab === "zones" ? <Zones clubId={club.id} a={a} />
-        : <Profile clubId={club.id} a={a} />}
+      <Tabs<Tab> label={t("Seções do aluno")} value={shown} onValueChange={setTab} items={tabs} />
+      {shown === "workouts" ? <Workouts clubId={club.id} a={a} tz={club.timezone} onOpen={setSheet} />
+        : shown === "activities" ? <Activities a={a} />
+        : shown === "zones" ? <Zones clubId={club.id} a={a} />
+        : <Profile clubId={club.id} a={a} races={races} zones={zones} />}
       <WorkoutSheet seed={sheet} onClose={() => setSheet(null)} />
       <AssignSheet club={club} monday={mondayOf(todayFn(club.timezone))} open={assign} onOpenChange={setAssign} prefill={{ athleteIds: [id] }} />
     </Screen>
   );
 }
 
-function Header({ a, clubId, onAssign }: { a: AthleteDetail; clubId: string; onAssign: () => void }) {
+function Header({ a, clubId, onAssign, strava, races }: { a: AthleteDetail; clubId: string; onAssign: () => void; strava: boolean; races: boolean }) {
   const { theme } = useTheme();
   const goal = a.goal === "other" && a.profile.goal_note ? a.profile.goal_note : a.goal ? t(GOAL_LABEL[a.goal]) : null;
-  const line = [goal, a.profile.goal_date ? t("prova em {d}", { d: dayMonth(a.profile.goal_date) }) : null, a.level ? t(LEVEL_LABEL[a.level]) : null].filter(Boolean).join(" · ");
+  const line = [goal, races && a.profile.goal_date ? t("prova em {d}", { d: dayMonth(a.profile.goal_date) }) : null, a.level ? t(LEVEL_LABEL[a.level]) : null].filter(Boolean).join(" · ");
   const phone = a.user.phone?.replace(/\D/g, "");
   return (
     <View style={{ gap: theme.space[4] }}>
@@ -131,7 +145,7 @@ function Header({ a, clubId, onAssign }: { a: AthleteDetail; clubId: string; onA
       </View>
       <View style={[styles.row, styles.wrap, { gap: theme.space["1.5"] }]}>
         {a.consents.training_data ? <Badge tone="success" icon={ShieldCheck}>{t("Compartilha dados")}</Badge> : <Badge tone="warning" icon={ShieldOff}>{t("Não compartilha os treinos")}</Badge>}
-        {a.strava !== "none" && <Badge tone={a.strava === "shared" ? "info" : "neutral"}>{a.strava === "shared" ? t("Strava compartilhado") : t("Não compartilha o Strava")}</Badge>}
+        {strava && a.strava !== "none" && <Badge tone={a.strava === "shared" ? "info" : "neutral"}>{a.strava === "shared" ? t("Strava compartilhado") : t("Não compartilha o Strava")}</Badge>}
       </View>
       <StudentGroups clubId={clubId} membershipId={a.membership.id} studentName={a.user.name.split(" ")[0]} groups={a.groups} />
       <View style={[styles.row, { gap: theme.space[2] }]}>
@@ -334,7 +348,8 @@ function Zones({ clubId, a }: { clubId: string; a: AthleteDetail }) {
 
 const num = (s: string) => (s.trim() ? Number(s.replace(/\D/g, "")) : null);
 
-function Profile({ clubId, a }: { clubId: string; a: AthleteDetail }) {
+/** `races`/`zones`: the race date and heart rate only for the club's modalities (D-052). */
+function Profile({ clubId, a, races, zones }: { clubId: string; a: AthleteDetail; races: boolean; zones: boolean }) {
   const { theme } = useTheme();
   const save = useSaveAthleteProfile(clubId, a.membership.id);
   const p = a.profile;
@@ -362,7 +377,7 @@ function Profile({ clubId, a }: { clubId: string; a: AthleteDetail }) {
     { label: t("Prova recente"), value: p.recent_race ? `${distance(p.recent_race.distance_m)} · ${duration(p.recent_race.time_s)}${p.recent_race.date ? ` · ${dayMonth(p.recent_race.date)}` : ""}` : null },
     { label: t("CSS (natação)"), value: p.css_s_per_100m ? `${pace(p.css_s_per_100m)} /100 m` : null },
     { label: t("FTP"), value: p.ftp_w ? `${p.ftp_w} W` : null },
-  ].filter((f) => f.value);
+  ].filter((f) => zones && f.value);
   return (
     <View style={{ gap: theme.space[4] }}>
       <Card style={{ padding: theme.space[4], gap: theme.space[4] }}>
@@ -375,9 +390,11 @@ function Profile({ clubId, a }: { clubId: string; a: AthleteDetail }) {
             {(f) => <Input {...f} value={goalNote} onChangeText={setGoalNote} placeholder={t("Ex.: correr com a filha")} maxLength={120} />}
           </Field>
         )}
-        <Field label={t("Data da prova-alvo")} optional hint={t("dd/mm/aaaa")} error={dateErr ?? err?.fieldError("goal_date")}>
-          {(f) => <Input {...f} value={goalDate} onChangeText={(x) => setGoalDate(maskDate(x))} placeholder="15/03/2027" keyboardType="number-pad" maxLength={10} />}
-        </Field>
+        {races && (
+          <Field label={t("Data da prova-alvo")} optional hint={t("dd/mm/aaaa")} error={dateErr ?? err?.fieldError("goal_date")}>
+            {(f) => <Input {...f} value={goalDate} onChangeText={(x) => setGoalDate(maskDate(x))} placeholder="15/03/2027" keyboardType="number-pad" maxLength={10} />}
+          </Field>
+        )}
         <View style={{ gap: theme.space[2] }}>
           <Text variant="labelSm">{t("Nível")}</Text>
           <Segmented<Level | ""> label={t("Nível")} value={level} onChange={setLevel} style={styles.stretchSelf}
@@ -387,12 +404,16 @@ function Profile({ clubId, a }: { clubId: string; a: AthleteDetail }) {
           <Field label={t("Treinos/semana")} error={err?.fieldError("weekly_sessions")} style={styles.flex}>
             {(f) => <Input {...f} value={sessions} onChangeText={setSessions} keyboardType="number-pad" maxLength={2} />}
           </Field>
-          <Field label={t("FC repouso")} error={err?.fieldError("resting_hr")} style={styles.flex}>
-            {(f) => <Input {...f} value={restHr} onChangeText={setRestHr} keyboardType="number-pad" maxLength={3} />}
-          </Field>
-          <Field label={t("FC máxima")} error={err?.fieldError("max_hr")} style={styles.flex}>
-            {(f) => <Input {...f} value={maxHr} onChangeText={setMaxHr} keyboardType="number-pad" maxLength={3} />}
-          </Field>
+          {zones && (
+            <Field label={t("FC repouso")} error={err?.fieldError("resting_hr")} style={styles.flex}>
+              {(f) => <Input {...f} value={restHr} onChangeText={setRestHr} keyboardType="number-pad" maxLength={3} />}
+            </Field>
+          )}
+          {zones && (
+            <Field label={t("FC máxima")} error={err?.fieldError("max_hr")} style={styles.flex}>
+              {(f) => <Input {...f} value={maxHr} onChangeText={setMaxHr} keyboardType="number-pad" maxLength={3} />}
+            </Field>
+          )}
         </View>
       </Card>
       <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>

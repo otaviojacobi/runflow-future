@@ -16,7 +16,7 @@ import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Dialog, Divider, IconButton, ListItem, Text } from "@/ui";
 import { ArrowLeft, Bell, Check, ChevronsUpDown, Menu as MenuIcon, Plus, Ticket } from "@/ui/icons";
-import { hrefOf, moreFor, profileLinksFor, tabsFor } from "./nav";
+import { hrefOf, moreFor, moreRoutesFor, profileLinksFor, tabsFor } from "./nav";
 import { CountBadge, Dot, countLabel, feedbackOf, moreLabel, unreadLabel, unreadOf, waitingOf } from "./unread";
 
 /** The route name of an in-app nav path ("/today" → "today"). */
@@ -116,7 +116,7 @@ const parentOf = (name: string) => (name.includes("/") ? name.slice(0, name.inde
 /** Where a back bar returns to without history: a nested route → its parent, Perfil's links → Perfil, the rest → "Mais" (staff) or home. */
 export function backFallback(name: string, role: Role): Href {
   // A staff tool listed in "Mais" (e.g. "races/manage") goes back to "Mais", not to a student-only parent route.
-  if (role !== "student" && moreFor(role).some((g) => g.items.some((i) => routeName(i.to) === name))) return hrefOf("/more");
+  if (role !== "student" && moreRoutesFor(role).some((i) => routeName(i.to) === name)) return hrefOf("/more");
   const parent = parentOf(name);
   // A workout opens from Hoje, Agenda or an activity; there's no /workouts list to go up to.
   if (parent === "workouts") return homeFor(role);

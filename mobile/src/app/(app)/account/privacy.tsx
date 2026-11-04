@@ -15,6 +15,7 @@ import { ConfirmDialog, Section } from "@/components/account/parts";
 import { disconnectWarning, disconnectsStrava } from "@/components/connections/StravaConnect";
 import { t } from "@/i18n";
 import { activeMembership, homeFor, ROLE_LABEL, selectClub, useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { shareTextFile } from "@/lib/files";
 import { fullDate, localDate, today } from "@/lib/format";
 import { queryClient } from "@/queryClient";
@@ -91,7 +92,8 @@ function Sharing({ memberships }: { memberships: MembershipContext[] }) {
                 <ClubLogo club={m.club} branding={m.branding} size={theme.space[6]} />
                 <Text variant="labelMd" accessibilityRole="header" numberOfLines={1} style={styles.flex}>{m.club.name}</Text>
               </View>
-              {SHARES.map((s) => (
+              {/* The Strava switch only where the club's modalities sync activities (D-052), or to revoke a leftover consent. */}
+              {SHARES.filter((s) => s.kind !== "share_strava" || has(m.club, "strava") || !!active(s.kind, m.club.id)).map((s) => (
                 <Switch key={s.kind} label={t(s.label)} description={t(s.description)} checked={!!active(s.kind, m.club.id)} disabled={busy(s.kind, m.club.id)}
                   onCheckedChange={(v) => toggle(s.kind, m.club.id, v)} />
               ))}

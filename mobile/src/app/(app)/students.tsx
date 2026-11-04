@@ -15,6 +15,7 @@ import { ComplianceBar, FilterChips } from "@/components/staff/workout";
 import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { ago } from "@/lib/format";
 import { hasWeb, openOnWeb } from "@/lib/web";
 import { weight } from "@/theme/theme";
@@ -22,18 +23,19 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar, Button, Card, EmptyState, Input, Menu, PageHeader, Screen, Segmented, Skeleton, Text, toast, type MenuItem } from "@/ui";
 import { Activity, Check, CircleAlert, ExternalLink, FolderMinus, FolderPlus, ListChecks, Lock, Pencil, Plus, Search, Users, X } from "@/ui/icons";
 
-function Row({ a, divider, groupNames, selecting, checked, onToggle, onSelectStart }: {
-  a: AthleteSummary; divider: boolean; groupNames: string; selecting: boolean; checked: boolean; onToggle: () => void; onSelectStart: () => void;
+/** `strava`: the last activity and the Strava state only where the club's modalities sync activities (D-052). */
+function Row({ a, divider, groupNames, selecting, checked, onToggle, onSelectStart, strava }: {
+  a: AthleteSummary; divider: boolean; groupNames: string; selecting: boolean; checked: boolean; onToggle: () => void; onSelectStart: () => void; strava: boolean;
 }) {
   const { theme } = useTheme();
   const c = theme.color;
   const week = a.week.planned ? t("{done}/{planned} na semana", { done: a.week.done, planned: a.week.planned }) : t("Sem treinos na semana");
-  const last = a.last_activity_at ? ago(a.last_activity_at) : t("sem atividade");
+  const last = !strava ? null : a.last_activity_at ? ago(a.last_activity_at) : t("sem atividade");
   const goal = [a.goal ? t(GOAL_LABEL[a.goal]) : null, a.level ? t(LEVEL_LABEL[a.level]) : null].filter(Boolean).join(" · ");
   // What the club sees (D-011): sharing off reads as such, like the web's list.
-  const sharing = !a.shares_data ? t("Não compartilha os treinos") : a.strava === "private" ? t("Não compartilha o Strava") : a.strava === "shared" ? t("Strava") : null;
+  const sharing = !a.shares_data ? t("Não compartilha os treinos") : !strava ? null : a.strava === "private" ? t("Não compartilha o Strava") : a.strava === "shared" ? t("Strava") : null;
   const compliance = a.shares_data && a.compliance_pct != null ? t("aderência {p}%", { p: a.compliance_pct }) : null;
-  const label = [a.user.name, goal, groupNames, week, t("última atividade {when}", { when: last }), compliance, sharing].filter(Boolean).join(", ");
+  const label = [a.user.name, goal, groupNames, week, last && t("última atividade {when}", { when: last }), compliance, sharing].filter(Boolean).join(", ");
   return (
     <Pressable accessibilityRole={selecting ? "checkbox" : "link"} accessibilityState={selecting ? { checked } : undefined}
       accessibilityHint={selecting ? undefined : t("Toque e segure para selecionar")}
@@ -48,7 +50,7 @@ function Row({ a, divider, groupNames, selecting, checked, onToggle, onSelectSta
       <Avatar name={a.user.name} src={a.user.avatar_url} size={theme.space[10]} />
       <View style={[styles.flex, { gap: theme.space["0.5"] }]}>
         <Text variant="labelMd" numberOfLines={1}>{a.user.name}</Text>
-        <Text variant="caption" tone="muted" numberOfLines={1}>{`${week} · ${last}`}</Text>
+        <Text variant="caption" tone="muted" numberOfLines={1}>{last ? `${week} · ${last}` : week}</Text>
         {goal ? <Text variant="caption" tone="subtle" numberOfLines={1}>{goal}</Text> : null}
         {groupNames ? <Text variant="caption" tone="subtle" numberOfLines={1}>{groupNames}</Text> : null}
         {sharing ? (
@@ -189,7 +191,7 @@ export default function StudentsScreen() {
         <Card style={styles.clip}>
           {rows.map((a, i) => (
             <Row key={a.membership.id} a={a} divider={i > 0} groupNames={group === "all" ? groupNames(a) : ""} selecting={selecting} checked={selected.has(a.membership.id)}
-              onToggle={() => toggle(a.membership.id)} onSelectStart={() => { setSelecting(true); setSelected(new Set([a.membership.id])); }} />
+              onToggle={() => toggle(a.membership.id)} onSelectStart={() => { setSelecting(true); setSelected(new Set([a.membership.id])); }} strava={has(club, "strava")} />
           ))}
         </Card>
       )}

@@ -17,6 +17,7 @@ import { ZONE_KIND, computeAssessment, zonesFrom } from "@/domain/assessments";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
+import { has, testsFor } from "@/lib/features";
 import { fullDate, number, today as todayFn } from "@/lib/format";
 import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -50,16 +51,19 @@ export default function AssessmentsScreen() {
   if (!club) return null;
   const refresh = async () => { setRefreshing(true); await list.refetch(); setRefreshing(false); };
   const athleteOptions = [{ value: "", label: t("Todos os alunos") }, ...(athletes.data ?? []).map((a) => ({ value: a.membership.id, label: a.user.name }))];
-  const kindOptions = [{ value: "", label: t("Todos os testes") }, ...PROTOCOLS.map((p) => ({ value: p.kind as string, label: t(p.name) }))];
+  // Only the tests of the club's modalities (D-052): Cooper for running, CSS for swimming, 1RM for the gym…
+  const allowed = new Set(testsFor(club, PROTOCOLS.map((p) => p.kind)));
+  const protocols = PROTOCOLS.filter((p) => allowed.has(p.kind));
+  const kindOptions = [{ value: "", label: t("Todos os testes") }, ...protocols.map((p) => ({ value: p.kind as string, label: t(p.name) }))];
 
   return (
     <Screen refreshing={refreshing} onRefresh={refresh}>
-      <Text tone="muted">{t("Registre testes de campo e avaliações físicas. Os testes podem atualizar as zonas do aluno na hora.")}</Text>
+      <Text tone="muted">{has(club, "zones") ? t("Registre testes de campo e avaliações físicas. Os testes podem atualizar as zonas do aluno na hora.") : t("Registre testes e avaliações físicas e acompanhe a evolução de cada aluno.")}</Text>
 
       <View style={{ gap: theme.space[2] }}>
         <Text variant="titleMd" accessibilityRole="header">{t("Registrar")}</Text>
         <Card style={{ padding: theme.space[1] }}>
-          {PROTOCOLS.map((p) => <ProtocolRow key={p.kind} p={p} onPress={() => setRecord(p.kind)} />)}
+          {protocols.map((p) => <ProtocolRow key={p.kind} p={p} onPress={() => setRecord(p.kind)} />)}
         </Card>
       </View>
 

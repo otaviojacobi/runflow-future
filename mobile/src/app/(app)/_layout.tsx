@@ -14,6 +14,7 @@ import { BackHeader, ShellHeader, TabBar, backFallback, isTabRoot } from "@/comp
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { clubColors, homeFor, useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { useSession } from "@/lib/session";
 import { ThemeScope, useTheme } from "@/theme/ThemeProvider";
 import { Button, Card, EmptyState, Screen, Spinner } from "@/ui";
@@ -71,8 +72,8 @@ function ClubTabs({ role, modalities, clubId, frozen }: { role: Role; modalities
         <Tabs.Screen name="plans" options={{ title: t("Planilhas") }} />
         <Tabs.Screen name="plans/[id]" options={{ title: t("Planilha") }} />
       </Tabs.Protected>
-      {/* The exercise library is for clubs that teach musculação (D-035). */}
-      <Tabs.Protected guard={staff && modalities.includes("strength")} redirectTo={homeFor(role)}>
+      {/* The exercise library is for clubs whose modalities use it: funcional or musculação (D-052, lib/features). */}
+      <Tabs.Protected guard={staff && has({ modalities }, "exercises")} redirectTo={homeFor(role)}>
         <Tabs.Screen name="exercises" options={{ title: t("Exercícios") }} />
       </Tabs.Protected>
       <Tabs.Protected guard={role === "owner"} redirectTo={homeFor(role)}>

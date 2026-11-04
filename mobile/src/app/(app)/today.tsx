@@ -18,6 +18,7 @@ import { WorkoutCard, openWorkout } from "@/components/workout/WorkoutCard";
 import { Stat } from "@/components/workout/workout";
 import { t, tn } from "@/i18n";
 import { useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { addDays, duration, isoWeekday, km, longDate, mondayOf, pace, shortDate, today as todayFn, upperFirst } from "@/lib/format";
 import { useOnline } from "@/lib/offline";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -57,6 +58,8 @@ export default function TodayScreen() {
   const left = thisWeek.filter((w) => w.date >= today && !w.completion).length;
   const upcoming = items.find((w) => w.date > selected && w.date >= today);
   const professor = club.trainer_label === "professor";
+  // Activities, their matching questions and the last-activity card belong to the endurance modalities (D-052).
+  const strava = has(club, "strava");
 
   const refresh = async () => {
     setRefreshing(true);
@@ -77,7 +80,7 @@ export default function TodayScreen() {
       <OfflineBanner />
       {s && !s.shares_data && <NotSharing />}
       {/* An activity the matching engine couldn't place on its own (D-049): which workout was it? */}
-      {online && <PendingMatches />}
+      {online && strava && <PendingMatches />}
 
       {cal.data ? (
         <>
@@ -100,7 +103,7 @@ export default function TodayScreen() {
       )}
 
       {s && s.week.planned > 0 && <WeekCard week={s.week} />}
-      {s?.last_activity && <LastActivity a={s.last_activity} />}
+      {strava && s?.last_activity && <LastActivity a={s.last_activity} />}
 
       {feedback && (
         <TodayFeedback clubId={club.id} id={feedback.id} fallback={items.find((w) => w.id === feedback.id)} open={feedback.open}

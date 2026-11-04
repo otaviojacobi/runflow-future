@@ -11,6 +11,7 @@ import { hrefOf, profileLinksFor } from "@/components/shell/nav";
 import { Section } from "@/components/account/parts";
 import { t } from "@/i18n";
 import { ROLE_LABEL, useClub } from "@/lib/club";
+import { anyClubHas } from "@/lib/features";
 import { type ModePref, useTheme } from "@/theme/ThemeProvider";
 import { Avatar, Button, Card, ListItem, PageHeader, Screen, Segmented, Text, type Icon } from "@/ui";
 import { Bell, ChevronRight, LogOut, Monitor, Moon, ShieldCheck, Smartphone, Sun, UserPen, UserRound, Watch } from "@/ui/icons";
@@ -30,7 +31,10 @@ export default function AccountScreen() {
   const stravaOn = !!connections.data?.find((p) => p.provider === "strava")?.connection;
   if (!me || !role) return null;
   const student = role === "student";
-  const links = [{ to: "/account/profile", label: "Perfil de atleta", icon: UserRound }, ...profileLinksFor(role)];
+  // Account-level: a link shows when any of the person's clubs uses it (D-052); "Relógios e apps" also stays while
+  // Strava is connected, so it can be disconnected.
+  const links = [{ to: "/account/profile", label: "Perfil de atleta", icon: UserRound }, ...profileLinksFor(role, me.memberships)];
+  const watches = anyClubHas(me.memberships, "strava") || stravaOn;
   return (
     <Screen>
       {!isStaff && <PageHeader title={t("Perfil")} />}
@@ -56,7 +60,7 @@ export default function AccountScreen() {
         <LinkRow title={t("Notificações")} icon={Bell} href="/account/notifications" />
         <LinkRow title={t("Privacidade e dados")} icon={ShieldCheck} href="/account/privacy" />
         <LinkRow title={t("Aparelhos conectados")} icon={Smartphone} href="/account/devices" />
-        <LinkRow title={t("Relógios e apps")} subtitle={stravaOn ? t("Strava conectado") : undefined} icon={Watch} href="/account/connections" />
+        {watches && <LinkRow title={t("Relógios e apps")} subtitle={stravaOn ? t("Strava conectado") : undefined} icon={Watch} href="/account/connections" />}
       </Section>
 
       <View style={{ gap: theme.space[2] }}>

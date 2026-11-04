@@ -3,16 +3,17 @@
  * what has a screen in the app. The rest (desktop tools: library, planilhas, Club Studio…) opens the web app.
  *
  * `tab`: in the bottom bar (students: exactly 4, D-035; staff: 4 + "Mais"). `inProfile`: reached from Perfil.
- * `gym`: only for clubs that teach musculação (D-035).
+ * `feature`: only for clubs whose modalities use it (D-052, lib/features.ts).
  */
 import type { Href } from "expo-router";
-import type { Role, Sport } from "@/api/types";
+import type { MembershipContext, Role, Sport } from "@/api/types";
+import { anyClubHas, has, type Feature } from "@/lib/features";
 import {
   Activity, BarChart3, Calendar, CalendarRange, ClipboardList, CreditCard, Dumbbell, Flag, Gauge, LayoutDashboard, Library, MessageCircle, MessageSquare,
   Palette, Settings, Sun, User, UserCog, Users, type Icon,
 } from "@/ui/icons";
 
-export interface NavItem { to: string; label: string; icon: Icon; tab?: boolean; inProfile?: boolean; gym?: boolean; app?: boolean }
+export interface NavItem { to: string; label: string; icon: Icon; tab?: boolean; inProfile?: boolean; feature?: Feature; app?: boolean }
 export interface NavGroup { title?: string; items: NavItem[] }
 
 const STAFF_MAIN: NavItem[] = [
@@ -25,12 +26,12 @@ const STAFF_MAIN: NavItem[] = [
 const STAFF_TRAINING: NavItem[] = [
   { to: "/library", label: "Biblioteca", icon: Library, app: true },
   { to: "/plans", label: "Planilhas", icon: ClipboardList, app: true },
-  { to: "/exercises", label: "Exercícios", icon: Dumbbell, gym: true, app: true },
+  { to: "/exercises", label: "Exercícios", icon: Dumbbell, feature: "exercises", app: true },
   { to: "/assessments", label: "Avaliações", icon: Gauge, app: true },
   { to: "/reports", label: "Relatórios", icon: BarChart3, app: true },
 ];
 const STAFF_TEAM: NavItem[] = [
-  { to: "/races/manage", label: "Provas", icon: Flag, app: true },
+  { to: "/races/manage", label: "Provas", icon: Flag, feature: "races", app: true },
 ];
 const OWNER: NavItem[] = [
   { to: "/club/studio", label: "Club Studio", icon: Palette, app: true },
@@ -42,25 +43,32 @@ const STUDENT: NavItem[] = [
   { to: "/today", label: "Hoje", icon: Sun, tab: true, app: true },
   { to: "/schedule", label: "Agenda", icon: Calendar, tab: true, app: true },
   { to: "/messages", label: "Mensagens", icon: MessageCircle, tab: true, app: true },
-  { to: "/races", label: "Provas", icon: Flag, inProfile: true, app: true },
-  { to: "/activities", label: "Atividades", icon: Activity, inProfile: true, app: true },
+  { to: "/races", label: "Provas", icon: Flag, inProfile: true, feature: "races", app: true },
+  { to: "/activities", label: "Atividades", icon: Activity, inProfile: true, feature: "strava", app: true },
   { to: "/account", label: "Perfil", icon: User, tab: true, app: true },
 ];
 
-/** The club's navigation for a role; gym tools only when the club teaches musculação (D-035). */
+const groupsFor = (role: Role): NavGroup[] =>
+  role === "student" ? [{ items: STUDENT }]
+    : [{ items: STAFF_MAIN }, { title: "Treinos", items: STAFF_TRAINING }, { title: "Equipe", items: STAFF_TEAM }, ...(role === "owner" ? [{ title: "Clube", items: OWNER }] : [])];
+
+/** The club's navigation for a role: only what the club's modalities use (D-052); empty groups dropped. */
 export function navFor(role: Role, modalities: Sport[] = []): NavGroup[] {
-  const gym = modalities.includes("strength");
-  const keep = (g: NavGroup): NavGroup => ({ ...g, items: g.items.filter((i) => gym || !i.gym) });
-  if (role === "student") return [{ items: STUDENT }];
-  const staff: NavGroup[] = [{ items: STAFF_MAIN }, { title: "Treinos", items: STAFF_TRAINING }, { title: "Equipe", items: STAFF_TEAM }];
-  return (role === "owner" ? [...staff, { title: "Clube", items: OWNER }] : staff).map(keep);
+  const keep = (g: NavGroup): NavGroup => ({ ...g, items: g.items.filter((i) => !i.feature || has({ modalities }, i.feature)) });
+  return groupsFor(role).map(keep).filter((g) => g.items.length > 0);
 }
 const flat = (role: Role, modalities?: Sport[]) => navFor(role, modalities).flatMap((g) => g.items);
 export const tabsFor = (role: Role, modalities?: Sport[]) => flat(role, modalities).filter((i) => i.tab);
 /** The "Mais" screen: everything else, grouped, except what Perfil links to. */
 export const moreFor = (role: Role, modalities?: Sport[]): NavGroup[] =>
   navFor(role, modalities).map((g) => ({ ...g, items: g.items.filter((i) => !i.tab && !i.inProfile) })).filter((g) => g.items.length > 0);
-/** What Perfil links to (students: Provas, Atividades). */
-export const profileLinksFor = (role: Role) => flat(role).filter((i) => i.inProfile);
+/**
+ * What Perfil links to (students: Provas, Atividades). Perfil is the person's, not one club's: a link shows when any
+ * club they're active in uses it. Without memberships, every link (routing only).
+ */
+export const profileLinksFor = (role: Role, memberships?: readonly MembershipContext[]) =>
+  groupsFor(role).flatMap((g) => g.items).filter((i) => i.inProfile && (!memberships || !i.feature || anyClubHas(memberships, i.feature)));
+/** Every "Mais" route of a role, whatever the modalities: for routing (back buttons, the focused tab), never for showing. */
+export const moreRoutesFor = (role: Role) => groupsFor(role).flatMap((g) => g.items).filter((i) => !i.tab && !i.inProfile);
 /** An in-app nav path as a route. */
 export const hrefOf = (to: string) => to as Href;

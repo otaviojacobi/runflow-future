@@ -79,6 +79,8 @@ src/
               badge; `.web.ts` no-ops), csv (";", decimal comma, BOM → share sheet; `parseCsv` reads one in), pdf
               (HTML → PDF with expo-print → share sheet; `.web.ts` prints), video (YouTube/Vimeo links, thumbnails),
               textfile (pick a text file: the document picker; `.web.ts` reads the browser's File);
+              features (verbatim copy of the web's lib/features.ts, checked by `node scripts/check-copies.mjs`: what a
+              club sees from its modalities, D-052);
               sentry (errors only, D-045's sibling rule: Sentry's free features; started at import so startup crashes
               are reported; DSN from eas.json `EXPO_PUBLIC_SENTRY_DSN`, none in local dev/Expo Go; the user's id, never the
               e-mail; source maps uploaded by EAS builds with the `SENTRY_AUTH_TOKEN` secret; `.web.ts` no-ops);
@@ -115,6 +117,10 @@ Preview every change at `/dev/components` (light and dark side by side, demo clu
   `cd mobile && eas build -p android --profile development`, profiles in `eas.json` point at QA) and the founder's
   Expo project and credentials (`docs/ops/push-notifications.md`); in Expo Go the device card says so.
 - Accessibility: `accessibilityRole`/`accessibilityState` on touchables, 44 pt touch targets, visible text = accessible name.
+- **The club's modalities decide what shows (D-052)**, for every role: `has(club, feature)` from `lib/features.ts`
+  (nav items carry `feature`; Perfil asks `anyClubHas(me.memberships, …)`); never `modalities.includes(...)` in a screen.
+  Routing helpers that must see every route (back fallbacks) use `moreRoutesFor`/`profileLinksFor(role)` without
+  memberships.
 - **Dates in numbers are dd/mm/aaaa** (founder, 2026-11-04): typed with `components/account/inputs.ts` (`maskDate`, the
   number pad, `brToIso`; the error says "Use o formato dd/mm/aaaa"), shown with `brDate` (`lib/format.ts`). Words stay
   words ("ter, 3 nov").

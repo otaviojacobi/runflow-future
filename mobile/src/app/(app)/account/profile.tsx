@@ -13,6 +13,7 @@ import { Section, Stepper, ZoneTable } from "@/components/account/parts";
 import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { clock, fullDate, pace } from "@/lib/format";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Button, Card, EmptyState, Field, Input, Screen, Select, Skeleton, Text, toast } from "@/ui";
@@ -30,8 +31,8 @@ export default function ProfileScreen() {
       <Text tone="muted">{t("Ajuda {who} a montar treinos do seu jeito em {club}.", { who, club: club.name })}</Text>
       {p.data ? (
         <>
-          <Form clubId={club.id} p={p.data} who={who} key={p.data.updated_at} />
-          <Zones p={p.data} who={who} />
+          <Form clubId={club.id} p={p.data} who={who} key={p.data.updated_at} races={has(club, "races")} zones={has(club, "zones")} />
+          {has(club, "zones") && <Zones p={p.data} who={who} />}
           <MyAssessments clubId={club.id} />
         </>
       ) : p.error ? (
@@ -51,7 +52,8 @@ export default function ProfileScreen() {
   );
 }
 
-function Form({ clubId, p, who }: { clubId: string; p: AthleteProfile; who: string }) {
+/** `races`/`zones`: the race date, the recent race (pace estimate) and heart rate only for the club's modalities (D-052). */
+function Form({ clubId, p, who, races, zones }: { clubId: string; p: AthleteProfile; who: string; races: boolean; zones: boolean }) {
   const { theme } = useTheme();
   const save = useSaveMyProfile(clubId);
   const [v, setV] = useState({
@@ -96,9 +98,11 @@ function Form({ clubId, p, who }: { clubId: string; p: AthleteProfile; who: stri
               {(a) => <Input {...a} value={v.goal_note} onChangeText={(goal_note) => set({ goal_note })} maxLength={120} placeholder={t("Ex.: voltar a correr depois de uma lesão")} />}
             </Field>
           )}
-          <Field label={t("Data da prova")} optional error={errors.goal_date} hint={t("dd/mm/aaaa")}>
-            {(a) => <Input {...a} value={v.goal_date} onChangeText={(x) => set({ goal_date: maskDate(x) })} placeholder="15/03/2027" keyboardType="number-pad" inputMode="numeric" maxLength={10} />}
-          </Field>
+          {races && (
+            <Field label={t("Data da prova")} optional error={errors.goal_date} hint={t("dd/mm/aaaa")}>
+              {(a) => <Input {...a} value={v.goal_date} onChangeText={(x) => set({ goal_date: maskDate(x) })} placeholder="15/03/2027" keyboardType="number-pad" inputMode="numeric" maxLength={10} />}
+            </Field>
+          )}
           <Field label={t("Nível")} error={err?.fieldError("level")}>
             {(a) => <Select<Level | ""> {...a} value={v.level || null} placeholder={t("Escolha…")} options={LEVELS.map((l) => ({ value: l.value, label: t(l.label) }))} onChange={(level) => set({ level })} />}
           </Field>
@@ -108,27 +112,31 @@ function Form({ clubId, p, who }: { clubId: string; p: AthleteProfile; who: stri
         </View>
       </Section>
 
-      <Section title={t("Prova recente")} description={t("Usamos para estimar seu ritmo de limiar.")} padded={false}>
-        <View style={gap}>
-          <Field label={t("Distância")}>
-            {(a) => <Select {...a} value={v.race_m} options={RACES.map((r) => ({ value: String(r.m), label: t(r.label) }))} onChange={(race_m) => set({ race_m })} />}
-          </Field>
-          <Field label={t("Tempo")} optional error={errors.race} hint={t("Só os números: 5230 vira 52:30.")}>
-            {(a) => <Input {...a} value={v.race_time} onChangeText={(x) => set({ race_time: maskClock(x) })} placeholder="52:30" keyboardType="number-pad" inputMode="numeric" maxLength={8} />}
-          </Field>
-        </View>
-      </Section>
+      {zones && (
+        <Section title={t("Prova recente")} description={t("Usamos para estimar seu ritmo de limiar.")} padded={false}>
+          <View style={gap}>
+            <Field label={t("Distância")}>
+              {(a) => <Select {...a} value={v.race_m} options={RACES.map((r) => ({ value: String(r.m), label: t(r.label) }))} onChange={(race_m) => set({ race_m })} />}
+            </Field>
+            <Field label={t("Tempo")} optional error={errors.race} hint={t("Só os números: 5230 vira 52:30.")}>
+              {(a) => <Input {...a} value={v.race_time} onChangeText={(x) => set({ race_time: maskClock(x) })} placeholder="52:30" keyboardType="number-pad" inputMode="numeric" maxLength={8} />}
+            </Field>
+          </View>
+        </Section>
+      )}
 
-      <Section title={t("Frequência cardíaca")} padded={false}>
-        <View style={[gap, styles.row]}>
-          <Field label={t("FC máxima (bpm)")} optional error={errors.max_hr} style={styles.flex}>
-            {(a) => <Input {...a} value={v.max_hr} onChangeText={(x) => set({ max_hr: x.replace(/\D/g, "") })} placeholder="188" keyboardType="number-pad" inputMode="numeric" maxLength={3} />}
-          </Field>
-          <Field label={t("FC de repouso (bpm)")} optional error={errors.resting_hr} style={styles.flex}>
-            {(a) => <Input {...a} value={v.resting_hr} onChangeText={(x) => set({ resting_hr: x.replace(/\D/g, "") })} placeholder="52" keyboardType="number-pad" inputMode="numeric" maxLength={3} />}
-          </Field>
-        </View>
-      </Section>
+      {zones && (
+        <Section title={t("Frequência cardíaca")} padded={false}>
+          <View style={[gap, styles.row]}>
+            <Field label={t("FC máxima (bpm)")} optional error={errors.max_hr} style={styles.flex}>
+              {(a) => <Input {...a} value={v.max_hr} onChangeText={(x) => set({ max_hr: x.replace(/\D/g, "") })} placeholder="188" keyboardType="number-pad" inputMode="numeric" maxLength={3} />}
+            </Field>
+            <Field label={t("FC de repouso (bpm)")} optional error={errors.resting_hr} style={styles.flex}>
+              {(a) => <Input {...a} value={v.resting_hr} onChangeText={(x) => set({ resting_hr: x.replace(/\D/g, "") })} placeholder="52" keyboardType="number-pad" inputMode="numeric" maxLength={3} />}
+            </Field>
+          </View>
+        </Section>
+      )}
 
       <Button size="lg" loading={save.isPending} onPress={submit}>{t("Salvar perfil")}</Button>
     </>

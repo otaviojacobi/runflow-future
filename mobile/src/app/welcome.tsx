@@ -14,12 +14,12 @@ import { StravaConnectPanel } from "@/components/connections/StravaConnect";
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { clubColors, useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { useSession } from "@/lib/session";
 import { ThemeScope, useTheme } from "@/theme/ThemeProvider";
 import { Button, Card, Checkbox, Field, Input, ProgressBar, Screen, Skeleton, Text, toast } from "@/ui";
 import { Activity, Check, ShieldCheck, Sparkles, type Icon } from "@/ui/icons";
 
-const TOTAL = 3;
 const home = () => router.replace("/today");
 
 export default function WelcomeRoute() {
@@ -36,6 +36,9 @@ function Welcome() {
   const { me, club, ctx } = useClub();
   const [step, setStep] = useState(1);
   if (!me || !club || !ctx) return null;
+  // The watch step only in clubs whose modalities sync activities (D-052): a funcional gym's student skips it.
+  const strava = has(club, "strava");
+  const TOTAL = strava ? 3 : 2;
   const header = (
     <View style={{ paddingTop: insets.top + theme.space[3], paddingHorizontal: theme.space[4], paddingBottom: theme.space[3], gap: theme.space[3], backgroundColor: theme.color.canvas }}>
       <View style={[styles.row, { gap: theme.space[3] }]}>
@@ -51,9 +54,9 @@ function Welcome() {
   );
   return (
     <Screen header={header} insetBottom>
-      {step === 1 && <StepConsent clubId={club.id} clubName={club.name} onDone={() => setStep(2)} />}
-      {step === 2 && <StepProfile onDone={() => setStep(3)} />}
-      {step === 3 && <StepStrava clubId={club.id} clubName={club.name} onDone={() => setStep(4)} />}
+      {step === 1 && <StepConsent clubId={club.id} clubName={club.name} strava={strava} zones={has(club, "zones")} onDone={() => setStep(2)} />}
+      {step === 2 && <StepProfile onDone={() => setStep(strava ? 3 : 4)} />}
+      {step === 3 && strava && <StepStrava clubId={club.id} clubName={club.name} onDone={() => setStep(4)} />}
       {step === 4 && <StepDone first={me.user.name.split(" ")[0] ?? ""} professor={club.trainer_label === "professor"} />}
     </Screen>
   );
@@ -90,7 +93,8 @@ function Bullets({ items }: { items: string[] }) {
   );
 }
 
-function StepConsent({ clubId, clubName, onDone }: { clubId: string; clubName: string; onDone: () => void }) {
+/** What the trainers see, said as it is for this club (`strava`/`zones`: only when its modalities use them, D-052). */
+function StepConsent({ clubId, clubName, strava, zones, onDone }: { clubId: string; clubName: string; strava: boolean; zones: boolean; onDone: () => void }) {
   const { theme } = useTheme();
   const [agree, setAgree] = useState(true);
   const consent = useGrantConsent();
@@ -101,8 +105,8 @@ function StepConsent({ clubId, clubName, onDone }: { clubId: string; clubName: s
         <Text variant="labelMd">{t("Os treinadores do clube vão ver:")}</Text>
         <Bullets items={[
           t("Seus treinos planejados, se você fez e como se sentiu"),
-          t("Atividades sincronizadas: distância, tempo, ritmo e frequência cardíaca"),
-          t("Seu objetivo, nível e zonas de treino"),
+          ...(strava ? [t("Atividades sincronizadas: distância, tempo, ritmo e frequência cardíaca")] : []),
+          zones ? t("Seu objetivo, nível e zonas de treino") : t("Seu objetivo e nível"),
           t("Os comentários que você deixar nos treinos"),
         ]} />
         <Text variant="bodySm" tone="muted">{t("Dados de saúde são sensíveis pela LGPD. Você pode revogar este consentimento a qualquer momento em Minha conta.")}</Text>

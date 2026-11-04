@@ -14,6 +14,7 @@ import { WorkoutSheet, type WorkoutSeed } from "@/components/staff/WorkoutSheet"
 import { t, tn } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
+import { has } from "@/lib/features";
 import { useOpenLink } from "@/lib/links";
 import { ago, duration, km, longDate, shortDate, today as todayFn } from "@/lib/format";
 import { hasWeb } from "@/lib/web";
@@ -137,7 +138,8 @@ function FeedbackList({ items, onOpen }: { items: Dashboard["feedback"]; onOpen:
   );
 }
 
-function Onboarding({ o, owner }: { o: Dashboard["onboarding"]; owner: boolean }) {
+/** `strava`: the Strava step only where the club's modalities sync activities (D-052). */
+function Onboarding({ o, owner, strava }: { o: Dashboard["onboarding"]; owner: boolean; strava: boolean }) {
   const { theme } = useTheme();
   const openLink = useOpenLink();
   const c = theme.color;
@@ -146,8 +148,8 @@ function Onboarding({ o, owner }: { o: Dashboard["onboarding"]; owner: boolean }
     { ok: o.students, label: t("Convide os primeiros alunos"), to: "/club/members", owner: true },
     { ok: o.workouts, label: t("Monte a semana no planejamento"), to: "/planning" },
     { ok: o.groups, label: t("Organize os alunos em grupos"), to: "/students" },
-    { ok: o.strava, label: t("Peça aos alunos para conectar o Strava"), to: "/students" },
-  ].filter((i) => owner || !i.owner);
+    ...(strava ? [{ ok: o.strava, label: t("Peça aos alunos para conectar o Strava"), to: "/students" }] : []),
+  ].filter((i) => owner || !("owner" in i && i.owner));
   const done = items.filter((i) => i.ok).length;
   if (done === items.length) return null;
   return (
@@ -222,6 +224,8 @@ export default function DashboardScreen() {
   const date = x?.date ?? todayFn(club.timezone);
   const first = me.user.name.split(" ")[0] ?? "";
   const owner = role === "owner";
+  // Strava's onboarding step and its sync alerts belong to the endurance modalities (D-052).
+  const strava = has(club, "strava");
   return (
     <Screen refreshing={d.isRefetching && !d.isPending} onRefresh={() => void d.refetch()}>
       <PageHeader eyebrow={longDate(date)} title={first ? `${t(greet())}, ${first}` : t("Painel")} />
@@ -242,7 +246,7 @@ export default function DashboardScreen() {
         )
       ) : (
         <>
-          <Onboarding o={x.onboarding} owner={owner} />
+          <Onboarding o={x.onboarding} owner={owner} strava={strava} />
           <View style={{ gap: theme.space[3] }}>
             <View style={[styles.row, styles.stretch, { gap: theme.space[3] }]}>
               <Kpi label={t("Treinos hoje")} value={`${x.today.done}/${x.today.planned}`} sub={x.today.planned ? t("feitos até agora") : t("nenhum treino hoje")} onPress={() => router.push("/planning")} />
@@ -260,7 +264,7 @@ export default function DashboardScreen() {
             </View>
           </Section>
 
-          <Section title={t("Atenção")}><Alerts alerts={x.alerts} /></Section>
+          <Section title={t("Atenção")}><Alerts alerts={x.alerts.filter((al) => strava || al.kind !== "no_sync")} /></Section>
 
           <Section title={t("Feedbacks")} flush action={<SeeAll label={t("Abrir caixa")} onPress={() => router.push("/feedback")} />}>
             <FeedbackList items={x.feedback} onOpen={(i) => setSheet({ ...i, mode: "thread" })} />
