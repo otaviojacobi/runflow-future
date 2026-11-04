@@ -8,7 +8,8 @@ use sqlx::{PgConnection, PgExecutor};
 use uuid::Uuid;
 
 use crate::models::{
-    Branding, Club, Consent, Membership, MembershipContext, Notification, SubscriptionRow, User,
+    Branding, Club, Consent, Membership, MembershipContext, Notification, SubscriptionRow, Unread,
+    User,
 };
 
 /// Active memberships in clubs that still exist, with branding and plan. Oldest membership first.
@@ -83,9 +84,46 @@ pub async fn memberships(
     })
     .collect();
 
+    let ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
+    let unread: HashMap<Uuid, Unread> = sqlx::query!(
+        r#"SELECT m.id AS "id!",
+                  (SELECT count(*) FROM conversations c
+                     JOIN memberships s ON s.id = c.student_membership_id AND s.status = 'active'
+                     JOIN messages x ON x.conversation_id = c.id
+                     LEFT JOIN conversation_reads r ON r.conversation_id = c.id AND r.membership_id = m.id
+                    WHERE c.club_id = m.club_id
+                      AND (m.role <> 'student' OR c.student_membership_id = m.id)
+                      AND x.deleted_at IS NULL AND x.author_membership_id <> m.id
+                      AND (r.last_read_at IS NULL OR x.created_at > r.last_read_at)) AS "messages!",
+                  CASE WHEN m.role = 'student' THEN
+                    (SELECT count(*) FROM announcements a
+                      WHERE a.club_id = m.club_id AND a.deleted_at IS NULL
+                        AND (cardinality(a.group_ids) = 0 OR EXISTS (
+                              SELECT 1 FROM group_members g WHERE g.membership_id = m.id AND g.group_id = ANY (a.group_ids)))
+                        AND NOT EXISTS (
+                              SELECT 1 FROM announcement_reads ar WHERE ar.announcement_id = a.id AND ar.membership_id = m.id))
+                  ELSE 0 END AS "announcements!"
+             FROM memberships m WHERE m.id = ANY ($1)"#,
+        &ids
+    )
+    .fetch_all(&mut *db)
+    .await?
+    .into_iter()
+    .map(|u| {
+        (
+            u.id,
+            Unread {
+                messages: u.messages,
+                announcements: u.announcements,
+            },
+        )
+    })
+    .collect();
+
     Ok(rows
         .into_iter()
         .map(|r| MembershipContext {
+            unread: unread.get(&r.id).copied().unwrap_or_default(),
             branding: branding.remove(&r.club_id),
             subscription: subscriptions.remove(&r.club_id).map(|s| s.view(&r.role)),
             club: Club {

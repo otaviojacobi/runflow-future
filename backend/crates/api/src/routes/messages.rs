@@ -172,6 +172,8 @@ async fn send(
     }
     let mut tx = state.db.begin().await?;
     let message = db::send(&mut tx, c.id, m.membership_id, &text).await?;
+    // Writing in a thread reads it (like the mock): Mensagens' count drops what the author answered.
+    db::mark_read(&mut *tx, c.id, m.membership_id).await?;
     let author = message["author"]["user"]["name"]
         .as_str()
         .unwrap_or_default()

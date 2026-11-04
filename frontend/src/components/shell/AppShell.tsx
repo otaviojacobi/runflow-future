@@ -5,7 +5,7 @@ import { DropdownMenu } from "radix-ui";
 import { signOut } from "@/api/auth";
 import type { MembershipContext, Subscription } from "@/api/types";
 import { ClubLogo } from "@/components/brand";
-import { t } from "@/i18n";
+import { t, tn } from "@/i18n";
 import { ROLE_LABEL, homeFor, selectClub, useClub } from "@/lib/club";
 import { fullDate, localDate } from "@/lib/format";
 import { useOnline } from "@/lib/pwa";
@@ -13,6 +13,23 @@ import { applyClubTheme, getColorMode, setColorMode, type ColorMode } from "@/li
 import { Avatar, ButtonLink, Dialog, cn } from "@/ui";
 import { CommandPalette, useCommandPalette } from "./CommandPalette";
 import { moreFor, navFor, tabsFor, type NavItem } from "./nav";
+
+/** What waits in a club's Mensagens (`/me` memberships[].unread). */
+export const unreadOf = (m: MembershipContext | null | undefined) => (m?.unread?.messages ?? 0) + (m?.unread?.announcements ?? 0);
+const capped = (n: number) => (n > 9 ? "9+" : String(n));
+
+/** A small count on a nav item (hidden from screen readers: `CountText` says it after the label). */
+function Badge({ n, className }: { n: number; className?: string }) {
+  if (n <= 0) return null;
+  return <span aria-hidden className={cn("grid min-w-[18px] place-items-center rounded-full bg-danger px-1 text-[11px] font-bold leading-[18px] text-on-danger", className)}>{capped(n)}</span>;
+}
+/** The count read out with the label: "Mensagens, 3 novas". */
+function CountText({ n }: { n: number }) {
+  return n > 0 ? <span className="sr-only">{tn(n, ", {n} nova", ", {n} novas")}</span> : null;
+}
+function Count({ n, className }: { n: number; className?: string }) {
+  return <><Badge n={n} className={className} /><CountText n={n} /></>;
+}
 
 function useIsActive() {
   const path = useRouterState({ select: (s) => s.location.pathname });
@@ -24,6 +41,8 @@ function ClubSwitcher({ compact }: { compact?: boolean }) {
   const navigate = useNavigate();
   if (!ctx || !me) return null;
   const pick = (m: MembershipContext) => { selectClub(m); navigate({ to: homeFor(m.membership.role) }); };
+  // Something waiting in another club's Mensagens: a dot on the switcher, the count next to that club.
+  const elsewhere = me.memberships.some((m) => m.club.id !== ctx.club.id && unreadOf(m) > 0);
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger className={cn("flex min-w-0 items-center gap-3 rounded-md text-left outline-none transition-colors hover:bg-soft focus-visible:ring-2 focus-visible:ring-brand-ring", compact ? "p-1" : "w-full p-2")}>
@@ -32,6 +51,8 @@ function ClubSwitcher({ compact }: { compact?: boolean }) {
           <span className="block truncate text-[15px] font-bold leading-tight">{ctx.club.name}</span>
           {!compact && <span className="block truncate text-xs text-fg-muted">{t(ROLE_LABEL[ctx.membership.role])}</span>}
         </span>
+        {elsewhere && <span className="size-2 shrink-0 rounded-full bg-danger" aria-hidden />}
+        {elsewhere && <span className="sr-only">{t("Mensagens novas em outro clube")}</span>}
         <ChevronsUpDown className="size-4 shrink-0 text-fg-subtle" aria-hidden />
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
@@ -41,7 +62,7 @@ function ClubSwitcher({ compact }: { compact?: boolean }) {
             <DropdownMenu.Item key={m.club.id} onSelect={() => pick(m)} className="flex cursor-pointer items-center gap-3 rounded-sm px-2.5 py-2 outline-none data-[highlighted]:bg-soft">
               <ClubLogo club={m.club} branding={m.branding} size={28} />
               <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{m.club.name}</span><span className="block text-xs text-fg-muted">{t(ROLE_LABEL[m.membership.role])}</span></span>
-              {m.club.id === ctx.club.id && <Check className="size-4 text-brand-text" />}
+              {m.club.id === ctx.club.id ? <Check className="size-4 text-brand-text" /> : <Count n={unreadOf(m)} />}
             </DropdownMenu.Item>
           ))}
           <DropdownMenu.Separator className="my-1 h-px bg-line-subtle" />
@@ -85,7 +106,7 @@ function AccountMenu() {
   );
 }
 
-function NavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
+function NavLink({ item, count = 0, onClick }: { item: NavItem; count?: number; onClick?: () => void }) {
   const isActive = useIsActive();
   const active = isActive(item.to);
   const I = item.icon;
@@ -93,8 +114,8 @@ function NavLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
   useEffect(() => { if (active) ref.current?.scrollIntoView({ block: "nearest" }); }, [active]);
   return (
     <Link ref={ref} to={item.to} onClick={onClick} aria-current={active ? "page" : undefined}
-      className={cn("flex h-9 items-center gap-3 rounded-md px-3 text-[15px] font-medium transition-colors [&_svg]:size-[18px]", active ? "bg-brand-soft font-semibold text-on-brand-soft" : "text-fg-muted hover:bg-soft hover:text-fg")}>
-      <I aria-hidden />{t(item.label)}
+      className={cn("relative flex h-9 items-center gap-3 rounded-md px-3 text-[15px] font-medium transition-colors [&_svg]:size-[18px]", active ? "bg-brand-soft font-semibold text-on-brand-soft" : "text-fg-muted hover:bg-soft hover:text-fg")}>
+      <I aria-hidden />{t(item.label)}<Count n={count} className="ml-auto" />
     </Link>
   );
 }
@@ -196,6 +217,8 @@ export function AppShell() {
   const extra = moreFor(role, modalities);
   // Frozen (D-043): staff only, and Plano e cobrança stays usable (the way out).
   const frozen = role !== "student" && !!ctx.subscription?.frozen && !isActive("/club/billing");
+  const counts: Record<string, number> = { "/messages": unreadOf(ctx) };
+  const extraCount = extra.reduce((n, it) => n + (counts[it.to] ?? 0), 0);
 
   return (
     <div className="min-h-dvh lg:grid lg:grid-cols-[248px_minmax(0,1fr)] print:block">
@@ -210,7 +233,7 @@ export function AppShell() {
           {groups.map((g, i) => (
             <div key={i} className="flex flex-col gap-0.5">
               {g.title && <div className="px-3 pb-1 rf-text-overline text-fg-subtle">{t(g.title)}</div>}
-              {g.items.map((it) => <NavLink key={it.to} item={it} />)}
+              {g.items.map((it) => <NavLink key={it.to} item={it} count={counts[it.to]} />)}
             </div>
           ))}
         </nav>
@@ -242,21 +265,22 @@ export function AppShell() {
           const I = it.icon;
           const active = isActive(it.to);
           return (
-            <Link key={it.to} to={it.to} aria-current={active ? "page" : undefined} className={cn("flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold", active ? "text-fg" : "text-fg-muted")}>
-              <span className={cn("grid h-7 w-12 place-items-center rounded-full", active && "bg-brand-soft text-on-brand-soft")}><I className="size-5" aria-hidden /></span>
-              {t(it.label)}
+            <Link key={it.to} to={it.to} aria-current={active ? "page" : undefined} className={cn("relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold", active ? "text-fg" : "text-fg-muted")}>
+              <span className={cn("relative grid h-7 w-12 place-items-center rounded-full", active && "bg-brand-soft text-on-brand-soft")}><I className="size-5" aria-hidden /><Badge n={counts[it.to] ?? 0} className="absolute -right-0.5 -top-1 ring-2 ring-surface" /></span>
+              {t(it.label)}<CountText n={counts[it.to] ?? 0} />
             </Link>
           );
         })}
         {extra.length > 0 && (
-          <button onClick={() => setMore(true)} className={cn("flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold", extra.some((e) => isActive(e.to)) ? "text-fg" : "text-fg-muted")}>
-            <span className="grid h-7 w-12 place-items-center rounded-full"><MenuIcon className="size-5" aria-hidden /></span>{t("Mais")}
+          <button onClick={() => setMore(true)} className={cn("relative flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-semibold", extra.some((e) => isActive(e.to)) ? "text-fg" : "text-fg-muted")}>
+            <span className="relative grid h-7 w-12 place-items-center rounded-full"><MenuIcon className="size-5" aria-hidden />{extraCount > 0 && <span aria-hidden className="absolute right-2 top-0.5 size-2 rounded-full bg-danger ring-2 ring-surface" />}</span>{t("Mais")}
+            {extraCount > 0 && <span className="sr-only">{tn(extraCount, ", {n} mensagem nova", ", {n} mensagens novas")}</span>}
           </button>
         )}
       </nav>
       <Dialog open={more} onOpenChange={setMore} title={t("Mais")}>
         <div className="grid gap-0.5 pb-2">
-          {extra.map((it) => <NavLink key={it.to} item={it} onClick={() => setMore(false)} />)}
+          {extra.map((it) => <NavLink key={it.to} item={it} count={counts[it.to]} onClick={() => setMore(false)} />)}
           <div className="my-2 h-px bg-line-subtle" />
           <AccountMenu />
         </div>

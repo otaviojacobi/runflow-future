@@ -9,7 +9,8 @@ export const meKey = ["me"] as const;
 export const fetchMe = () => api.get<Me>("/me").then((me) => { setErrorUser(me.user.id); return me; });
 
 export function useMe() {
-  return useQuery({ queryKey: meKey, queryFn: fetchMe, enabled: session.isSignedIn(), staleTime: 60_000 });
+  // Refetched every minute while visible: the bell and the Mensagens count (messages don't push by default, D-045).
+  return useQuery({ queryKey: meKey, queryFn: fetchMe, enabled: session.isSignedIn(), staleTime: 60_000, refetchInterval: 60_000 });
 }
 export function useRefreshMe() {
   const qc = useQueryClient();

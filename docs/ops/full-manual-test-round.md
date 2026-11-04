@@ -155,7 +155,9 @@ equally likely does the student get a question.
 - [ ] The bell's count and the center (Hoje/Ontem/7 dias, mark all read, links open the right screen).
 - [ ] Web push (installed web app on the computer): Perfil → Notificações → "Ativar" → a new comment buzzes; switch a
       kind off → no push, still in the center; "Pausar tudo".
-- [ ] Staff defaults: feedback and new-member pushes start off (D-045).
+- [ ] Push defaults (D-045, 2026-11-04): students get "semana liberada" and "treino alterado"; staff get feedbacks, new
+      members and billing. New workouts, comments, messages and announcements start off: they show as a count on
+      Mensagens (tab or "Mais", web and app; a dot on the club switcher for another club) and clear once read.
 
 ## 9. The rest of the coaching tools
 - [ ] Provas: owner/trainer creates a race; the student signs up (goal race → profile goal and date); after the date,

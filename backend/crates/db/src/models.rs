@@ -134,6 +134,16 @@ pub struct MembershipContext {
     pub club: Club,
     pub branding: Option<Branding>,
     pub subscription: Option<Subscription>,
+    /// What's waiting in Mensagens for this person in this club.
+    pub unread: Unread,
+}
+
+/// `memberships[].unread`: messages from others after the person's last read (their own conversation for a student,
+/// every active student's for staff) and, for students, announcements they can see and haven't read.
+#[derive(Debug, Clone, Copy, Default, Serialize)]
+pub struct Unread {
+    pub messages: i64,
+    pub announcements: i64,
 }
 
 #[derive(Debug, Clone, Serialize)]

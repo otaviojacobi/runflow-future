@@ -320,3 +320,81 @@ async fn the_mural_reaches_the_club_or_some_groups(db: PgPool) {
         1
     );
 }
+
+/// `/me` memberships[].unread for the (only) club: what the apps badge Mensagens with.
+async fn unread(app: &TestApp, token: &str) -> Value {
+    app.get("/v1/me", Some(token)).await.ok()["memberships"][0]["unread"].clone()
+}
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn mensagens_counts_what_is_unread(db: PgPool) {
+    let app = TestApp::new(db);
+    let c = setup(&app).await;
+    let path = format!("/v1/clubs/{}/conversations", c.id);
+    assert_eq!(
+        unread(&app, &c.ana.0).await,
+        json!({ "messages": 0, "announcements": 0 })
+    );
+
+    // Ana writes twice: the staff see 2, Ana nothing (her own).
+    let conv = app.get(&path, Some(&c.ana.0)).await.ok()["items"][0]["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    for text in ["Oi", "Posso trocar o treino?"] {
+        app.post(
+            &format!("{path}/{conv}/messages"),
+            Some(&c.ana.0),
+            json!({ "body": text }),
+        )
+        .await
+        .ok();
+    }
+    assert_eq!(unread(&app, &c.owner).await["messages"], 2);
+    assert_eq!(unread(&app, &c.ana.0).await["messages"], 0);
+
+    // The owner answers (which also reads the thread): Ana has 1, the owner none; reading clears Ana's.
+    app.post(
+        &format!("{path}/{conv}/messages"),
+        Some(&c.owner),
+        json!({ "body": "Pode sim" }),
+    )
+    .await
+    .ok();
+    assert_eq!(unread(&app, &c.ana.0).await["messages"], 1);
+    assert_eq!(unread(&app, &c.owner).await["messages"], 0);
+    app.post(&format!("{path}/{conv}/read"), Some(&c.ana.0), json!({}))
+        .await;
+    assert_eq!(unread(&app, &c.ana.0).await["messages"], 0);
+
+    // Announcements count for the students who can see them; the staff write the mural (always 0).
+    let ann = format!("/v1/clubs/{}/announcements", c.id);
+    let all = app
+        .post(
+            &ann,
+            Some(&c.owner),
+            json!({ "title": "Treino coletivo", "body": "Sábado às 7h" }),
+        )
+        .await;
+    let all = all.body["id"].as_str().unwrap().to_string();
+    app.post(
+        &ann,
+        Some(&c.owner),
+        json!({ "title": "Iniciantes", "body": "Só o grupo", "group_ids": [c.group] }),
+    )
+    .await
+    .ok();
+    assert_eq!(unread(&app, &c.ana.0).await["announcements"], 1);
+    assert_eq!(unread(&app, &c.bia.0).await["announcements"], 2);
+    assert_eq!(unread(&app, &c.owner).await["announcements"], 0);
+    app.post(
+        &format!("{ann}/read"),
+        Some(&c.ana.0),
+        json!({ "ids": [all] }),
+    )
+    .await;
+    assert_eq!(
+        unread(&app, &c.ana.0).await,
+        json!({ "messages": 0, "announcements": 0 })
+    );
+}

@@ -78,10 +78,13 @@ Every notification lands in the app: the notification center (W11) and the unrea
 
 | Kind | Who gets it | Push by default |
 |---|---|---|
-| `workout_assigned` · `workout_changed` · `week_released` | student | on |
-| `comment` · `message` · `announcement` | both | on |
-| `feedback` · `member_joined` | staff | off (a big club would flood a trainer's phone) |
+| `workout_changed` · `week_released` | student | on |
+| `workout_assigned` | student | off (the week's release announces it) |
+| `comment` · `message` · `announcement` | both | off (Mensagens shows the unread count, § `/me`) |
+| `feedback` · `member_joined` | staff | on |
 | `billing` | owner | on |
+
+Defaults set by the founder on 2026-11-04: students hear about the week's release and changed workouts; staff about feedback, new members and billing.
 
 - The switches are read when the notification is created: it is pushed (`push_at` set, the push queued) only when its kind is on, push isn't paused and the person has a registered device.
 - Push reaches every device the person registered (`/me/push-tokens`) right away; one read in the app before it went out is skipped. A device the push service no longer knows is forgotten. The payload is `{title, body, link, id, club_id}` (`club_id` null for account-wide notices: the apps switch to that club before opening `link`).
@@ -103,7 +106,7 @@ Every notification lands in the app: the notification center (W11) and the unrea
 | POST | `/auth/email/verify` `{email, code}` | → `{token, user, is_new}`. Spaces in the code are ignored. `400 auth.code_expired` (none pending), `400 auth.invalid_code`, `429 auth.too_many_attempts` (after 5 tries; ask for a new code) | A2 |
 | POST | `/auth/google` `{id_token}` | Google ID token (web: Google Identity Services; mobile: native SDK), verified against Google's keys and our client ids → `{token, user, is_new}`. Accounts match by Google id, then by e-mail (so e-mail and Google sign-in share one account). `400 auth.google_failed`, `503 auth.google_unavailable` (not configured). Mock: `id_token` = an e-mail | A2 |
 | POST | `/auth/logout` | Revoke the session and clear the cookie → `204` | shell |
-| GET | `/me` | `{user, memberships:[{membership, club, branding, subscription}], prefs, unread_notifications}` (`prefs` as in `/me/prefs`) | all |
+| GET | `/me` | `{user, memberships:[{membership, club, branding, subscription, unread}], prefs, unread_notifications}` (`prefs` as in `/me/prefs`). `unread {messages, announcements}` is what waits in that club's Mensagens: messages from others after the person's last read (a student's own conversation; every active student's conversation for staff, as the list's `unread_count`) and, for students only, announcements they can see and haven't read (staff write the mural). The apps badge Mensagens with the sum, since those kinds don't push by default (§ Notifications) | all |
 | PATCH | `/me` `{name, phone, birth_date, sex, avatar_url}` | Update profile. `avatar_url` only accepts `null` or one of our `/v1/assets/{id}` paths | A4, C1 |
 | DELETE | `/me` | Delete account (LGPD; App Store): name/e-mail/phone anonymized, every club left, sessions and provider links revoked, sign-in identities removed (the same e-mail can start over). `409 account.owns_club` | C1 |
 | GET | `/me/export` | All my data as JSON (LGPD portability) | C1 |

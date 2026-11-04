@@ -37,7 +37,7 @@ export default function register(h) {
       .filter((m) => m.user_id === user.id && m.status === "active")
       .map((m) => {
         const club = h.db.clubs.find((c) => c.id === m.club_id && !c.deleted_at);
-        return club && { membership: m, club, branding: h.branding(club.id), subscription: h.subscription(club.id, m.role) };
+        return club && { membership: m, club, branding: h.branding(club.id), subscription: h.subscription(club.id, m.role), unread: h.unreadFor(m) };
       })
       .filter(Boolean);
     return {

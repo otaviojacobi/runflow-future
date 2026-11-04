@@ -5,6 +5,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { queryClient } from "@/queryClient";
+import { meKey } from "./me";
 import type { Announcement, ConversationDetail, ConversationSummary, Group, ID, ISOTime, Message, User } from "./types";
 
 // ---- payloads of this area (the rows are in types.ts)
@@ -68,6 +69,7 @@ export const useMarkConversationRead = (clubId: string) =>
     onSuccess: (_, id) => {
       queryClient.setQueryData<ConversationDetail>(messageKeys.conversation(clubId, id), (c) => (c ? { ...c, unread_count: 0 } : c));
       queryClient.setQueryData<ConversationSummary[]>(messageKeys.list(clubId), (l) => l?.map((c) => (c.id === id ? { ...c, unread_count: 0 } : c)));
+      void queryClient.invalidateQueries({ queryKey: meKey }); // Mensagens' count
     },
   });
 /** The author deletes their message (shown as "Mensagem apagada"). */
@@ -103,7 +105,10 @@ export const useDeleteAnnouncement = (clubId: string) =>
 export const useMarkAnnouncementsRead = (clubId: string) =>
   useMutation({
     mutationFn: (ids: string[]) => api.post<void>(`/clubs/${clubId}/announcements/read`, { ids }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: messageKeys.announcements(clubId) }),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: messageKeys.announcements(clubId) }),
+      queryClient.invalidateQueries({ queryKey: meKey }), // Mensagens' count
+    ]),
   });
 /** Staff: the audience with `read_at` (who read, who didn't). */
 export const useAnnouncementReads = (clubId: string | undefined, id: string | undefined) =>

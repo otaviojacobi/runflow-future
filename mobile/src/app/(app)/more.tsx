@@ -12,10 +12,12 @@ import { openOnWeb } from "@/lib/web";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Card, ListItem, Screen, Text } from "@/ui";
 import { ExternalLink, LogOut, User } from "@/ui/icons";
+import { CountBadge, unreadLabel, unreadOf } from "@/components/shell/unread";
 
-function Item({ item }: { item: NavItem }) {
+function Item({ item, count = 0 }: { item: NavItem; count?: number }) {
   const { theme } = useTheme();
-  if (item.app) return <ListItem title={t(item.label)} icon={item.icon} chevron accessibilityRole="link" onPress={() => router.push(hrefOf(item.to))} />;
+  if (item.app) return <ListItem title={t(item.label)} icon={item.icon} chevron accessibilityRole="link" accessibilityLabel={count > 0 ? t(item.label) + unreadLabel(count) : undefined}
+    trailing={<CountBadge n={count} />} onPress={() => router.push(hrefOf(item.to))} />;
   return (
     <ListItem title={t(item.label)} icon={item.icon} accessibilityRole="link" accessibilityLabel={`${t(item.label)}, ${t("abre na web")}`} onPress={() => openOnWeb(item.to)}
       trailing={<ExternalLink size={theme.size.iconSm} color={theme.color.fgSubtle} style={styles.icon} aria-hidden />} />
@@ -24,9 +26,10 @@ function Item({ item }: { item: NavItem }) {
 
 export default function MoreScreen() {
   const { theme } = useTheme();
-  const { role, club } = useClub();
+  const { role, club, ctx } = useClub();
   if (!role || !club) return null;
   const groups = moreFor(role, club.modalities);
+  const counts: Record<string, number> = { "/messages": unreadOf(ctx) };
   const section = (title: string | undefined, children: React.ReactNode, key: string) => (
     <View key={key} style={{ gap: theme.space[2] }}>
       {title && <Text variant="overline" tone="subtle" accessibilityRole="header" style={{ paddingHorizontal: theme.space[1] }}>{t(title)}</Text>}
@@ -35,7 +38,7 @@ export default function MoreScreen() {
   );
   return (
     <Screen>
-      {groups.map((g, i) => section(g.title, g.items.map((it) => <Item key={it.to} item={it} />), String(i)))}
+      {groups.map((g, i) => section(g.title, g.items.map((it) => <Item key={it.to} item={it} count={counts[it.to]} />), String(i)))}
       <Text variant="bodySm" tone="muted" style={{ paddingHorizontal: theme.space[1] }}>{t("As ferramentas com o ícone de link abrem o Runflow no navegador.")}</Text>
       {section("Conta", (
         <>
