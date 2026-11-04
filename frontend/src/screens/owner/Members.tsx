@@ -1,10 +1,11 @@
 /** O2 · Membros e convites: trainers, students (suspend/remove), personal e-mail invites (D-023). Route: /club/members */
 import { Link } from "@tanstack/react-router";
-import { Ban, Copy, FileSpreadsheet, Mail, MoreHorizontal, Plus, RotateCcw, Send, Trash2, UserMinus } from "lucide-react";
+import { Ban, Copy, FileSpreadsheet, Mail, MoreHorizontal, Plus, RotateCcw, Send, Trash2, UserMinus, Users } from "lucide-react";
 import { useState } from "react";
 import { useInvites, useResendInvite, useRevokeInvite } from "@/api/clubs";
-import { useMembers, useRemoveMember, useUpdateMember } from "@/api/members";
+import { useGroups, useMembers, useRemoveMember, useSetAthleteGroups, useUpdateMember } from "@/api/members";
 import type { Invitation, Member, Subscription } from "@/api/types";
+import { GroupPickerDialog } from "@/components/club/GroupPicker";
 import { InviteDialog } from "@/components/club/InviteDialog";
 import { ImportStudentsDialog } from "@/components/ImportDialogs";
 import { t, tn } from "@/i18n";
@@ -24,18 +25,28 @@ export function MembersScreen() {
   const [confirm, setConfirm] = useState<Member | null>(null);
   const [newInvite, setNewInvite] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [grouping, setGrouping] = useState<Member | null>(null);
+  const groups = useGroups(club?.id);
+  const setGroups = useSetAthleteGroups(club?.id ?? "");
   if (!club || !ctx) return null;
   const sub = ctx.subscription;
   const me = ctx.membership.id;
+  const groupName = (id: string) => groups.data?.find((g) => g.id === id)?.name;
+  const saveGroups = (ids: string[]) => grouping && setGroups.mutate({ membershipId: grouping.membership.id, group_ids: ids }, {
+    onSuccess: (r) => { toast.success(t("Grupos atualizados"), r.groups.map((g) => g.name).join(", ") || t("{name} não está em nenhum grupo", { name: grouping.user.name.split(" ")[0] })); setGrouping(null); },
+    onError: toast.error,
+  });
 
   const row = (m: Member) => (
     <li key={m.membership.id} className="flex items-center gap-3 px-4 py-3">
       <Avatar name={m.user.name} src={m.user.avatar_url} size={36} />
-      <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{m.user.name}{m.membership.id === me && <span className="font-normal text-fg-muted"> ({t("você")})</span>}</span><span className="block truncate text-sm text-fg-muted">{m.user.email}</span></span>
+      <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{m.user.name}{m.membership.id === me && <span className="font-normal text-fg-muted"> ({t("você")})</span>}</span><span className="block truncate text-sm text-fg-muted">{m.user.email}</span>
+        {m.membership.role === "student" && m.group_ids.length > 0 && <span className="mt-1 flex flex-wrap gap-1">{m.group_ids.map((g) => groupName(g) && <Badge key={g} className="text-[11px]">{groupName(g)}</Badge>)}</span>}</span>
       {m.membership.status === "suspended" ? <Badge tone="warning">{t("Suspenso")}</Badge> : <Badge tone={m.membership.role === "owner" ? "brand" : "neutral"}>{t(ROLE_LABEL[m.membership.role])}</Badge>}
       <span className="hidden w-24 text-right text-xs text-fg-muted sm:block">{t("desde {when}", { when: ago(m.membership.joined_at) })}</span>
       {m.membership.id !== me ? (
         <Menu trigger={<IconButton label={t("Ações para {name}", { name: m.user.name })}><MoreHorizontal /></IconButton>} items={[
+          ...(m.membership.role === "student" && m.membership.status === "active" ? [{ label: t("Grupos…"), icon: <Users />, onSelect: () => setGrouping(m) }] : []),
           ...(m.membership.role === "student"
             ? [m.membership.status === "suspended"
               ? { label: t("Reativar acesso"), icon: <RotateCcw />, onSelect: () => update.mutate({ id: m.membership.id, status: "active" }, { onSuccess: () => toast.success(t("Acesso reativado")), onError: toast.error }) }
@@ -52,6 +63,10 @@ export function MembersScreen() {
     <div className="mx-auto grid max-w-4xl gap-6">
       <PageHeader title={t("Membros e convites")} subtitle={t("Quem participa do {club}. Só entra quem recebe um convite por e-mail.", { club: club.name })} actions={<><Button variant="secondary" icon={<FileSpreadsheet />} onClick={() => setImporting(true)}>{t("Importar planilha")}</Button><Button icon={<Mail />} onClick={() => setNewInvite(true)}>{t("Convidar por e-mail")}</Button></>} />
       <ImportStudentsDialog club={club} open={importing} onOpenChange={setImporting} />
+      <GroupPickerDialog clubId={club.id} open={!!grouping} onOpenChange={(v) => !v && setGrouping(null)}
+        title={grouping ? t("Grupos de {name}", { name: grouping.user.name.split(" ")[0] }) : t("Grupos")}
+        description={t("Marque os grupos deste aluno. Treinos e planilhas podem ser atribuídos a um grupo inteiro.")}
+        selected={grouping?.group_ids ?? []} saving={setGroups.isPending} onSave={saveGroups} />
       {sub && (
         <Card className="flex flex-wrap items-center gap-4 p-4">
           <SeatsSummary sub={sub} />

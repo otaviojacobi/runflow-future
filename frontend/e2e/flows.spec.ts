@@ -124,4 +124,34 @@ test("an open workout conversation shows the trainer's reply without leaving the
   const posted = await request.post(`${API}/clubs/${clubId}/planned-workouts/${workout.id}/comments`, { ...as(owner), data: { body: reply } });
   expect(posted.ok()).toBeTruthy();
   await expect(page.getByText(reply)).toBeVisible({ timeout: 15_000 });
+
+test("groups: create one on Alunos, move students in, and take one out on the student's page", async ({ page }) => {
+  await signIn(page, OWNER);
+  await page.goto("/students");
+  // A new group from the chips, with nobody in it yet.
+  await page.getByRole("button", { name: "Novo grupo" }).click();
+  await page.getByRole("dialog").getByLabel("Nome do grupo").fill("Turma das 6h");
+  await page.getByRole("dialog").getByRole("button", { name: "Salvar grupo" }).click();
+  await expect(page.getByRole("button", { name: "Turma das 6h", exact: true })).toBeVisible();
+
+  // Two students selected, moved in at once.
+  await page.getByRole("checkbox", { name: "Selecionar Ana Souza" }).check();
+  await page.getByRole("checkbox", { name: "Selecionar Carla Mendes" }).check();
+  await expect(page.getByText("2 alunos selecionados")).toBeVisible();
+  await page.getByRole("button", { name: "Adicionar ao grupo" }).click();
+  await page.getByRole("menuitem", { name: "Turma das 6h" }).click();
+  await expect(page.getByText("2 alunos adicionados a Turma das 6h")).toBeVisible();
+  await page.getByRole("button", { name: "Turma das 6h", exact: true }).click();
+  await expect(page.getByText("· 2 alunos")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Ana Souza/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Carla Mendes/ })).toBeVisible();
+
+  // On Carla's page: the group is a chip; × takes her out, and the filter follows.
+  await page.getByRole("link", { name: /Carla Mendes/ }).first().click();
+  await page.getByRole("button", { name: "Tirar Carla do grupo Turma das 6h" }).click();
+  await expect(page.getByText("Grupos atualizados")).toBeVisible();
+  await page.goto("/students");
+  await page.getByRole("button", { name: "Turma das 6h", exact: true }).click();
+  await expect(page.getByText("· 1 aluno")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Carla Mendes/ })).toHaveCount(0);
 });

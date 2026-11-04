@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAthlete, useSaveAthleteProfile, useSetZones } from "@/api/activities";
 import type { AthleteDetail, Goal, Level } from "@/api/types";
 import { usePlanned } from "@/api/workouts";
+import { StudentGroups } from "@/components/club/GroupPicker";
 import { StravaAttribution } from "@/components/strava";
 import { sportBar } from "@/components/sport";
 import { ComplianceBar, Stat, ZoneTable } from "@/components/workout";
@@ -156,10 +157,10 @@ export function StudentScreen() {
           <h1 className="rf-text-display-sm">{a.user.name}</h1>
           <p className="text-fg-muted">{[a.goal === "other" && a.profile.goal_note ? a.profile.goal_note : goalLabel(a.goal), a.profile.goal_date && t("prova em {d}", { d: dayMonth(a.profile.goal_date) }), a.level && t({ beginner: "Iniciante", intermediate: "Intermediário", advanced: "Avançado" }[a.level])].filter(Boolean).join(" · ") || t("Sem objetivo definido")}</p>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            {a.groups.map((g) => <Badge key={g.id}>{g.name}</Badge>)}
             {a.consents.training_data ? <Badge tone="success" icon={<ShieldCheck />}>{t("Compartilha dados")}</Badge> : <Badge tone="warning" icon={<ShieldOff />}>{t("Não compartilha os treinos")}</Badge>}
             {a.strava !== "none" && <Badge tone={a.strava === "shared" ? "info" : "neutral"}>{a.strava === "shared" ? t("Strava compartilhado") : t("Não compartilha o Strava")}</Badge>}
           </div>
+          <div className="mt-3"><StudentGroups clubId={club.id} membershipId={a.membership.id} studentName={a.user.name.split(" ")[0]} groups={a.groups} /></div>
         </div>
         <div className="flex gap-2">
           {phone && <a href={`https://wa.me/${phone}`} target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-2 rounded-md border border-line bg-surface px-4 text-[15px] font-semibold shadow-sm hover:bg-soft"><MessageCircle className="size-[18px]" />WhatsApp</a>}

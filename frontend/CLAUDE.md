@@ -23,7 +23,9 @@ src/
   components/ domain components (WorkoutCard, IntensityProfile, SportChip…; ActivityMatch = the D-049 question
               "Qual treino foi esta atividade?" and the "Trocar treino" dialog, on Hoje, Atividades and the activity;
               strava = Strava's brand: the official button, "Powered by Strava", "View on Strava", docs/strava-brand.md;
-              account/StravaConnect = the connect panel with the sharing statement it requires, D-011)
+              account/StravaConnect = the connect panel with the sharing statement it requires, D-011;
+              club/GroupPicker = a student's groups as removable chips + the picker that also creates a group, on the
+              student page and Membros; Alunos adds "+ Novo grupo", "Editar grupo" and bulk moves of selected students)
   domain/     pure logic (workout structure, quick-text parser, estimates): unit-tested. quicktext.ts is one of
               three ports of the free-text grammar (docs/workout-text.md): its test checks api/workout-text-examples.json
   screens/    one folder per area; one file per screen (screen IDs in comments)
