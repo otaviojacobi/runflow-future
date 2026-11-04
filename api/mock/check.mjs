@@ -6,12 +6,14 @@
  *     (types, CHECK constraints and foreign keys are enforced by Postgres itself).
  *  3. api/mock/db.json is up to date with seed.mjs (snapshot anchor date).
  *  4. The free-text grammar (mock/lib/workout-text.mjs) gives exactly api/workout-text-examples.json.
+ *  5. Activity matching (mock/lib/matching.mjs) gives exactly api/activity-match-examples.json.
  */
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
 import { exerciseCatalog, generate, starterLibrary } from "./seed.mjs";
+import { checkMatchExamples } from "./activity-match-examples.mjs";
 import { checkExamples } from "./workout-text-examples.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -21,7 +23,7 @@ const fail = (msg) => { console.error("✗ " + msg); process.exit(1); };
 const ORDER = [
   "users", "auth_identities", "sessions", "clubs", "assets", "club_branding", "memberships", "invitations",
   "groups", "group_members", "consents", "athlete_profiles", "zones", "exercises", "workout_templates", "training_plans", "training_plan_items",
-  "plan_assignments", "planned_workouts", "week_releases", "activities", "workout_completions", "comments", "thread_reads", "provider_connections",
+  "plan_assignments", "planned_workouts", "week_releases", "activities", "workout_completions", "activity_match_options", "comments", "thread_reads", "provider_connections",
   "webhook_events", "assessments", "conversations", "messages", "conversation_reads", "announcements", "announcement_reads", "races", "race_entries", "club_subscriptions", "invoices",
   "notifications", "notification_prefs", "push_tokens", "audit_log", "jobs",
 ];
@@ -72,4 +74,9 @@ const golden = checkExamples();
 for (const f of golden.failures.slice(0, 10)) console.error(`✗ [${f.sport}] ${JSON.stringify(f.text)}: ${f.field}\n    want ${JSON.stringify(f.want)}\n    got  ${JSON.stringify(f.got)}`);
 if (golden.failures.length) fail(`${golden.failures.length} of ${golden.count} examples in api/workout-text-examples.json differ (node api/mock/workout-text-examples.mjs)`);
 
-console.log(`✓ schema.sql applies on PostgreSQL · ${tables.length} tables · ${inserted} seed rows inserted with all constraints · db.json up to date · ${golden.count} workout text examples`);
+// Activity matching (D-049): the mock's engine gives exactly the golden examples.
+const matching = checkMatchExamples();
+for (const f of matching.failures.slice(0, 10)) console.error(`✗ ${f.name}\n    want ${JSON.stringify(f.want)}\n    got  ${JSON.stringify(f.got)}`);
+if (matching.failures.length) fail(`${matching.failures.length} of ${matching.count} examples in api/activity-match-examples.json differ (node api/mock/activity-match-examples.mjs)`);
+
+console.log(`✓ schema.sql applies on PostgreSQL · ${tables.length} tables · ${inserted} seed rows inserted with all constraints · db.json up to date · ${golden.count} workout text examples · ${matching.count} activity matching examples`);

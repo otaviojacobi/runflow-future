@@ -64,7 +64,7 @@ object storage for logos and avatars, e-mail, the web app (static files), TLS, b
    this is the bridge.
 
 If A or B is chosen, it supersedes the "production on AWS" part of D-040 for the first release: record it as a new
-decision (D-049) and rewrite P1 in `docs/build-plan.md`.
+decision (D-050) and rewrite P1 in `docs/build-plan.md`.
 
 ### Shape of the first production
 ```
@@ -214,7 +214,7 @@ D-030 says it: at the beta, freeze the bootstrap and return to one migration per
 | # | Step | Who | Cost |
 |---|---|---|---|
 | 1 | Full manual test round on QA, fixes as they come | Founder + agent | $0 |
-| 2 | Decide hosting (A Oracle / B NUC / C AWS) → D-049; rewrite P1 in the build plan | Founder | — |
+| 2 | Decide hosting (A Oracle / B NUC / C AWS) → D-050; rewrite P1 in the build plan | Founder | — |
 | 3 | Legal texts (LGPD terms + privacy), drafted by the agent, reviewed by the founder | Both | $0 |
 | 4 | Production compose + WAL-G/pg_dump backups to R2 + restore drill script + deploy-by-tag (P1a) | Agent | $0 |
 | 5 | Web on Cloudflare Pages, `runflow.club` live with the app, `api.runflow.club` via the tunnel (P1b) | Agent + founder (accounts) | $0 |

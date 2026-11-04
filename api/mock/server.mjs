@@ -46,6 +46,9 @@ function load() {
     const fresh = generate(db.meta.anchor_date);
     for (const k of Object.keys(fresh)) if (!(k in db)) { db[k] = fresh[k]; console.log(`· added table ${k} from the seed`); }
     for (const k of Object.keys(db)) if (!(k in fresh) && !k.startsWith("_")) { delete db[k]; console.log(`· dropped table ${k}`); }
+    // Columns added after this data was saved (D-049): what the seed would have written.
+    for (const a of db.activities) a.match_state ??= "open";
+    for (const c of db.workout_completions) { c.matched_by ??= c.activity_id ? "auto" : null; c.reported_at ??= c.completed_at; }
   } else db = generate(today());
   persist(true);
 }

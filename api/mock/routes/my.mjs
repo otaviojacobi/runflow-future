@@ -1,4 +1,6 @@
 /** Student endpoints (/my/*): own workouts with personal targets, completion/feedback, summary for Today. */
+import { compliance as complianceOf, cost } from "../lib/matching.mjs";
+
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 export default function register(h) {
@@ -48,24 +50,41 @@ export default function register(h) {
     if (b.rpe != null && !(b.rpe >= 1 && b.rpe <= 10)) errors.push({ field: "rpe", message: "O esforço vai de 1 a 10." });
     if (b.feeling != null && !["great", "good", "ok", "bad", "awful"].includes(b.feeling)) errors.push({ field: "feeling", message: "Escolha como você se sentiu." });
     if (errors.length) h.invalid(errors);
-    let activityId = b.activity_id ?? null;
-    if (activityId && !h.db.activities.some((a) => a.id === activityId && a.user_id === m.user_id)) h.invalid([{ field: "activity_id", message: "Atividade inválida." }]);
-    if (!activityId && b.status !== "missed" && b.status !== "skipped") {
-      const auto = h.db.activities.find((a) => a.user_id === m.user_id && a.sport === p.sport && a.started_at.slice(0, 10) === p.date);
-      activityId = auto?.id ?? null;
+    // The activity (D-049): the one sent (the student's own link), else the one already linked, else the likeliest
+    // open activity of that day. Missed or skipped drops the link.
+    const done = b.status !== "missed" && b.status !== "skipped";
+    let c = h.db.workout_completions.find((x) => x.planned_workout_id === p.id);
+    let activityId = null, by = null;
+    if (b.activity_id) {
+      if (!h.db.activities.some((a) => a.id === b.activity_id && a.user_id === m.user_id)) h.invalid([{ field: "activity_id", message: "Atividade inválida." }]);
+      [activityId, by] = [b.activity_id, "student"];
+    } else if (done && c?.activity_id) [activityId, by] = [c.activity_id, c.matched_by ?? "auto"];
+    else if (done) {
+      const taken = new Set(h.db.workout_completions.map((x) => x.activity_id).filter(Boolean));
+      const best = h.db.activities
+        .filter((a) => a.user_id === m.user_id && !taken.has(a.id) && a.match_state !== "dismissed" && h.activityDay(a.started_at) === p.date)
+        .map((a) => ({ a, cost: cost({ ...a, day: p.date }, p) }))
+        .filter((x) => x.cost != null)
+        .sort((x, y) => x.cost - y.cost)[0];
+      if (best) [activityId, by] = [best.a.id, "auto"];
     }
     const act = activityId ? h.db.activities.find((a) => a.id === activityId) : null;
-    let compliance = b.status === "completed" ? 100 : b.status === "partial" ? 60 : 0;
-    if (act && p.est_distance_m && act.distance_m) compliance = Math.round((act.distance_m / p.est_distance_m) * 100);
-    else if (act && p.est_duration_s) compliance = Math.round((act.duration_s / p.est_duration_s) * 100);
+    // The activity leaves the workout it completed before; the one this workout had becomes free.
+    const prev = act ? h.db.workout_completions.find((x) => x.activity_id === act.id && x.planned_workout_id !== p.id) : null;
+    const dropped = c?.activity_id && c.activity_id !== activityId ? c.activity_id : null;
+    if (prev) h.unlinkCompletion(prev);
+    const compliance = act ? complianceOf(act, p) : b.status === "completed" ? 100 : b.status === "partial" ? 60 : 0;
     const now = h.nowIso();
-    let c = h.db.workout_completions.find((x) => x.planned_workout_id === p.id);
-    const fresh = !c;
+    c = h.db.workout_completions.find((x) => x.planned_workout_id === p.id);
+    const first = !c?.reported_at;
     if (!c) { c = { planned_workout_id: p.id, completed_at: now }; h.db.workout_completions.push(c); }
-    Object.assign(c, { activity_id: activityId, status: b.status, compliance_pct: Math.min(200, compliance), rpe: b.rpe ?? null, feeling: b.feeling ?? null, comment: (b.comment || "").trim() || null, updated_at: now });
+    Object.assign(c, { activity_id: activityId, matched_by: by, status: b.status, compliance_pct: Math.min(200, compliance), rpe: b.rpe ?? null, feeling: b.feeling ?? null, comment: (b.comment || "").trim() || null, reported_at: c.reported_at ?? now, updated_at: now });
+    if (act) { act.match_state = "open"; h.clearMatchOptions(act.id); }
+    if (prev || dropped) h.rematch(m.user_id, p.date);
+    // The trainer hears about it the first time the student reports (an automatic match alone doesn't notify).
     const coach = h.db.memberships.find((x) => x.id === p.created_by);
     const student = h.db.users.find((u) => u.id === m.user_id);
-    if (coach && fresh) h.notify({ id: h.uuid("n"), user_id: coach.user_id, club_id: p.club_id, kind: "feedback", title: `${student.name} ${b.status === "missed" ? "não fez o treino" : "registrou o treino"}`, body: c.comment || p.title, link: "/feedback", read_at: null, created_at: now });
+    if (coach && first) h.notify({ id: h.uuid("n"), user_id: coach.user_id, club_id: p.club_id, kind: "feedback", title: `${student.name} ${b.status === "missed" ? "não fez o treino" : "registrou o treino"}`, body: c.comment || p.title, link: "/feedback", read_at: null, created_at: now });
     return h.workoutOut(p, m.id);
   });
   h.get("/v1/clubs/:club_id/my/summary", (ctx) => {

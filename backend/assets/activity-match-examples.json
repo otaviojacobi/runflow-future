@@ -1,0 +1,680 @@
+{
+  "about": "Golden examples for activity matching (D-049, docs/activity-matching.md): one student's open activities and open workouts → the links and the questions. The mock (api/mock/lib/matching.mjs) and the backend (backend/crates/domain/src/matching.rs, synced copy) must give exactly `expect`. Add an example with `today`, `workouts`, `activities` (and a `comment`), run `node api/mock/activity-match-examples.mjs --fill`, read the diff.",
+  "examples": [
+    {
+      "name": "Same day, about the planned distance: linked",
+      "comment": "The common case.",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 8000,
+          "est_duration_s": 2880
+        },
+        {
+          "id": "w-thu",
+          "date": "2026-11-05",
+          "sport": "run",
+          "est_distance_m": 12000,
+          "est_duration_s": 4320
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "run",
+          "duration_s": 2990,
+          "distance_m": 8240,
+          "moving_time_s": 2930
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "activity_id": "a-tue",
+            "workout_id": "w-tue",
+            "compliance_pct": 103
+          }
+        ],
+        "pending": []
+      }
+    },
+    {
+      "name": "Same day, half the distance: linked as partial",
+      "comment": "Cutting a workout short is still that workout; compliance shows how much.",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 10000,
+          "est_duration_s": 3300
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "run",
+          "duration_s": 1700,
+          "distance_m": 5100
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "activity_id": "a-tue",
+            "workout_id": "w-tue",
+            "compliance_pct": 51
+          }
+        ],
+        "pending": []
+      }
+    },
+    {
+      "name": "Days swapped, very different sizes: each run goes to the workout it fits",
+      "comment": "Did Tuesday's long run on Monday and Monday's easy run on Tuesday.",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-mon",
+          "date": "2026-11-02",
+          "sport": "run",
+          "est_distance_m": 6000,
+          "est_duration_s": 2160
+        },
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 16000,
+          "est_duration_s": 5760
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-mon",
+          "day": "2026-11-02",
+          "sport": "run",
+          "duration_s": 5900,
+          "distance_m": 16100
+        },
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "run",
+          "duration_s": 2200,
+          "distance_m": 6050
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "activity_id": "a-mon",
+            "workout_id": "w-tue",
+            "compliance_pct": 101
+          },
+          {
+            "activity_id": "a-tue",
+            "workout_id": "w-mon",
+            "compliance_pct": 101
+          }
+        ],
+        "pending": []
+      }
+    },
+    {
+      "name": "Days swapped, similar sizes: ask",
+      "comment": "An 8 km run on Monday may be Monday's intervals cut short or Tuesday's 8 km done early.",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-mon",
+          "date": "2026-11-02",
+          "sport": "run",
+          "est_distance_m": 10500,
+          "est_duration_s": 3300
+        },
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 8000,
+          "est_duration_s": 2880
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-mon",
+          "day": "2026-11-02",
+          "sport": "run",
+          "duration_s": 2860,
+          "distance_m": 8000
+        }
+      ],
+      "expect": {
+        "links": [],
+        "pending": [
+          {
+            "activity_id": "a-mon",
+            "options": [
+              "w-mon",
+              "w-tue"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Done a day early on a rest day: linked to the next day",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 10000,
+          "est_duration_s": 3600
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-mon",
+          "day": "2026-11-02",
+          "sport": "run",
+          "duration_s": 3610,
+          "distance_m": 10100
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "activity_id": "a-mon",
+            "workout_id": "w-tue",
+            "compliance_pct": 101
+          }
+        ],
+        "pending": []
+      }
+    },
+    {
+      "name": "A short extra jog the day before a long run: not linked",
+      "comment": "On another day the size must fit (61%–165%).",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 12000,
+          "est_duration_s": 4320
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-mon",
+          "day": "2026-11-02",
+          "sport": "run",
+          "duration_s": 1080,
+          "distance_m": 3000
+        }
+      ],
+      "expect": {
+        "links": [],
+        "pending": []
+      }
+    },
+    {
+      "name": "Equally far from two open workouts: ask, earlier date first",
+      "comment": "Sunday's 10 km wasn't done; a 10 km run on Monday could be Sunday's (late) or Tuesday's (early).",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-sun",
+          "date": "2026-11-01",
+          "sport": "run",
+          "est_distance_m": 10000,
+          "est_duration_s": 3600
+        },
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 10000,
+          "est_duration_s": 3600
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-mon",
+          "day": "2026-11-02",
+          "sport": "run",
+          "duration_s": 3600,
+          "distance_m": 10000
+        }
+      ],
+      "expect": {
+        "links": [],
+        "pending": [
+          {
+            "activity_id": "a-mon",
+            "options": [
+              "w-sun",
+              "w-tue"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Warm-up recorded apart: the main run takes the workout",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 10000,
+          "est_duration_s": 3600
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-warm",
+          "day": "2026-11-03",
+          "sport": "run",
+          "duration_s": 720,
+          "distance_m": 2000
+        },
+        {
+          "id": "a-main",
+          "day": "2026-11-03",
+          "sport": "run",
+          "duration_s": 2900,
+          "distance_m": 8100
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "activity_id": "a-main",
+            "workout_id": "w-tue",
+            "compliance_pct": 81
+          }
+        ],
+        "pending": []
+      }
+    },
+    {
+      "name": "Another sport: not linked",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "bike",
+          "est_distance_m": 40000,
+          "est_duration_s": 5400
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "run",
+          "duration_s": 2900,
+          "distance_m": 8000
+        }
+      ],
+      "expect": {
+        "links": [],
+        "pending": []
+      }
+    },
+    {
+      "name": "Funcional reaches Strava as a workout (strength): linked",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "mobility",
+          "est_duration_s": 2700
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "strength",
+          "duration_s": 3000,
+          "moving_time_s": 2900
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "activity_id": "a-tue",
+            "workout_id": "w-tue",
+            "compliance_pct": 107
+          }
+        ],
+        "pending": []
+      }
+    },
+    {
+      "name": "Nothing to compare on the same day: linked at 100%",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "strength"
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "strength",
+          "duration_s": 3600
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "activity_id": "a-tue",
+            "workout_id": "w-tue",
+            "compliance_pct": 100
+          }
+        ],
+        "pending": []
+      }
+    },
+    {
+      "name": "Nothing to compare a day away: linked when it's the only one",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-wed",
+          "date": "2026-11-04",
+          "sport": "strength"
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "strength",
+          "duration_s": 3600
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "activity_id": "a-tue",
+            "workout_id": "w-wed",
+            "compliance_pct": 100
+          }
+        ],
+        "pending": []
+      }
+    },
+    {
+      "name": "Nothing to compare two days away: not linked",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-thu",
+          "date": "2026-11-05",
+          "sport": "strength"
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "strength",
+          "duration_s": 3600
+        }
+      ],
+      "expect": {
+        "links": [],
+        "pending": []
+      }
+    },
+    {
+      "name": "An old doubt isn't asked: left unmatched",
+      "comment": "The first Strava import brings 30 days; only the last 7 days become questions.",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-a",
+          "date": "2026-10-20",
+          "sport": "run",
+          "est_distance_m": 10000,
+          "est_duration_s": 3600
+        },
+        {
+          "id": "w-b",
+          "date": "2026-10-22",
+          "sport": "run",
+          "est_distance_m": 10000,
+          "est_duration_s": 3600
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-old",
+          "day": "2026-10-21",
+          "sport": "run",
+          "duration_s": 3600,
+          "distance_m": 10000
+        }
+      ],
+      "expect": {
+        "links": [],
+        "pending": []
+      }
+    },
+    {
+      "name": "Two runs on two days, two plans: each on its own day",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-mon",
+          "date": "2026-11-02",
+          "sport": "run",
+          "est_distance_m": 8000,
+          "est_duration_s": 2880
+        },
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 8000,
+          "est_duration_s": 2880
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-mon",
+          "day": "2026-11-02",
+          "sport": "run",
+          "duration_s": 2900,
+          "distance_m": 8050
+        },
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "run",
+          "duration_s": 2850,
+          "distance_m": 7900
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "activity_id": "a-mon",
+            "workout_id": "w-mon",
+            "compliance_pct": 101
+          },
+          {
+            "activity_id": "a-tue",
+            "workout_id": "w-tue",
+            "compliance_pct": 99
+          }
+        ],
+        "pending": []
+      }
+    },
+    {
+      "name": "Swim a day late: linked",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-mon",
+          "date": "2026-11-02",
+          "sport": "swim",
+          "est_distance_m": 2000,
+          "est_duration_s": 2700
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "swim",
+          "duration_s": 2600,
+          "distance_m": 1800
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "activity_id": "a-tue",
+            "workout_id": "w-mon",
+            "compliance_pct": 90
+          }
+        ],
+        "pending": []
+      }
+    },
+    {
+      "name": "Two workouts the same day, one run that fits one of them: linked",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-am",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 5000,
+          "est_duration_s": 1800
+        },
+        {
+          "id": "w-pm",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 10000,
+          "est_duration_s": 3300
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-pm",
+          "day": "2026-11-03",
+          "sport": "run",
+          "duration_s": 3350,
+          "distance_m": 10200
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "activity_id": "a-pm",
+            "workout_id": "w-pm",
+            "compliance_pct": 102
+          }
+        ],
+        "pending": []
+      }
+    },
+    {
+      "name": "Two similar workouts the same day: ask, likelier first",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-am",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 6000,
+          "est_duration_s": 2160
+        },
+        {
+          "id": "w-pm",
+          "date": "2026-11-03",
+          "sport": "run",
+          "est_distance_m": 7000,
+          "est_duration_s": 2520
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "run",
+          "duration_s": 2340,
+          "distance_m": 6500
+        }
+      ],
+      "expect": {
+        "links": [],
+        "pending": [
+          {
+            "activity_id": "a-tue",
+            "options": [
+              "w-pm",
+              "w-am"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "name": "Moving time counts when there's no distance",
+      "comment": "A stopped watch: the elapsed time is long, the moving time is the workout.",
+      "today": "2026-11-04",
+      "workouts": [
+        {
+          "id": "w-tue",
+          "date": "2026-11-03",
+          "sport": "bike",
+          "est_duration_s": 3600
+        }
+      ],
+      "activities": [
+        {
+          "id": "a-tue",
+          "day": "2026-11-03",
+          "sport": "bike",
+          "duration_s": 5400,
+          "moving_time_s": 3550
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "activity_id": "a-tue",
+            "workout_id": "w-tue",
+            "compliance_pct": 99
+          }
+        ],
+        "pending": []
+      }
+    }
+  ]
+}

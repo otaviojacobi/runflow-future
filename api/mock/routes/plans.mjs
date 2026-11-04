@@ -68,12 +68,15 @@ export default function register(h) {
     if (!items.length) h.fail(409, "plan.empty", "A planilha está vazia", "Adicione treinos antes de aplicar.");
     const now = h.nowIso();
     let created = 0;
+    const rows = [];
     for (const athlete of ids) {
       const a = { id: h.uuid("pa"), plan_id: p.id, athlete_membership_id: athlete, start_date: start, created_by: me.id, created_at: now };
       h.db.plan_assignments.push(a);
       for (const it of items) {
         const date = h.addDays(start, (it.week - 1) * 7 + it.weekday - 1);
-        h.db.planned_workouts.push({ id: h.uuid("pw"), club_id: p.club_id, athlete_membership_id: athlete, date, position: h.db.planned_workouts.filter((x) => x.athlete_membership_id === athlete && x.date === date).length, sport: it.sport, title: it.title, structure: it.structure, notes: it.notes, est_duration_s: it.est_duration_s, est_distance_m: it.est_distance_m, template_id: it.template_id, plan_assignment_id: a.id, created_by: me.id, created_at: now, updated_at: now });
+        const row = { id: h.uuid("pw"), club_id: p.club_id, athlete_membership_id: athlete, date, position: h.db.planned_workouts.filter((x) => x.athlete_membership_id === athlete && x.date === date).length, sport: it.sport, title: it.title, structure: it.structure, notes: it.notes, est_duration_s: it.est_duration_s, est_distance_m: it.est_distance_m, template_id: it.template_id, plan_assignment_id: a.id, created_by: me.id, created_at: now, updated_at: now };
+        h.db.planned_workouts.push(row);
+        rows.push(row);
         created++;
       }
       // Announced now only if the first week is already visible; otherwise its release does it (D-031).
@@ -81,6 +84,7 @@ export default function register(h) {
       const u = h.db.memberships.find((x) => x.id === athlete);
       h.notify({ id: h.uuid("n"), user_id: u.user_id, club_id: p.club_id, kind: "workout_assigned", title: `Nova planilha: ${p.name}`, body: `${p.weeks} semanas a partir de ${start.split("-").reverse().slice(0, 2).join("/")}`, link: "/schedule", read_at: null, created_at: now });
     }
+    h.rematchWorkouts(rows);
     return { __status: 201, data: { assignments: ids.length, workouts: created } };
   });
   h.delete("/v1/clubs/:club_id/plans/:id/assignments/:aid", (ctx) => {
@@ -88,7 +92,10 @@ export default function register(h) {
     const a = h.db.plan_assignments.find((x) => x.id === ctx.params.aid && x.plan_id === ctx.params.id) || h.fail(404, "assignment.not_found", "Aplicação não encontrada", "Ela pode já ter sido removida.");
     const today = h.today();
     const future = new Set(h.db.planned_workouts.filter((p) => p.plan_assignment_id === a.id && p.date >= today && !h.db.workout_completions.some((c) => c.planned_workout_id === p.id)).map((p) => p.id));
+    const removed = h.db.planned_workouts.filter((p) => future.has(p.id));
     h.db.planned_workouts = h.db.planned_workouts.filter((p) => !future.has(p.id));
+    h.db.activity_match_options = h.db.activity_match_options.filter((o) => !future.has(o.planned_workout_id));
+    h.rematchWorkouts(removed);
     for (const p of h.db.planned_workouts) if (p.plan_assignment_id === a.id) p.plan_assignment_id = null;
     h.db.plan_assignments = h.db.plan_assignments.filter((x) => x.id !== a.id);
     return { __status: 200, data: { removed_workouts: future.size } };

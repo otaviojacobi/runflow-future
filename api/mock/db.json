@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-03T21:04:18.875Z",
+  "generated_at": "2026-11-04T11:03:38.949Z",
   "version": 1
  },
  "users": [
@@ -16703,6 +16703,7 @@
    "calories": 618,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-06T13:00:00.000Z"
   },
   {
@@ -16724,6 +16725,7 @@
    "calories": 325,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-07T13:00:00.000Z"
   },
   {
@@ -16745,6 +16747,7 @@
    "calories": 606,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-08T13:00:00.000Z"
   },
   {
@@ -16766,6 +16769,7 @@
    "calories": 1074,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-10T13:00:00.000Z"
   },
   {
@@ -16787,6 +16791,7 @@
    "calories": 301,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-11T13:00:00.000Z"
   },
   {
@@ -16808,6 +16813,7 @@
    "calories": 714,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-13T13:00:00.000Z"
   },
   {
@@ -16829,6 +16835,7 @@
    "calories": 323,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-14T13:00:00.000Z"
   },
   {
@@ -16850,6 +16857,7 @@
    "calories": 573,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-15T13:00:00.000Z"
   },
   {
@@ -16871,6 +16879,7 @@
    "calories": 751,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-17T13:00:00.000Z"
   },
   {
@@ -16892,6 +16901,7 @@
    "calories": 300,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-18T13:00:00.000Z"
   },
   {
@@ -16959,6 +16969,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-20T13:00:00.000Z"
   },
   {
@@ -17006,6 +17017,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-21T13:00:00.000Z"
   },
   {
@@ -17073,6 +17085,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-22T13:00:00.000Z"
   },
   {
@@ -17170,6 +17183,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-24T13:00:00.000Z"
   },
   {
@@ -17207,6 +17221,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-25T13:00:00.000Z"
   },
   {
@@ -17284,6 +17299,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-27T13:00:00.000Z"
   },
   {
@@ -17336,6 +17352,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-28T13:00:00.000Z"
   },
   {
@@ -17403,6 +17420,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-29T13:00:00.000Z"
   },
   {
@@ -17510,54 +17528,8 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-31T13:00:00.000Z"
-  },
-  {
-   "id": "12d83d79-a8a3-434c-aae0-0d5dc4e857ea",
-   "user_id": "47fe2772-687e-4bef-af0d-8eae75eeecac",
-   "source": "strava",
-   "external_id": "14289849905",
-   "sport": "run",
-   "name": "Regenerativo 5 km",
-   "started_at": "2026-11-01T09:24:00.000Z",
-   "duration_s": 2049,
-   "moving_time_s": 1988,
-   "distance_m": 5173,
-   "elevation_gain_m": 13,
-   "avg_hr": 152,
-   "max_hr": 178,
-   "avg_pace_s_per_km": 396,
-   "avg_power_w": null,
-   "calories": 307,
-   "laps": [
-    {
-     "distance_m": 1000,
-     "duration_s": 401,
-     "avg_hr": 150
-    },
-    {
-     "distance_m": 1000,
-     "duration_s": 387,
-     "avg_hr": 145
-    },
-    {
-     "distance_m": 1000,
-     "duration_s": 408,
-     "avg_hr": 155
-    },
-    {
-     "distance_m": 1000,
-     "duration_s": 406,
-     "avg_hr": 148
-    },
-    {
-     "distance_m": 1000,
-     "duration_s": 391,
-     "avg_hr": 169
-    }
-   ],
-   "polyline": null,
-   "created_at": "2026-11-01T13:00:00.000Z"
   },
   {
    "id": "76d0321b-a1d1-4b31-aa85-39237ffe3c44",
@@ -17578,6 +17550,7 @@
    "calories": 587,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-06T13:00:00.000Z"
   },
   {
@@ -17599,6 +17572,7 @@
    "calories": 308,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-07T13:00:00.000Z"
   },
   {
@@ -17620,6 +17594,7 @@
    "calories": 606,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-08T13:00:00.000Z"
   },
   {
@@ -17641,6 +17616,7 @@
    "calories": 1026,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-10T13:00:00.000Z"
   },
   {
@@ -17662,6 +17638,7 @@
    "calories": 305,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-11T13:00:00.000Z"
   },
   {
@@ -17683,6 +17660,7 @@
    "calories": 714,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-13T13:00:00.000Z"
   },
   {
@@ -17704,6 +17682,7 @@
    "calories": 304,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-14T13:00:00.000Z"
   },
   {
@@ -17725,6 +17704,7 @@
    "calories": 588,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-15T13:00:00.000Z"
   },
   {
@@ -17746,6 +17726,7 @@
    "calories": 758,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-17T13:00:00.000Z"
   },
   {
@@ -17767,6 +17748,7 @@
    "calories": 289,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-18T13:00:00.000Z"
   },
   {
@@ -17834,6 +17816,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-20T13:00:00.000Z"
   },
   {
@@ -17886,6 +17869,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-21T13:00:00.000Z"
   },
   {
@@ -17953,6 +17937,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-22T13:00:00.000Z"
   },
   {
@@ -18000,6 +17985,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-25T13:00:00.000Z"
   },
   {
@@ -18077,6 +18063,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-27T13:00:00.000Z"
   },
   {
@@ -18124,6 +18111,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-28T13:00:00.000Z"
   },
   {
@@ -18191,6 +18179,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-29T13:00:00.000Z"
   },
   {
@@ -18298,6 +18287,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-31T13:00:00.000Z"
   },
   {
@@ -18340,6 +18330,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-11-01T13:00:00.000Z"
   },
   {
@@ -18361,6 +18352,7 @@
    "calories": 237,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-05T13:00:00.000Z"
   },
   {
@@ -18382,6 +18374,7 @@
    "calories": 227,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-07T13:00:00.000Z"
   },
   {
@@ -18403,6 +18396,7 @@
    "calories": 255,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-09T13:00:00.000Z"
   },
   {
@@ -18424,6 +18418,7 @@
    "calories": 621,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-10T13:00:00.000Z"
   },
   {
@@ -18445,6 +18440,7 @@
    "calories": 233,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-12T13:00:00.000Z"
   },
   {
@@ -18466,6 +18462,7 @@
    "calories": 318,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-14T13:00:00.000Z"
   },
   {
@@ -18487,6 +18484,7 @@
    "calories": 654,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-17T13:00:00.000Z"
   },
   {
@@ -18508,6 +18506,7 @@
    "calories": 253,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-19T13:00:00.000Z"
   },
   {
@@ -18560,6 +18559,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-21T13:00:00.000Z"
   },
   {
@@ -18632,6 +18632,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-24T13:00:00.000Z"
   },
   {
@@ -18653,6 +18654,7 @@
    "calories": 251,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-26T13:00:00.000Z"
   },
   {
@@ -18705,6 +18707,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-28T13:00:00.000Z"
   },
   {
@@ -18726,6 +18729,7 @@
    "calories": 182,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-30T13:00:00.000Z"
   },
   {
@@ -18793,6 +18797,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-31T13:00:00.000Z"
   },
   {
@@ -18814,6 +18819,7 @@
    "calories": 149,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-11-02T13:00:00.000Z"
   },
   {
@@ -18835,6 +18841,7 @@
    "calories": 621,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-06T13:00:00.000Z"
   },
   {
@@ -18856,6 +18863,7 @@
    "calories": 300,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-07T13:00:00.000Z"
   },
   {
@@ -18877,6 +18885,7 @@
    "calories": 624,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-08T13:00:00.000Z"
   },
   {
@@ -18898,6 +18907,7 @@
    "calories": 1028,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-10T13:00:00.000Z"
   },
   {
@@ -18919,6 +18929,7 @@
    "calories": 284,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-11T13:00:00.000Z"
   },
   {
@@ -18940,6 +18951,7 @@
    "calories": 730,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-13T13:00:00.000Z"
   },
   {
@@ -18961,6 +18973,7 @@
    "calories": 310,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-14T13:00:00.000Z"
   },
   {
@@ -18982,6 +18995,7 @@
    "calories": 616,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-15T13:00:00.000Z"
   },
   {
@@ -19003,6 +19017,7 @@
    "calories": 693,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-17T13:00:00.000Z"
   },
   {
@@ -19024,6 +19039,7 @@
    "calories": 303,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-18T13:00:00.000Z"
   },
   {
@@ -19071,6 +19087,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-21T13:00:00.000Z"
   },
   {
@@ -19143,6 +19160,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-22T13:00:00.000Z"
   },
   {
@@ -19240,6 +19258,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-24T13:00:00.000Z"
   },
   {
@@ -19287,6 +19306,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-25T13:00:00.000Z"
   },
   {
@@ -19364,6 +19384,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-27T13:00:00.000Z"
   },
   {
@@ -19411,6 +19432,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-28T13:00:00.000Z"
   },
   {
@@ -19478,6 +19500,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-29T13:00:00.000Z"
   },
   {
@@ -19590,6 +19613,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-31T13:00:00.000Z"
   },
   {
@@ -19637,6 +19661,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-11-01T13:00:00.000Z"
   },
   {
@@ -19658,6 +19683,7 @@
    "calories": 458,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-08T13:00:00.000Z"
   },
   {
@@ -19679,6 +19705,7 @@
    "calories": 301,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-10T13:00:00.000Z"
   },
   {
@@ -19700,6 +19727,7 @@
    "calories": 292,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-13T13:00:00.000Z"
   },
   {
@@ -19721,6 +19749,7 @@
    "calories": 478,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-15T13:00:00.000Z"
   },
   {
@@ -19763,6 +19792,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-20T13:00:00.000Z"
   },
   {
@@ -19820,6 +19850,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-22T13:00:00.000Z"
   },
   {
@@ -19867,6 +19898,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-24T13:00:00.000Z"
   },
   {
@@ -19914,6 +19946,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-27T13:00:00.000Z"
   },
   {
@@ -19971,6 +20004,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-29T13:00:00.000Z"
   },
   {
@@ -20018,6 +20052,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-31T13:00:00.000Z"
   },
   {
@@ -20039,6 +20074,7 @@
    "calories": 471,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-08T13:00:00.000Z"
   },
   {
@@ -20060,6 +20096,7 @@
    "calories": 284,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-10T13:00:00.000Z"
   },
   {
@@ -20081,6 +20118,7 @@
    "calories": 319,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-15T13:00:00.000Z"
   },
   {
@@ -20102,6 +20140,7 @@
    "calories": 316,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-17T13:00:00.000Z"
   },
   {
@@ -20149,6 +20188,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-20T13:00:00.000Z"
   },
   {
@@ -20206,6 +20246,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-22T13:00:00.000Z"
   },
   {
@@ -20227,6 +20268,7 @@
    "calories": 292,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-06T13:00:00.000Z"
   },
   {
@@ -20248,6 +20290,7 @@
    "calories": 488,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-08T13:00:00.000Z"
   },
   {
@@ -20269,6 +20312,7 @@
    "calories": 300,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-10T13:00:00.000Z"
   },
   {
@@ -20290,6 +20334,7 @@
    "calories": 220,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-13T13:00:00.000Z"
   },
   {
@@ -20311,6 +20356,7 @@
    "calories": 460,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-15T13:00:00.000Z"
   },
   {
@@ -20332,6 +20378,7 @@
    "calories": 319,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-17T13:00:00.000Z"
   },
   {
@@ -20369,6 +20416,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-20T13:00:00.000Z"
   },
   {
@@ -20426,6 +20474,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-22T13:00:00.000Z"
   },
   {
@@ -20468,6 +20517,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-27T13:00:00.000Z"
   },
   {
@@ -20525,6 +20575,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-29T13:00:00.000Z"
   },
   {
@@ -20572,6 +20623,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-31T13:00:00.000Z"
   },
   {
@@ -20593,6 +20645,7 @@
    "calories": 625,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-06T13:00:00.000Z"
   },
   {
@@ -20614,6 +20667,7 @@
    "calories": 323,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-07T13:00:00.000Z"
   },
   {
@@ -20635,6 +20689,7 @@
    "calories": 1014,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-10T13:00:00.000Z"
   },
   {
@@ -20656,6 +20711,7 @@
    "calories": 227,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-11T13:00:00.000Z"
   },
   {
@@ -20677,6 +20733,7 @@
    "calories": 703,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-13T13:00:00.000Z"
   },
   {
@@ -20698,6 +20755,7 @@
    "calories": 311,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-14T13:00:00.000Z"
   },
   {
@@ -20719,6 +20777,7 @@
    "calories": 614,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-15T13:00:00.000Z"
   },
   {
@@ -20740,6 +20799,7 @@
    "calories": 310,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-18T13:00:00.000Z"
   },
   {
@@ -20807,6 +20867,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-20T13:00:00.000Z"
   },
   {
@@ -20854,6 +20915,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-21T13:00:00.000Z"
   },
   {
@@ -20921,6 +20983,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-22T13:00:00.000Z"
   },
   {
@@ -20968,6 +21031,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-25T13:00:00.000Z"
   },
   {
@@ -21045,6 +21109,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-27T13:00:00.000Z"
   },
   {
@@ -21092,6 +21157,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-28T13:00:00.000Z"
   },
   {
@@ -21159,6 +21225,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-29T13:00:00.000Z"
   },
   {
@@ -21201,6 +21268,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-11-01T13:00:00.000Z"
   },
   {
@@ -21222,6 +21290,7 @@
    "calories": 167,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-05T13:00:00.000Z"
   },
   {
@@ -21243,6 +21312,7 @@
    "calories": 326,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-07T13:00:00.000Z"
   },
   {
@@ -21264,6 +21334,7 @@
    "calories": 623,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-10T13:00:00.000Z"
   },
   {
@@ -21285,6 +21356,7 @@
    "calories": 300,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-14T13:00:00.000Z"
   },
   {
@@ -21306,6 +21378,7 @@
    "calories": 243,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-16T13:00:00.000Z"
   },
   {
@@ -21327,6 +21400,7 @@
    "calories": 618,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-17T13:00:00.000Z"
   },
   {
@@ -21348,6 +21422,7 @@
    "calories": 236,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-19T13:00:00.000Z"
   },
   {
@@ -21395,6 +21470,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-21T13:00:00.000Z"
   },
   {
@@ -21416,6 +21492,7 @@
    "calories": 257,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-23T13:00:00.000Z"
   },
   {
@@ -21483,6 +21560,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-24T13:00:00.000Z"
   },
   {
@@ -21504,6 +21582,7 @@
    "calories": 240,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-26T13:00:00.000Z"
   },
   {
@@ -21556,6 +21635,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-28T13:00:00.000Z"
   },
   {
@@ -21577,6 +21657,7 @@
    "calories": 253,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-30T13:00:00.000Z"
   },
   {
@@ -21649,6 +21730,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-31T13:00:00.000Z"
   },
   {
@@ -21670,6 +21752,7 @@
    "calories": 252,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-11-02T13:00:00.000Z"
   },
   {
@@ -21737,6 +21820,7 @@
     }
    ],
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-11-03T13:00:00.000Z"
   },
   {
@@ -21758,6 +21842,7 @@
    "calories": 273,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-19T13:00:00.000Z"
   },
   {
@@ -21779,6 +21864,7 @@
    "calories": 253,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-21T13:00:00.000Z"
   },
   {
@@ -21800,6 +21886,7 @@
    "calories": 272,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-26T13:00:00.000Z"
   },
   {
@@ -21821,6 +21908,7 @@
    "calories": 273,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-10-28T13:00:00.000Z"
   },
   {
@@ -21842,7 +21930,30 @@
    "calories": 270,
    "laps": null,
    "polyline": null,
+   "match_state": "open",
    "created_at": "2026-11-02T13:00:00.000Z"
+  },
+  {
+   "id": "c1df6cbe-91d6-40e0-a362-776d1f0c503d",
+   "user_id": "47fe2772-687e-4bef-af0d-8eae75eeecac",
+   "source": "strava",
+   "external_id": "18000000001",
+   "sport": "run",
+   "name": "Corrida matinal",
+   "started_at": "2026-11-02T09:40:00.000Z",
+   "duration_s": 2574,
+   "moving_time_s": 2497,
+   "distance_m": 7800,
+   "elevation_gain_m": 34,
+   "avg_hr": 146,
+   "max_hr": 171,
+   "avg_pace_s_per_km": 330,
+   "avg_power_w": null,
+   "calories": 386,
+   "laps": null,
+   "polyline": null,
+   "match_state": "pending",
+   "created_at": "2026-11-02T10:30:00.000Z"
   }
  ],
  "workout_completions": [
@@ -21854,6 +21965,8 @@
    "rpe": 9,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-06T09:12:00.000Z",
    "completed_at": "2026-10-06T09:12:00.000Z",
    "updated_at": "2026-10-06T09:12:00.000Z"
   },
@@ -21865,6 +21978,8 @@
    "rpe": 4,
    "feeling": "bad",
    "comment": "Tiros encaixaram bem!",
+   "matched_by": "auto",
+   "reported_at": "2026-10-07T09:17:00.000Z",
    "completed_at": "2026-10-07T09:17:00.000Z",
    "updated_at": "2026-10-07T09:17:00.000Z"
   },
@@ -21876,6 +21991,8 @@
    "rpe": 7,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-08T09:13:00.000Z",
    "completed_at": "2026-10-08T09:13:00.000Z",
    "updated_at": "2026-10-08T09:13:00.000Z"
   },
@@ -21887,6 +22004,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-10T09:31:00.000Z",
    "completed_at": "2026-10-10T09:31:00.000Z",
    "updated_at": "2026-10-10T09:31:00.000Z"
   },
@@ -21898,6 +22017,8 @@
    "rpe": 5,
    "feeling": "ok",
    "comment": "Senti a panturrilha no final.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-11T09:16:00.000Z",
    "completed_at": "2026-10-11T09:16:00.000Z",
    "updated_at": "2026-10-11T09:16:00.000Z"
   },
@@ -21909,6 +22030,8 @@
    "rpe": 8,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-13T09:25:00.000Z",
    "completed_at": "2026-10-13T09:25:00.000Z",
    "updated_at": "2026-10-13T09:25:00.000Z"
   },
@@ -21920,6 +22043,8 @@
    "rpe": 3,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-14T09:45:00.000Z",
    "completed_at": "2026-10-14T09:45:00.000Z",
    "updated_at": "2026-10-14T09:45:00.000Z"
   },
@@ -21931,6 +22056,8 @@
    "rpe": 7,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-15T09:29:00.000Z",
    "completed_at": "2026-10-15T09:29:00.000Z",
    "updated_at": "2026-10-15T09:29:00.000Z"
   },
@@ -21942,6 +22069,8 @@
    "rpe": 6,
    "feeling": "great",
    "comment": "Dormi mal, foi difícil.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-17T09:22:00.000Z",
    "completed_at": "2026-10-17T09:22:00.000Z",
    "updated_at": "2026-10-17T09:22:00.000Z"
   },
@@ -21953,6 +22082,8 @@
    "rpe": 4,
    "feeling": "good",
    "comment": "Consegui manter o pace o tempo todo.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-18T21:22:00.000Z",
    "completed_at": "2026-10-18T21:22:00.000Z",
    "updated_at": "2026-10-18T21:22:00.000Z"
   },
@@ -21964,6 +22095,8 @@
    "rpe": 7,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-20T21:44:00.000Z",
    "completed_at": "2026-10-20T21:44:00.000Z",
    "updated_at": "2026-10-20T21:44:00.000Z"
   },
@@ -21975,6 +22108,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-21T09:31:00.000Z",
    "completed_at": "2026-10-21T09:31:00.000Z",
    "updated_at": "2026-10-21T09:31:00.000Z"
   },
@@ -21986,6 +22121,8 @@
    "rpe": 8,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-22T21:18:00.000Z",
    "completed_at": "2026-10-22T21:18:00.000Z",
    "updated_at": "2026-10-22T21:18:00.000Z"
   },
@@ -21997,6 +22134,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-24T09:15:00.000Z",
    "completed_at": "2026-10-24T09:15:00.000Z",
    "updated_at": "2026-10-24T09:15:00.000Z"
   },
@@ -22008,6 +22147,8 @@
    "rpe": 4,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-25T21:29:00.000Z",
    "completed_at": "2026-10-25T21:29:00.000Z",
    "updated_at": "2026-10-25T21:29:00.000Z"
   },
@@ -22019,6 +22160,8 @@
    "rpe": 9,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-27T21:34:00.000Z",
    "completed_at": "2026-10-27T21:34:00.000Z",
    "updated_at": "2026-10-27T21:34:00.000Z"
   },
@@ -22030,6 +22173,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-28T09:10:00.000Z",
    "completed_at": "2026-10-28T09:10:00.000Z",
    "updated_at": "2026-10-28T09:10:00.000Z"
   },
@@ -22041,6 +22186,8 @@
    "rpe": 9,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-29T21:34:00.000Z",
    "completed_at": "2026-10-29T21:34:00.000Z",
    "updated_at": "2026-10-29T21:34:00.000Z"
   },
@@ -22052,19 +22199,10 @@
    "rpe": 5,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-31T09:21:00.000Z",
    "completed_at": "2026-10-31T09:21:00.000Z",
    "updated_at": "2026-10-31T09:21:00.000Z"
-  },
-  {
-   "planned_workout_id": "fc521838-c17b-4420-ad02-69ce585230d8",
-   "activity_id": "12d83d79-a8a3-434c-aae0-0d5dc4e857ea",
-   "status": "completed",
-   "compliance_pct": 97,
-   "rpe": 5,
-   "feeling": "great",
-   "comment": "Ótimo treino, terminei forte.",
-   "completed_at": "2026-11-01T09:24:00.000Z",
-   "updated_at": "2026-11-01T09:24:00.000Z"
   },
   {
    "planned_workout_id": "50436afe-a8d9-4170-ac15-ccc3013a6490",
@@ -22074,6 +22212,8 @@
    "rpe": 7,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-06T09:40:00.000Z",
    "completed_at": "2026-10-06T09:40:00.000Z",
    "updated_at": "2026-10-06T09:40:00.000Z"
   },
@@ -22085,6 +22225,8 @@
    "rpe": 5,
    "feeling": "ok",
    "comment": "Dormi mal, foi difícil.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-07T21:33:00.000Z",
    "completed_at": "2026-10-07T21:33:00.000Z",
    "updated_at": "2026-10-07T21:33:00.000Z"
   },
@@ -22096,6 +22238,8 @@
    "rpe": 8,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-08T21:24:00.000Z",
    "completed_at": "2026-10-08T21:24:00.000Z",
    "updated_at": "2026-10-08T21:24:00.000Z"
   },
@@ -22107,6 +22251,8 @@
    "rpe": 5,
    "feeling": "great",
    "comment": "Calor demais hoje, segurei o ritmo.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-10T21:43:00.000Z",
    "completed_at": "2026-10-10T21:43:00.000Z",
    "updated_at": "2026-10-10T21:43:00.000Z"
   },
@@ -22118,6 +22264,8 @@
    "rpe": 4,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-11T21:38:00.000Z",
    "completed_at": "2026-10-11T21:38:00.000Z",
    "updated_at": "2026-10-11T21:38:00.000Z"
   },
@@ -22129,6 +22277,8 @@
    "rpe": 9,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-13T09:31:00.000Z",
    "completed_at": "2026-10-13T09:31:00.000Z",
    "updated_at": "2026-10-13T09:31:00.000Z"
   },
@@ -22140,6 +22290,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": "Dormi mal, foi difícil.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-14T21:46:00.000Z",
    "completed_at": "2026-10-14T21:46:00.000Z",
    "updated_at": "2026-10-14T21:46:00.000Z"
   },
@@ -22151,6 +22303,8 @@
    "rpe": 7,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-15T09:28:00.000Z",
    "completed_at": "2026-10-15T09:28:00.000Z",
    "updated_at": "2026-10-15T09:28:00.000Z"
   },
@@ -22162,6 +22316,8 @@
    "rpe": 6,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-17T21:44:00.000Z",
    "completed_at": "2026-10-17T21:44:00.000Z",
    "updated_at": "2026-10-17T21:44:00.000Z"
   },
@@ -22173,6 +22329,8 @@
    "rpe": 4,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-18T09:41:00.000Z",
    "completed_at": "2026-10-18T09:41:00.000Z",
    "updated_at": "2026-10-18T09:41:00.000Z"
   },
@@ -22184,6 +22342,8 @@
    "rpe": 9,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-20T21:38:00.000Z",
    "completed_at": "2026-10-20T21:38:00.000Z",
    "updated_at": "2026-10-20T21:38:00.000Z"
   },
@@ -22195,6 +22355,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-21T21:42:00.000Z",
    "completed_at": "2026-10-21T21:42:00.000Z",
    "updated_at": "2026-10-21T21:42:00.000Z"
   },
@@ -22206,6 +22368,8 @@
    "rpe": 9,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-22T09:31:00.000Z",
    "completed_at": "2026-10-22T09:31:00.000Z",
    "updated_at": "2026-10-22T09:31:00.000Z"
   },
@@ -22217,6 +22381,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-25T02:00:00.000Z",
    "completed_at": "2026-10-25T02:00:00.000Z",
    "updated_at": "2026-10-25T02:00:00.000Z"
   },
@@ -22228,6 +22394,8 @@
    "rpe": 6,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-25T09:11:00.000Z",
    "completed_at": "2026-10-25T09:11:00.000Z",
    "updated_at": "2026-10-25T09:11:00.000Z"
   },
@@ -22239,6 +22407,8 @@
    "rpe": 7,
    "feeling": "ok",
    "comment": "Senti a panturrilha no final.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-27T09:19:00.000Z",
    "completed_at": "2026-10-27T09:19:00.000Z",
    "updated_at": "2026-10-27T09:19:00.000Z"
   },
@@ -22250,6 +22420,8 @@
    "rpe": 5,
    "feeling": "ok",
    "comment": "Ótimo treino, terminei forte.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-28T21:28:00.000Z",
    "completed_at": "2026-10-28T21:28:00.000Z",
    "updated_at": "2026-10-28T21:28:00.000Z"
   },
@@ -22261,6 +22433,8 @@
    "rpe": 8,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-29T09:25:00.000Z",
    "completed_at": "2026-10-29T09:25:00.000Z",
    "updated_at": "2026-10-29T09:25:00.000Z"
   },
@@ -22272,6 +22446,8 @@
    "rpe": 3,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-31T21:23:00.000Z",
    "completed_at": "2026-10-31T21:23:00.000Z",
    "updated_at": "2026-10-31T21:23:00.000Z"
   },
@@ -22283,6 +22459,8 @@
    "rpe": 6,
    "feeling": "good",
    "comment": "Calor demais hoje, segurei o ritmo.",
+   "matched_by": "auto",
+   "reported_at": "2026-11-01T21:36:00.000Z",
    "completed_at": "2026-11-01T21:36:00.000Z",
    "updated_at": "2026-11-01T21:36:00.000Z"
   },
@@ -22294,6 +22472,8 @@
    "rpe": 3,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-05T09:13:00.000Z",
    "completed_at": "2026-10-05T09:13:00.000Z",
    "updated_at": "2026-10-05T09:13:00.000Z"
   },
@@ -22305,6 +22485,8 @@
    "rpe": 4,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-07T09:44:00.000Z",
    "completed_at": "2026-10-07T09:44:00.000Z",
    "updated_at": "2026-10-07T09:44:00.000Z"
   },
@@ -22316,6 +22498,8 @@
    "rpe": 5,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-09T09:21:00.000Z",
    "completed_at": "2026-10-09T09:21:00.000Z",
    "updated_at": "2026-10-09T09:21:00.000Z"
   },
@@ -22327,6 +22511,8 @@
    "rpe": 4,
    "feeling": "ok",
    "comment": "Ótimo treino, terminei forte.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-10T21:20:00.000Z",
    "completed_at": "2026-10-10T21:20:00.000Z",
    "updated_at": "2026-10-10T21:20:00.000Z"
   },
@@ -22338,6 +22524,8 @@
    "rpe": 3,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-12T09:15:00.000Z",
    "completed_at": "2026-10-12T09:15:00.000Z",
    "updated_at": "2026-10-12T09:15:00.000Z"
   },
@@ -22349,6 +22537,8 @@
    "rpe": 6,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-14T09:42:00.000Z",
    "completed_at": "2026-10-14T09:42:00.000Z",
    "updated_at": "2026-10-14T09:42:00.000Z"
   },
@@ -22360,6 +22550,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-17T02:00:00.000Z",
    "completed_at": "2026-10-17T02:00:00.000Z",
    "updated_at": "2026-10-17T02:00:00.000Z"
   },
@@ -22371,6 +22563,8 @@
    "rpe": 6,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-17T21:16:00.000Z",
    "completed_at": "2026-10-17T21:16:00.000Z",
    "updated_at": "2026-10-17T21:16:00.000Z"
   },
@@ -22382,6 +22576,8 @@
    "rpe": 3,
    "feeling": "good",
    "comment": "Tiros encaixaram bem!",
+   "matched_by": "auto",
+   "reported_at": "2026-10-19T21:19:00.000Z",
    "completed_at": "2026-10-19T21:19:00.000Z",
    "updated_at": "2026-10-19T21:19:00.000Z"
   },
@@ -22393,6 +22589,8 @@
    "rpe": 6,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-21T09:43:00.000Z",
    "completed_at": "2026-10-21T09:43:00.000Z",
    "updated_at": "2026-10-21T09:43:00.000Z"
   },
@@ -22404,6 +22602,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-24T02:00:00.000Z",
    "completed_at": "2026-10-24T02:00:00.000Z",
    "updated_at": "2026-10-24T02:00:00.000Z"
   },
@@ -22415,6 +22615,8 @@
    "rpe": 4,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-24T09:18:00.000Z",
    "completed_at": "2026-10-24T09:18:00.000Z",
    "updated_at": "2026-10-24T09:18:00.000Z"
   },
@@ -22426,6 +22628,8 @@
    "rpe": 4,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-26T21:24:00.000Z",
    "completed_at": "2026-10-26T21:24:00.000Z",
    "updated_at": "2026-10-26T21:24:00.000Z"
   },
@@ -22437,6 +22641,8 @@
    "rpe": 3,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-28T21:31:00.000Z",
    "completed_at": "2026-10-28T21:31:00.000Z",
    "updated_at": "2026-10-28T21:31:00.000Z"
   },
@@ -22448,6 +22654,8 @@
    "rpe": 4,
    "feeling": "ok",
    "comment": "Calor demais hoje, segurei o ritmo.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-30T09:41:00.000Z",
    "completed_at": "2026-10-30T09:41:00.000Z",
    "updated_at": "2026-10-30T09:41:00.000Z"
   },
@@ -22459,6 +22667,8 @@
    "rpe": 3,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-31T21:50:00.000Z",
    "completed_at": "2026-10-31T21:50:00.000Z",
    "updated_at": "2026-10-31T21:50:00.000Z"
   },
@@ -22470,6 +22680,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-11-02T09:13:00.000Z",
    "completed_at": "2026-11-02T09:13:00.000Z",
    "updated_at": "2026-11-02T09:13:00.000Z"
   },
@@ -22481,6 +22693,8 @@
    "rpe": 9,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-06T09:27:00.000Z",
    "completed_at": "2026-10-06T09:27:00.000Z",
    "updated_at": "2026-10-06T09:27:00.000Z"
   },
@@ -22492,6 +22706,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": "Ótimo treino, terminei forte.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-07T21:42:00.000Z",
    "completed_at": "2026-10-07T21:42:00.000Z",
    "updated_at": "2026-10-07T21:42:00.000Z"
   },
@@ -22503,6 +22719,8 @@
    "rpe": 9,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-08T21:25:00.000Z",
    "completed_at": "2026-10-08T21:25:00.000Z",
    "updated_at": "2026-10-08T21:25:00.000Z"
   },
@@ -22514,6 +22732,8 @@
    "rpe": 4,
    "feeling": "good",
    "comment": "Consegui manter o pace o tempo todo.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-10T21:40:00.000Z",
    "completed_at": "2026-10-10T21:40:00.000Z",
    "updated_at": "2026-10-10T21:40:00.000Z"
   },
@@ -22525,6 +22745,8 @@
    "rpe": 3,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-11T09:22:00.000Z",
    "completed_at": "2026-10-11T09:22:00.000Z",
    "updated_at": "2026-10-11T09:22:00.000Z"
   },
@@ -22536,6 +22758,8 @@
    "rpe": 8,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-13T09:36:00.000Z",
    "completed_at": "2026-10-13T09:36:00.000Z",
    "updated_at": "2026-10-13T09:36:00.000Z"
   },
@@ -22547,6 +22771,8 @@
    "rpe": 5,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-14T21:30:00.000Z",
    "completed_at": "2026-10-14T21:30:00.000Z",
    "updated_at": "2026-10-14T21:30:00.000Z"
   },
@@ -22558,6 +22784,8 @@
    "rpe": 9,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-15T09:33:00.000Z",
    "completed_at": "2026-10-15T09:33:00.000Z",
    "updated_at": "2026-10-15T09:33:00.000Z"
   },
@@ -22569,6 +22797,8 @@
    "rpe": 3,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-17T21:39:00.000Z",
    "completed_at": "2026-10-17T21:39:00.000Z",
    "updated_at": "2026-10-17T21:39:00.000Z"
   },
@@ -22580,6 +22810,8 @@
    "rpe": 5,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-18T09:36:00.000Z",
    "completed_at": "2026-10-18T09:36:00.000Z",
    "updated_at": "2026-10-18T09:36:00.000Z"
   },
@@ -22591,6 +22823,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-21T02:00:00.000Z",
    "completed_at": "2026-10-21T02:00:00.000Z",
    "updated_at": "2026-10-21T02:00:00.000Z"
   },
@@ -22602,6 +22836,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-21T21:38:00.000Z",
    "completed_at": "2026-10-21T21:38:00.000Z",
    "updated_at": "2026-10-21T21:38:00.000Z"
   },
@@ -22613,6 +22849,8 @@
    "rpe": 8,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-22T09:40:00.000Z",
    "completed_at": "2026-10-22T09:40:00.000Z",
    "updated_at": "2026-10-22T09:40:00.000Z"
   },
@@ -22624,6 +22862,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": "Tiros encaixaram bem!",
+   "matched_by": "auto",
+   "reported_at": "2026-10-24T09:38:00.000Z",
    "completed_at": "2026-10-24T09:38:00.000Z",
    "updated_at": "2026-10-24T09:38:00.000Z"
   },
@@ -22635,6 +22875,8 @@
    "rpe": 3,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-25T21:33:00.000Z",
    "completed_at": "2026-10-25T21:33:00.000Z",
    "updated_at": "2026-10-25T21:33:00.000Z"
   },
@@ -22646,6 +22888,8 @@
    "rpe": 9,
    "feeling": "bad",
    "comment": "Tiros encaixaram bem!",
+   "matched_by": "auto",
+   "reported_at": "2026-10-27T21:22:00.000Z",
    "completed_at": "2026-10-27T21:22:00.000Z",
    "updated_at": "2026-10-27T21:22:00.000Z"
   },
@@ -22657,6 +22901,8 @@
    "rpe": 4,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-28T21:17:00.000Z",
    "completed_at": "2026-10-28T21:17:00.000Z",
    "updated_at": "2026-10-28T21:17:00.000Z"
   },
@@ -22668,6 +22914,8 @@
    "rpe": 7,
    "feeling": "good",
    "comment": "Consegui manter o pace o tempo todo.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-29T09:31:00.000Z",
    "completed_at": "2026-10-29T09:31:00.000Z",
    "updated_at": "2026-10-29T09:31:00.000Z"
   },
@@ -22679,6 +22927,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": "Calor demais hoje, segurei o ritmo.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-31T09:13:00.000Z",
    "completed_at": "2026-10-31T09:13:00.000Z",
    "updated_at": "2026-10-31T09:13:00.000Z"
   },
@@ -22690,6 +22940,8 @@
    "rpe": 4,
    "feeling": "great",
    "comment": "Dormi mal, foi difícil.",
+   "matched_by": "auto",
+   "reported_at": "2026-11-01T09:25:00.000Z",
    "completed_at": "2026-11-01T09:25:00.000Z",
    "updated_at": "2026-11-01T09:25:00.000Z"
   },
@@ -22701,6 +22953,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-07T02:00:00.000Z",
    "completed_at": "2026-10-07T02:00:00.000Z",
    "updated_at": "2026-10-07T02:00:00.000Z"
   },
@@ -22712,6 +22966,8 @@
    "rpe": 3,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-08T09:30:00.000Z",
    "completed_at": "2026-10-08T09:30:00.000Z",
    "updated_at": "2026-10-08T09:30:00.000Z"
   },
@@ -22723,6 +22979,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": "Tiros encaixaram bem!",
+   "matched_by": "auto",
+   "reported_at": "2026-10-10T21:16:00.000Z",
    "completed_at": "2026-10-10T21:16:00.000Z",
    "updated_at": "2026-10-10T21:16:00.000Z"
   },
@@ -22734,6 +22992,8 @@
    "rpe": 6,
    "feeling": "bad",
    "comment": "Consegui manter o pace o tempo todo.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-13T09:39:00.000Z",
    "completed_at": "2026-10-13T09:39:00.000Z",
    "updated_at": "2026-10-13T09:39:00.000Z"
   },
@@ -22745,6 +23005,8 @@
    "rpe": 4,
    "feeling": "great",
    "comment": "Consegui manter o pace o tempo todo.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-15T09:30:00.000Z",
    "completed_at": "2026-10-15T09:30:00.000Z",
    "updated_at": "2026-10-15T09:30:00.000Z"
   },
@@ -22756,6 +23018,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-18T02:00:00.000Z",
    "completed_at": "2026-10-18T02:00:00.000Z",
    "updated_at": "2026-10-18T02:00:00.000Z"
   },
@@ -22767,6 +23031,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-20T09:19:00.000Z",
    "completed_at": "2026-10-20T09:19:00.000Z",
    "updated_at": "2026-10-20T09:19:00.000Z"
   },
@@ -22778,6 +23044,8 @@
    "rpe": 3,
    "feeling": "good",
    "comment": "Calor demais hoje, segurei o ritmo.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-22T21:39:00.000Z",
    "completed_at": "2026-10-22T21:39:00.000Z",
    "updated_at": "2026-10-22T21:39:00.000Z"
   },
@@ -22789,6 +23057,8 @@
    "rpe": 4,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-24T09:18:00.000Z",
    "completed_at": "2026-10-24T09:18:00.000Z",
    "updated_at": "2026-10-24T09:18:00.000Z"
   },
@@ -22800,6 +23070,8 @@
    "rpe": 6,
    "feeling": "good",
    "comment": "Ótimo treino, terminei forte.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-27T09:25:00.000Z",
    "completed_at": "2026-10-27T09:25:00.000Z",
    "updated_at": "2026-10-27T09:25:00.000Z"
   },
@@ -22811,6 +23083,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-29T09:27:00.000Z",
    "completed_at": "2026-10-29T09:27:00.000Z",
    "updated_at": "2026-10-29T09:27:00.000Z"
   },
@@ -22822,6 +23096,8 @@
    "rpe": 3,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-31T21:27:00.000Z",
    "completed_at": "2026-10-31T21:27:00.000Z",
    "updated_at": "2026-10-31T21:27:00.000Z"
   },
@@ -22833,6 +23109,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-07T02:00:00.000Z",
    "completed_at": "2026-10-07T02:00:00.000Z",
    "updated_at": "2026-10-07T02:00:00.000Z"
   },
@@ -22844,6 +23122,8 @@
    "rpe": 3,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-08T21:26:00.000Z",
    "completed_at": "2026-10-08T21:26:00.000Z",
    "updated_at": "2026-10-08T21:26:00.000Z"
   },
@@ -22855,6 +23135,8 @@
    "rpe": 5,
    "feeling": "bad",
    "comment": "Tiros encaixaram bem!",
+   "matched_by": "auto",
+   "reported_at": "2026-10-10T09:37:00.000Z",
    "completed_at": "2026-10-10T09:37:00.000Z",
    "updated_at": "2026-10-10T09:37:00.000Z"
   },
@@ -22866,6 +23148,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-14T02:00:00.000Z",
    "completed_at": "2026-10-14T02:00:00.000Z",
    "updated_at": "2026-10-14T02:00:00.000Z"
   },
@@ -22877,6 +23161,8 @@
    "rpe": 3,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-15T09:24:00.000Z",
    "completed_at": "2026-10-15T09:24:00.000Z",
    "updated_at": "2026-10-15T09:24:00.000Z"
   },
@@ -22888,6 +23174,8 @@
    "rpe": 6,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-17T09:28:00.000Z",
    "completed_at": "2026-10-17T09:28:00.000Z",
    "updated_at": "2026-10-17T09:28:00.000Z"
   },
@@ -22899,6 +23187,8 @@
    "rpe": 4,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-20T09:36:00.000Z",
    "completed_at": "2026-10-20T09:36:00.000Z",
    "updated_at": "2026-10-20T09:36:00.000Z"
   },
@@ -22910,6 +23200,8 @@
    "rpe": 4,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-22T21:27:00.000Z",
    "completed_at": "2026-10-22T21:27:00.000Z",
    "updated_at": "2026-10-22T21:27:00.000Z"
   },
@@ -22921,6 +23213,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-25T02:00:00.000Z",
    "completed_at": "2026-10-25T02:00:00.000Z",
    "updated_at": "2026-10-25T02:00:00.000Z"
   },
@@ -22932,6 +23226,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-28T02:00:00.000Z",
    "completed_at": "2026-10-28T02:00:00.000Z",
    "updated_at": "2026-10-28T02:00:00.000Z"
   },
@@ -22943,6 +23239,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-30T02:00:00.000Z",
    "completed_at": "2026-10-30T02:00:00.000Z",
    "updated_at": "2026-10-30T02:00:00.000Z"
   },
@@ -22954,6 +23252,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-11-01T02:00:00.000Z",
    "completed_at": "2026-11-01T02:00:00.000Z",
    "updated_at": "2026-11-01T02:00:00.000Z"
   },
@@ -22965,6 +23265,8 @@
    "rpe": 4,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-06T09:29:00.000Z",
    "completed_at": "2026-10-06T09:29:00.000Z",
    "updated_at": "2026-10-06T09:29:00.000Z"
   },
@@ -22976,6 +23278,8 @@
    "rpe": 6,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-08T09:41:00.000Z",
    "completed_at": "2026-10-08T09:41:00.000Z",
    "updated_at": "2026-10-08T09:41:00.000Z"
   },
@@ -22987,6 +23291,8 @@
    "rpe": 6,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-10T21:34:00.000Z",
    "completed_at": "2026-10-10T21:34:00.000Z",
    "updated_at": "2026-10-10T21:34:00.000Z"
   },
@@ -22998,6 +23304,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": "Calor demais hoje, segurei o ritmo.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-13T09:43:00.000Z",
    "completed_at": "2026-10-13T09:43:00.000Z",
    "updated_at": "2026-10-13T09:43:00.000Z"
   },
@@ -23009,6 +23317,8 @@
    "rpe": 5,
    "feeling": "great",
    "comment": "Tiros encaixaram bem!",
+   "matched_by": "auto",
+   "reported_at": "2026-10-15T09:10:00.000Z",
    "completed_at": "2026-10-15T09:10:00.000Z",
    "updated_at": "2026-10-15T09:10:00.000Z"
   },
@@ -23020,6 +23330,8 @@
    "rpe": 4,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-17T21:44:00.000Z",
    "completed_at": "2026-10-17T21:44:00.000Z",
    "updated_at": "2026-10-17T21:44:00.000Z"
   },
@@ -23031,6 +23343,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-20T09:23:00.000Z",
    "completed_at": "2026-10-20T09:23:00.000Z",
    "updated_at": "2026-10-20T09:23:00.000Z"
   },
@@ -23042,6 +23356,8 @@
    "rpe": 6,
    "feeling": "great",
    "comment": "Tiros encaixaram bem!",
+   "matched_by": "auto",
+   "reported_at": "2026-10-22T09:15:00.000Z",
    "completed_at": "2026-10-22T09:15:00.000Z",
    "updated_at": "2026-10-22T09:15:00.000Z"
   },
@@ -23053,6 +23369,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-25T02:00:00.000Z",
    "completed_at": "2026-10-25T02:00:00.000Z",
    "updated_at": "2026-10-25T02:00:00.000Z"
   },
@@ -23064,6 +23382,8 @@
    "rpe": 3,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-27T09:29:00.000Z",
    "completed_at": "2026-10-27T09:29:00.000Z",
    "updated_at": "2026-10-27T09:29:00.000Z"
   },
@@ -23075,6 +23395,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-29T21:39:00.000Z",
    "completed_at": "2026-10-29T21:39:00.000Z",
    "updated_at": "2026-10-29T21:39:00.000Z"
   },
@@ -23086,6 +23408,8 @@
    "rpe": 3,
    "feeling": "good",
    "comment": "Consegui manter o pace o tempo todo.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-31T09:32:00.000Z",
    "completed_at": "2026-10-31T09:32:00.000Z",
    "updated_at": "2026-10-31T09:32:00.000Z"
   },
@@ -23097,6 +23421,8 @@
    "rpe": 7,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-06T21:28:00.000Z",
    "completed_at": "2026-10-06T21:28:00.000Z",
    "updated_at": "2026-10-06T21:28:00.000Z"
   },
@@ -23108,6 +23434,8 @@
    "rpe": 3,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-07T21:21:00.000Z",
    "completed_at": "2026-10-07T21:21:00.000Z",
    "updated_at": "2026-10-07T21:21:00.000Z"
   },
@@ -23119,6 +23447,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-09T02:00:00.000Z",
    "completed_at": "2026-10-09T02:00:00.000Z",
    "updated_at": "2026-10-09T02:00:00.000Z"
   },
@@ -23130,6 +23460,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-10T09:12:00.000Z",
    "completed_at": "2026-10-10T09:12:00.000Z",
    "updated_at": "2026-10-10T09:12:00.000Z"
   },
@@ -23141,6 +23473,8 @@
    "rpe": 6,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-11T09:12:00.000Z",
    "completed_at": "2026-10-11T09:12:00.000Z",
    "updated_at": "2026-10-11T09:12:00.000Z"
   },
@@ -23152,6 +23486,8 @@
    "rpe": 8,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-13T09:16:00.000Z",
    "completed_at": "2026-10-13T09:16:00.000Z",
    "updated_at": "2026-10-13T09:16:00.000Z"
   },
@@ -23163,6 +23499,8 @@
    "rpe": 4,
    "feeling": "good",
    "comment": "Consegui manter o pace o tempo todo.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-14T09:43:00.000Z",
    "completed_at": "2026-10-14T09:43:00.000Z",
    "updated_at": "2026-10-14T09:43:00.000Z"
   },
@@ -23174,6 +23512,8 @@
    "rpe": 8,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-15T09:15:00.000Z",
    "completed_at": "2026-10-15T09:15:00.000Z",
    "updated_at": "2026-10-15T09:15:00.000Z"
   },
@@ -23185,6 +23525,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-18T02:00:00.000Z",
    "completed_at": "2026-10-18T02:00:00.000Z",
    "updated_at": "2026-10-18T02:00:00.000Z"
   },
@@ -23196,6 +23538,8 @@
    "rpe": 6,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-18T21:17:00.000Z",
    "completed_at": "2026-10-18T21:17:00.000Z",
    "updated_at": "2026-10-18T21:17:00.000Z"
   },
@@ -23207,6 +23551,8 @@
    "rpe": 7,
    "feeling": "good",
    "comment": "Tiros encaixaram bem!",
+   "matched_by": "auto",
+   "reported_at": "2026-10-20T21:48:00.000Z",
    "completed_at": "2026-10-20T21:48:00.000Z",
    "updated_at": "2026-10-20T21:48:00.000Z"
   },
@@ -23218,6 +23564,8 @@
    "rpe": 5,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-21T09:16:00.000Z",
    "completed_at": "2026-10-21T09:16:00.000Z",
    "updated_at": "2026-10-21T09:16:00.000Z"
   },
@@ -23229,6 +23577,8 @@
    "rpe": 8,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-22T09:11:00.000Z",
    "completed_at": "2026-10-22T09:11:00.000Z",
    "updated_at": "2026-10-22T09:11:00.000Z"
   },
@@ -23240,6 +23590,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-25T02:00:00.000Z",
    "completed_at": "2026-10-25T02:00:00.000Z",
    "updated_at": "2026-10-25T02:00:00.000Z"
   },
@@ -23251,6 +23603,8 @@
    "rpe": 5,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-25T21:35:00.000Z",
    "completed_at": "2026-10-25T21:35:00.000Z",
    "updated_at": "2026-10-25T21:35:00.000Z"
   },
@@ -23262,6 +23616,8 @@
    "rpe": 8,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-27T09:39:00.000Z",
    "completed_at": "2026-10-27T09:39:00.000Z",
    "updated_at": "2026-10-27T09:39:00.000Z"
   },
@@ -23273,6 +23629,8 @@
    "rpe": 5,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-28T09:44:00.000Z",
    "completed_at": "2026-10-28T09:44:00.000Z",
    "updated_at": "2026-10-28T09:44:00.000Z"
   },
@@ -23284,6 +23642,8 @@
    "rpe": 7,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-29T21:23:00.000Z",
    "completed_at": "2026-10-29T21:23:00.000Z",
    "updated_at": "2026-10-29T21:23:00.000Z"
   },
@@ -23295,6 +23655,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-11-01T02:00:00.000Z",
    "completed_at": "2026-11-01T02:00:00.000Z",
    "updated_at": "2026-11-01T02:00:00.000Z"
   },
@@ -23306,6 +23668,8 @@
    "rpe": 4,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-11-01T21:44:00.000Z",
    "completed_at": "2026-11-01T21:44:00.000Z",
    "updated_at": "2026-11-01T21:44:00.000Z"
   },
@@ -23317,6 +23681,8 @@
    "rpe": 5,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-05T21:50:00.000Z",
    "completed_at": "2026-10-05T21:50:00.000Z",
    "updated_at": "2026-10-05T21:50:00.000Z"
   },
@@ -23328,6 +23694,8 @@
    "rpe": 5,
    "feeling": "great",
    "comment": "Ótimo treino, terminei forte.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-07T21:33:00.000Z",
    "completed_at": "2026-10-07T21:33:00.000Z",
    "updated_at": "2026-10-07T21:33:00.000Z"
   },
@@ -23339,6 +23707,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-10T02:00:00.000Z",
    "completed_at": "2026-10-10T02:00:00.000Z",
    "updated_at": "2026-10-10T02:00:00.000Z"
   },
@@ -23350,6 +23720,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-10T09:43:00.000Z",
    "completed_at": "2026-10-10T09:43:00.000Z",
    "updated_at": "2026-10-10T09:43:00.000Z"
   },
@@ -23361,6 +23733,8 @@
    "rpe": null,
    "feeling": null,
    "comment": null,
+   "matched_by": null,
+   "reported_at": "2026-10-13T02:00:00.000Z",
    "completed_at": "2026-10-13T02:00:00.000Z",
    "updated_at": "2026-10-13T02:00:00.000Z"
   },
@@ -23372,6 +23746,8 @@
    "rpe": 3,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-14T21:16:00.000Z",
    "completed_at": "2026-10-14T21:16:00.000Z",
    "updated_at": "2026-10-14T21:16:00.000Z"
   },
@@ -23383,6 +23759,8 @@
    "rpe": 6,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-16T09:18:00.000Z",
    "completed_at": "2026-10-16T09:18:00.000Z",
    "updated_at": "2026-10-16T09:18:00.000Z"
   },
@@ -23394,6 +23772,8 @@
    "rpe": 3,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-17T09:11:00.000Z",
    "completed_at": "2026-10-17T09:11:00.000Z",
    "updated_at": "2026-10-17T09:11:00.000Z"
   },
@@ -23405,6 +23785,8 @@
    "rpe": 4,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-19T21:17:00.000Z",
    "completed_at": "2026-10-19T21:17:00.000Z",
    "updated_at": "2026-10-19T21:17:00.000Z"
   },
@@ -23416,6 +23798,8 @@
    "rpe": 5,
    "feeling": "great",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-21T09:30:00.000Z",
    "completed_at": "2026-10-21T09:30:00.000Z",
    "updated_at": "2026-10-21T09:30:00.000Z"
   },
@@ -23427,6 +23811,8 @@
    "rpe": 3,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-23T21:19:00.000Z",
    "completed_at": "2026-10-23T21:19:00.000Z",
    "updated_at": "2026-10-23T21:19:00.000Z"
   },
@@ -23438,6 +23824,8 @@
    "rpe": 5,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-24T21:17:00.000Z",
    "completed_at": "2026-10-24T21:17:00.000Z",
    "updated_at": "2026-10-24T21:17:00.000Z"
   },
@@ -23449,6 +23837,8 @@
    "rpe": 4,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-26T21:49:00.000Z",
    "completed_at": "2026-10-26T21:49:00.000Z",
    "updated_at": "2026-10-26T21:49:00.000Z"
   },
@@ -23460,6 +23850,8 @@
    "rpe": 6,
    "feeling": "ok",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-28T09:14:00.000Z",
    "completed_at": "2026-10-28T09:14:00.000Z",
    "updated_at": "2026-10-28T09:14:00.000Z"
   },
@@ -23471,6 +23863,8 @@
    "rpe": 3,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-30T09:21:00.000Z",
    "completed_at": "2026-10-30T09:21:00.000Z",
    "updated_at": "2026-10-30T09:21:00.000Z"
   },
@@ -23482,6 +23876,8 @@
    "rpe": 3,
    "feeling": "good",
    "comment": "Ótimo treino, terminei forte.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-31T09:24:00.000Z",
    "completed_at": "2026-10-31T09:24:00.000Z",
    "updated_at": "2026-10-31T09:24:00.000Z"
   },
@@ -23493,6 +23889,8 @@
    "rpe": 4,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-11-02T21:50:00.000Z",
    "completed_at": "2026-11-02T21:50:00.000Z",
    "updated_at": "2026-11-02T21:50:00.000Z"
   },
@@ -23504,6 +23902,8 @@
    "rpe": 7,
    "feeling": "good",
    "comment": "Tiros saíram mais fáceis que semana passada!",
+   "matched_by": "auto",
+   "reported_at": "2026-11-03T09:20:00.000Z",
    "completed_at": "2026-11-03T09:20:00.000Z",
    "updated_at": "2026-11-03T09:20:00.000Z"
   },
@@ -23515,6 +23915,8 @@
    "rpe": 5,
    "feeling": "bad",
    "comment": "Senti a panturrilha no final.",
+   "matched_by": "auto",
+   "reported_at": "2026-10-19T10:05:00.000Z",
    "completed_at": "2026-10-19T10:05:00.000Z",
    "updated_at": "2026-10-19T10:05:00.000Z"
   },
@@ -23526,6 +23928,8 @@
    "rpe": 5,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-21T10:05:00.000Z",
    "completed_at": "2026-10-21T10:05:00.000Z",
    "updated_at": "2026-10-21T10:05:00.000Z"
   },
@@ -23537,6 +23941,8 @@
    "rpe": 6,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-26T10:05:00.000Z",
    "completed_at": "2026-10-26T10:05:00.000Z",
    "updated_at": "2026-10-26T10:05:00.000Z"
   },
@@ -23548,6 +23954,8 @@
    "rpe": 4,
    "feeling": "bad",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-10-28T10:05:00.000Z",
    "completed_at": "2026-10-28T10:05:00.000Z",
    "updated_at": "2026-10-28T10:05:00.000Z"
   },
@@ -23559,6 +23967,8 @@
    "rpe": 6,
    "feeling": "good",
    "comment": null,
+   "matched_by": "auto",
+   "reported_at": "2026-11-02T10:05:00.000Z",
    "completed_at": "2026-11-02T10:05:00.000Z",
    "updated_at": "2026-11-02T10:05:00.000Z"
   }
@@ -23612,6 +24022,18 @@
    "membership_id": "c0f251a7-394c-4c0c-aff2-1b7756147926",
    "planned_workout_id": "30cc6a9e-c0a6-41c2-a764-7e5d72ab8b98",
    "last_read_at": "2026-10-27T15:40:00.000Z"
+  }
+ ],
+ "activity_match_options": [
+  {
+   "activity_id": "c1df6cbe-91d6-40e0-a362-776d1f0c503d",
+   "planned_workout_id": "21d9611a-77fb-4f54-a7c4-774f0b926abf",
+   "rank": 0
+  },
+  {
+   "activity_id": "c1df6cbe-91d6-40e0-a362-776d1f0c503d",
+   "planned_workout_id": "fc521838-c17b-4420-ad02-69ce585230d8",
+   "rank": 1
   }
  ],
  "assessments": [

@@ -331,6 +331,10 @@ CREATE TABLE activities (
   calories            int,
   laps                jsonb,             -- [{ distance_m, duration_s, avg_hr, avg_pace_s_per_km }]
   polyline            text,
+  -- Activity matching (D-049): 'open' = the engine may link it; 'pending' = waiting for the student to choose among
+  -- activity_match_options; 'dismissed' = the student said it wasn't a planned workout (the engine leaves it alone).
+  -- Being linked is a workout_completions row with this activity_id.
+  match_state         text NOT NULL DEFAULT 'open' CHECK (match_state IN ('open', 'pending', 'dismissed')),
   created_at          timestamptz NOT NULL DEFAULT now(),
   UNIQUE (source, external_id)
 );
@@ -344,8 +348,22 @@ CREATE TABLE workout_completions (
   rpe                 int CHECK (rpe BETWEEN 1 AND 10),
   feeling             text CHECK (feeling IN ('great', 'good', 'ok', 'bad', 'awful')),
   comment             text,
+  -- Who linked activity_id (D-049): 'auto' = the matching engine, 'student' = the student chose it. NULL without one.
+  matched_by          text CHECK (matched_by IN ('auto', 'student')),
+  -- When the student sent feedback through the completion route; NULL while the workout was only matched automatically.
+  reported_at         timestamptz,
   completed_at        timestamptz NOT NULL DEFAULT now(),
   updated_at          timestamptz NOT NULL DEFAULT now()
+);
+-- One activity completes at most one workout.
+CREATE UNIQUE INDEX workout_completions_activity_idx ON workout_completions (activity_id) WHERE activity_id IS NOT NULL;
+
+-- The workouts a 'pending' activity may be, best first (D-049). Replaced on every matching pass.
+CREATE TABLE activity_match_options (
+  activity_id         uuid NOT NULL REFERENCES activities (id) ON DELETE CASCADE,
+  planned_workout_id  uuid NOT NULL REFERENCES planned_workouts (id) ON DELETE CASCADE,
+  rank                int NOT NULL,
+  PRIMARY KEY (activity_id, planned_workout_id)
 );
 
 CREATE TABLE comments (

@@ -72,6 +72,7 @@ export default function register(h) {
       const seen = created.filter((c) => c.athlete_membership_id === athlete && h.visible(c));
       if (seen.length) notify(seen[0], "workout_assigned", seen.length > 1 ? `${seen.length} novos treinos na sua agenda` : "Novo treino na sua agenda");
     }
+    h.rematchWorkouts(created);
     return { __status: 201, data: { items: created.map((p) => h.workoutOut(p, me.id)), next_cursor: null } };
   });
 
@@ -91,9 +92,11 @@ export default function register(h) {
     if ("date" in b && !DATE.test(b.date)) h.invalid([{ field: "date", message: "Data inválida." }]);
     if ("structure" in b || "title" in b || "sport" in b) validContent({ sport: b.sport ?? pw.sport, title: b.title ?? pw.title, structure: b.structure ?? pw.structure });
     const moved = "date" in b && b.date !== pw.date;
+    const before = { ...pw };
     for (const k of ["date", "sport", "title", "structure", "notes", "est_duration_s", "est_distance_m", "position"]) if (k in b) pw[k] = k === "title" ? b.title.trim() : b[k];
     pw.updated_at = h.nowIso();
     if ((moved || "structure" in b) && h.visible(pw)) notify(pw, "workout_changed", moved ? "Um treino mudou de dia" : "Seu treinador ajustou um treino");
+    if (["date", "sport", "est_duration_s", "est_distance_m"].some((k) => k in b)) h.rematchWorkouts(moved ? [before, pw] : [pw]);
     return h.workoutOut(pw, me.id);
   });
   h.delete("/v1/clubs/:club_id/planned-workouts/:id", (ctx) => {
@@ -103,6 +106,8 @@ export default function register(h) {
     h.db.workout_completions = h.db.workout_completions.filter((c) => c.planned_workout_id !== pw.id);
     h.db.comments = h.db.comments.filter((c) => c.planned_workout_id !== pw.id);
     h.db.thread_reads = h.db.thread_reads.filter((r) => r.planned_workout_id !== pw.id);
+    h.db.activity_match_options = h.db.activity_match_options.filter((o) => o.planned_workout_id !== pw.id);
+    h.rematchWorkouts([pw]);
   });
   h.post("/v1/clubs/:club_id/planned-workouts/copy-week", (ctx) => {
     const me = ctx.staff(ctx.params.club_id);
@@ -115,6 +120,7 @@ export default function register(h) {
     const now = h.nowIso();
     const created = source.map((p) => ({ ...structuredClone(p), id: h.uuid("pw"), date: h.addDays(p.date, shift), plan_assignment_id: null, created_by: me.id, created_at: now, updated_at: now }));
     h.db.planned_workouts.push(...created);
+    h.rematchWorkouts(created);
     return { __status: 201, data: { copied: created.length } };
   });
 }

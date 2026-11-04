@@ -19,7 +19,8 @@
       "distribution": "internal",
       "env": {
         "EXPO_PUBLIC_API_URL": "https://qa.runflow.club/api/v1",
-        "EXPO_PUBLIC_WEB_URL": "https://qa.runflow.club"
+        "EXPO_PUBLIC_WEB_URL": "https://qa.runflow.club",
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a"
       },
       "android": {
         "buildType": "apk"

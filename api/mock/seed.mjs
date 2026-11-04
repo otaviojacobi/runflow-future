@@ -14,6 +14,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { compute as computeAssessment } from "./lib/assessments.mjs";
+import { solve as solveMatches } from "./lib/matching.mjs";
 
 const require = createRequire(import.meta.url);
 const Color = require("@runflow/design/color");
@@ -323,7 +324,7 @@ export function generate(anchor) {
         elevation_gain_m: dm ? r(10, 90) : null, avg_hr: p.sport === "strength" || p.sport === "mobility" ? null : r(intense ? 158 : 138, intense ? 172 : 152), max_hr: p.sport === "run" ? r(170, 188) : null,
         avg_pace_s_per_km: p.sport === "run" ? avgPace : null, avg_power_w: null, calories: Math.round(dur / 60 * (intense ? 12 : 9)),
         laps: recent && p.sport === "run" && dm ? Array.from({ length: Math.floor(dm / 1000) }, () => ({ distance_m: 1000, duration_s: avgPace + r(-12, 12), avg_hr: r(135, 175) })) : null,
-        polyline: null, created_at: at(p.date, "10:00"),
+        polyline: null, match_state: "open", created_at: at(p.date, "10:00"),
       };
       t("activities").push(activity);
     }
@@ -332,6 +333,7 @@ export function generate(anchor) {
       compliance_pct: status === "completed" ? r(90, 104) : status === "partial" ? r(55, 80) : 0,
       rpe: activity ? (/Intervalado|Tempo|Teste/.test(p.title) ? r(7, 9) : r(3, 6)) : null,
       feeling: activity ? pick(FEEL) : null, comment: opts.comment !== undefined ? opts.comment : rand() < 0.25 && activity ? pick(COMMENTS) : null,
+      matched_by: activity ? "auto" : null, reported_at: activity ? activity.started_at : at(p.date, "23:00"),
       completed_at: activity ? activity.started_at : at(p.date, "23:00"), updated_at: activity ? activity.started_at : at(p.date, "23:00"),
     });
   };
@@ -378,6 +380,28 @@ export function generate(anchor) {
     const c = t("workout_completions").find((x) => x.planned_workout_id === carlaMissed.id);
     if (c) Object.assign(c, { status: "missed", activity_id: null, compliance_pct: 0, rpe: null, feeling: null });
     comment(carlaMissed, "paceforte:carla", "Não consegui treinar, plantão no hospital. Posso compensar amanhã?", at(addDays(anchor, -1), "21:14"));
+  }
+  // A run the matching engine can't place on its own (D-049): yesterday's run, between two of Ana's runs a day apart
+  // at most (cut short, done late or done early?). The distance is the longest one the engine asks about; nothing changes
+  // when there's no such pair.
+  t("activity_match_options");
+  {
+    const d = addDays(anchor, -1);
+    const near = t("planned_workouts").filter((p) => p.athlete_membership_id === M["paceforte:ana"].id && p.sport === "run" && p.est_distance_m && Math.abs(Math.round((parseDate(p.date) - parseDate(d)) / DAY)) <= 1);
+    for (let dm = 20000; dm >= 3000 && near.length >= 2; dm -= 100) {
+      const dur = Math.round(dm * 0.33);
+      const act = { id: uuid("act:ana-pending"), user_id: U.ana.id, source: "strava", external_id: "18000000001", sport: "run", name: "Corrida matinal", started_at: at(d, "06:40"), duration_s: dur, moving_time_s: Math.round(dur * 0.97), distance_m: dm, elevation_gain_m: 34, avg_hr: 146, max_hr: 171, avg_pace_s_per_km: Math.round(dur / (dm / 1000)), avg_power_w: null, calories: Math.round((dur / 60) * 9), laps: null, polyline: null, match_state: "pending", created_at: at(d, "07:30") };
+      const { pending } = solveMatches({ today: anchor, activities: [{ ...act, day: d }], workouts: near });
+      if (!pending.length) continue;
+      // Those workouts are still open: no completion, no activity.
+      const ids = new Set(near.map((p) => p.id));
+      const gone = new Set(t("workout_completions").filter((c) => ids.has(c.planned_workout_id)).map((c) => c.activity_id).filter(Boolean));
+      T.workout_completions = t("workout_completions").filter((c) => !ids.has(c.planned_workout_id));
+      T.activities = t("activities").filter((a) => !gone.has(a.id));
+      t("activities").push(act);
+      pending[0].options.forEach((id, rank) => t("activity_match_options").push({ activity_id: act.id, planned_workout_id: id, rank }));
+      break;
+    }
   }
   if (PW["bruno:" + today]) comment(PW["bruno:" + today], "paceforte:bruno", "Tiros saíram mais fáceis que semana passada!", at(today, "07:02"));
 
