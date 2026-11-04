@@ -296,8 +296,9 @@ fn per_meter(sport: &str, target: &Value) -> f64 {
     }
 }
 
-/// Adds `blocks` (each `mult` times) to the running `(seconds, meters)`.
-fn walk(sport: &str, blocks: &[Value], mult: f64, total: &mut (f64, f64)) {
+/// Adds `blocks` (each `mult` times) to the running `(seconds, meters, free)`; `free` = a main part by time with no
+/// target ("30' livre"), which has no expected distance.
+fn walk(sport: &str, blocks: &[Value], mult: f64, total: &mut (f64, f64, bool)) {
     for b in blocks {
         match b.get("kind").and_then(Value::as_str) {
             Some("repeat") => {
@@ -323,6 +324,13 @@ fn walk(sport: &str, blocks: &[Value], mult: f64, total: &mut (f64, f64)) {
                         if sport == "run" || sport == "swim" {
                             total.1 += mult * number(d, "s") / per_meter(sport, target);
                         }
+                        let open = target
+                            .get("type")
+                            .and_then(Value::as_str)
+                            .is_none_or(|t| t == "open");
+                        if b.get("intent").and_then(Value::as_str) == Some("active") && open {
+                            total.2 = true;
+                        }
                     }
                     Some("distance") => {
                         total.1 += mult * number(d, "m");
@@ -336,13 +344,15 @@ fn walk(sport: &str, blocks: &[Value], mult: f64, total: &mut (f64, f64)) {
 }
 
 /// `(est_duration_s, est_distance_m)` for a structure, like `estimate` in api/mock/seed.mjs: whole minutes, and a
-/// distance rounded to 100 m for run, swim and bike (`None` otherwise).
+/// distance rounded to 100 m for run, swim and bike (`None` otherwise, and when a main part is free by time: "30'
+/// livre" has no expected distance; easy parts without a target still count).
 pub fn estimate(sport: &str, structure: &Value) -> (i64, Option<i64>) {
-    let mut total = (0.0, 0.0);
+    let mut total = (0.0, 0.0, false);
     let blocks = structure.get("blocks").and_then(Value::as_array);
     walk(sport, blocks.map_or(&[], Vec::as_slice), 1.0, &mut total);
     let round = |x: f64| (x + 0.5).floor() as i64;
-    let distance = matches!(sport, "run" | "swim" | "bike").then(|| round(total.1 / 100.0) * 100);
+    let distance = (matches!(sport, "run" | "swim" | "bike") && !total.2)
+        .then(|| round(total.1 / 100.0) * 100);
     (round(total.0 / 60.0) * 60, distance)
 }
 
@@ -426,5 +436,16 @@ mod tests {
             { "kind": "step", "intent": "active", "duration": { "type": "distance", "m": 100 }, "target": { "type": "zone", "metric": "pace", "zone": 3 } },
             { "kind": "step", "intent": "rest", "duration": { "type": "time", "s": 20 }, "target": { "type": "open" } } ] }] });
         assert_eq!(estimate("swim", &swim), (1140, Some(900)));
+        // "30' livre": no expected distance. An easy warm-up and cool-down without a target still count.
+        let free = json!({ "v": 1, "blocks": [
+            { "kind": "step", "intent": "active", "duration": { "type": "time", "s": 1800 }, "target": { "type": "open" } }
+        ] });
+        assert_eq!(estimate("run", &free), (1800, None));
+        let easy = json!({ "v": 1, "blocks": [
+            { "kind": "step", "intent": "warmup", "duration": { "type": "time", "s": 600 }, "target": { "type": "open" } },
+            { "kind": "step", "intent": "active", "duration": { "type": "distance", "m": 5000 }, "target": { "type": "pace", "min_s": 270, "max_s": 280 } },
+            { "kind": "step", "intent": "cooldown", "duration": { "type": "time", "s": 600 }, "target": { "type": "open" } }
+        ] });
+        assert_eq!(estimate("run", &easy), (2580, Some(8600)));
     }
 }

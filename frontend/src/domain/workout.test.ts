@@ -22,6 +22,17 @@ describe("workout structure", () => {
     expect(e.duration_s).toBe(3540); // 10' + 6×(270 s + 120 s) + 10'
     expect(e.distance_m).toBeGreaterThan(9000);
   });
+  it("has no expected distance when a main part is free by time (\"30' livre\")", () => {
+    const free: Structure = { v: 1, blocks: [{ kind: "step", intent: "active", duration: { type: "time", s: 1800 }, target: { type: "open" } }] };
+    expect(estimate(free, "run")).toEqual({ duration_s: 1800, distance_m: null });
+    // Easy parts without a target (warm-up, recovery, cool-down) still count at an easy pace.
+    const easyEnds: Structure = { v: 1, blocks: [
+      { kind: "step", intent: "warmup", duration: { type: "time", s: 600 }, target: { type: "open" } },
+      { kind: "step", intent: "active", duration: { type: "distance", m: 5000 }, target: { type: "pace", min_s: 270, max_s: 280 } },
+      { kind: "step", intent: "cooldown", duration: { type: "time", s: 600 }, target: { type: "open" } },
+    ] };
+    expect(estimate(easyEnds, "run").distance_m).toBeGreaterThan(5000);
+  });
   it("describes steps in pt-BR", () => {
     expect(stepText(intervals.blocks[0] as never, "run")).toBe("10′ aquecimento · Z2");
     const rep = intervals.blocks[1] as unknown as { steps: never[] };

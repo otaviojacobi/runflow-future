@@ -72,20 +72,24 @@ export function segments(structure: Structure, sport: Sport): Segment[] {
   return out;
 }
 
-/** Estimated total duration (s) and distance (m, null for strength/mobility). */
+/** A main part by time with no target ("30' livre"): how far it goes is up to the athlete. */
+export const isFreeTime = (b: Step) => b.intent === "active" && b.duration.type === "time" && (!b.target || b.target.type === "open");
+
+/** Estimated total duration (s) and distance (m, null for strength/mobility, and when a main part is free by time:
+ * "30' livre" has no expected distance). Warm-ups, recoveries and cool-downs without a target count as easy. */
 export function estimate(structure: Structure, sport: Sport): { duration_s: number; distance_m: number | null } {
-  let s = 0, m = 0;
+  let s = 0, m = 0, free = false;
   const walk = (blocks: Block[], mult: number) => {
     for (const b of blocks) {
       if (b.kind === "repeat") walk(b.steps, mult * b.count);
       else if (b.kind === "exercise") s += mult * b.sets * (45 + (b.rest_s ?? 60));
-      else if (b.duration.type === "time") { s += mult * b.duration.s; m += (mult * b.duration.s) / secPerMeter(b, sport); }
+      else if (b.duration.type === "time") { s += mult * b.duration.s; m += (mult * b.duration.s) / secPerMeter(b, sport); free ||= isFreeTime(b); }
       else if (b.duration.type === "distance") { m += mult * b.duration.m; s += mult * b.duration.m * secPerMeter(b, sport); }
       else s += mult * 300;
     }
   };
   walk(structure.blocks, 1);
-  const hasDistance = sport === "run" || sport === "swim" || sport === "bike";
+  const hasDistance = (sport === "run" || sport === "swim" || sport === "bike") && !free;
   return { duration_s: Math.round(s / 60) * 60, distance_m: hasDistance ? Math.round(m / 100) * 100 : null };
 }
 

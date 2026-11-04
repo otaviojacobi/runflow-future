@@ -66,9 +66,10 @@ const ex = (name, sets, reps, load, rest_s, note) => ({ kind: "exercise", name, 
 const S = (blocks) => ({ v: 1, blocks });
 
 const ZONE_PACE = { 1: 390, 2: 345, 3: 310, 4: 285, 5: 260 };
-/** Rough duration/distance estimate (the frontend has its own, richer estimator). */
+/** Rough duration/distance estimate (the frontend has its own, richer estimator). A main part by time with no target
+ *  ("30' livre") has no expected distance, so the workout's distance is null; easy parts without a target still count. */
 export function estimate(sport, structure) {
-  let s = 0, m = 0;
+  let s = 0, m = 0, free = false;
   const per = sport === "swim" ? 120 / 100 : 1 / 1000; // seconds per meter factor base
   const speedOf = (t) => {
     if (sport === "swim") return t && t.type === "pace" ? (t.min_s + t.max_s) / 2 / 100 : 1.25;
@@ -82,14 +83,18 @@ export function estimate(sport, structure) {
     for (const b of blocks) {
       if (b.kind === "repeat") walk(b.steps, mult * b.count);
       else if (b.kind === "exercise") s += mult * b.sets * (45 + (b.rest_s || 60));
-      else if (b.duration.type === "time") { s += mult * b.duration.s; if (sport === "run" || sport === "swim") m += (mult * b.duration.s) / speedOf(b.target); }
+      else if (b.duration.type === "time") {
+        s += mult * b.duration.s;
+        if (sport === "run" || sport === "swim") m += (mult * b.duration.s) / speedOf(b.target);
+        if (b.intent === "active" && (!b.target || b.target.type === "open")) free = true;
+      }
       else if (b.duration.type === "distance") { m += mult * b.duration.m; s += mult * b.duration.m * speedOf(b.target); }
       else s += mult * 300;
     }
   };
   walk(structure.blocks, 1);
   void per;
-  return { est_duration_s: Math.round(s / 60) * 60, est_distance_m: sport === "run" || sport === "swim" || sport === "bike" ? Math.round(m / 100) * 100 : null };
+  return { est_duration_s: Math.round(s / 60) * 60, est_distance_m: (sport === "run" || sport === "swim" || sport === "bike") && !free ? Math.round(m / 100) * 100 : null };
 }
 
 export const LIB = {
