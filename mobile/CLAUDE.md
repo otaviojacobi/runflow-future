@@ -60,7 +60,9 @@ src/
   lib/        api (ApiError, WEB_URL), session (token in the keychain + cached `/me` and active club in the sync store,
               one snapshot for useSession()), club (active club, homeFor, clubColors, invite links), web (openOnWeb),
               format (copy of the web's), storage (sync kv: native kv-store / web localStorage), secure (token),
-              offline (the student's week saved on the device for the person signed in + the connection state),
+              offline (the student's week saved on the device for the person signed in + the connection state:
+              the OS's network AND the API answering; it probes /health with backoff while the API doesn't answer),
+              reachability (whether the API last answered; lib/api.ts reports every request),
               links (a notification's web path → the app's route when a screen matches), avatar (photo library →
               ≤ 512 px JPEG data URL), files (a text or binary file through the share sheet; `.web.ts` downloads
               it), fit (the .FIT workout encoder, a copy of the web's),
@@ -77,8 +79,10 @@ src/
   theme/      theme.ts (tokens → RN theme, club roles via @runflow/design/color), ThemeProvider (Runflow's theme,
               color mode) + ThemeScope (re-theme a subtree: a club's colors, forced light/dark)
   ui/         the UI kit: same names/variants as frontend/src/ui (index.ts lists them); icons.ts = Lucide icons, one
-              import per icon (add new ones there, never import the lucide-react-native barrel)
-  queryClient.ts  TanStack Query; returning to the foreground counts as focus (revalidates `/me` and themes)
+              import per icon (add new ones there, never import the lucide-react-native barrel); keyboard.tsx =
+              KeyboardAvoid, useFocusedInputVisible, KeyboardScrollView (see the keyboard rule below)
+  queryClient.ts  TanStack Query; returning to the foreground counts as focus (revalidates `/me` and themes);
+              reconnecting refetches (onlineManager ← expo-network); no-answer errors retry 3×, mutations never wait
   i18n.ts     t()/tn(), same contract as the web app
 ```
 
@@ -104,6 +108,16 @@ Preview every change at `/dev/components` (light and dark side by side, demo clu
   `cd mobile && eas build -p android --profile development`, profiles in `eas.json` point at QA) and the founder's
   Expo project and credentials (`docs/ops/push-notifications.md`); in Expo Go the device card says so.
 - Accessibility: `accessibilityRole`/`accessibilityState` on touchables, 44 pt touch targets, visible text = accessible name.
+- **The keyboard never covers an input.** Android is edge-to-edge (SDK 54+): the window no longer resizes for the
+  keyboard, so `KeyboardAvoidingView behavior={ios ? "padding" : undefined}` does nothing there (the founder's phone
+  hid the workout conversation's composer). Use ui's `KeyboardAvoid` (padding on both platforms, offset measured from
+  where it starts in the window, since React Native measures the view relative to its parent) and scroll with
+  `useFocusedInputVisible` / `KeyboardScrollView`. `Screen` and `Dialog` already do both. Plain React Native on purpose:
+  react-native-keyboard-controller isn't in Expo Go.
+- **"Sem internet" comes from the global connection state, never from one query's error.** `useOnline()` = the OS is
+  connected AND the API answered last time (`lib/reachability`); after a request gets no answer the app probes
+  `/health` (2, 5, 10, 20, 30, 60 s) and refetches on the first answer, so the banner clears by itself. A thrown
+  fetch logs `[api] network error <method> <path> <error>` (logcat `ReactNativeJS`).
 - **Phones run Hermes, not a browser:** the web preview hides engine gaps. Hermes has no `Intl.PluralRules` (`i18n.ts`
   writes the pt-BR rule out) and React Native's `URLSearchParams` is partial (use `lib/query.ts`). Before a release
   build, open `/dev/hermes` on a phone in Expo Go (`npx expo start`, `adb reverse tcp:8081 tcp:8081`): it loads every

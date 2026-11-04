@@ -6,13 +6,16 @@
  * the week, then it revalidates. Only the weeks around this one are kept. The saved data belongs to the person signed
  * in: signing out, an expired session or another person signing in wipes it (it is health data, LGPD).
  *
- * The connection state comes from expo-network; coming back online refetches what is on screen.
+ * The connection state is the OS's (expo-network) plus whether the API answers (lib/reachability); see "connection"
+ * below: being back refetches what is on screen.
  */
 import type { QueryKey } from "@tanstack/react-query";
 import * as Network from "expo-network";
 import { useSyncExternalStore } from "react";
+import { AppState } from "react-native";
 import { queryClient } from "@/queryClient";
-import { ApiError } from "./api";
+import { api, ApiError } from "./api";
+import { reachability } from "./reachability";
 import { addDays, mondayOf, today } from "./format";
 import { session } from "./session";
 import { storage } from "./storage";
@@ -84,22 +87,56 @@ export function savedData<T>(key: QueryKey) {
 }
 
 // ---------- connection
-let online = true;
+// Two signals make "online": the OS's network state (expo-network) and whether the API answers (lib/reachability:
+// any HTTP answer = reachable, a request that got none = unreachable). A single failed request (a resume before the
+// network is ready, a server restart) must not leave the app saying "Sem internet" while the OS stays connected, so
+// while the API is unreachable and the OS connected, /health is probed with backoff; the first answer refetches what
+// is on screen. Coming back to the foreground probes at once. TanStack Query's own reconnect refetch follows the OS
+// state (queryClient.ts).
+let osOnline = true;
 const listeners = new Set<() => void>();
-function setOnline(v: boolean) {
-  if (v === online) return;
-  const back = v && !online;
-  online = v;
-  listeners.forEach((l) => l());
-  if (back) void queryClient.refetchQueries({ type: "active", stale: true });
-}
-// "Connected" is what the OS knows; a request that fails without an answer counts too (isOfflineError).
-Network.getNetworkStateAsync().then((s) => setOnline(s.isConnected !== false)).catch(() => undefined);
-Network.addNetworkStateListener((s) => setOnline(s.isConnected !== false));
+const notify = () => listeners.forEach((l) => l());
 
-/** False while the device has no network. */
+const PROBE_DELAYS = [2_000, 5_000, 10_000, 20_000, 30_000, 60_000];
+let probeTimer: ReturnType<typeof setTimeout> | null = null;
+let probeAttempt = 0;
+function stopProbe() {
+  if (probeTimer) clearTimeout(probeTimer);
+  probeTimer = null;
+  probeAttempt = 0;
+}
+function scheduleProbe(now = false) {
+  if (probeTimer || reachability.get() || !osOnline) return;
+  const delay = now ? 0 : PROBE_DELAYS[Math.min(probeAttempt, PROBE_DELAYS.length - 1)];
+  probeTimer = setTimeout(() => {
+    probeTimer = null;
+    probeAttempt++;
+    // An answer marks the API reachable (lib/api.ts); none leaves it unreachable and probes again, later each time.
+    api.get("/health").catch(() => undefined).finally(() => scheduleProbe());
+  }, delay);
+}
+
+reachability.subscribe(() => {
+  notify();
+  if (!reachability.get()) { scheduleProbe(); return; }
+  stopProbe();
+  // Back: whatever on screen failed or went stale meanwhile asks again.
+  void queryClient.refetchQueries({ type: "active", predicate: (q) => q.state.status === "error" || q.isStale() });
+});
+
+function setOsOnline(v: boolean) {
+  if (v === osOnline) return;
+  osOnline = v;
+  notify();
+  if (v && !reachability.get()) { stopProbe(); scheduleProbe(true); }
+}
+Network.getNetworkStateAsync().then((s) => setOsOnline(s.isConnected !== false)).catch(() => undefined);
+Network.addNetworkStateListener((s) => setOsOnline(s.isConnected !== false));
+AppState.addEventListener("change", (s) => { if (s === "active" && !reachability.get()) { stopProbe(); scheduleProbe(true); } });
+
+/** False while the device has no network or the API doesn't answer (the "Sem internet" banner, prefetches). */
 export function useOnline() {
-  return useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; }, () => online);
+  return useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; }, () => osOnline && reachability.get());
 }
 /** The request never reached the API (no network, server unreachable). */
 export const isOfflineError = (err: unknown) => err instanceof ApiError && err.status === 0;

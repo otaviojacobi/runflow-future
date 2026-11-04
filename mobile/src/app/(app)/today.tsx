@@ -74,7 +74,7 @@ export default function TodayScreen() {
         {s && s.streak_weeks > 0 && <Streak weeks={s.streak_weeks} />}
       </View>
 
-      <OfflineBanner error={cal.error} />
+      <OfflineBanner />
       {s && !s.shares_data && <NotSharing />}
       {/* An activity the matching engine couldn't place on its own (D-049): which workout was it? */}
       {online && <PendingMatches />}

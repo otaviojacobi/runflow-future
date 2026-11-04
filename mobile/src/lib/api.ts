@@ -5,6 +5,7 @@
  */
 import { Platform } from "react-native";
 import { t } from "@/i18n";
+import { reachability } from "./reachability";
 import { session } from "./session";
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? (Platform.OS === "android" ? "http://10.0.2.2:8787/v1" : "http://localhost:8787/v1");
@@ -39,9 +40,13 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
       headers: { Accept: "application/json", "X-Client": "mobile", ...(body !== undefined && { "Content-Type": "application/json" }), ...(token && { Authorization: `Bearer ${token}` }) },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-  } catch {
+  } catch (e) {
+    // The request never got an answer. Logged (logcat: ReactNativeJS) so a phone that "has internet" shows why.
+    console.warn("[api] network error", method, path, String(e));
+    reachability.mark(false);
     throw new ApiError(0, "network.offline", t("Sem conexão"), t("Confira sua internet e tente de novo."));
   }
+  reachability.mark(true);
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => null);
   if (!res.ok) {

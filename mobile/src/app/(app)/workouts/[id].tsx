@@ -79,7 +79,7 @@ function WorkoutBody({ id }: { id: string }) {
       <ScrollView ref={scroll} {...keepVisible} style={styles.fill} keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.content, { paddingHorizontal: theme.space[4], paddingTop: theme.space[5], paddingBottom: theme.space[8], gap: theme.space[5], maxWidth: theme.size.readingMax }]}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={theme.color.brand.solid} colors={[theme.color.brand.solid]} progressBackgroundColor={theme.color.surface} />}>
-        {!gone && <OfflineBanner error={q.error} />}
+        {!gone && <OfflineBanner />}
         {body}
       </ScrollView>
       {w && !gone && <FeedbackSheet clubId={club.id} workout={w} activities={w.candidate_activities} open={sheet} onOpenChange={setSheet} />}

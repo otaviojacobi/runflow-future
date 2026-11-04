@@ -75,7 +75,7 @@ export default function ScheduleScreen() {
         {!containsToday && <Button variant="ghost" onPress={() => { setAnchor(today); setPicked(null); }}>{t("Hoje")}</Button>}
       </View>
 
-      <OfflineBanner error={q.error} />
+      <OfflineBanner />
 
       {!q.data && !q.isPending ? (
         <LoadError error={q.error} retrying={q.isFetching} onRetry={() => void q.refetch()} />

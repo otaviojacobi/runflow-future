@@ -16,11 +16,14 @@ import { CalendarClock, CircleAlert, WifiOff } from "@/ui/icons";
 /** "Seu treinador" / "Seu professor" (clubs can relabel trainers, §4.7). */
 export const coachName = (club: Pick<Club, "trainer_label">) => (club.trainer_label === "professor" ? t("Seu professor") : t("Seu treinador"));
 
-/** Shown while the device is offline or the last refresh couldn't reach the API. */
-export function OfflineBanner({ error }: { error?: unknown }) {
+/**
+ * Shown while the device is offline or the API doesn't answer (lib/offline.ts: the app keeps checking and hides it on
+ * its own once it does). Never from one query's old error: that stuck the banner while the phone had internet.
+ */
+export function OfflineBanner() {
   const { theme } = useTheme();
   const online = useOnline();
-  if (online && !isOfflineError(error)) return null;
+  if (online) return null;
   const c = theme.color.warning;
   return (
     <View accessible accessibilityLiveRegion="polite"
