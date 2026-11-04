@@ -6,6 +6,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { queryClient } from "@/queryClient";
+import { meKey } from "./me";
 import type { Structure } from "@/domain/workout";
 import type {
   AthleteDetail, AthleteProfile, AthleteSummary, Comment, Dashboard, FeedbackFilter, FeedbackItem, Group, PlannedWorkout, PlannedWorkoutDetail,
@@ -41,7 +42,8 @@ export const staffKeys = {
 const refreshClub = (c: string) => queryClient.invalidateQueries({ queryKey: staffKeys.club(c) });
 /** Reading a thread changes the unread counts the inbox, the Painel and the planning rows show. */
 const refreshUnread = (c: string) => {
-  for (const k of [staffKeys.feedback(c), staffKeys.dashboard(c), staffKeys.planned(c)]) void queryClient.invalidateQueries({ queryKey: k });
+  // `/me` too: a reply can clear the Feedbacks count (memberships[].unread.feedback).
+  for (const k of [staffKeys.feedback(c), staffKeys.dashboard(c), staffKeys.planned(c), meKey]) void queryClient.invalidateQueries({ queryKey: k });
 };
 
 // ---------- W1 dashboard

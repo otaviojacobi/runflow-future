@@ -43,7 +43,7 @@ export interface PlanSpec { id: Plan; name: string; price_cents: number; owners:
 export interface PlanCatalog { currency: string; grace_days: number; plans: PlanSpec[] }
 export interface Invoice { id: ID; club_id: ID; stripe_invoice_id: string | null; amount_cents: number; currency: string; status: "draft" | "open" | "paid" | "void" | "uncollectible"; period_start: ISOTime; period_end: ISOTime; hosted_url: string | null; created_at: ISOTime }
 /** What waits in a club's Mensagens (`/me` only): messages from others since the last read; announcements (students). */
-export interface Unread { messages: number; announcements: number }
+export interface Unread { messages: number; announcements: number; feedback?: number }
 export interface MembershipContext { membership: Membership; club: Club; branding: Branding | null; subscription: Subscription | null; unread?: Unread }
 /** Push control (D-045): every notification lands in the app; per kind, push to the person's devices on or off, and
  * `paused` stops every push. */

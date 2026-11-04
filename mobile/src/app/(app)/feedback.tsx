@@ -2,9 +2,10 @@
  * W8 · Feedbacks (staff), phone-sized: the inbox of completions and comments from the last 30 days with its filters
  * (to reply, unread, warning signs, all). Tapping opens the workout's thread in a sheet (opening marks it as read):
  * quick replies or a message. A long press offers "mark as read" and the student; the header marks everything read.
+ * `?workout=<id>` (a `feedback` notification, the dashboard) opens that workout's conversation right away.
  */
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useFeedback, useMarkRead } from "@/api/staff";
 import type { FeedbackFilter, FeedbackItem } from "@/api/types";
@@ -63,11 +64,23 @@ function Row({ i, divider, onOpen, onMore }: { i: FeedbackItem; divider: boolean
 export default function FeedbackScreen() {
   const { theme } = useTheme();
   const { club } = useClub();
-  const [filter, setFilter] = useState<FeedbackFilter>("needs_reply");
+  // A link to one conversation shows "Todos" (it's there even if already answered) and opens it once.
+  const { workout: target } = useLocalSearchParams<{ workout?: string }>();
+  const [filter, setFilter] = useState<FeedbackFilter>(target ? "all" : "needs_reply");
   const [sheet, setSheet] = useState<WorkoutSeed | null>(null);
   const [more, setMore] = useState<FeedbackItem | null>(null);
   const q = useFeedback(club?.id, filter);
   const read = useMarkRead(club?.id ?? "");
+  const opened = useRef<string | null>(null);
+  useEffect(() => { if (target) setFilter("all"); }, [target]);
+  useEffect(() => {
+    if (!target || opened.current === target || filter !== "all") return;
+    const i = q.data?.items.find((x) => x.workout.id === target);
+    if (!i) return;
+    opened.current = target;
+    setSheet({ workout: i.workout, athlete: i.athlete, mode: "thread" });
+    router.setParams({ workout: undefined });
+  }, [target, filter, q.data]);
   if (!club) return null;
   const items = q.data?.items ?? [];
   const counts = q.data?.counts;

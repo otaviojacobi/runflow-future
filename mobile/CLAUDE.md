@@ -57,7 +57,8 @@ src/
               assessments.ts = the test protocols, names and result headlines);
               shell/ = nav.ts (copy of the web's nav per role, `app` = has a screen here, the rest opens the web) and
               Shell.tsx (top bar with the club switcher and bell, back bar, bottom tab bar); unread.tsx = Mensagens'
-              count from `/me` memberships[].unread (the tab, "Mais", a dot on the switcher for another club)
+              and Feedbacks' counts from `/me` memberships[].unread (`feedback` = staff conversations waiting for a
+              reply; the tabs, "Mais", a dot on the switcher for another club)
   lib/        api (ApiError, WEB_URL), session (token in the keychain + cached `/me` and active club in the sync store,
               one snapshot for useSession()), club (active club, homeFor, clubColors, invite links), web (openOnWeb),
               format (copy of the web's), storage (sync kv: native kv-store / web localStorage), secure (token),

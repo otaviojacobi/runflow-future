@@ -17,7 +17,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { Dialog, Divider, IconButton, ListItem, Text } from "@/ui";
 import { ArrowLeft, Bell, Check, ChevronsUpDown, Menu as MenuIcon, Plus, Ticket } from "@/ui/icons";
 import { hrefOf, moreFor, profileLinksFor, tabsFor } from "./nav";
-import { CountBadge, Dot, unreadLabel, unreadOf } from "./unread";
+import { CountBadge, Dot, countLabel, feedbackOf, moreLabel, unreadLabel, unreadOf, waitingOf } from "./unread";
 
 /** The route name of an in-app nav path ("/today" → "today"). */
 const routeName = (to: string) => to.slice(1);
@@ -39,11 +39,11 @@ function ClubSwitcher() {
     selectClub(m);
     router.replace(homeFor(m.membership.role));
   };
-  // Something waiting in another club's Mensagens: a dot here, the count next to that club in the list.
-  const elsewhere = me.memberships.some((m) => m.club.id !== ctx.club.id && unreadOf(m) > 0);
+  // Something waiting in another club's Mensagens or Feedbacks: a dot here, the count next to that club in the list.
+  const elsewhere = me.memberships.some((m) => m.club.id !== ctx.club.id && waitingOf(m) > 0);
   return (
     <>
-      <Pressable accessibilityRole="button" accessibilityLabel={elsewhere ? `${ctx.club.name}, ${t("mensagens novas em outro clube")}` : ctx.club.name} accessibilityHint={t("Trocar de clube")} onPress={() => setOpen(true)}
+      <Pressable accessibilityRole="button" accessibilityLabel={elsewhere ? `${ctx.club.name}, ${t("novidades em outro clube")}` : ctx.club.name} accessibilityHint={t("Trocar de clube")} onPress={() => setOpen(true)}
         style={({ pressed }) => [styles.switcher, { gap: theme.space[2], padding: theme.space[1], minHeight: theme.size.touchMin, borderRadius: theme.radius.md, backgroundColor: pressed ? theme.color.soft : "transparent" }]}>
         <ClubLogo club={ctx.club} branding={ctx.branding} size={theme.space[8]} />
         <Text variant="titleSm" numberOfLines={1} style={[styles.shrink, { fontWeight: weight("bold") }]}>{ctx.club.name}</Text>
@@ -54,7 +54,7 @@ function ClubSwitcher() {
         <View accessibilityRole="menu">
           {me.memberships.map((m) => {
             const current = m.club.id === ctx.club.id;
-            const n = current ? 0 : unreadOf(m);
+            const n = current ? 0 : waitingOf(m);
             return (
               <ListItem key={m.club.id} title={m.club.name} subtitle={t(ROLE_LABEL[m.membership.role])} selected={current} accessibilityRole="menuitem" onPress={() => pick(m)}
                 accessibilityLabel={n > 0 ? `${m.club.name}, ${t(ROLE_LABEL[m.membership.role])}${unreadLabel(n)}` : undefined}
@@ -133,9 +133,11 @@ export function TabBar({ state, descriptors, navigateToTab, role, modalities }: 
   const { ctx } = useClub();
   const c = theme.color;
   const insets = useSafeAreaInsets();
-  // Mensagens' count: on its tab (students), or a dot on "Mais" where staff reach it.
-  const counts: Record<string, number> = { messages: unreadOf(ctx) };
-  const moreCount = role === "student" ? 0 : moreFor(role, modalities).flatMap((g) => g.items).reduce((n, i) => n + (counts[routeName(i.to)] ?? 0), 0);
+  // Mensagens' and Feedbacks' counts: on their tabs, or a dot on "Mais" where staff reach them.
+  const counts: Record<string, number> = { messages: unreadOf(ctx), feedback: feedbackOf(ctx) };
+  const behindMore = role === "student" ? [] : moreFor(role, modalities).flatMap((g) => g.items).map((i) => routeName(i.to));
+  const moreCount = behindMore.reduce((n, name) => n + (counts[name] ?? 0), 0);
+  const moreWords = moreLabel(Object.fromEntries(behindMore.map((name) => [name, counts[name] ?? 0])));
   const route = state.routes[state.index];
   // A nested route ("account/privacy") belongs to its parent screen's tab.
   const current = route?.name ?? "";
@@ -160,7 +162,7 @@ export function TabBar({ state, descriptors, navigateToTab, role, modalities }: 
         const I = tab.icon;
         const n = counts[tab.name] ?? 0;
         const dot = tab.name === MORE && moreCount > 0;
-        const label = t(tab.label) + unreadLabel(tab.name === MORE ? moreCount : n);
+        const label = t(tab.label) + (tab.name === MORE ? moreWords : countLabel(tab.name, n));
         return (
           <Pressable key={tab.name} accessibilityRole="tab" accessibilityState={{ selected: active }} accessibilityLabel={label} onPress={() => go(tab.name)}
             style={({ pressed }) => [styles.tab, { minHeight: theme.size.touchMin + theme.space[3], gap: theme.space["0.5"], opacity: pressed ? 0.7 : 1 }]}>
