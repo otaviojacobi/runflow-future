@@ -128,7 +128,16 @@ export async function runAulasSmoke() {
     expect("a student leaves the club", (await call(bruno, "POST", `/clubs/${club}/leave`, {})).status === 204);
     const moved = (await call(marcos, "GET", `/clubs/${club}/class-sessions/${one.body.id}`)).body.roster;
     expect("leaving cancels the bookings and promotes the waitlist", moved.length === 1 && moved[0].membership_id === carlaM && moved[0].status === "booked", moved);
-    void anaM; void brunoM;
+
+    // Suspended by the owner: the seat goes to the next in line too.
+    const later2 = local(28 * 60);
+    const two = await call(marcos, "POST", `/clubs/${club}/class-sessions`, { class_type_id: tiny.body.id, date: later2.date, time: later2.time });
+    await call(ana, "POST", `/clubs/${club}/class-sessions/${two.body.id}/bookings`, {});
+    await call(carla, "POST", `/clubs/${club}/class-sessions/${two.body.id}/bookings`, {});
+    expect("the owner suspends a student", (await call(marcos, "PATCH", `/clubs/${club}/members/${anaM}`, { status: "suspended" })).status === 200);
+    const afterSuspend = (await call(marcos, "GET", `/clubs/${club}/class-sessions/${two.body.id}`)).body.roster;
+    expect("suspending cancels the bookings and promotes the waitlist", afterSuspend.length === 1 && afterSuspend[0].membership_id === carlaM && afterSuspend[0].status === "booked", afterSuspend);
+    void brunoM;
     return { steps };
   } finally {
     server.kill();

@@ -28,6 +28,8 @@ export default function register(h) {
     const nextRole = role ?? m.role, nextStatus = status ?? m.status;
     if (nextStatus === "active" && (m.status !== "active" || nextRole !== m.role)) h.ensureSeat(ctx.params.club_id, nextRole);
     if (role) m.role = role;
+    // Suspended: open class bookings go and their waitlists move up (D-052).
+    if (status === "suspended" && m.status !== "suspended") h.cancelOpenBookings(m.id);
     if (status) m.status = status;
     // A suspended (or no longer student) person's Strava sync no club sees is disconnected (D-011).
     h.enforceStravaSharing(m.user_id);
@@ -38,6 +40,7 @@ export default function register(h) {
     const me = ctx.owner(ctx.params.club_id);
     const m = getMember(ctx.params.club_id, ctx.params.id);
     if (m.id === me.id) h.fail(409, "member.self", "Você não pode se remover", "Para sair, transfira a gestão do clube primeiro.");
+    h.cancelOpenBookings(m.id); // D-052: open class bookings go and the waitlists move up
     Object.assign(m, { status: "left", left_at: h.nowIso() });
     h.db.group_members = h.db.group_members.filter((g) => g.membership_id !== m.id);
     h.enforceStravaSharing(m.user_id);

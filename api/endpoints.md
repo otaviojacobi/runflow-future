@@ -81,7 +81,7 @@ Class scheduling for gyms, studios and pools. The apps show it to clubs with Fun
 - **Bookings** (one row per person and session; booking again after cancelling reuses it): `booked` while there's a seat, else `waitlisted` with `waitlist_position` (1 = next). Cancelling frees the seat and the first in the waitlist takes it (`waitlist_promoted`). Raising the capacity promotes the waitlist; lowering it never removes anyone. A cancelled session (or ended rule) cancels its bookings and tells everyone booked or waiting (`class_cancelled`). Students cancel their own until the class starts; staff any time.
 - **Check-in**: the student sends the session's code from 45 minutes before the start until the end. It marks them `attended`, taking a seat if they had none and there's room. Staff mark `attended`, `no_show` or back to `booked`.
 - Students only list `scheduled` sessions; a cancellation reaches them as a notification.
-- **Leaving a club** (and deleting the account, which leaves every club) cancels the person's open bookings there and promotes the waitlists.
+- **Leaving a club** (and deleting the account, which leaves every club), **being removed** or **being suspended** by the owner cancels the person's open bookings there (classes that haven't started) and promotes the waitlists.
 - **Frozen clubs** (D-043): staff writes answer `423` as everywhere; students keep booking, cancelling and checking in.
 
 ## Notifications (D-045)
@@ -165,7 +165,7 @@ Defaults set by the founder on 2026-11-04: students hear about the week's releas
 | DELETE | `/clubs/{club_id}/invites/{id}` | Cancel (the link stops working) | O2 |
 | GET | `/mock/outbox?to` | **Development only** (mock, and the backend with `RUNFLOW_ENV=development` + e-mails in the log): e-mails that would be sent (subject, text, action link), newest first | — |
 | GET | `/clubs/{club_id}/members?role&q&status` | Staff. `{membership, user, group_ids}`; owners, then trainers, then students, each by name (accents ignored); `q` matches name or e-mail; default excludes `left`; up to 500 per page (role may be a list: `trainer,owner`) | O2 |
-| PATCH / DELETE | `/clubs/{club_id}/members/{membership_id}` | Owner: change `role` / `status` (`active` \| `suspended`) or remove (→ `left`, out of groups). Not yourself (`409 member.self`); reactivating a student over the plan limit → `409 plan.limit_reached`. Suspending or removing a student who is left with no club seeing their Strava sync disconnects their Strava (§ Strava sharing) | O2 |
+| PATCH / DELETE | `/clubs/{club_id}/members/{membership_id}` | Owner: change `role` / `status` (`active` \| `suspended`) or remove (→ `left`, out of groups). Not yourself (`409 member.self`); reactivating a student over the plan limit → `409 plan.limit_reached`. Suspending or removing a student who is left with no club seeing their Strava sync disconnects their Strava (§ Strava sharing); it also cancels their open class bookings and promotes the waitlists (§ Aulas) | O2 |
 | GET / POST | `/clubs/{club_id}/groups` · PATCH / DELETE `/groups/{id}` · PUT `/groups/{id}/members` `{membership_ids}` | Groups | W2 |
 | POST | `/clubs/{club_id}/leave` | Leave a club: membership → `left`, out of its groups, that club's sharing consents revoked, its open class bookings cancelled (waitlists promoted, § Aulas); if no other club then sees the Strava sync, Strava is disconnected (§ Strava sharing). `409 member.last_owner` for the only owner | C1 |
 
