@@ -1,7 +1,8 @@
 # Hosting: one Raspberry Pi 5 + Cloudflare Tunnel, deploy on push (QA)
 
-> **2026-11-03 (D-039, D-040):** the Pi only runs QA, which is disposable (no backups). Production is AWS Lambda +
-> Cloudflare Pages + Aurora, set up in its own session (P1). The background below is kept for the record.
+> **2026-11-05 (D-053):** production is one AWS EC2 instance running the same compose as QA (now on an Intel NUC,
+> D-046, its data kept, D-051), with Grafana Cloud and no managed databases until revenue; set up in P1. (D-040's
+> Lambda + Cloudflare Pages + Aurora plan is replaced.) The background below is kept for the record.
 
 This file is the background; the step-by-step for QA is `docs/ops/qa-pi.md` (open items: `setup-todo.md`) (D-028: QA at `qa.runflow.club`, `runflow.club` redirects there).
 **Recommended:** Raspberry Pi OS + Docker + the root `docker-compose.yaml` + `cloudflared`, deployed by GitHub Actions over

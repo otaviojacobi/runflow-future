@@ -209,6 +209,25 @@ on stale JSON; changes made in Grafana's UI are lost on the next restart).
 - [ ] Sign in with `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` from `.env` (set on Grafana's first start; to change
   it later: `docker compose exec grafana grafana cli admin reset-admin-password <new>`).
 
+The **Product** dashboard reads Runflow's database as `grafana_reader` (`GRAFANA_DB_PASSWORD` in `.env`), a role the
+`db-setup` service keeps in shape on every `up` (`ops/qa/db-setup.sql`): read-only transactions and column-level grants
+on ids, dates, roles, statuses and club names only. A new panel that needs another column gets its grant there first.
+
+## 8c. Product analytics: Umami (D-054)
+
+The `umami` service (Umami 3.4, cookieless) keeps its data in its own `umami` database on QA's Postgres (created by
+`db-setup`; backed up nightly with the rest, `umami-*.sql.gz`). Visitors never talk to it directly: the web container's
+Caddy forwards only `/insights/script.js` and `/insights/api/send` on `qa.runflow.club`, and the web app sends a page
+view per route with token-like path segments masked and only `utm_*`, `ref` and `perfil` kept from the query
+(`frontend/src/lib/analytics.ts`). The API hands the website id to the app (`UMAMI_WEBSITE_ID`, `/public/config`).
+
+- [x] `.env`: `UMAMI_DB_PASSWORD`, `UMAMI_APP_SECRET`, `UMAMI_ADMIN_PASSWORD` (and `GRAFANA_DB_PASSWORD`).
+- [x] `./umami-setup.sh` once after the first start: it replaces Umami's default login (`admin` / `umami`) with
+  `UMAMI_ADMIN_PASSWORD`, creates the `qa.runflow.club` website and writes `UMAMI_WEBSITE_ID` to `.env`.
+- [ ] Tunnel route: `analytics-qa.runflow.club` → `http://umami:3000` (Zero Trust → the tunnel → Public hostnames), then
+  sign in as `admin` with `UMAMI_ADMIN_PASSWORD`. Campaign links: add `?utm_source=instagram&utm_campaign=<name>` (or
+  `?ref=<partner>`) to any `qa.runflow.club` link.
+
 ---
 
 ## 9. First run

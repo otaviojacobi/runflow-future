@@ -25,6 +25,13 @@ QA is live at **https://qa.runflow.club**:
 
 ## Now
 
+- [ ] **Umami's dashboard (product analytics, D-054)**, 2 minutes: Cloudflare → Zero Trust → Networks → Tunnels → the QA
+  tunnel → Public hostnames → Add: subdomain `analytics-qa`, domain `runflow.club`, service **HTTP** `umami:3000`.
+  Then open https://analytics-qa.runflow.club and sign in as **`admin`** with `UMAMI_ADMIN_PASSWORD` from
+  `~/runflow/ops/qa/.env` on the NUC (`grep UMAMI_ADMIN_PASSWORD ~/runflow/ops/qa/.env`). Umami's default password is
+  already gone and the QA website exists; page views start arriving with the next visit to qa.runflow.club. The
+  **Product** dashboard (club funnel and weekly activity) is in Grafana next to the others.
+
 - [x] ~~**Sentry for the phone app.**~~ Done 2026-11-04: project `runflow-mobile-qa` (org `runflow-zw`); `SENTRY_AUTH_TOKEN`
   (an organization token) is an EAS secret in preview and production, so each build uploads its source maps.
 - [x] ~~**Google sign-in in the phone app (X16).**~~ Done 2026-11-04: the Android OAuth client (package `club.runflow.app`,

@@ -49,8 +49,9 @@ object storage for logos and avatars, e-mail, the web app (static files), TLS, b
 | **D. Serverless free tiers** (Cloud Run or Koyeb + Neon/Supabase Postgres + Upstash Redis) | $0 | No server to patch | Cold starts (against the SPEED pillar); Neon free is 0.5 GB and its São Paulo availability is unclear, Supabase free pauses idle projects; our worker needs an always-on process (LISTEN/NOTIFY), which scale-to-zero platforms don't give. Many moving parts. |
 | **E. All on Cloudflare** (Workers + Hyperdrive/D1 + Queues + R2) | $0 for Workers; **Containers need Workers Paid (US$ 5/month)** | Global, no servers | Our axum/sqlx/tokio backend doesn't run on Workers (WASM) without a large rewrite: compile-time sqlx queries, the job queue, Valkey. Cloudflare Containers could run the image as is, but aren't free. A later idea, not for the first release. |
 
-**Founder's leaning (2026-11-05):** a free-tier EC2 instance running QA's compose as it is, with the data kept on
-its disk. Not a decision yet (D-040 stays under review). Points to settle first:
+**Decided 2026-11-05 (D-053):** one free-tier EC2 instance running QA's compose, with the data kept on its disk,
+Grafana Cloud for metrics and logs, and no RDS or ElastiCache until revenue pays for them; later a paid account, a
+bigger instance or Kubernetes. The comparison below is kept for the record. Points to settle in P1:
 - Which free tier the AWS account has: accounts opened after 2025-07-15 get credits (about US$ 100–200 for 6 months,
   then the account must upgrade); older ones get 750 h/month of a `t3.micro` (2 vCPU, **1 GB RAM**) for 12 months.
   The public IPv4 (~US$ 3.65/month) and EBS beyond the allowance are billed either way.
@@ -161,7 +162,9 @@ The founder made the switch on 2026-11-04, before the beta: testers use QA with 
 ## 7. Tracking: knowing what people do (free and LGPD-friendly)
 
 Selling needs two answers: **do clubs reach the moment Runflow is useful** (counts and funnels), and **where do they
-get stuck** (watching real use). Updated 2026-11-05 with the founder's idea of self-hosting Umami.
+get stuck** (watching real use). **Decided 2026-11-05 (D-054):** points 1 and 3 are built on QA (S13d): the Grafana
+**Product** dashboard and a self-hosted Umami at `analytics-qa.runflow.club` (Umami Cloud was dropped: no São Paulo
+region).
 
 1. **Product numbers from our own database, no tracker needed** (do this first): signups, clubs created, invites
    sent/accepted, workouts assigned and released, completions, Strava connections, per week and per club. A Grafana
@@ -243,13 +246,13 @@ self-hosted (heavy), GoatCounter (tiny, but page views only, no events or funnel
 | # | Step | Who | Cost |
 |---|---|---|---|
 | 1 | Full manual test round on QA, fixes as they come | Founder + agent | $0 |
-| 2 | Decide hosting (A Oracle / B NUC / C AWS) → D-050; rewrite P1 in the build plan | Founder | — |
+| 2 | ~~Decide hosting~~ Decided: one AWS EC2 instance running the compose (D-053); P1 rewritten | Founder | — |
 | 3 | Legal texts (LGPD terms + privacy), drafted by the agent, reviewed by the founder | Both | $0 |
 | 4 | Production compose + WAL-G/pg_dump backups to R2 + restore drill script + deploy-by-tag (P1a) | Agent | $0 |
 | 5 | Web on Cloudflare Pages, `runflow.club` live with the app, `api.runflow.club` via the tunnel (P1b) | Agent + founder (accounts) | $0 |
 | 6 | Third-party production setup: Strava prod app, Google origin, Grafana Cloud, Sentry prod, FCM/EAS push (P1c) | Founder (consoles) + agent | $0 |
 | 7 | Incremental migrations from here (§4): freeze the bootstrap, expand/contract, QA migrates instead of resetting | Agent | $0 |
-| 8 | Tracking: the "Produto" dashboard from the database, then Umami self-hosted (events and funnels), §7 | Agent | $0 |
+| 8 | ~~Tracking: the Product dashboard from the database, then Umami self-hosted, §7~~ Done on QA (S13d, D-054) | Agent | $0 |
 | 9 | SEO: prerendered landing, meta/OG/sitemap/JSON-LD, the first content pages | Agent | $0 |
 | 10 | Beta: 3–5 friendly clubs, the marketing kit, weekly funnel review | Founder | $0 |
 | 11 | X16 native extras (Google sign-in, widget, Health) when the dev build and accounts exist | Agent | $0 |
@@ -259,10 +262,9 @@ self-hosted (heavy), GoatCounter (tiny, but page views only, no events or funnel
 
 ## 12. Questions for the founder
 
-1. Hosting for the first release: A (Oracle, São Paulo), B (the NUC), or C (AWS EC2, not free)?
+1. ~~Hosting for the first release~~ AWS EC2 running the compose (D-053). Uploads: S3 or Garage on the instance?
 2. One domain (`runflow.club` for the landing and the app) or `app.runflow.club` for the app?
-3. Tracking (§7): the "Produto" dashboard from our database + Umami self-hosted? Session replay (PostHog Cloud or
-   Clarity) only once the beta shows gaps?
+3. ~~Tracking~~ Umami self-hosted + the Product dashboard (D-054). Session replay later, only if the beta shows gaps?
 4. Who are the first 3–5 clubs, and when do we invite them?
 5. Strava: create the production app now (it starts at 1 athlete; you can raise it to 10 yourself)?
 
