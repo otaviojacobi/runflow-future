@@ -25,7 +25,7 @@ QA is live at **https://qa.runflow.club**:
 
 ## Now
 
-- [ ] **Umami's dashboard (product analytics, D-054)**, 2 minutes: Cloudflare → Zero Trust → Networks → Tunnels → the QA
+- [x] ~~**Umami's dashboard (product analytics, D-054)**~~ Done 2026-11-05: the route is live and sign-in works. The steps were: Cloudflare → Zero Trust → Networks → Tunnels → the QA
   tunnel → Public hostnames → Add: subdomain `analytics-qa`, domain `runflow.club`, service **HTTP** `umami:3000`.
   Then open https://analytics-qa.runflow.club and sign in as **`admin`** with `UMAMI_ADMIN_PASSWORD` from
   `~/runflow/ops/qa/.env` on the NUC (`grep UMAMI_ADMIN_PASSWORD ~/runflow/ops/qa/.env`). Umami's default password is

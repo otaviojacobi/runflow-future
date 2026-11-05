@@ -224,7 +224,7 @@ view per route with token-like path segments masked and only `utm_*`, `ref` and 
 - [x] `.env`: `UMAMI_DB_PASSWORD`, `UMAMI_APP_SECRET`, `UMAMI_ADMIN_PASSWORD` (and `GRAFANA_DB_PASSWORD`).
 - [x] `./umami-setup.sh` once after the first start: it replaces Umami's default login (`admin` / `umami`) with
   `UMAMI_ADMIN_PASSWORD`, creates the `qa.runflow.club` website and writes `UMAMI_WEBSITE_ID` to `.env`.
-- [ ] Tunnel route: `analytics-qa.runflow.club` → `http://umami:3000` (Zero Trust → the tunnel → Public hostnames), then
+- [x] Tunnel route: `analytics-qa.runflow.club` → `http://umami:3000` (Zero Trust → the tunnel → Public hostnames), then
   sign in as `admin` with `UMAMI_ADMIN_PASSWORD`. Campaign links: add `?utm_source=instagram&utm_campaign=<name>` (or
   `?ref=<partner>`) to any `qa.runflow.club` link.
 
