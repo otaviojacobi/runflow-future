@@ -171,6 +171,56 @@ function logVolume(title, expr, o = {}) {
 
 const row = (title) => ({ type: "row", title });
 
+// ---------------------------------------------------------------- panels on Runflow's database (the Product dashboard)
+// The "Runflow DB" data source reads as grafana_reader: ids, dates, roles, statuses and club names only
+// (ops/qa/db-setup.sql). A column it can't read fails the panel with "permission denied": grant it there first.
+
+const DB = { type: "grafana-postgresql-datasource", uid: "runflow-db" };
+
+/** Points a panel built by stat/ts/bars at the database: `sql` is one query or a list; format table or time_series. */
+function onDb(panel, sql, format) {
+  panel.datasource = DB;
+  panel.targets = [].concat(sql).map((rawSql, i) => ({
+    refId: String.fromCharCode(65 + i),
+    datasource: DB,
+    rawSql: rawSql.replace(/\s+/g, " ").trim(),
+    format,
+    rawQuery: true,
+    editorMode: "code",
+  }));
+  return panel;
+}
+const dbStat = (title, sql, o = {}) => onDb(stat(title, "", { graph: false, decimals: 0, ...o }), sql, "table");
+/** Weekly bars: each query returns `time` (date_trunc('week', …)) and one or more numeric columns, or `metric`. */
+function dbWeekly(title, sql, o = {}) {
+  const p = onDb(ts(title, "", { decimals: 0, ...o }), sql, "time_series");
+  p.fieldConfig.defaults.custom.drawStyle = "bars";
+  p.fieldConfig.defaults.custom.fillOpacity = 70;
+  p.options.tooltip.mode = "multi";
+  return p;
+}
+/** Rows of (label, number) as horizontal bars, in the query's order. */
+function dbBars(title, sql, o = {}) {
+  const p = onDb(bars(title, "", { decimals: 0, ...o }), sql, "table");
+  p.options.reduceOptions = { calcs: [], fields: "", values: true };
+  return p;
+}
+function dbTable(title, sql, o = {}) {
+  return onDb(
+    {
+      type: "table",
+      title,
+      ...(o.desc ? { description: o.desc } : {}),
+      w: o.w ?? 24,
+      h: o.h ?? 12,
+      fieldConfig: { defaults: { custom: { align: "auto", cellOptions: { type: "auto" } } }, overrides: [] },
+      options: { showHeader: true, cellHeight: "sm", footer: { show: false, reducer: ["sum"], fields: "" } },
+    },
+    sql,
+    "table",
+  );
+}
+
 // ---------------------------------------------------------------- layout and dashboard wrapper
 
 /** Packs panels left to right on Grafana's 24-column grid; a row starts a new line. Ids follow the order. */
@@ -200,7 +250,7 @@ function layout(items) {
   });
 }
 
-function dashboard({ uid, title, description, tags = [], templating = [], panels }) {
+function dashboard({ uid, title, description, tags = [], templating = [], time = "now-6h", refresh = "1m", panels }) {
   return {
     uid,
     title,
@@ -208,8 +258,8 @@ function dashboard({ uid, title, description, tags = [], templating = [], panels
     tags: ["runflow", "qa", ...tags],
     timezone: "America/Sao_Paulo",
     schemaVersion: 41,
-    time: { from: "now-6h", to: "now" },
-    refresh: "1m",
+    time: { from: time, to: "now" },
+    refresh,
     editable: true,
     graphTooltip: 1,
     links: [
@@ -241,6 +291,7 @@ const UIDS = {
   web: "runflow-web",
   tunnel: "runflow-tunnel",
   host: "runflow-host",
+  product: "runflow-product",
 };
 
 // ---------------------------------------------------------------- the dashboards
@@ -794,6 +845,100 @@ const host = dashboard({
   ],
 });
 
+// Clubs that count: not closed. Smoke-test clubs (D-034) are closed by the suite itself.
+const LIVE_CLUBS = "SELECT id FROM clubs WHERE deleted_at IS NULL";
+const DONE = "wc.status IN ('completed', 'partial')";
+const product = dashboard({
+  uid: UIDS.product,
+  title: "Runflow · Product",
+  description:
+    "What clubs do with Runflow, from its database (read-only, counts only): the activation funnel, each club's progress and weekly activity. Page views and where visitors come from are in Umami (analytics-qa.runflow.club).",
+  tags: ["product"],
+  time: "now-90d",
+  refresh: "5m",
+  panels: [
+    row("Now"),
+    dbStat("Clubs", "SELECT count(*) FROM clubs WHERE deleted_at IS NULL", { w: 3 }),
+    dbStat("People", "SELECT count(*) FROM users WHERE deleted_at IS NULL", { w: 3 }),
+    dbStat("Active students", `SELECT count(*) FROM memberships WHERE role = 'student' AND status = 'active' AND club_id IN (${LIVE_CLUBS})`, { w: 3 }),
+    dbStat("Owners and trainers", `SELECT count(*) FROM memberships WHERE role IN ('owner', 'trainer') AND status = 'active' AND club_id IN (${LIVE_CLUBS})`, { w: 3 }),
+    dbStat("People active (7 days)", "SELECT count(DISTINCT user_id) FROM sessions WHERE last_seen_at > now() - interval '7 days'", {
+      w: 3,
+      desc: "Anyone whose session was used in the last 7 days (web or app).",
+    }),
+    dbStat("Clubs planning (7 days)", `SELECT count(DISTINCT club_id) FROM planned_workouts WHERE created_at > now() - interval '7 days' AND club_id IN (${LIVE_CLUBS})`, {
+      w: 3,
+      desc: "Clubs that planned at least one workout in the last 7 days: the clearest sign a club is using Runflow.",
+    }),
+    dbStat("Strava connected", "SELECT count(*) FROM provider_connections WHERE provider = 'strava' AND status = 'active'", { w: 3 }),
+    dbStat("Paying clubs", `SELECT count(*) FROM club_subscriptions WHERE plan <> 'free' AND status IN ('active', 'trialing') AND club_id IN (${LIVE_CLUBS})`, { w: 3 }),
+
+    row("Activation"),
+    dbBars("Activation funnel (clubs reaching each step, all time)", `
+      WITH c AS (${LIVE_CLUBS})
+      SELECT '1. Club created' AS step, count(*) AS clubs FROM c
+      UNION ALL SELECT '2. Invited someone', count(DISTINCT i.club_id) FROM invitations i JOIN c ON c.id = i.club_id
+      UNION ALL SELECT '3. Has an active student', count(DISTINCT m.club_id) FROM memberships m JOIN c ON c.id = m.club_id
+        WHERE m.role = 'student' AND m.status = 'active'
+      UNION ALL SELECT '4. Planned a workout', count(DISTINCT pw.club_id) FROM planned_workouts pw JOIN c ON c.id = pw.club_id
+      UNION ALL SELECT '5. A student completed one', count(DISTINCT pw.club_id) FROM workout_completions wc
+        JOIN planned_workouts pw ON pw.id = wc.planned_workout_id JOIN c ON c.id = pw.club_id WHERE ${DONE}
+      UNION ALL SELECT '6. Planned 2+ weeks', count(*) FROM (SELECT pw.club_id FROM planned_workouts pw JOIN c ON c.id = pw.club_id
+        GROUP BY pw.club_id HAVING count(DISTINCT date_trunc('week', pw.date)) >= 2) t`, {
+      w: 12,
+      h: 9,
+      desc: "The activation funnel (docs/next-steps.md §7). Step 6 is the number to improve.",
+    }),
+    dbBars("Clubs by plan", `SELECT coalesce(s.plan, 'free') AS plan, count(*) AS clubs FROM clubs c
+      LEFT JOIN club_subscriptions s ON s.club_id = c.id WHERE c.deleted_at IS NULL GROUP BY 1 ORDER BY 2 DESC`, { w: 6, h: 9 }),
+    dbBars("Clubs by modality", "SELECT unnest(modalities) AS modality, count(*) AS clubs FROM clubs WHERE deleted_at IS NULL GROUP BY 1 ORDER BY 2 DESC", {
+      w: 6,
+      h: 9,
+    }),
+    dbTable("Clubs, newest first", `
+      SELECT c.name AS "Club", c.created_at AS "Created", array_to_string(c.modalities, ', ') AS "Modalities",
+        coalesce(s.plan, 'free') AS "Plan",
+        (SELECT count(*) FROM memberships m WHERE m.club_id = c.id AND m.role = 'student' AND m.status = 'active') AS "Students",
+        (SELECT count(*) FROM memberships m WHERE m.club_id = c.id AND m.role IN ('owner', 'trainer') AND m.status = 'active') AS "Staff",
+        (SELECT count(*) FROM invitations i WHERE i.club_id = c.id) AS "Invites",
+        (SELECT count(*) FROM invitations i WHERE i.club_id = c.id AND i.accepted_at IS NOT NULL) AS "Accepted",
+        (SELECT count(*) FROM planned_workouts pw WHERE pw.club_id = c.id) AS "Workouts",
+        (SELECT count(*) FROM planned_workouts pw JOIN workout_completions wc ON wc.planned_workout_id = pw.id
+          WHERE pw.club_id = c.id AND ${DONE}) AS "Completed",
+        (SELECT count(DISTINCT date_trunc('week', pw.date)) FROM planned_workouts pw WHERE pw.club_id = c.id) AS "Weeks planned",
+        (SELECT max(pw.created_at) FROM planned_workouts pw WHERE pw.club_id = c.id) AS "Last planned"
+      FROM clubs c LEFT JOIN club_subscriptions s ON s.club_id = c.id
+      WHERE c.deleted_at IS NULL ORDER BY c.created_at DESC LIMIT 200`, {
+      desc: "Each club's progress through the funnel. A club with students but no workouts in a week needs a call.",
+    }),
+
+    row("Weekly"),
+    dbWeekly("New people and clubs", [
+      "SELECT date_trunc('week', created_at) AS time, count(*) AS \"new people\" FROM users WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+      "SELECT date_trunc('week', created_at) AS time, count(*) AS \"new clubs\" FROM clubs WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+    ]),
+    dbWeekly("Invites sent and accepted", [
+      "SELECT date_trunc('week', created_at) AS time, count(*) AS sent FROM invitations WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+      "SELECT date_trunc('week', accepted_at) AS time, count(*) AS accepted FROM invitations WHERE accepted_at IS NOT NULL AND $__timeFilter(accepted_at) GROUP BY 1 ORDER BY 1",
+    ]),
+    dbWeekly("Workouts planned and completed", [
+      "SELECT date_trunc('week', created_at) AS time, count(*) AS planned FROM planned_workouts WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+      `SELECT date_trunc('week', wc.completed_at) AS time, count(*) AS completed FROM workout_completions wc WHERE ${DONE} AND $__timeFilter(wc.completed_at) GROUP BY 1 ORDER BY 1`,
+    ]),
+    dbWeekly("People signing in", "SELECT date_trunc('week', created_at) AS time, count(DISTINCT user_id) AS \"people signing in\" FROM sessions WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1", {
+      desc: "Distinct people who started a session that week (sessions last 60 days, so regulars sign in rarely).",
+    }),
+    dbWeekly("Activities by source", "SELECT date_trunc('week', created_at) AS time, source AS metric, count(*) AS value FROM activities WHERE $__timeFilter(created_at) GROUP BY 1, 2 ORDER BY 1", {
+      stack: true,
+      desc: "Activities that arrived in Runflow (Strava sync, manual, file).",
+    }),
+    dbWeekly("Messages and class bookings", [
+      "SELECT date_trunc('week', created_at) AS time, count(*) AS messages FROM messages WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+      "SELECT date_trunc('week', created_at) AS time, count(*) AS \"class bookings\" FROM class_bookings WHERE $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+    ]),
+  ],
+});
+
 // ---------------------------------------------------------------- write or check
 
 const FILES = {
@@ -806,6 +951,7 @@ const FILES = {
   "web.json": web,
   "tunnel.json": tunnel,
   "host.json": host,
+  "product.json": product,
 };
 
 const check = process.argv.includes("--check");

@@ -22,6 +22,7 @@ async fn public_config_tells_the_web_app_what_is_on(db: PgPool) {
         .await;
     assert_eq!(off.ok()["google_client_id"], serde_json::Value::Null);
     assert_eq!(off.body["strava"], false);
+    assert_eq!(off.body["analytics"], serde_json::Value::Null);
     let google = runflow_integrations::google::GoogleVerifier::new(
         "http://127.0.0.1:9/jwks",
         vec![
@@ -36,6 +37,23 @@ async fn public_config_tells_the_web_app_what_is_on(db: PgPool) {
         on.ok()["google_client_id"],
         "web-client.apps.googleusercontent.com"
     );
+}
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn public_config_hands_out_umami_when_set(db: PgPool) {
+    let mut app = TestApp::new(db);
+    let mut s = (*app.state.settings).clone();
+    s.web_analytics = Some(runflow_api::WebAnalytics {
+        website_id: "8c7e0b1e-5f3a-4f7e-9b2a-1d2c3e4f5a6b".into(),
+        script_url: "/insights/script.js".into(),
+    });
+    app.state.settings = std::sync::Arc::new(s);
+    let res = app.get("/v1/public/config", None).await;
+    assert_eq!(
+        res.ok()["analytics"]["website_id"],
+        "8c7e0b1e-5f3a-4f7e-9b2a-1d2c3e4f5a6b"
+    );
+    assert_eq!(res.body["analytics"]["script_url"], "/insights/script.js");
 }
 
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]

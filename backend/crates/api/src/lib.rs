@@ -56,7 +56,16 @@ pub struct ApiSettings {
     pub push_public_key: Option<String>,
     /// The web app's Sentry settings (`/public/config`); None = off.
     pub web_sentry: Option<WebSentry>,
+    /// The web app's product analytics (Umami, D-054; `/public/config`); None = off.
+    pub web_analytics: Option<WebAnalytics>,
     pub auth: AuthSettings,
+}
+
+/// What the web app needs to send page views and events to the self-hosted Umami (D-054). Public: both sit in the page.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct WebAnalytics {
+    pub website_id: String,
+    pub script_url: String,
 }
 
 /// What the web app needs to report its errors to Sentry (browser DSNs are public by design).

@@ -180,6 +180,18 @@ pub struct Config {
     /// `DEPLOYMENT_ENV`: the environment's name in Sentry and telemetry (default `development` or `production` from
     /// `RUNFLOW_ENV`; QA sets `qa`).
     pub deployment_env: String,
+    /// Product analytics in the web app (D-054): the self-hosted Umami's website id, handed out by `/public/config`.
+    pub umami: Option<Umami>,
+}
+
+/// Umami (D-054): cookieless page views and events from the web app. Both values are public (they sit in the page).
+#[derive(Debug, Clone)]
+pub struct Umami {
+    /// `UMAMI_WEBSITE_ID`: the website's id in Umami (a UUID).
+    pub website_id: String,
+    /// `UMAMI_SCRIPT_URL`: the tracker. Default `/insights/script.js`, the web container's first-party route to the
+    /// self-hosted Umami (`frontend/Caddyfile`); the tracker posts to `api/send` next to it.
+    pub script_url: String,
 }
 
 /// Reads variables through a function so tests don't touch the process environment.
@@ -488,6 +500,23 @@ impl Config {
                 "production"
             },
         );
+        let umami = e.opt("UMAMI_WEBSITE_ID").map(|website_id| Umami {
+            website_id,
+            script_url: e.or("UMAMI_SCRIPT_URL", "/insights/script.js"),
+        });
+        if let Some(u) = &umami {
+            if uuid::Uuid::parse_str(&u.website_id).is_err() {
+                e.errors.push(
+                    "UMAMI_WEBSITE_ID isn't a website id (Umami → Settings → Websites → Edit: a UUID)".into(),
+                );
+            }
+            if !(u.script_url.starts_with("https://") || u.script_url.starts_with('/')) {
+                e.errors.push(
+                    "UMAMI_SCRIPT_URL must be a path on the app's host (/insights/script.js) or an https:// URL"
+                        .into(),
+                );
+            }
+        }
         let billing_simulation = e.parse("BILLING_SIMULATION", env == RunEnv::Development);
         let expo_access_token = e.secret("EXPO_ACCESS_TOKEN");
         let subject = e.or("VAPID_SUBJECT", "mailto:contato@runflow.club");
@@ -529,6 +558,7 @@ impl Config {
                 otel,
                 sentry_web_dsn,
                 deployment_env,
+                umami,
             })
         } else {
             Err(e.errors)
@@ -570,6 +600,28 @@ mod tests {
             !format!("{c:?}").contains("hunter2"),
             "the password leaks through Debug"
         );
+    }
+
+    #[test]
+    fn umami_needs_a_website_id() {
+        let c = cfg(&[("DATABASE_URL", "postgres://x")]).unwrap();
+        assert!(c.umami.is_none());
+        let c = cfg(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("UMAMI_WEBSITE_ID", "8c7e0b1e-5f3a-4f7e-9b2a-1d2c3e4f5a6b"),
+        ])
+        .unwrap();
+        let u = c.umami.unwrap();
+        assert_eq!(u.website_id, "8c7e0b1e-5f3a-4f7e-9b2a-1d2c3e4f5a6b");
+        assert_eq!(u.script_url, "/insights/script.js");
+        let errs = cfg(&[
+            ("DATABASE_URL", "postgres://x"),
+            ("UMAMI_WEBSITE_ID", "runflow-qa"),
+            ("UMAMI_SCRIPT_URL", "http://umami.local/script.js"),
+        ])
+        .unwrap_err();
+        assert!(errs.iter().any(|e| e.contains("UMAMI_WEBSITE_ID")));
+        assert!(errs.iter().any(|e| e.contains("UMAMI_SCRIPT_URL")));
     }
 
     #[test]

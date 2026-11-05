@@ -68,6 +68,7 @@ pub fn settings(dev: bool) -> ApiSettings {
         },
         push_public_key: None,
         web_sentry: None,
+        web_analytics: None,
         auth: AuthSettings {
             secret: b"test-secret-test-secret-test-secret".to_vec(),
             session_ttl: chrono::Duration::days(60),

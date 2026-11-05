@@ -110,7 +110,7 @@ Defaults set by the founder on 2026-11-04: students hear about the week's releas
 
 | Method | Path | What | Screens |
 |---|---|---|---|
-| GET | `/public/config` | What the web app needs before sign-in: `{google_client_id, strava, push_public_key, sentry}` (`push_public_key`: the VAPID public key for Web Push, base64url, or null when push is off; `sentry`: `{dsn, environment, release}` for the web app's error reports, or null when off) (the web OAuth client id, or null when Google sign-in is off; whether Strava is configured). Mock: `google_client_id`, `push_public_key` and `sentry` null | A2 |
+| GET | `/public/config` | What the web app needs before sign-in: `{google_client_id, strava, push_public_key, sentry, analytics}` (`push_public_key`: the VAPID public key for Web Push, base64url, or null when push is off; `sentry`: `{dsn, environment, release}` for the web app's error reports, or null when off; `analytics`: `{website_id, script_url}` for Umami page views and events (D-054), or null when off) (the web OAuth client id, or null when Google sign-in is off; whether Strava is configured). Mock: `google_client_id`, `push_public_key`, `sentry` and `analytics` null | A2 |
 | GET | `/health` | `{ok, version, database: {ok, latency_ms}}`; `503 health.database_unavailable` when the database is down. The mock adds `anchor_date` and `routes` | — |
 | GET / POST | `/webhooks/strava` | Strava webhook: GET answers the subscription handshake (`hub.verify_token` = `STRAVA_WEBHOOK_VERIFY_TOKEN`); POST events are recorded once and applied by the worker (activity create/update fetched from Strava, delete, athlete deauthorization = disconnect). Backend only | — |
 

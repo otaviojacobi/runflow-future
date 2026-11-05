@@ -338,6 +338,15 @@ pub async fn run(c: &Config) -> anyhow::Result<()> {
             c.deployment_env
         ),
     );
+    line(
+        "analytics",
+        if c.umami.is_some() { "ok" } else { "off" },
+        match &c.umami {
+            Some(u) => format!("Umami website {} · {}", u.website_id, u.script_url),
+            None => "UMAMI_WEBSITE_ID not set: no page views or events from the web app (D-054)"
+                .to_string(),
+        },
+    );
 
     anyhow::ensure!(ok, "some checks failed");
     Ok(())

@@ -11,6 +11,7 @@ import { setupPwa } from "./lib/pwa";
 import { installPrintTheme, promoteClubTheme } from "./lib/theme";
 import { publicConfigQuery } from "./api/auth";
 import { startSentry } from "./lib/sentry";
+import { startAnalytics, trackPageView } from "./lib/analytics";
 
 // Dev injects CSS at runtime; make sure the cached club theme still comes last (§7.8).
 promoteClubTheme();
@@ -25,5 +26,12 @@ createRoot(document.getElementById("root")!).render(
   </StrictMode>,
 );
 
-// Errors to Sentry when the API turns it on (S12): after the first render, never in the initial bundle.
-queryClient.fetchQuery(publicConfigQuery).then((c) => c.sentry && startSentry(c.sentry)).catch(() => undefined);
+// Errors to Sentry (S12) and page views to Umami (D-054) when the API turns them on: after the first render, never in
+// the initial bundle. Page views follow the router (one per resolved route, URLs masked in lib/analytics).
+queryClient.fetchQuery(publicConfigQuery).then((c) => {
+  if (c.sentry) void startSentry(c.sentry);
+  if (c.analytics) startAnalytics(c.analytics, () => {
+    trackPageView();
+    router.subscribe("onResolved", trackPageView);
+  });
+}).catch(() => undefined);

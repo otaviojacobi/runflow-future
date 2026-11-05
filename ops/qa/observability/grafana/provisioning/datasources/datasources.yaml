@@ -13,3 +13,19 @@ datasources:
     access: proxy
     url: http://loki:3100
     editable: false
+  # Product numbers for the "Produto" dashboard: Runflow's database as grafana_reader, a role that can read only
+  # ids, dates, roles, statuses and club names (ops/qa/db-setup.sql) and whose transactions are read-only.
+  - name: Runflow DB
+    uid: runflow-db
+    type: grafana-postgresql-datasource
+    access: proxy
+    url: postgres:5432
+    user: grafana_reader
+    editable: false
+    jsonData:
+      database: $RUNFLOW_DB
+      sslmode: disable
+      postgresVersion: 1800
+      maxOpenConns: 3
+    secureJsonData:
+      password: $GRAFANA_DB_PASSWORD

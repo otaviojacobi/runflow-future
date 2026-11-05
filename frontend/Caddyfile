@@ -19,6 +19,19 @@
 		reverse_proxy api:3000
 	}
 
+	# Product analytics (D-054): only Umami's tracker and its collect endpoint, first-party on the app's own host (no
+	# third-party request, fewer blockers). Umami's dashboard has its own host (analytics-qa.runflow.club, a tunnel
+	# route); nothing else of Umami is reachable here. Environments without Umami answer 502, and the app only loads
+	# the tracker when the API hands out UMAMI_WEBSITE_ID.
+	handle /insights/script.js {
+		rewrite * /script.js
+		reverse_proxy umami:3000
+	}
+	handle /insights/api/send {
+		rewrite * /api/send
+		reverse_proxy umami:3000
+	}
+
 	# Hashed bundles never change: browsers and Cloudflare keep them for a year. A missing one (an old
 	# tab after a deploy) is a plain 404 that nobody caches, never the app shell posing as JS.
 	handle /assets/* {

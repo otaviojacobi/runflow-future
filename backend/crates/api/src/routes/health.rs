@@ -50,12 +50,13 @@ async fn health(State(state): State<AppState>) -> Result<Json<Health>, Problem> 
     }
 }
 
-/// `{google_client_id, strava, push_public_key, sentry}`.
+/// `{google_client_id, strava, push_public_key, sentry, analytics}`.
 async fn config(State(state): State<AppState>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "google_client_id": state.google.as_ref().and_then(|g| g.web_client_id()),
         "strava": state.strava.is_some(),
         "push_public_key": state.settings.push_public_key,
         "sentry": state.settings.web_sentry,
+        "analytics": state.settings.web_analytics,
     }))
 }

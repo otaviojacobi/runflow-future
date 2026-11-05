@@ -1,6 +1,7 @@
 # Runflow QA (Intel NUC, D-046): everything behind one Cloudflare Tunnel; only the database viewer (pgweb, :8091) is on the LAN.
 #   qa.runflow.club → web (static app + /api proxy) → api (+ worker) → postgres, valkey
 #   grafana-qa.runflow.club → grafana (logs in Loki, metrics in Prometheus, both collected by Alloy; D-041)
+#   analytics-qa.runflow.club → umami (product analytics, D-054); the app's tracker goes through web's /insights/*
 # Images are built for arm64 by GitHub Actions (.github/workflows/images.yml) and pulled from GHCR.
 # Setup: docs/ops/qa-pi.md (open items: setup-todo.md). Settings: ops/qa/.env (from ops/qa/.env.example).
 
@@ -112,6 +113,52 @@ services:
     depends_on:
       - web
 
+  # Keeps the roles and databases besides Runflow's own in shape (db-setup.sql): Umami's database and Grafana's
+  # read-only reader for the "Produto" dashboard. Runs on every `up`, after the API has migrated; idempotent.
+  db-setup:
+    image: postgres:18
+    restart: "no"
+    command: ["sh", "-c", "psql -q -v runflow_db=\"$$PGDATABASE\" -v umami_password=\"$$UMAMI_DB_PASSWORD\" -v grafana_password=\"$$GRAFANA_DB_PASSWORD\" -f /db-setup.sql"]
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-runflow}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-runflow}
+      UMAMI_DB_PASSWORD: ${UMAMI_DB_PASSWORD:?set UMAMI_DB_PASSWORD in ops/qa/.env (openssl rand -hex 24)}
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:?set GRAFANA_DB_PASSWORD in ops/qa/.env (openssl rand -hex 24)}
+    volumes:
+      - ./db-setup.sql:/db-setup.sql:ro
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Product analytics (D-054): self-hosted Umami, its data in its own `umami` database on our Postgres (in Brazil),
+  # cookieless. The dashboard is https://analytics-qa.runflow.club (a tunnel route to http://umami:3000; user `admin`,
+  # UMAMI_ADMIN_PASSWORD from .env, set by ./umami-setup.sh). The web app's tracker reaches it only through web's
+  # /insights/script.js and /insights/api/send (frontend/Caddyfile). Until db-setup has created its database on the
+  # first start, it restarts.
+  umami:
+    image: ghcr.io/umami-software/umami:3.4.0
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@postgres:5432/umami
+      APP_SECRET: ${UMAMI_APP_SECRET:?set UMAMI_APP_SECRET in ops/qa/.env (openssl rand -hex 32)}
+      DISABLE_TELEMETRY: "1"
+      DISABLE_UPDATES: "1"
+      # The visitor's address (for the country), as Cloudflare passes it; Umami keeps no IPs.
+      CLIENT_IP_HEADER: cf-connecting-ip
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/heartbeat"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 3s
+    mem_limit: 384m
+
   # ---------------------------------------------------------------- database viewer: pgweb, read-only, on the LAN
   # only (not in the tunnel): http://runflow-qa.local:8091 (or the NUC's IP), user `runflow`, PGWEB_PASSWORD in .env.
   pgweb:
@@ -181,7 +228,7 @@ services:
 
   # https://grafana-qa.runflow.club (a tunnel route to http://grafana:3000). Sign in with GRAFANA_ADMIN_USER /
   # GRAFANA_ADMIN_PASSWORD from .env; both data sources and the dashboards (an overview plus one per service, built by
-# observability/grafana/dashboards.mjs) are provisioned.
+# observability/grafana/dashboards.mjs) are provisioned, "Produto" among them (product numbers from the database).
   grafana:
     image: grafana/grafana:13.2.5
     restart: unless-stopped
@@ -197,6 +244,9 @@ services:
       # Internal tool: English, whatever the browser's language (only customer-facing text is pt-BR, D-013).
       GF_USERS_DEFAULT_LANGUAGE: en-US
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/runflow-qa.json
+      # The "Produto" dashboard reads Runflow's database as grafana_reader (read-only, counts only; db-setup.sql).
+      RUNFLOW_DB: ${POSTGRES_DB:-runflow}
+      GRAFANA_DB_PASSWORD: ${GRAFANA_DB_PASSWORD:?set GRAFANA_DB_PASSWORD in ops/qa/.env (openssl rand -hex 24)}
     volumes:
       - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro

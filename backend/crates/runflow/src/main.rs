@@ -314,6 +314,10 @@ async fn run(config: Config, with_migrations: bool, with_worker: bool) -> anyhow
                 environment: config.deployment_env.clone(),
                 release: (*VERSION).to_string(),
             }),
+        web_analytics: config.umami.as_ref().map(|u| runflow_api::WebAnalytics {
+            website_id: u.website_id.clone(),
+            script_url: u.script_url.clone(),
+        }),
         auth: AuthSettings {
             secret,
             session_ttl: chrono::Duration::days(60),

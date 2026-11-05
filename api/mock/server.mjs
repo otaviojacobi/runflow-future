@@ -253,7 +253,7 @@ for (const f of readdirSync(dir).filter((f) => f.endsWith(".mjs")).sort()) {
   mod.default(h);
 }
 h.get("/v1/public/plans", () => CATALOG);
-h.get("/v1/public/config", () => ({ google_client_id: null, strava: true, push_public_key: null, sentry: null }));
+h.get("/v1/public/config", () => ({ google_client_id: null, strava: true, push_public_key: null, sentry: null, analytics: null }));
 h.get("/v1/health", () => ({ ok: true, version: "mock", database: { ok: true, latency_ms: 0 }, anchor_date: db.meta.anchor_date, routes: routes.length }));
 http.createServer(handle).listen(PORT, () =>
   console.log(`Runflow mock API → http://localhost:${PORT}/v1  (${routes.length} routes, data anchored at ${db.meta.anchor_date}, latency ~${LATENCY}ms)`),
