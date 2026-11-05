@@ -25,6 +25,7 @@ export { default as CalendarArrowUp } from "lucide-react-native/icons/calendar-a
 export { default as CalendarCheck } from "lucide-react-native/icons/calendar-check";
 export { default as CalendarClock } from "lucide-react-native/icons/calendar-clock";
 export { default as CalendarRange } from "lucide-react-native/icons/calendar-range";
+export { default as CalendarX } from "lucide-react-native/icons/calendar-x";
 export { default as Check } from "lucide-react-native/icons/check";
 export { default as CheckCheck } from "lucide-react-native/icons/check-check";
 export { default as ChevronDown } from "lucide-react-native/icons/chevron-down";

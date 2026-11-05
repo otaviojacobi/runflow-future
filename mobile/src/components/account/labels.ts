@@ -4,6 +4,7 @@
  */
 import type { AssessmentData, AssessmentKind, AssessmentResult, Goal, Level, MembershipContext, NotificationKind, UserSession } from "@/api/types";
 import { headline } from "@/components/assessments";
+import { has } from "@/lib/features";
 import { t } from "@/i18n";
 
 export const GOALS: { value: Goal; label: string }[] = [
@@ -29,6 +30,9 @@ export const KIND_INFO: Record<NotificationKind, { label: string; hint: string }
   feedback: { label: "Feedbacks dos alunos", hint: "Um aluno registrou ou comentou um treino" },
   member_joined: { label: "Novos membros", hint: "Alguém entrou no clube" },
   billing: { label: "Plano e cobrança", hint: "Limite de alunos e avisos do plano" },
+  class_cancelled: { label: "Aula cancelada", hint: "Uma aula que você reservou foi cancelada" },
+  waitlist_promoted: { label: "Vaga liberada", hint: "Você saiu da lista de espera de uma aula" },
+  activity_synced: { label: "Atividade sincronizada", hint: "Um treino seu chegou do Strava" },
 };
 const STUDENT_KINDS: NotificationKind[] = ["week_released", "workout_assigned", "workout_changed", "comment", "message", "announcement"];
 const STAFF_KINDS: NotificationKind[] = ["feedback", "comment", "message", "member_joined"];
@@ -37,6 +41,10 @@ export function kindsFor(memberships: MembershipContext[]): NotificationKind[] {
   const roles = new Set(memberships.map((m) => m.membership.role));
   const out: NotificationKind[] = [];
   if (roles.has("student")) out.push(...STUDENT_KINDS);
+  // Where a club the person studies at uses them (D-052): class news; Strava syncs (D-055).
+  const studies = memberships.filter((m) => m.membership.role === "student" && m.membership.status === "active");
+  if (studies.some((m) => has(m.club, "classes"))) out.push("class_cancelled", "waitlist_promoted");
+  if (studies.some((m) => has(m.club, "strava"))) out.push("activity_synced");
   if (roles.has("trainer") || roles.has("owner")) out.push(...STAFF_KINDS);
   if (roles.has("owner")) out.push("billing");
   return [...new Set(out)];

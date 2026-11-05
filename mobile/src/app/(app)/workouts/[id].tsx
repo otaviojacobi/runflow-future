@@ -28,6 +28,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar, Button, Card, EmptyState, KeyboardAvoid, Skeleton, Text, useFocusedInputVisible } from "@/ui";
 import { CircleCheck, Link2, SearchX } from "@/ui/icons";
 import { PoweredByStrava } from "@/components/strava";
+import { ActivityAnalysis } from "@/components/ActivityAnalysis";
 
 export default function WorkoutScreen() {
   const { id, conversa } = useLocalSearchParams<{ id: string; conversa?: string }>();
@@ -168,6 +169,8 @@ function Detail({ w, placeholder, clubTz, professor, onFeedback, thread }: { w: 
       ) : null}
 
       {w.activity && <ActivityCard a={w.activity} />}
+      {/* How the training went, from what the watch recorded (D-055): heart rate, splits or tiros, the route. */}
+      {w.activity && <ActivityAnalysis a={w.activity} />}
 
       <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>
         <Text variant="titleSm" accessibilityRole="header">{professor ? t("Conversa com o professor") : t("Conversa com o treinador")}</Text>

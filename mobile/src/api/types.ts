@@ -51,7 +51,7 @@ export interface KindPref { push: boolean }
 export interface NotificationPrefs { kinds: Record<NotificationKind, KindPref>; paused: boolean }
 export type PrefsPatch = { kinds?: Partial<Record<NotificationKind, KindPref>>; paused?: boolean };
 export interface Me { user: User; memberships: MembershipContext[]; prefs: NotificationPrefs | null; unread_notifications: number }
-export type NotificationKind = "workout_assigned" | "workout_changed" | "week_released" | "comment" | "feedback" | "member_joined" | "billing" | "message" | "announcement";
+export type NotificationKind = "workout_assigned" | "workout_changed" | "week_released" | "comment" | "feedback" | "member_joined" | "billing" | "message" | "announcement" | "class_cancelled" | "waitlist_promoted" | "activity_synced";
 export interface AppNotification { id: ID; user_id: ID; club_id: ID | null; kind: NotificationKind; title: string; body: string | null; link: string | null; read_at: ISOTime | null; created_at: ISOTime }
 export interface UserSession { id: ID; kind: "web" | "mobile"; user_agent: string | null; created_at: ISOTime; last_seen_at: ISOTime; current: boolean }
 export interface AuthResult { token: string; user: User; is_new: boolean }
@@ -89,12 +89,16 @@ export interface Activity {
   id: ID; user_id: ID; source: "strava" | "garmin" | "manual" | "file"; external_id: string | null; sport: Sport; name: string;
   started_at: ISOTime; duration_s: number; moving_time_s: number | null; distance_m: number | null; elevation_gain_m: number | null;
   avg_hr: number | null; max_hr: number | null; avg_pace_s_per_km: number | null; avg_power_w: number | null; calories: number | null;
-  laps: { distance_m: number; duration_s: number; avg_hr: number | null; avg_pace_s_per_km?: number }[] | null; polyline: string | null;
+  /** Device laps and Strava's per-km splits (D-055, api/endpoints.md § Completed-training analysis). */
+  laps: import("@/domain/activity").Lap[] | null; splits: import("@/domain/activity").Split[] | null; polyline: string | null;
+  /** Detail payloads only (the activity detail, a workout's linked activity): the full route and the sampled series. */
+  analysis?: ActivityAnalysisData | null;
   /** D-049: `open` (the engine may link it), `pending` (waiting for the student's choice), `dismissed` (not a planned workout). */
   match_state: MatchState;
   created_at: ISOTime;
 }
 export type MatchState = "open" | "pending" | "dismissed";
+export interface ActivityAnalysisData { route_polyline: string | null; streams: import("@/domain/activity").Streams | null }
 export interface Comment { id: ID; planned_workout_id: ID; author_membership_id: ID; body: string; created_at: ISOTime; edited_at: ISOTime | null; author: { membership_id: ID; role: Role; user: User } }
 
 // ---------- staff (W1–W4, W8)

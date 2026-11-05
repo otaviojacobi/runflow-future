@@ -1,7 +1,8 @@
 /**
  * M4 · Atividade (the web's screens/student/ActivityDetail.tsx): the numbers, the planned workout it matched (with
- * how much was done) and "Trocar treino", or the question when the matching engine couldn't place it (D-049), per-km
- * splits as bars (longer = faster) and, for manual ones, removing it.
+ * how much was done) and "Trocar treino", or the question when the matching engine couldn't place it (D-049), the
+ * analysis (D-055: heart rate over time, per-km splits or the named laps of a "tiros" session, the route) and, for
+ * manual ones, removing it.
  */
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
@@ -17,6 +18,7 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { Button, Card, Dialog, EmptyState, Screen, Skeleton, Text, toast } from "@/ui";
 import { ArrowRightLeft, ChevronRight, Link2, SearchX, Trash2 } from "@/ui/icons";
 import { StravaAttribution } from "@/components/strava";
+import { ActivityAnalysis } from "@/components/ActivityAnalysis";
 
 export default function ActivityScreen() {
   const { theme } = useTheme();
@@ -40,9 +42,6 @@ export default function ActivityScreen() {
       </Screen>
     );
   }
-  const laps = (a.laps ?? []).filter((l) => l.distance_m > 0);
-  const paces = laps.map((l) => l.duration_s / (l.distance_m / 1000));
-  const fastest = Math.min(...paces), slowest = Math.max(...paces);
   const m = a.matched_workout;
   const swim = a.sport === "swim";
   const stats = [
@@ -107,30 +106,7 @@ export default function ActivityScreen() {
       )}
       <MatchSheet a={a} open={pick} onOpenChange={setPick} />
 
-      {laps.length > 0 && (
-        <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>
-          <View style={[styles.between, { gap: theme.space[2] }]}>
-            <Text variant="titleSm" accessibilityRole="header">{t("Parciais por km")}</Text>
-            <Text variant="caption" tone="muted">{t("barra maior = mais rápido")}</Text>
-          </View>
-          <View accessibilityRole="list" style={{ gap: theme.space["1.5"] }}>
-            {laps.map((l, i) => {
-              const p = paces[i]!;
-              const w = slowest === fastest ? 100 : 55 + ((slowest - p) / (slowest - fastest)) * 45;
-              return (
-                <View key={i} accessible accessibilityLabel={t("km {n}: {p} /km", { n: i + 1, p: pace(p) })} style={[styles.row, { gap: theme.space[2] }]}>
-                  <Text variant="caption" tone="muted" style={[styles.tabular, { width: theme.space[6] }]}>{i + 1}</Text>
-                  <View style={styles.flex}>
-                    <View style={{ width: `${w}%`, height: theme.space[5], borderTopRightRadius: theme.radius.xs, borderBottomRightRadius: theme.radius.xs, backgroundColor: c.brand.text, opacity: p === fastest ? 1 : 0.75 }} />
-                  </View>
-                  <Text variant="labelSm" style={[styles.tabular, styles.right, { width: theme.space[12] }]}>{pace(p)}</Text>
-                  <Text variant="caption" tone="muted" style={[styles.tabular, styles.right, { width: theme.space[16] }]}>{l.avg_hr ? `${l.avg_hr} bpm` : ""}</Text>
-                </View>
-              );
-            })}
-          </View>
-        </Card>
-      )}
+      <ActivityAnalysis a={a} />
 
       {a.source === "strava" && <StravaAttribution externalId={a.external_id} />}
       {a.source === "manual" && (

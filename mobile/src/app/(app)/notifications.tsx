@@ -21,7 +21,7 @@ import { alpha, toneColors, weight, type Tone } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Button, Card, EmptyState, Segmented, Skeleton, Spinner, Text, type Icon } from "@/ui";
 import {
-  Bell, CalendarCheck, CheckCheck, CircleAlert, ClipboardList, CreditCard, ExternalLink, Megaphone, MessageCircle, MessageSquare, Pencil, UserPlus,
+  Bell, CalendarCheck, CalendarX, CheckCheck, CircleAlert, ClipboardList, CreditCard, ExternalLink, Megaphone, MessageCircle, MessageSquare, Pencil, Ticket, UserPlus, Watch,
 } from "@/ui/icons";
 
 const KIND: Record<NotificationKind, { icon: Icon; tone: Tone }> = {
@@ -34,6 +34,9 @@ const KIND: Record<NotificationKind, { icon: Icon; tone: Tone }> = {
   billing: { icon: CreditCard, tone: "warning" },
   message: { icon: MessageCircle, tone: "brand" },
   announcement: { icon: Megaphone, tone: "accent" },
+  class_cancelled: { icon: CalendarX, tone: "danger" },
+  waitlist_promoted: { icon: Ticket, tone: "success" },
+  activity_synced: { icon: Watch, tone: "success" },
 };
 const GROUPS = ["Hoje", "Ontem", "Últimos 7 dias", "Anteriores"] as const;
 function groupOf(n: AppNotification, today: string, tz: string): (typeof GROUPS)[number] {

@@ -23,6 +23,7 @@ import { WorkoutSteps } from "@/components/workout/WorkoutSteps";
 import { WorkoutBuilder } from "@/components/builder/WorkoutBuilder";
 import { estimate, estimateText, type Structure } from "@/domain/workout";
 import { StravaAttribution } from "@/components/strava";
+import { ActivityAnalysis } from "@/components/ActivityAnalysis";
 
 export type SheetMode = "view" | "move" | "edit" | "remove" | "thread";
 /** What the list already knows, so the sheet opens instantly; `mode` picks the first view (Feedbacks: the thread). */
@@ -181,6 +182,8 @@ export function WorkoutSheet({ seed, onClose }: { seed: WorkoutSeed | null; onCl
               </View>
             );
           })()}
+          {/* The student's training as their watch recorded it (D-055), under the same consent as the activity. */}
+          {detail.data?.activity && <ActivityAnalysis a={detail.data.activity} />}
           {detail.isPending && <Skeleton style={{ height: theme.space[16] }} />}
           <View style={[styles.box, { borderRadius: theme.radius.lg, borderColor: c.line, padding: theme.space[1] }]}>
             <ListItem title={t("Conversa com {name}", { name: first || t("o aluno") })} icon={MessageSquare} chevron onPress={() => setMode("thread")}
