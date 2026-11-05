@@ -632,7 +632,9 @@ const garage = dashboard({
   ],
 });
 
-const CADDY = (m, extra = "") => `${m}{job="web",handler!="metrics"${extra}}`;
+// Caddy records a request once per handler in its chain (`headers`, then the `handle` blocks' `subroute`); every
+// request on :80 passes through `subroute` exactly once, so counting that one never doubles (and skips :9180's metrics).
+const CADDY = (m, extra = "") => `${m}{job="web",handler="subroute"${extra}}`;
 const web = dashboard({
   uid: UIDS.web,
   title: "Runflow · Web (Caddy)",
@@ -655,9 +657,9 @@ const web = dashboard({
 
     row("Traffic"),
     ts("Requests per second by status", { expr: `sum by (code) (rate(${CADDY("caddy_http_request_duration_seconds_count")}[${RI}]))`, legend: "{{code}}" }, { unit: "reqps", stack: true }),
-    ts("Requests per second by handler", { expr: `sum by (handler) (rate(${CADDY("caddy_http_request_duration_seconds_count")}[${RI}]))`, legend: "{{handler}}" }, {
+    ts("Requests per second by method", { expr: `sum by (method) (rate(${CADDY("caddy_http_request_duration_seconds_count")}[${RI}]))`, legend: "{{method}}" }, {
       unit: "reqps",
-      desc: "reverse_proxy is /api; file_server is the shell and assets.",
+      desc: "The shell and assets are mostly answered by Cloudflare's edge; most of what reaches Caddy is /api.",
     }),
     ts("Latency", [
       { expr: quant(0.5, [], CADDY("caddy_http_request_duration_seconds_bucket")), legend: "p50" },

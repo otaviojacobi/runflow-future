@@ -138,7 +138,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(caddy_http_request_duration_seconds_count{job=\"web\",handler!=\"metrics\"}[5m])) or vector(0)"
+          "expr": "sum(rate(caddy_http_request_duration_seconds_count{job=\"web\",handler=\"subroute\"}[5m])) or vector(0)"
         }
       ],
       "fieldConfig": {
@@ -192,7 +192,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "(sum(rate(caddy_http_request_duration_seconds_count{job=\"web\",handler!=\"metrics\",code=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(caddy_http_request_duration_seconds_count{job=\"web\",handler!=\"metrics\"}[5m])), 1e-9)"
+          "expr": "(sum(rate(caddy_http_request_duration_seconds_count{job=\"web\",handler=\"subroute\",code=~\"5..\"}[5m])) or vector(0)) / clamp_min(sum(rate(caddy_http_request_duration_seconds_count{job=\"web\",handler=\"subroute\"}[5m])), 1e-9)"
         }
       ],
       "fieldConfig": {
@@ -254,7 +254,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{job=\"web\",handler!=\"metrics\"}[5m])))"
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{job=\"web\",handler=\"subroute\"}[5m])))"
         }
       ],
       "fieldConfig": {
@@ -307,7 +307,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(caddy_http_requests_in_flight{job=\"web\",handler!=\"metrics\"})"
+          "expr": "sum(caddy_http_requests_in_flight{job=\"web\",handler=\"subroute\"})"
         }
       ],
       "fieldConfig": {
@@ -449,7 +449,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (code) (rate(caddy_http_request_duration_seconds_count{job=\"web\",handler!=\"metrics\"}[$__rate_interval]))",
+          "expr": "sum by (code) (rate(caddy_http_request_duration_seconds_count{job=\"web\",handler=\"subroute\"}[$__rate_interval]))",
           "legendFormat": "{{code}}"
         }
       ],
@@ -490,8 +490,8 @@
     {
       "id": 10,
       "type": "timeseries",
-      "title": "Requests per second by handler",
-      "description": "reverse_proxy is /api; file_server is the shell and assets.",
+      "title": "Requests per second by method",
+      "description": "The shell and assets are mostly answered by Cloudflare's edge; most of what reaches Caddy is /api.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -503,8 +503,8 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (handler) (rate(caddy_http_request_duration_seconds_count{job=\"web\",handler!=\"metrics\"}[$__rate_interval]))",
-          "legendFormat": "{{handler}}"
+          "expr": "sum by (method) (rate(caddy_http_request_duration_seconds_count{job=\"web\",handler=\"subroute\"}[$__rate_interval]))",
+          "legendFormat": "{{method}}"
         }
       ],
       "fieldConfig": {
@@ -552,7 +552,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.5, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{job=\"web\",handler!=\"metrics\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{job=\"web\",handler=\"subroute\"}[$__rate_interval])))",
           "legendFormat": "p50"
         },
         {
@@ -561,7 +561,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{job=\"web\",handler!=\"metrics\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(caddy_http_request_duration_seconds_bucket{job=\"web\",handler=\"subroute\"}[$__rate_interval])))",
           "legendFormat": "p95"
         }
       ],
@@ -610,7 +610,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum(rate(caddy_http_response_size_bytes_sum{job=\"web\",handler!=\"metrics\"}[$__rate_interval]))",
+          "expr": "sum(rate(caddy_http_response_size_bytes_sum{job=\"web\",handler=\"subroute\"}[$__rate_interval]))",
           "legendFormat": "sent"
         }
       ],
