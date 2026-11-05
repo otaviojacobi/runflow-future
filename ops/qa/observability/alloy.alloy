@@ -61,7 +61,140 @@ otelcol.exporter.prometheus "api" {
   forward_to = [prometheus.remote_write.local.receiver]
 }
 
-// The Pi itself: CPU, memory, disk, network, temperature.
+// ---------------------------------------------------------------- metrics of the other services (one dashboard each)
+// Each scrape's job label names the service, so the dashboards select by {job="postgres"}, {job="valkey"}, …
+
+// PostgreSQL: connections, transactions, cache hits, sizes, locks (the exporter's default collectors).
+prometheus.exporter.postgres "postgres" {
+  data_source_names = [sys.env("POSTGRES_EXPORTER_DSN")]
+}
+
+prometheus.scrape "postgres" {
+  job_name   = "postgres"
+  targets    = prometheus.exporter.postgres.postgres.targets
+  forward_to = [prometheus.relabel.postgres.receiver]
+}
+
+// The exporter sends every server setting (~300 series of pg_settings_*); keep only max_connections.
+prometheus.relabel "postgres" {
+  rule {
+    source_labels = ["__name__"]
+    regex         = "pg_settings_max_connections"
+    target_label  = "keep_setting"
+    replacement   = "yes"
+  }
+  rule {
+    source_labels = ["__name__", "keep_setting"]
+    regex         = "pg_settings_.+;"
+    action        = "drop"
+  }
+  rule {
+    regex  = "keep_setting"
+    action = "labeldrop"
+  }
+  forward_to = [prometheus.relabel.service.receiver]
+}
+
+// Valkey (Redis protocol): memory, keys, hits and misses, evictions, commands.
+prometheus.exporter.redis "valkey" {
+  redis_addr = "valkey:6379"
+}
+
+prometheus.scrape "valkey" {
+  job_name   = "valkey"
+  targets    = prometheus.exporter.redis.valkey.targets
+  forward_to = [prometheus.relabel.service.receiver]
+}
+
+// Garage, the web app's Caddy and the Cloudflare tunnel serve Prometheus metrics themselves (ports only on the compose
+// network: Garage's admin API :3903, Caddy :9180, cloudflared :2000).
+prometheus.scrape "garage" {
+  job_name   = "garage"
+  targets    = [{"__address__" = "garage:3903"}]
+  forward_to = [prometheus.relabel.service.receiver]
+}
+
+prometheus.scrape "web" {
+  job_name   = "web"
+  targets    = [{"__address__" = "web:9180"}]
+  forward_to = [prometheus.relabel.service.receiver]
+}
+
+prometheus.scrape "cloudflared" {
+  job_name   = "cloudflared"
+  targets    = [{"__address__" = "cloudflared:2000"}]
+  forward_to = [prometheus.relabel.service.receiver]
+}
+
+// Built-in exporters label their targets job="integrations/<exporter>": rename those to the service, and give every
+// series service=<job> as well, the label the logs use.
+prometheus.relabel "service" {
+  rule {
+    source_labels = ["job"]
+    regex         = "integrations/postgres"
+    target_label  = "job"
+    replacement   = "postgres"
+  }
+  rule {
+    source_labels = ["job"]
+    regex         = "integrations/redis"
+    target_label  = "job"
+    replacement   = "valkey"
+  }
+  rule {
+    source_labels = ["job"]
+    target_label  = "service"
+  }
+  forward_to = [prometheus.remote_write.local.receiver]
+}
+
+// Every container's CPU, memory, network and disk (cAdvisor), labelled by compose service. To see the other containers
+// Alloy runs in the host's cgroup namespace with /var/lib/docker and containerd's socket mounted read-only (compose).
+prometheus.exporter.cadvisor "containers" {
+  docker_host                  = "unix:///var/run/docker.sock"
+  docker_only                  = true
+  store_container_labels       = false
+  allowlisted_container_labels = ["com.docker.compose.service"]
+}
+
+prometheus.scrape "containers" {
+  job_name   = "containers"
+  targets    = prometheus.exporter.cadvisor.containers.targets
+  forward_to = [prometheus.relabel.containers.receiver]
+}
+
+// Only the series the Containers dashboard uses, and only real containers (not the cgroup tree's root).
+prometheus.relabel "containers" {
+  rule {
+    source_labels = ["__name__"]
+    regex         = "container_(cpu_usage_seconds_total|memory_working_set_bytes|spec_memory_limit_bytes|network_(receive|transmit)_bytes_total|fs_(reads|writes)_bytes_total|start_time_seconds|oom_events_total)"
+    action        = "keep"
+  }
+  rule {
+    source_labels = ["name"]
+    regex         = ".+"
+    action        = "keep"
+  }
+  rule {
+    target_label = "job"
+    replacement  = "containers"
+  }
+  rule {
+    target_label = "instance"
+    replacement  = "host"
+  }
+  rule {
+    source_labels = ["container_label_com_docker_compose_service"]
+    target_label  = "service"
+  }
+  rule {
+    regex  = "container_label_com_docker_compose_service"
+    action = "labeldrop"
+  }
+  forward_to = [prometheus.remote_write.local.receiver]
+}
+
+// The host itself (the NUC; the component keeps its old name): CPU, memory, disk, network, temperature.
 prometheus.exporter.unix "pi" {
   procfs_path = "/host/proc"
   sysfs_path  = "/host/sys"
@@ -71,7 +204,17 @@ prometheus.exporter.unix "pi" {
 prometheus.scrape "pi" {
   targets         = prometheus.exporter.unix.pi.targets
   scrape_interval = "30s"
-  forward_to      = [prometheus.remote_write.local.receiver]
+  forward_to      = [prometheus.relabel.host.receiver]
+}
+
+// Built-in exporters use Alloy's container id as the instance, which changes whenever Alloy is recreated and would
+// split every host series in two; there is one host, so name it.
+prometheus.relabel "host" {
+  rule {
+    target_label = "instance"
+    replacement  = "host"
+  }
+  forward_to = [prometheus.remote_write.local.receiver]
 }
 
 prometheus.remote_write "local" {

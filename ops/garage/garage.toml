@@ -15,3 +15,9 @@ rpc_public_addr = "127.0.0.1:3901"
 s3_region = "garage"
 api_bind_addr = "[::]:3900"
 root_domain = ".s3.garage.localhost"
+
+# Admin API: only its /health and /metrics are used (no admin_token, so the admin endpoints themselves stay off).
+# Prometheus metrics for QA's Grafana (D-041) are scraped by Alloy inside the compose network; the port is never
+# published or routed through the tunnel.
+[admin]
+api_bind_addr = "[::]:3903"

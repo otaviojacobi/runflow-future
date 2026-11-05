@@ -105,7 +105,8 @@ services:
   cloudflared:
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
-    command: ["tunnel", "--no-autoupdate", "run"]
+    # Metrics on :2000 inside the compose network only (Alloy scrapes them for the Tunnel dashboard).
+    command: ["tunnel", "--no-autoupdate", "--metrics", "0.0.0.0:2000", "run"]
     environment:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN:?set TUNNEL_TOKEN in ops/qa/.env (Cloudflare Zero Trust → Tunnels)}
     depends_on:
@@ -152,11 +153,19 @@ services:
       - prometheus:/prometheus
     mem_limit: 768m
 
-  # Collects every container's logs (Docker socket, read-only), the API's OTLP metrics and the Pi's host metrics.
+  # Collects every container's logs (Docker socket, read-only), the API's OTLP metrics, each service's metrics
+  # (Postgres, Valkey, Garage, Caddy, the tunnel), per-container usage (cAdvisor) and the host's metrics.
   alloy:
     image: grafana/alloy:v1.21.3
     restart: unless-stopped
     command: ["run", "--server.http.listen-addr=0.0.0.0:12345", "--storage.path=/var/lib/alloy/data", "/etc/alloy/config.alloy"]
+    environment:
+      # The Postgres exporter reads statistics only (pg_stat_*, sizes, locks); it never touches Runflow's tables.
+      POSTGRES_EXPORTER_DSN: postgres://${POSTGRES_USER:-runflow}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-runflow}?sslmode=disable
+    # cAdvisor needs the host's cgroup tree and PIDs (per-container network), Docker's data dir and containerd's socket
+    # (the NUC's Docker uses the containerd image store) to see the other containers; mounts are read-only.
+    cgroup: host
+    pid: host
     volumes:
       - ./observability/alloy.alloy:/etc/alloy/config.alloy:ro
       - alloy:/var/lib/alloy/data
@@ -165,11 +174,14 @@ services:
       - /sys:/host/sys:ro
       - /:/host/root:ro
       - /run/udev:/run/udev:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /run/containerd/containerd.sock:/run/containerd/containerd.sock:ro
     depends_on: [loki, prometheus]
     mem_limit: 512m
 
   # https://grafana-qa.runflow.club (a tunnel route to http://grafana:3000). Sign in with GRAFANA_ADMIN_USER /
-  # GRAFANA_ADMIN_PASSWORD from .env; the "Runflow QA" dashboard and both data sources are provisioned.
+  # GRAFANA_ADMIN_PASSWORD from .env; both data sources and the dashboards (an overview plus one per service, built by
+# observability/grafana/dashboards.mjs) are provisioned.
   grafana:
     image: grafana/grafana:13.2.5
     restart: unless-stopped

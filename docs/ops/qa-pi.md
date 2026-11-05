@@ -196,9 +196,14 @@ database, checked complete before it counts) and `storage-YYYYMMDD-HHMM.tar.gz` 
 
 `docker-compose.yaml` also runs **Loki** (logs, 7 days), **Prometheus** (metrics, 15 days, 2 GB max), **Grafana Alloy**
 (collects) and **Grafana** (UI). Alloy reads every container's logs through the Docker socket, receives the API's
-metrics over OTLP (`OTEL_*` settings in the compose file) and adds the Pi's host metrics. Configs live in
-`ops/qa/observability/`; the data sources and the "Runflow QA" dashboard are provisioned from there (edit the JSON and
-push to change it).
+metrics over OTLP (`OTEL_*` settings in the compose file), scrapes each service (Postgres and Valkey through Alloy's
+built-in exporters, Garage's admin `:3903/metrics`, Caddy's `:9180/metrics`, cloudflared's `:2000/metrics`, all on the
+compose network only), reads per-container usage with cAdvisor (host cgroup and PID namespaces, Docker's data dir and
+containerd's socket, read-only) and adds the host's metrics. Configs live in `ops/qa/observability/`; the data sources
+and the dashboards are provisioned from there: "Runflow QA" (the overview, whose service tiles open the others) and one
+per service (API, Worker, Postgres, Valkey, Garage, Web, Tunnel, Host and containers). The dashboards are code: edit
+`grafana/dashboards.mjs`, run `node ops/qa/observability/grafana/dashboards.mjs`, and push (`npm run check:ops` fails
+on stale JSON; changes made in Grafana's UI are lost on the next restart).
 
 - [ ] Tunnel route: `grafana-qa.runflow.club` → `http://grafana:3000` (Zero Trust → the tunnel → Public hostnames).
 - [ ] Sign in with `GRAFANA_ADMIN_USER` / `GRAFANA_ADMIN_PASSWORD` from `.env` (set on Grafana's first start; to change
