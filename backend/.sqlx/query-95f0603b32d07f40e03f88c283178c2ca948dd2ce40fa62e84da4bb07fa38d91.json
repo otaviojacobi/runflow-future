@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO activities (id, user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m, elevation_gain_m,\n                                 avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, splits, route_polyline)\n         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)\n         ON CONFLICT (source, external_id) DO UPDATE SET sport = $5, name = $6, started_at = $7, duration_s = $8, moving_time_s = $9,\n                distance_m = $10, elevation_gain_m = $11, avg_hr = $12, max_hr = $13, avg_pace_s_per_km = $14, avg_power_w = $15,\n                calories = coalesce($16, activities.calories), laps = coalesce($17, activities.laps), polyline = coalesce($18, activities.polyline),\n                splits = coalesce($19, activities.splits), route_polyline = coalesce($20, activities.route_polyline)\n          WHERE activities.user_id = $2\n         RETURNING id, (xmax = 0) AS \"inserted!\"",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid",
+        "origin": {
+          "Table": {
+            "table": "activities",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "inserted!",
+        "type_info": "Bool",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Timestamptz",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Jsonb",
+        "Text",
+        "Jsonb",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      null
+    ]
+  },
+  "hash": "95f0603b32d07f40e03f88c283178c2ca948dd2ce40fa62e84da4bb07fa38d91"
+}

@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH todo AS (\n             SELECT c.id AS connection_id, a.external_id, row_number() OVER (ORDER BY a.started_at DESC) AS n\n               FROM activities a JOIN provider_connections c ON c.user_id = a.user_id AND c.provider = 'strava' AND c.status <> 'revoked'\n              WHERE a.source = 'strava' AND a.external_id ~ '^[0-9]+$' AND a.started_at > now() - make_interval(days => $2)\n           ), queued AS (\n             INSERT INTO jobs (kind, payload, run_at)\n             SELECT $1, jsonb_build_object('connection_id', connection_id, 'strava_id', external_id::bigint),\n                    now() + (n - 1) * interval '2 seconds'\n               FROM todo\n             RETURNING id\n           )\n           SELECT count(*) AS \"n!\" FROM queued, pg_notify('runflow_jobs', '') AS wake",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "n!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "9beaf517e04fd4d2c0b1ae8e35f3657291db34bb26f1433b5bb3bfa90fa6ad2d"
+}

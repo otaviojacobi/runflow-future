@@ -171,6 +171,33 @@ pub async fn revoke(tx: &mut PgConnection, user_id: Uuid, provider: &str) -> sql
 /// [`enforce_sharing`]): `{access_token_enc, refresh_token_enc, token_expires_at}`, the tokens still encrypted (hex).
 pub const STRAVA_DEAUTHORIZE: &str = "strava.deauthorize";
 
+/// The worker's job that fetches one Strava activity in detail (D-055): `{connection_id, strava_id}`.
+pub const STRAVA_ACTIVITY: &str = "strava.activity";
+
+/// Queue a detailed refetch of the Strava activities from the last `days` days whose connection is live (laps,
+/// per-km splits, the full route, then the time series; D-055), two seconds apart for Strava's rate limits → how many.
+/// For activities imported before the analysis existed (`runflow strava-refetch`).
+pub async fn queue_refetch(db: impl PgExecutor<'_>, days: i32) -> sqlx::Result<i64> {
+    sqlx::query_scalar!(
+        r#"WITH todo AS (
+             SELECT c.id AS connection_id, a.external_id, row_number() OVER (ORDER BY a.started_at DESC) AS n
+               FROM activities a JOIN provider_connections c ON c.user_id = a.user_id AND c.provider = 'strava' AND c.status <> 'revoked'
+              WHERE a.source = 'strava' AND a.external_id ~ '^[0-9]+$' AND a.started_at > now() - make_interval(days => $2)
+           ), queued AS (
+             INSERT INTO jobs (kind, payload, run_at)
+             SELECT $1, jsonb_build_object('connection_id', connection_id, 'strava_id', external_id::bigint),
+                    now() + (n - 1) * interval '2 seconds'
+               FROM todo
+             RETURNING id
+           )
+           SELECT count(*) AS "n!" FROM queued, pg_notify('runflow_jobs', '') AS wake"#,
+        STRAVA_ACTIVITY,
+        days
+    )
+    .fetch_one(db)
+    .await
+}
+
 /// Hex for the encrypted tokens in a job payload (they stay encrypted at rest there, as in `provider_connections`).
 pub fn to_hex(b: &[u8]) -> String {
     b.iter().map(|x| format!("{x:02x}")).collect()
@@ -292,25 +319,29 @@ pub struct NewActivity {
     pub avg_power_w: Option<i32>,
     pub calories: Option<i32>,
     pub laps: Option<Value>,
+    pub splits: Option<Value>,
     pub polyline: Option<String>,
+    pub route_polyline: Option<String>,
 }
 
-/// Insert or update a synced activity (by source + external id).
+/// Insert or update a synced activity (by source + external id) → its id and whether it's new. What a list sync
+/// doesn't carry (laps, splits, the full route) never erases what a detailed fetch stored.
 pub async fn upsert_activity(
     db: impl PgExecutor<'_>,
     user_id: Uuid,
     source: &str,
     a: &NewActivity,
-) -> sqlx::Result<Uuid> {
-    sqlx::query_scalar!(
-        "INSERT INTO activities (id, user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m, elevation_gain_m,
-                                 avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)
+) -> sqlx::Result<(Uuid, bool)> {
+    let r = sqlx::query!(
+        r#"INSERT INTO activities (id, user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m, elevation_gain_m,
+                                 avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, splits, route_polyline)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
          ON CONFLICT (source, external_id) DO UPDATE SET sport = $5, name = $6, started_at = $7, duration_s = $8, moving_time_s = $9,
                 distance_m = $10, elevation_gain_m = $11, avg_hr = $12, max_hr = $13, avg_pace_s_per_km = $14, avg_power_w = $15,
-                calories = coalesce($16, activities.calories), laps = coalesce($17, activities.laps), polyline = coalesce($18, activities.polyline)
+                calories = coalesce($16, activities.calories), laps = coalesce($17, activities.laps), polyline = coalesce($18, activities.polyline),
+                splits = coalesce($19, activities.splits), route_polyline = coalesce($20, activities.route_polyline)
           WHERE activities.user_id = $2
-         RETURNING id",
+         RETURNING id, (xmax = 0) AS "inserted!""#,
         Uuid::now_v7(),
         user_id,
         source,
@@ -328,9 +359,62 @@ pub async fn upsert_activity(
         a.avg_power_w,
         a.calories,
         a.laps,
-        a.polyline
+        a.polyline,
+        a.splits,
+        a.route_polyline
     )
     .fetch_one(db)
+    .await?;
+    Ok((r.id, r.inserted))
+}
+
+/// Store an activity's sampled time series (D-055), replacing what was there; nothing when it was deleted meanwhile.
+pub async fn upsert_streams(
+    db: impl PgExecutor<'_>,
+    activity_id: Uuid,
+    data: &Value,
+) -> sqlx::Result<()> {
+    sqlx::query!(
+        "INSERT INTO activity_streams (activity_id, data) SELECT id, $2 FROM activities WHERE id = $1
+         ON CONFLICT (activity_id) DO UPDATE SET data = $2, created_at = now()",
+        activity_id,
+        data
+    )
+    .execute(db)
+    .await?;
+    Ok(())
+}
+
+/// What only the detail views need (D-055): `{route_polyline, streams}`, or None when the activity has neither.
+pub async fn analysis(db: impl PgExecutor<'_>, activity_id: Uuid) -> sqlx::Result<Option<Value>> {
+    let r = sqlx::query!(
+        r#"SELECT a.route_polyline, s.data AS "streams?"
+             FROM activities a LEFT JOIN activity_streams s ON s.activity_id = a.id WHERE a.id = $1"#,
+        activity_id
+    )
+    .fetch_optional(db)
+    .await?;
+    Ok(r.and_then(|r| {
+        (r.route_polyline.is_some() || r.streams.is_some()).then(
+            || serde_json::json!({ "route_polyline": r.route_polyline, "streams": r.streams }),
+        )
+    }))
+}
+
+/// The person's Strava activity with this Strava id, if it was imported.
+pub async fn activity_id_by_external(
+    db: impl PgExecutor<'_>,
+    user_id: Uuid,
+    source: &str,
+    external_id: &str,
+) -> sqlx::Result<Option<Uuid>> {
+    sqlx::query_scalar!(
+        "SELECT id FROM activities WHERE user_id = $1 AND source = $2 AND external_id = $3",
+        user_id,
+        source,
+        external_id
+    )
+    .fetch_optional(db)
     .await
 }
 
@@ -390,7 +474,7 @@ pub async fn my_activities(
 ) -> sqlx::Result<Vec<(Activity, Option<Value>)>> {
     let rows = sqlx::query!(
         r#"SELECT a.id, a.user_id, a.source, a.external_id, a.sport, a.name, a.started_at, a.duration_s, a.moving_time_s, a.distance_m, a.elevation_gain_m,
-                  a.avg_hr, a.max_hr, a.avg_pace_s_per_km, a.avg_power_w, a.calories, a.laps, a.polyline, a.match_state, a.created_at,
+                  a.avg_hr, a.max_hr, a.avg_pace_s_per_km, a.avg_power_w, a.calories, a.laps, a.splits, a.polyline, a.match_state, a.created_at,
                   (SELECT jsonb_build_object('id', p.id, 'title', p.title, 'date', p.date, 'club_id', p.club_id, 'compliance_pct', c.compliance_pct,
                                              'est_distance_m', p.est_distance_m, 'est_duration_s', p.est_duration_s, 'matched_by', c.matched_by)
                      FROM workout_completions c JOIN planned_workouts p ON p.id = c.planned_workout_id WHERE c.activity_id = a.id LIMIT 1) AS matched
@@ -433,6 +517,7 @@ pub async fn my_activities(
                     avg_power_w: r.avg_power_w,
                     calories: r.calories,
                     laps: r.laps,
+                    splits: r.splits,
                     polyline: r.polyline,
                     match_state: r.match_state,
                     created_at: r.created_at,

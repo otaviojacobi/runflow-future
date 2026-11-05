@@ -29,7 +29,7 @@ pub use push_jobs::PUSH_SEND;
 pub use runflow_db::matching::JOB as MATCH_ACTIVITIES;
 /// Deauthorize at Strava after an automatic disconnect (D-011): the encrypted tokens.
 pub use runflow_db::providers::STRAVA_DEAUTHORIZE;
-pub use strava_jobs::{STRAVA_EVENT, STRAVA_SYNC};
+pub use strava_jobs::{STRAVA_ACTIVITY, STRAVA_EVENT, STRAVA_STREAMS, STRAVA_SYNC};
 
 const MAX_ATTEMPTS: i32 = 8;
 /// How often an idle worker looks for due jobs without being woken (retries come due; a missed notification).
@@ -277,6 +277,8 @@ impl Worker {
             INVITE_EMAIL => invite_email::run(self, &job.payload).await,
             STRAVA_SYNC => strava_jobs::sync(self, &job.payload).await,
             STRAVA_EVENT => strava_jobs::event(self, &job.payload).await,
+            STRAVA_ACTIVITY => strava_jobs::activity(self, &job.payload).await,
+            STRAVA_STREAMS => strava_jobs::streams(self, &job.payload).await,
             STRAVA_DEAUTHORIZE => strava_jobs::deauthorize(self, &job.payload).await,
             STRIPE_EVENT => billing_jobs::event(self, &job.payload).await,
             STRIPE_SEATS => billing_jobs::seats(self, &job.payload).await,

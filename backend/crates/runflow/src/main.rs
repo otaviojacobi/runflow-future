@@ -74,6 +74,13 @@ enum Command {
     Healthcheck,
     /// Print a new VAPID key pair for Web Push (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY).
     VapidKeys,
+    /// Fetch the last days' Strava activities again in detail (laps, per-km splits, the full route and the time
+    /// series, D-055): for the ones imported before the analysis existed. Queued for the worker, a few seconds apart.
+    StravaRefetch {
+        /// How far back, in days.
+        #[arg(long, default_value_t = 30)]
+        days: i32,
+    },
     /// Create or update what Runflow needs in Stripe (STRIPE_SECRET_KEY): the plans' prices (api/plans.json), the
     /// Billing Portal configuration and the webhook endpoint. Safe to repeat.
     StripeSetup {
@@ -148,6 +155,7 @@ async fn main() -> ExitCode {
             webhook_url,
             env_file,
         } => stripe_setup(&config, webhook_url, env_file).await,
+        Command::StravaRefetch { days } => strava_refetch(&config, days).await,
     };
     if let Some(t) = telemetry {
         let _ = tokio::task::spawn_blocking(move || t.shutdown()).await;
@@ -546,6 +554,19 @@ async fn email_test(
         .await
         .context("sending the test e-mail")?;
     println!("sent via {:?} to {to} (id {})", mailer.provider(), sent.id);
+    Ok(())
+}
+
+async fn strava_refetch(config: &Config, days: i32) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        (1..=365).contains(&days),
+        "--days must be between 1 and 365"
+    );
+    let db = connect(config).await?;
+    let n = runflow_db::providers::queue_refetch(&db, days).await?;
+    println!(
+        "queued {n} Strava activities from the last {days} days; the worker fetches them two seconds apart"
+    );
     Ok(())
 }
 

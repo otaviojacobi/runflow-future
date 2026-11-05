@@ -3,6 +3,8 @@
  *  the person is a student; a sync no club can see is disconnected (h.enforceStravaSharing). */
 const CONSENT_TEXT_VERSION = "2026-10";
 
+import { synthActivity } from "../lib/analysis.mjs";
+
 export default function register(h) {
   const conn = (userId, provider) => h.db.provider_connections.find((c) => c.user_id === userId && c.provider === provider);
   const out = (c) => c && { id: c.id, provider: c.provider, athlete_name: c.athlete_name, status: c.status, connected_at: c.connected_at, last_sync_at: c.last_sync_at };
@@ -71,7 +73,8 @@ export default function register(h) {
       for (const [daysAgo, m, s, name] of runs) {
         const started = new Date(Date.parse(h.addDays(h.today(), -daysAgo) + "T09:20:00Z")).toISOString();
         const pace = Math.round(s / (m / 1000));
-        h.db.activities.push({ id: h.uuid("act"), user_id: u.id, source: "strava", external_id: String(Math.floor(1e10 + Math.random() * 9e9)), sport: "run", name, started_at: started, duration_s: s, moving_time_s: Math.round(s * 0.97), distance_m: m, elevation_gain_m: 20 + Math.floor(Math.random() * 60), avg_hr: 140 + Math.floor(Math.random() * 20), max_hr: 172 + Math.floor(Math.random() * 12), avg_pace_s_per_km: pace, avg_power_w: null, calories: Math.round(s / 60 * 10), laps: Array.from({ length: Math.floor(m / 1000) }, () => ({ distance_m: 1000, duration_s: pace + Math.floor(Math.random() * 20 - 10), avg_hr: 140 + Math.floor(Math.random() * 25) })), polyline: null, match_state: "open", created_at: now });
+        h.db.activities.push({ id: h.uuid("act"), user_id: u.id, source: "strava", external_id: String(Math.floor(1e10 + Math.random() * 9e9)), sport: "run", name, started_at: started, duration_s: s, moving_time_s: Math.round(s * 0.97), distance_m: m, elevation_gain_m: 20 + Math.floor(Math.random() * 60), avg_hr: 140 + Math.floor(Math.random() * 20), max_hr: 172 + Math.floor(Math.random() * 12), avg_pace_s_per_km: pace, avg_power_w: null, calories: Math.round(s / 60 * 10), laps: null, splits: null, polyline: null, route_polyline: null, match_state: "open", created_at: now });
+        Object.assign(h.db.activities.at(-1), synthActivity(h.db.activities.at(-1)));
       }
     }
     // Matched to the plan like any import (D-049), now that sharing allows it.

@@ -330,6 +330,8 @@ pub struct Activity {
     pub avg_power_w: Option<i32>,
     pub calories: Option<i32>,
     pub laps: Option<Value>,
+    /// Per-km splits (D-055); the full route and the time series are read only by detail views (`analysis`).
+    pub splits: Option<Value>,
     pub polyline: Option<String>,
     /// D-049: `open`, `pending` (waiting for the student's choice) or `dismissed`.
     pub match_state: String,

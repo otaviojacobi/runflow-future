@@ -1,6 +1,7 @@
 /** Activities: the student's own (/me/activities) and the trainer's consent-aware views; athlete detail, profile, zones.
  *  Matching (D-049, docs/activity-matching.md): h.rematch runs the engine (lib/matching.mjs) around changed days. */
 import { compatible, compliance, days, RULES, solve } from "../lib/matching.mjs";
+import { analysisOf } from "../lib/analysis.mjs";
 
 const SPORTS = ["run", "swim", "bike", "strength", "mobility", "other"];
 const ZF_PACE = [1.3, 1.17, 1.08, 1.0, 0.94];
@@ -119,7 +120,7 @@ export default function register(h) {
   h.get("/v1/me/activities/:id", (ctx) => {
     const a = h.db.activities.find((x) => x.id === ctx.params.id && x.user_id === ctx.user().id);
     if (!a) h.fail(404, "activity.not_found", "Atividade não encontrada", "Ela pode ter sido removida.");
-    return out(a, true);
+    return { ...out(a, true), analysis: analysisOf(a) };
   });
   h.put("/v1/me/activities/:id/match", (ctx) => {
     const u = ctx.user();
@@ -157,7 +158,7 @@ export default function register(h) {
     if (!(b.duration_s > 0)) errors.push({ field: "duration_s", message: "Informe a duração." });
     if (b.distance_m != null && !(b.distance_m > 0)) errors.push({ field: "distance_m", message: "Distância inválida." });
     if (errors.length) h.invalid(errors);
-    const a = { id: h.uuid("act"), user_id: u.id, source: "manual", external_id: null, sport: b.sport, name: (b.name || "").trim() || "Atividade", started_at: new Date(b.started_at).toISOString(), duration_s: b.duration_s, moving_time_s: b.duration_s, distance_m: b.distance_m ?? null, elevation_gain_m: null, avg_hr: b.avg_hr ?? null, max_hr: null, avg_pace_s_per_km: b.sport === "run" && b.distance_m ? Math.round(b.duration_s / (b.distance_m / 1000)) : null, avg_power_w: null, calories: null, laps: null, polyline: null, match_state: "open", created_at: h.nowIso() };
+    const a = { id: h.uuid("act"), user_id: u.id, source: "manual", external_id: null, sport: b.sport, name: (b.name || "").trim() || "Atividade", started_at: new Date(b.started_at).toISOString(), duration_s: b.duration_s, moving_time_s: b.duration_s, distance_m: b.distance_m ?? null, elevation_gain_m: null, avg_hr: b.avg_hr ?? null, max_hr: null, avg_pace_s_per_km: b.sport === "run" && b.distance_m ? Math.round(b.duration_s / (b.distance_m / 1000)) : null, avg_power_w: null, calories: null, laps: null, splits: null, polyline: null, route_polyline: null, match_state: "open", created_at: h.nowIso() };
     h.db.activities.push(a);
     h.rematch(u.id, dayOf(a.started_at));
     return { __status: 201, data: out(a, true) };

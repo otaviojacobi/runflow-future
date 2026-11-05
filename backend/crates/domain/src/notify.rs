@@ -5,7 +5,7 @@
 
 use serde_json::{Map, Value, json};
 
-pub const KINDS: [&str; 11] = [
+pub const KINDS: [&str; 12] = [
     "workout_assigned",
     "workout_changed",
     "week_released",
@@ -17,10 +17,12 @@ pub const KINDS: [&str; 11] = [
     "announcement",
     "class_cancelled",
     "waitlist_promoted",
+    "activity_synced",
 ];
 
-/// Push by default (founder, 2026-11-04): students get the week's release and changed workouts, and their own class
-/// news (a cancelled class, a seat from the waitlist; D-052); staff get feedback, new members and billing.
+/// Push by default (founder, 2026-11-04): students get the week's release and changed workouts, their own class
+/// news (a cancelled class, a seat from the waitlist; D-052) and each training synced from Strava (D-055, founder
+/// 2026-11-05); staff get feedback, new members and billing.
 /// Everything else (new workouts, comments, messages, announcements) starts off: it still lands in the app, and
 /// Mensagens shows its unread count.
 pub fn push_default(kind: &str) -> bool {
@@ -33,6 +35,7 @@ pub fn push_default(kind: &str) -> bool {
             | "billing"
             | "class_cancelled"
             | "waitlist_promoted"
+            | "activity_synced"
     )
 }
 
@@ -109,7 +112,8 @@ mod tests {
                 "member_joined",
                 "billing",
                 "class_cancelled",
-                "waitlist_promoted"
+                "waitlist_promoted",
+                "activity_synced"
             ]
         );
     }

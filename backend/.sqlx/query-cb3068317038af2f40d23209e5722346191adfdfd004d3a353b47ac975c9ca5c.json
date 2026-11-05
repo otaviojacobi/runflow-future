@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT a.id, a.user_id, a.source, a.external_id, a.sport, a.name, a.started_at, a.duration_s, a.moving_time_s, a.distance_m, a.elevation_gain_m,\n                  a.avg_hr, a.max_hr, a.avg_pace_s_per_km, a.avg_power_w, a.calories, a.laps, a.polyline, a.match_state, a.created_at,\n                  (SELECT jsonb_build_object('id', p.id, 'title', p.title, 'date', p.date, 'club_id', p.club_id, 'compliance_pct', c.compliance_pct,\n                                             'est_distance_m', p.est_distance_m, 'est_duration_s', p.est_duration_s, 'matched_by', c.matched_by)\n                     FROM workout_completions c JOIN planned_workouts p ON p.id = c.planned_workout_id WHERE c.activity_id = a.id LIMIT 1) AS matched\n             FROM activities a\n            WHERE a.user_id = $1 AND ($2::date IS NULL OR (a.started_at AT TIME ZONE $7)::date >= $2)\n              AND ($3::date IS NULL OR (a.started_at AT TIME ZONE $7)::date <= $3)\n              AND ($6::uuid IS NULL OR a.id = $6)\n              AND ($8::date IS NULL OR (a.match_state = 'pending' AND (a.started_at AT TIME ZONE $7)::date >= $8))\n            ORDER BY a.started_at DESC LIMIT $4 OFFSET $5",
+  "query": "SELECT a.id, a.user_id, a.source, a.external_id, a.sport, a.name, a.started_at, a.duration_s, a.moving_time_s, a.distance_m, a.elevation_gain_m,\n                  a.avg_hr, a.max_hr, a.avg_pace_s_per_km, a.avg_power_w, a.calories, a.laps, a.splits, a.polyline, a.match_state, a.created_at,\n                  (SELECT jsonb_build_object('id', p.id, 'title', p.title, 'date', p.date, 'club_id', p.club_id, 'compliance_pct', c.compliance_pct,\n                                             'est_distance_m', p.est_distance_m, 'est_duration_s', p.est_duration_s, 'matched_by', c.matched_by)\n                     FROM workout_completions c JOIN planned_workouts p ON p.id = c.planned_workout_id WHERE c.activity_id = a.id LIMIT 1) AS matched\n             FROM activities a\n            WHERE a.user_id = $1 AND ($2::date IS NULL OR (a.started_at AT TIME ZONE $7)::date >= $2)\n              AND ($3::date IS NULL OR (a.started_at AT TIME ZONE $7)::date <= $3)\n              AND ($6::uuid IS NULL OR a.id = $6)\n              AND ($8::date IS NULL OR (a.match_state = 'pending' AND (a.started_at AT TIME ZONE $7)::date >= $8))\n            ORDER BY a.started_at DESC LIMIT $4 OFFSET $5",
   "describe": {
     "columns": [
       {
@@ -192,6 +192,17 @@
       },
       {
         "ordinal": 17,
+        "name": "splits",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "activities",
+            "name": "splits"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
         "name": "polyline",
         "type_info": "Text",
         "origin": {
@@ -202,7 +213,7 @@
         }
       },
       {
-        "ordinal": 18,
+        "ordinal": 19,
         "name": "match_state",
         "type_info": "Text",
         "origin": {
@@ -213,7 +224,7 @@
         }
       },
       {
-        "ordinal": 19,
+        "ordinal": 20,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -224,7 +235,7 @@
         }
       },
       {
-        "ordinal": 20,
+        "ordinal": 21,
         "name": "matched",
         "type_info": "Jsonb",
         "origin": "Expression"
@@ -261,10 +272,11 @@
       true,
       true,
       true,
+      true,
       false,
       false,
       null
     ]
   },
-  "hash": "c3223504487fb1a90da11b7ffdad98bc3152e04fbfa200ce6ab5a98eb13bdd43"
+  "hash": "cb3068317038af2f40d23209e5722346191adfdfd004d3a353b47ac975c9ca5c"
 }

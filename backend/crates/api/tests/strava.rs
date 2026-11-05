@@ -61,12 +61,28 @@ async fn fake_strava() -> (String, Arc<Mutex<Fake>>) {
             run(1002, "Longão", 5)
         ]))
     };
+    // The detailed activity (D-055): laps, Strava's per-km splits and the full route on top of the list's fields.
     let detail = |State(f): State<Arc<Mutex<Fake>>>, Path(id): Path<i64>| async move {
         f.lock().unwrap().calls.push(format!("activity:{id}"));
-        let mut a = run(id, "Tiros na pista", 0);
-        a["laps"] = json!([{ "distance": 400.0, "moving_time": 92, "average_heartrate": 171.0 }]);
+        let mut a = match id {
+            1001 => run(id, "Rodagem leve", 2),
+            1002 => run(id, "Longão", 5),
+            _ => run(id, "Tiros na pista", 0),
+        };
+        a["laps"] = json!([{ "lap_index": 1, "distance": 400.0, "moving_time": 92, "elapsed_time": 95, "average_heartrate": 171.0, "max_heartrate": 180.0 }]);
+        a["splits_metric"] = json!([{ "split": 1, "distance": 1000.0, "moving_time": 335, "elapsed_time": 340, "average_heartrate": 149.0, "elevation_difference": 4.0 }]);
+        a["map"]["polyline"] = json!("full-route");
         a["calories"] = json!(420.0);
         Json(a)
+    };
+    let streams = |State(f): State<Arc<Mutex<Fake>>>, Path(id): Path<i64>| async move {
+        f.lock().unwrap().calls.push(format!("streams:{id}"));
+        Json(json!({
+            "time": { "data": [0, 60, 120] },
+            "distance": { "data": [0.0, 170.4, 340.9] },
+            "heartrate": { "data": [118, 151, 163] },
+            "latlng": { "data": [[-30.03, -51.22], [-30.031, -51.221], [-30.032, -51.222]] }
+        }))
     };
     let deauth = |State(f): State<Arc<Mutex<Fake>>>| async move {
         f.lock().unwrap().calls.push("deauthorize".into());
@@ -77,11 +93,23 @@ async fn fake_strava() -> (String, Arc<Mutex<Fake>>) {
         .route("/oauth/deauthorize", post(deauth))
         .route("/api/v3/athlete/activities", get(list))
         .route("/api/v3/activities/{id}", get(detail))
+        .route("/api/v3/activities/{id}/streams", get(streams))
         .with_state(fake.clone());
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let url = format!("http://{}", listener.local_addr().unwrap());
     tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
     (url, fake)
+}
+
+/// The person's `activity_synced` notifications (D-055).
+async fn activity_synced(app: &TestApp, token: &str) -> Vec<Value> {
+    app.get("/v1/me/notifications", Some(token)).await.ok()["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|n| n["kind"] == "activity_synced")
+        .cloned()
+        .collect()
 }
 
 /// A new club (immediate release) owned by `owner`'s account → its id.
@@ -283,6 +311,37 @@ async fn connect_sync_and_disconnect(db: PgPool) {
     let synced = app.get("/v1/me/connections", Some(&ana)).await;
     assert!(synced.ok()["items"][0]["connection"]["last_sync_at"].is_string());
 
+    // D-055: the list has no laps or splits, so each listed run is fetched in detail by its own job (a few seconds
+    // apart), then its time series; and `runflow strava-refetch` queues the imported ones again.
+    sqlx::query("UPDATE jobs SET run_at = now() WHERE kind = 'strava.activity'")
+        .execute(app.db())
+        .await
+        .unwrap();
+    app.run_jobs().await;
+    app.run_jobs().await;
+    let calls = fake.lock().unwrap().calls.clone();
+    for c in [
+        "activity:1001",
+        "activity:1002",
+        "streams:1001",
+        "streams:1002",
+    ] {
+        assert!(calls.contains(&c.to_string()), "{c} in {calls:?}");
+    }
+    let detailed = app.get("/v1/me/activities", Some(&ana)).await;
+    assert_eq!(detailed.ok()["items"][0]["splits"][0]["n"], 1);
+    assert_eq!(
+        activity_synced(&app, &ana).await.len(),
+        0,
+        "a sync's activities aren't news"
+    );
+    assert_eq!(
+        runflow_db::providers::queue_refetch(app.db(), 30)
+            .await
+            .unwrap(),
+        2
+    );
+
     // Another Runflow account can't take the same Strava athlete.
     let st = app
         .post("/v1/me/connections/strava/start", Some(&bia), json!({}))
@@ -382,6 +441,62 @@ async fn webhooks_refresh_and_athlete_revocation(db: PgPool) {
             track["laps"][0]["avg_pace_s_per_km"].as_i64()
         ),
         (Some(420), Some(230))
+    );
+
+    // D-055: the detail carries the laps with their pauses, Strava's per-km splits, the full route and the sampled
+    // time series (fetched by its own job); lists don't carry the route or the series.
+    let track_id = track["id"].as_str().unwrap().to_string();
+    assert_eq!(
+        (
+            track["laps"][0]["elapsed_s"].as_i64(),
+            track["laps"][0]["max_hr"].as_i64(),
+            track["splits"][0]["avg_pace_s_per_km"].as_i64()
+        ),
+        (Some(95), Some(180), Some(335))
+    );
+    assert!(track.get("analysis").is_none() && track.get("route_polyline").is_none());
+    app.run_jobs().await;
+    assert!(
+        fake.lock()
+            .unwrap()
+            .calls
+            .contains(&"streams:2001".to_string())
+    );
+    let d = app
+        .get(&format!("/v1/me/activities/{track_id}"), Some(&ana))
+        .await;
+    assert_eq!(d.ok()["analysis"]["route_polyline"], "full-route");
+    assert_eq!(
+        d.body["analysis"]["streams"]["heartrate"],
+        json!([118.0, 151.0, 163.0])
+    );
+    assert_eq!(
+        d.body["analysis"]["streams"]["latlng"][2],
+        json!([-30.032, -51.222])
+    );
+
+    // The new activity told its athlete once (a duplicate event or an edit doesn't), linking to it; the activities a
+    // sync listed and fetched in detail don't notify. The push is on by default and can be switched off (C1).
+    let notes = activity_synced(&app, &ana).await;
+    assert_eq!(notes.len(), 1);
+    assert_eq!(
+        (
+            notes[0]["title"].as_str(),
+            notes[0]["body"].as_str(),
+            notes[0]["link"].as_str()
+        ),
+        (
+            Some("Atividade sincronizada"),
+            Some("Tiros na pista · 6,0 km · 34:00"),
+            Some(format!("/activities/{track_id}").as_str())
+        )
+    );
+    app.post("/v1/webhooks/strava", None, json!({ "object_type": "activity", "object_id": 2001, "aspect_type": "update", "owner_id": 777, "event_time": 1700000050 })).await;
+    app.run_jobs().await;
+    assert_eq!(activity_synced(&app, &ana).await.len(), 1);
+    assert_eq!(
+        app.get("/v1/me/prefs", Some(&ana)).await.ok()["kinds"]["activity_synced"]["push"],
+        true
     );
 
     // Deleted on Strava → deleted here; unknown athletes are ignored.

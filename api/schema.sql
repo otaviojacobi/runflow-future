@@ -329,8 +329,15 @@ CREATE TABLE activities (
   avg_pace_s_per_km   int,
   avg_power_w         int,
   calories            int,
-  laps                jsonb,             -- [{ distance_m, duration_s, avg_hr, avg_pace_s_per_km }]
-  polyline            text,
+  -- Device laps (the watch's lap presses or auto-laps: a "tiro" and its recovery are separate laps), as Strava sends
+  -- them: [{ n, name, distance_m, duration_s (moving), elapsed_s, start_s (from the activity's start), avg_pace_s_per_km,
+  -- avg_hr, max_hr }]. Older rows have only distance_m, duration_s, avg_hr, avg_pace_s_per_km.
+  laps                jsonb,
+  -- Per-km splits as Strava computes them (`splits_metric`), the default view of a run (D-055):
+  -- [{ n, distance_m, duration_s (moving), elapsed_s, avg_pace_s_per_km, avg_hr, elevation_diff_m }]
+  splits              jsonb,
+  polyline            text,              -- summary route (lists)
+  route_polyline      text,              -- full-resolution route from the detailed activity (detail views, the map)
   -- Activity matching (D-049): 'open' = the engine may link it; 'pending' = waiting for the student to choose among
   -- activity_match_options; 'dismissed' = the student said it wasn't a planned workout (the engine leaves it alone).
   -- Being linked is a workout_completions row with this activity_id.
@@ -339,6 +346,15 @@ CREATE TABLE activities (
   UNIQUE (source, external_id)
 );
 CREATE INDEX activities_user_started_idx ON activities (user_id, started_at DESC);
+
+-- An activity's time series sampled down to at most 600 points (D-055), read only by detail views:
+-- { time: [s], distance: [m], heartrate: [bpm] | null, altitude: [m] | null, velocity: [m/s] | null,
+--   latlng: [[lat, lng]] | null, original_size }
+CREATE TABLE activity_streams (
+  activity_id  uuid PRIMARY KEY REFERENCES activities (id) ON DELETE CASCADE,
+  data         jsonb NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now()
+);
 
 CREATE TABLE workout_completions (
   planned_workout_id  uuid PRIMARY KEY REFERENCES planned_workouts (id) ON DELETE CASCADE,
@@ -655,7 +671,7 @@ CREATE TABLE notifications (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id     uuid NOT NULL REFERENCES users (id) ON DELETE CASCADE,
   club_id     uuid REFERENCES clubs (id) ON DELETE CASCADE,
-  kind        text NOT NULL CHECK (kind IN ('workout_assigned', 'workout_changed', 'comment', 'feedback', 'member_joined', 'billing', 'message', 'announcement', 'week_released', 'class_cancelled', 'waitlist_promoted')),
+  kind        text NOT NULL CHECK (kind IN ('workout_assigned', 'workout_changed', 'comment', 'feedback', 'member_joined', 'billing', 'message', 'announcement', 'week_released', 'class_cancelled', 'waitlist_promoted', 'activity_synced')),
   title       text NOT NULL,             -- pt-BR, rendered at creation time
   body        text,
   link        text,                      -- in-app path, e.g. /treinos/<id>

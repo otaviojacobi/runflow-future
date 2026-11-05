@@ -32,7 +32,7 @@ pub async fn activities_between(
     sqlx::query_as!(
         Activity,
         "SELECT id, user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m, elevation_gain_m,
-                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, match_state, created_at
+                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, splits, polyline, match_state, created_at
            FROM activities WHERE user_id = $1 AND (started_at AT TIME ZONE $2)::date BETWEEN $3 AND $4
           ORDER BY started_at",
         user_id,
@@ -51,7 +51,7 @@ pub async fn last_activity(
     sqlx::query_as!(
         Activity,
         "SELECT id, user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m, elevation_gain_m,
-                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, match_state, created_at
+                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, splits, polyline, match_state, created_at
            FROM activities WHERE user_id = $1 ORDER BY started_at DESC LIMIT 1",
         user_id
     )

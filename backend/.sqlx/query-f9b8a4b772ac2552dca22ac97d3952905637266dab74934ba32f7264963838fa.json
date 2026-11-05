@@ -1,0 +1,40 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT a.route_polyline, s.data AS \"streams?\"\n             FROM activities a LEFT JOIN activity_streams s ON s.activity_id = a.id WHERE a.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "route_polyline",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "activities",
+            "name": "route_polyline"
+          }
+        }
+      },
+      {
+        "ordinal": 1,
+        "name": "streams?",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "activity_streams",
+            "name": "data"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "f9b8a4b772ac2552dca22ac97d3952905637266dab74934ba32f7264963838fa"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT id, user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m, elevation_gain_m,\n                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, match_state, created_at\n           FROM activities WHERE id = $1",
+  "query": "SELECT id, user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m, elevation_gain_m,\n                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, splits, polyline, match_state, created_at\n           FROM activities WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -192,6 +192,17 @@
       },
       {
         "ordinal": 17,
+        "name": "splits",
+        "type_info": "Jsonb",
+        "origin": {
+          "Table": {
+            "table": "activities",
+            "name": "splits"
+          }
+        }
+      },
+      {
+        "ordinal": 18,
         "name": "polyline",
         "type_info": "Text",
         "origin": {
@@ -202,7 +213,7 @@
         }
       },
       {
-        "ordinal": 18,
+        "ordinal": 19,
         "name": "match_state",
         "type_info": "Text",
         "origin": {
@@ -213,7 +224,7 @@
         }
       },
       {
-        "ordinal": 19,
+        "ordinal": 20,
         "name": "created_at",
         "type_info": "Timestamptz",
         "origin": {
@@ -248,9 +259,10 @@
       true,
       true,
       true,
+      true,
       false,
       false
     ]
   },
-  "hash": "0999f437dd38b73ba81cffb5b6f307a1c88a37567246beebe11caf0efcff4063"
+  "hash": "345249bafe04ea59951e7913c226db271a6d3c81da9643769605e02b2a810227"
 }

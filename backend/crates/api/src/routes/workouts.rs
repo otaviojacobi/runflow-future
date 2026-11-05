@@ -332,6 +332,11 @@ async fn one(
     let mut out = serde_json::to_value(&w).map_err(|_| Problem::internal())?;
     out["athlete"] = athlete;
     out["activity"] = json!(activity);
+    // The completed-training analysis (D-055) under the same consent as the activity itself.
+    if let Some(a) = &activity {
+        out["activity"]["analysis"] =
+            json!(runflow_db::providers::analysis(&state.db, a.id).await?);
+    }
     Ok(Json(out))
 }
 

@@ -339,7 +339,7 @@ pub async fn activity(db: impl PgExecutor<'_>, id: Uuid) -> sqlx::Result<Option<
     sqlx::query_as!(
         Activity,
         "SELECT id, user_id, source, external_id, sport, name, started_at, duration_s, moving_time_s, distance_m, elevation_gain_m,
-                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, polyline, match_state, created_at
+                avg_hr, max_hr, avg_pace_s_per_km, avg_power_w, calories, laps, splits, polyline, match_state, created_at
            FROM activities WHERE id = $1",
         id
     )

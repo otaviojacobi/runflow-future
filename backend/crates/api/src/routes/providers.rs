@@ -461,7 +461,11 @@ async fn detail(state: &AppState, user: Uuid, id: &str) -> Result<Value, Problem
             .unwrap_or_else(|| a.started_at.date_naive());
         matching::pick_options(&state.db, user, a.id, &a.sport, day).await?
     };
-    Ok(activity_json(row, options))
+    let id = row.0.id;
+    let mut out = activity_json(row, options);
+    // The completed-training analysis (D-055): the full route and the time series, only in the detail.
+    out["analysis"] = json!(db::analysis(&state.db, id).await?);
+    Ok(out)
 }
 
 async fn activity(
@@ -627,12 +631,14 @@ async fn log_activity(
         avg_power_w: None,
         calories: None,
         laps: None,
+        splits: None,
         polyline: None,
+        route_polyline: None,
     };
     // Matched right away (D-049): the answer already shows the workout it completed.
     let mut tx = state.db.begin().await?;
     matching::lock(&mut tx, auth.user_id).await?;
-    let id = db::upsert_activity(&mut *tx, auth.user_id, "manual", &a).await?;
+    let (id, _) = db::upsert_activity(&mut *tx, auth.user_id, "manual", &a).await?;
     let (tz, _) = matching::student_clock(&mut *tx, auth.user_id).await?;
     if let Some(m) = matching::activity(&mut *tx, auth.user_id, id, &tz).await? {
         matching::rematch(&mut tx, auth.user_id, m.day, m.day).await?;

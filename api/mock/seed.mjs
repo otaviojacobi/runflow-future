@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { compute as computeAssessment } from "./lib/assessments.mjs";
 import { solve as solveMatches } from "./lib/matching.mjs";
+import { synthActivity } from "./lib/analysis.mjs";
 
 const require = createRequire(import.meta.url);
 const Color = require("@runflow/design/color");
@@ -332,9 +333,11 @@ export function generate(anchor) {
         sport: p.sport, name: p.title, started_at: at(p.date, hhmm), duration_s: dur, moving_time_s: Math.round(dur * 0.97), distance_m: dm,
         elevation_gain_m: dm ? r(10, 90) : null, avg_hr: p.sport === "strength" || p.sport === "mobility" ? null : r(intense ? 158 : 138, intense ? 172 : 152), max_hr: p.sport === "run" ? r(170, 188) : null,
         avg_pace_s_per_km: p.sport === "run" ? avgPace : null, avg_power_w: null, calories: Math.round(dur / 60 * (intense ? 12 : 9)),
-        laps: recent && p.sport === "run" && dm ? Array.from({ length: Math.floor(dm / 1000) }, () => ({ distance_m: 1000, duration_s: avgPace + r(-12, 12), avg_hr: r(135, 175) })) : null,
-        polyline: null, match_state: "open", created_at: at(p.date, "10:00"),
+        laps: null, splits: null, polyline: null, route_polyline: null, match_state: "open", created_at: at(p.date, "10:00"),
       };
+      // The last two weeks' runs carry Strava's detail (D-055): laps (a "tiros" session's work and recovery), per-km
+      // splits and the route; older ones look like activities imported before it.
+      if (recent && p.sport === "run" && dm) Object.assign(activity, synthActivity(activity));
       t("activities").push(activity);
     }
     t("workout_completions").push({
@@ -394,12 +397,14 @@ export function generate(anchor) {
   // at most (cut short, done late or done early?). The distance is the longest one the engine asks about; nothing changes
   // when there's no such pair.
   t("activity_match_options");
+  t("activity_streams"); // the series are made up per request by the mock's detail routes (lib/analysis.mjs)
   {
     const d = addDays(anchor, -1);
     const near = t("planned_workouts").filter((p) => p.athlete_membership_id === M["paceforte:ana"].id && p.sport === "run" && p.est_distance_m && Math.abs(Math.round((parseDate(p.date) - parseDate(d)) / DAY)) <= 1);
     for (let dm = 20000; dm >= 3000 && near.length >= 2; dm -= 100) {
       const dur = Math.round(dm * 0.33);
-      const act = { id: uuid("act:ana-pending"), user_id: U.ana.id, source: "strava", external_id: "18000000001", sport: "run", name: "Corrida matinal", started_at: at(d, "06:40"), duration_s: dur, moving_time_s: Math.round(dur * 0.97), distance_m: dm, elevation_gain_m: 34, avg_hr: 146, max_hr: 171, avg_pace_s_per_km: Math.round(dur / (dm / 1000)), avg_power_w: null, calories: Math.round((dur / 60) * 9), laps: null, polyline: null, match_state: "pending", created_at: at(d, "07:30") };
+      const act = { id: uuid("act:ana-pending"), user_id: U.ana.id, source: "strava", external_id: "18000000001", sport: "run", name: "Corrida matinal", started_at: at(d, "06:40"), duration_s: dur, moving_time_s: Math.round(dur * 0.97), distance_m: dm, elevation_gain_m: 34, avg_hr: 146, max_hr: 171, avg_pace_s_per_km: Math.round(dur / (dm / 1000)), avg_power_w: null, calories: Math.round((dur / 60) * 9), laps: null, splits: null, polyline: null, route_polyline: null, match_state: "pending", created_at: at(d, "07:30") };
+      Object.assign(act, synthActivity(act));
       const { pending } = solveMatches({ today: anchor, activities: [{ ...act, day: d }], workouts: near });
       if (!pending.length) continue;
       // Those workouts are still open: no completion, no activity.

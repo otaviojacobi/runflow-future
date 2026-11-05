@@ -148,6 +148,11 @@ async fn one(
     let mut out = serde_json::to_value(&w).map_err(|_| Problem::internal())?;
     out["structure"] = resolve_targets(&w.structure, &zones);
     out["activity"] = json!(activity);
+    // The completed-training analysis (D-055): the full route and the time series, only in this detail.
+    if let Some(a) = &activity {
+        out["activity"]["analysis"] =
+            json!(runflow_db::providers::analysis(&state.db, a.id).await?);
+    }
     out["candidate_activities"] = json!(candidates);
     out["coach"] = coach.unwrap_or(Value::Null);
     Ok(Json(out))

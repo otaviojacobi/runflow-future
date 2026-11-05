@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO activity_streams (activity_id, data) SELECT id, $2 FROM activities WHERE id = $1\n         ON CONFLICT (activity_id) DO UPDATE SET data = $2, created_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Jsonb"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1c42635838899c53b96fa66d8f1f836d76b14829c47968e911fee6257f70c66c"
+}

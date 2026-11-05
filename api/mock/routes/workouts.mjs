@@ -2,6 +2,8 @@
 const SPORTS = ["run", "swim", "bike", "strength", "mobility", "other"];
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+import { analysisOf } from "../lib/analysis.mjs";
+
 export default function register(h) {
   const comp = (pwId) => h.db.workout_completions.find((c) => c.planned_workout_id === pwId) || null;
   const threadInfo = (pw, membershipId) => {
@@ -84,7 +86,7 @@ export default function register(h) {
     // The linked activity only with the student's consent: training data, plus the provider's for a synced one (D-011).
     const linked = c?.activity_id ? h.db.activities.find((a) => a.id === c.activity_id) : null;
     const activity = linked && h.staffSees(m.user_id, pw.club_id, linked.source) ? linked : null;
-    return { ...h.workoutOut(pw, me.id), athlete: { membership_id: m.id, user: h.publicUser(h.db.users.find((u) => u.id === m.user_id)) }, activity: activity || null };
+    return { ...h.workoutOut(pw, me.id), athlete: { membership_id: m.id, user: h.publicUser(h.db.users.find((u) => u.id === m.user_id)) }, activity: activity ? { ...activity, analysis: analysisOf(activity) } : null };
   });
   h.patch("/v1/clubs/:club_id/planned-workouts/:id", (ctx) => {
     const me = ctx.staff(ctx.params.club_id);

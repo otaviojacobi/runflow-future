@@ -179,7 +179,27 @@ impl StravaClient {
         Self::json(res).await
     }
 
-    /// One detailed activity (laps, calories, polyline).
+    /// An activity's time series (D-055), keyed by type: time, distance, heart rate, altitude, smoothed speed and
+    /// position, each `{ "data": [...] }`. Missing sensors are simply absent. See [`map_streams`].
+    pub async fn streams(&self, access_token: &str, id: i64) -> Result<Value, StravaError> {
+        let res = self
+            .http
+            .get(format!("{}/api/v3/activities/{id}/streams", self.base))
+            .bearer_auth(access_token)
+            .query(&[
+                (
+                    "keys",
+                    "time,distance,heartrate,altitude,velocity_smooth,latlng",
+                ),
+                ("key_by_type", "true"),
+            ])
+            .send()
+            .await
+            .map_err(|e| StravaError::Transport(e.to_string()))?;
+        Self::json(res).await
+    }
+
+    /// One detailed activity (laps, per-km splits, calories, the full route).
     pub async fn activity(&self, access_token: &str, id: i64) -> Result<Value, StravaError> {
         let res = self
             .http
@@ -239,7 +259,139 @@ pub struct Mapped {
     pub avg_power_w: Option<i32>,
     pub calories: Option<i32>,
     pub laps: Option<Value>,
+    pub splits: Option<Value>,
     pub polyline: Option<String>,
+    pub route_polyline: Option<String>,
+}
+
+fn round(v: Option<f64>) -> Option<i64> {
+    v.map(|x| x.round() as i64)
+}
+
+/// Seconds per km from metres and seconds; none for a zero distance.
+fn pace(distance_m: f64, seconds: f64) -> Option<i64> {
+    (distance_m > 0.0).then(|| (seconds / (distance_m / 1000.0)).round() as i64)
+}
+
+/// Device laps (D-055): the watch's lap presses or auto-laps, in order. A "tiro" and its recovery are separate laps;
+/// `elapsed_s` above `duration_s` is time the watch was paused inside the lap, and `start_s` places each lap on the
+/// activity's clock (gaps between laps are pauses too).
+fn map_laps(a: &Value) -> Option<Value> {
+    let start = a["start_date"]
+        .as_str()
+        .and_then(|d| d.parse::<chrono::DateTime<chrono::Utc>>().ok());
+    let laps = a["laps"].as_array().filter(|l| !l.is_empty())?;
+    Some(Value::Array(
+        laps.iter()
+            .enumerate()
+            .map(|(i, l)| {
+                let d = l["distance"].as_f64().unwrap_or(0.0);
+                let elapsed = l["elapsed_time"].as_f64();
+                let t = l["moving_time"].as_f64().or(elapsed).unwrap_or(0.0);
+                let start_s = match (start, l["start_date"].as_str()) {
+                    (Some(s0), Some(d)) => d
+                        .parse::<chrono::DateTime<chrono::Utc>>()
+                        .ok()
+                        .map(|t| (t - s0).num_seconds().max(0)),
+                    _ => None,
+                };
+                serde_json::json!({
+                    "n": l["lap_index"].as_i64().unwrap_or(i as i64 + 1),
+                    "name": l["name"].as_str(),
+                    "distance_m": d.round() as i64,
+                    "duration_s": t.round() as i64,
+                    "elapsed_s": round(elapsed),
+                    "start_s": start_s,
+                    "avg_pace_s_per_km": pace(d, t),
+                    "avg_hr": round(l["average_heartrate"].as_f64()),
+                    "max_hr": round(l["max_heartrate"].as_f64()),
+                })
+            })
+            .collect(),
+    ))
+}
+
+/// Per-km splits as Strava computes them (`splits_metric`, D-055); the last one is usually shorter.
+fn map_splits(a: &Value) -> Option<Value> {
+    let splits = a["splits_metric"].as_array().filter(|s| !s.is_empty())?;
+    Some(Value::Array(
+        splits
+            .iter()
+            .enumerate()
+            .map(|(i, s)| {
+                let d = s["distance"].as_f64().unwrap_or(0.0);
+                let elapsed = s["elapsed_time"].as_f64();
+                let t = s["moving_time"].as_f64().or(elapsed).unwrap_or(0.0);
+                serde_json::json!({
+                    "n": s["split"].as_i64().unwrap_or(i as i64 + 1),
+                    "distance_m": d.round() as i64,
+                    "duration_s": t.round() as i64,
+                    "elapsed_s": round(elapsed),
+                    "avg_pace_s_per_km": pace(d, t),
+                    "avg_hr": round(s["average_heartrate"].as_f64()),
+                    "elevation_diff_m": round(s["elevation_difference"].as_f64()),
+                })
+            })
+            .collect(),
+    ))
+}
+
+/// The most points kept from an activity's streams (D-055): enough for a heart-rate chart and a route.
+pub const STREAM_POINTS: usize = 600;
+
+/// Strava streams (`key_by_type`) → what `activity_streams.data` keeps: every series sampled at the same evenly
+/// spaced indices (first and last kept), values rounded. None without a time series.
+pub fn map_streams(s: &Value) -> Option<Value> {
+    let series = |k: &str| s[k]["data"].as_array().filter(|d| !d.is_empty());
+    let time = series("time")?;
+    let n = time.len();
+    let keep: Vec<usize> = if n <= STREAM_POINTS {
+        (0..n).collect()
+    } else {
+        (0..STREAM_POINTS)
+            .map(|i| i * (n - 1) / (STREAM_POINTS - 1))
+            .collect()
+    };
+    let nums = |k: &str, digits: i32| -> Value {
+        let Some(d) = series(k).filter(|d| d.len() == n) else {
+            return Value::Null;
+        };
+        let f = 10f64.powi(digits);
+        Value::Array(
+            keep.iter()
+                .map(|&i| {
+                    d[i].as_f64()
+                        .map(|v| serde_json::json!((v * f).round() / f))
+                        .unwrap_or(Value::Null)
+                })
+                .collect(),
+        )
+    };
+    let latlng = series("latlng").filter(|d| d.len() == n).map(|d| {
+        Value::Array(
+            keep.iter()
+                .map(|&i| {
+                    let p = &d[i];
+                    match (p[0].as_f64(), p[1].as_f64()) {
+                        (Some(lat), Some(lng)) => serde_json::json!([
+                            (lat * 1e5).round() / 1e5,
+                            (lng * 1e5).round() / 1e5
+                        ]),
+                        _ => Value::Null,
+                    }
+                })
+                .collect(),
+        )
+    });
+    Some(serde_json::json!({
+        "time": nums("time", 0),
+        "distance": nums("distance", 0),
+        "heartrate": nums("heartrate", 0),
+        "altitude": nums("altitude", 1),
+        "velocity": nums("velocity_smooth", 2),
+        "latlng": latlng.unwrap_or(Value::Null),
+        "original_size": n,
+    }))
 }
 
 pub fn map_activity(a: &Value) -> Option<Mapped> {
@@ -252,22 +404,7 @@ pub fn map_activity(a: &Value) -> Option<Mapped> {
     );
     let distance = int("distance").filter(|d| *d > 0);
     let moving = int("moving_time");
-    let laps =
-        a["laps"].as_array().filter(|l| !l.is_empty()).map(|laps| {
-            Value::Array(
-            laps.iter()
-                .map(|l| {
-                    let d = l["distance"].as_f64().unwrap_or(0.0);
-                    let t = l["moving_time"].as_f64().or(l["elapsed_time"].as_f64()).unwrap_or(0.0);
-                    serde_json::json!({
-                        "distance_m": d.round() as i64, "duration_s": t.round() as i64,
-                        "avg_hr": l["average_heartrate"].as_f64().map(|h| h.round() as i64),
-                        "avg_pace_s_per_km": (d > 0.0).then(|| (t / (d / 1000.0)).round() as i64),
-                    })
-                })
-                .collect(),
-        )
-        });
+    let laps = map_laps(a);
     Some(Mapped {
         external_id: a["id"].as_i64()?.to_string(),
         sport,
@@ -295,7 +432,13 @@ pub fn map_activity(a: &Value) -> Option<Mapped> {
         avg_power_w: int("average_watts"),
         calories: int("calories"),
         laps,
+        splits: map_splits(a),
         polyline: a["map"]["summary_polyline"]
+            .as_str()
+            .filter(|p| !p.is_empty())
+            .map(str::to_string),
+        // Only the detailed activity carries the full route; lists have the summary one only.
+        route_polyline: a["map"]["polyline"]
             .as_str()
             .filter(|p| !p.is_empty())
             .map(str::to_string),
@@ -327,8 +470,10 @@ mod tests {
         );
         assert_eq!(
             m.laps.unwrap()[0],
-            json!({ "distance_m": 1000, "duration_s": 340, "avg_hr": 145, "avg_pace_s_per_km": 340 })
+            json!({ "n": 1, "name": null, "distance_m": 1000, "duration_s": 340, "elapsed_s": null, "start_s": null,
+                    "avg_pace_s_per_km": 340, "avg_hr": 145, "max_hr": null })
         );
+        assert_eq!((m.splits, m.route_polyline), (None, None));
         assert_eq!(sport_of("GravelRide"), "bike");
         assert_eq!(sport_of("Kitesurf"), "other");
         assert!(map_activity(&json!({ "name": "x" })).is_none());
@@ -338,5 +483,78 @@ mod tests {
             url.contains("redirect_uri=https%3A%2F%2Fapp.runflow.club%2Fconnect%2Fstrava")
                 && url.contains("scope=read%2Cactivity%3Aread_all")
         );
+    }
+
+    /// D-055: a session of tiros keeps each lap with its pauses and position, Strava's per-km splits and the full route.
+    #[test]
+    fn keeps_intervals_splits_and_route() {
+        let a = json!({ "id": 1, "name": "Tiros", "sport_type": "Run", "start_date": "2026-11-05T09:00:00Z",
+            "elapsed_time": 1500, "moving_time": 1380, "distance": 4200.0,
+            "map": { "summary_polyline": "sum", "polyline": "full" },
+            "laps": [
+                { "lap_index": 1, "name": "Lap 1", "distance": 400.0, "moving_time": 80, "elapsed_time": 80,
+                  "start_date": "2026-11-05T09:10:00Z", "average_heartrate": 171.4, "max_heartrate": 182.0 },
+                { "lap_index": 2, "name": "Lap 2", "distance": 120.0, "moving_time": 50, "elapsed_time": 60,
+                  "start_date": "2026-11-05T09:11:20Z", "average_heartrate": 150.0, "max_heartrate": 172.0 }
+            ],
+            "splits_metric": [
+                { "split": 1, "distance": 1000.2, "moving_time": 300, "elapsed_time": 301, "average_heartrate": 140.2, "elevation_difference": 2.6 },
+                { "split": 2, "distance": 200.0, "moving_time": 50, "elapsed_time": 50 }
+            ] });
+        let m = map_activity(&a).unwrap();
+        let laps = m.laps.unwrap();
+        assert_eq!(
+            laps[0],
+            json!({ "n": 1, "name": "Lap 1", "distance_m": 400, "duration_s": 80, "elapsed_s": 80, "start_s": 600,
+                    "avg_pace_s_per_km": 200, "avg_hr": 171, "max_hr": 182 })
+        );
+        assert_eq!(
+            (laps[1]["start_s"].as_i64(), laps[1]["elapsed_s"].as_i64()),
+            (Some(680), Some(60))
+        );
+        assert_eq!(
+            m.splits.unwrap(),
+            json!([
+                { "n": 1, "distance_m": 1000, "duration_s": 300, "elapsed_s": 301, "avg_pace_s_per_km": 300, "avg_hr": 140, "elevation_diff_m": 3 },
+                { "n": 2, "distance_m": 200, "duration_s": 50, "elapsed_s": 50, "avg_pace_s_per_km": 250, "avg_hr": null, "elevation_diff_m": null }
+            ])
+        );
+        assert_eq!(
+            (m.polyline.as_deref(), m.route_polyline.as_deref()),
+            (Some("sum"), Some("full"))
+        );
+    }
+
+    /// D-055: streams are sampled to at most STREAM_POINTS, every series at the same instants; absent sensors are null.
+    #[test]
+    fn samples_streams() {
+        let n = 1801;
+        let s = json!({
+            "time": { "data": (0..n).collect::<Vec<_>>() },
+            "distance": { "data": (0..n).map(|i| i as f64 * 2.83).collect::<Vec<_>>() },
+            "heartrate": { "data": (0..n).map(|i| 120 + (i % 50)).collect::<Vec<_>>() },
+            "latlng": { "data": (0..n).map(|i| json!([-30.0 + i as f64 * 1e-5, -51.2])).collect::<Vec<_>>() }
+        });
+        let d = map_streams(&s).unwrap();
+        let time = d["time"].as_array().unwrap();
+        assert_eq!(time.len(), STREAM_POINTS);
+        assert_eq!(
+            (time[0].as_f64(), time[STREAM_POINTS - 1].as_f64()),
+            (Some(0.0), Some(1800.0))
+        );
+        assert_eq!(d["heartrate"].as_array().unwrap().len(), STREAM_POINTS);
+        assert_eq!(d["latlng"][STREAM_POINTS - 1], json!([-29.982, -51.2]));
+        assert_eq!(
+            (d["altitude"].clone(), d["original_size"].as_u64()),
+            (Value::Null, Some(1801))
+        );
+        // Short activities keep every point; no time series, nothing to keep.
+        let short =
+            json!({ "time": { "data": [0, 1, 2] }, "distance": { "data": [0.0, 2.5, 5.04] } });
+        assert_eq!(
+            map_streams(&short).unwrap()["distance"],
+            json!([0.0, 3.0, 5.0])
+        );
+        assert!(map_streams(&json!({})).is_none());
     }
 }

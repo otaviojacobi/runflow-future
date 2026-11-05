@@ -1,5 +1,6 @@
 /** Student endpoints (/my/*): own workouts with personal targets, completion/feedback, summary for Today. */
 import { compliance as complianceOf, cost } from "../lib/matching.mjs";
+import { analysisOf } from "../lib/analysis.mjs";
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -39,7 +40,7 @@ export default function register(h) {
     const activity = c?.activity_id ? h.db.activities.find((a) => a.id === c.activity_id) : null;
     const coach = h.db.memberships.find((x) => x.id === p.created_by);
     const sameDay = h.db.activities.filter((a) => a.user_id === m.user_id && a.started_at.slice(0, 10) >= h.addDays(p.date, -1) && a.started_at.slice(0, 10) <= h.addDays(p.date, 1));
-    return { ...h.workoutOut(p, m.id), structure: h.resolveTargets(p.structure, m.id), activity: activity || null, candidate_activities: sameDay, coach: coach ? h.publicUser(h.db.users.find((u) => u.id === coach.user_id)) : null };
+    return { ...h.workoutOut(p, m.id), structure: h.resolveTargets(p.structure, m.id), activity: activity ? { ...activity, analysis: analysisOf(activity) } : null, candidate_activities: sameDay, coach: coach ? h.publicUser(h.db.users.find((u) => u.id === coach.user_id)) : null };
   });
   h.put("/v1/clubs/:club_id/my/workouts/:id/completion", (ctx) => {
     const m = mine(ctx);
