@@ -2,6 +2,7 @@
  * API types: mirror api/schema.sql rows and api/endpoints.md responses (snake_case, as on the wire).
  * Add types here when a screen starts using an endpoint; keep them identical to the contract.
  */
+import type { Lap, Split, Streams } from "@/domain/activity";
 export type ID = string;
 export type ISODate = string; // "YYYY-MM-DD" club-local
 export type ISOTime = string; // ISO 8601 UTC timestamp
@@ -52,7 +53,7 @@ export interface KindPref { push: boolean }
 export interface NotificationPrefs { kinds: Record<NotificationKind, KindPref>; paused: boolean }
 export type PrefsPatch = { kinds?: Partial<Record<NotificationKind, KindPref>>; paused?: boolean };
 export interface Me { user: User; memberships: MembershipContext[]; prefs: NotificationPrefs | null; unread_notifications: number }
-export type NotificationKind = "workout_assigned" | "workout_changed" | "week_released" | "comment" | "feedback" | "member_joined" | "billing" | "message" | "announcement" | "class_cancelled" | "waitlist_promoted";
+export type NotificationKind = "workout_assigned" | "workout_changed" | "week_released" | "comment" | "feedback" | "member_joined" | "billing" | "message" | "announcement" | "class_cancelled" | "waitlist_promoted" | "activity_synced";
 export interface AppNotification { id: ID; user_id: ID; club_id: ID | null; kind: NotificationKind; title: string; body: string | null; link: string | null; read_at: ISOTime | null; created_at: ISOTime }
 export interface UserSession { id: ID; kind: "web" | "mobile"; user_agent: string | null; created_at: ISOTime; last_seen_at: ISOTime; current: boolean }
 export interface AuthResult { token: string; user: User; is_new: boolean }
@@ -118,11 +119,15 @@ export interface PlannedWorkout {
   /** The student can see it now; false = a draft (D-031). */
   visible: boolean;
 }
+export interface ActivityAnalysisData { route_polyline: string | null; streams: Streams | null }
 export interface Activity {
   id: ID; user_id: ID; source: "strava" | "garmin" | "manual" | "file"; external_id: string | null; sport: Sport; name: string;
   started_at: ISOTime; duration_s: number; moving_time_s: number | null; distance_m: number | null; elevation_gain_m: number | null;
   avg_hr: number | null; max_hr: number | null; avg_pace_s_per_km: number | null; avg_power_w: number | null; calories: number | null;
-  laps: { distance_m: number; duration_s: number; avg_hr: number | null; avg_pace_s_per_km?: number }[] | null; polyline: string | null;
+  /** Device laps (a "tiro" and its recovery are separate laps) and Strava's per-km splits (D-055); null for manual ones. */
+  laps: Lap[] | null; splits: Split[] | null; polyline: string | null;
+  /** Detail payloads only (D-055): the full route and the sampled time series. */
+  analysis?: ActivityAnalysisData | null;
   /** Activity matching (D-049): open (the engine may link it), pending (waiting for the student), dismissed. */
   match_state: MatchState;
   created_at: ISOTime;

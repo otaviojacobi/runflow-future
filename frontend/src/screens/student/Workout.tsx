@@ -14,6 +14,7 @@ import { useClub } from "@/lib/club";
 import { distance, duration, km, longDate, pace } from "@/lib/format";
 import { Avatar, Button, ButtonLink, Card, Skeleton } from "@/ui";
 import { FEELING } from "../staff/planning/WorkoutDialogs";
+import { ActivityAnalysis } from "@/components/activity/ActivityAnalysis";
 
 export function WorkoutScreen() {
   const { id } = useParams({ strict: false }) as { id: string };
@@ -65,6 +66,7 @@ export function WorkoutScreen() {
           <div className="grid grid-cols-3 gap-3">{a.distance_m ? <Stat value={km(a.distance_m)} unit="km" label={t("Distância")} /> : null}<Stat value={duration(a.duration_s)} label={t("Tempo")} />{a.avg_pace_s_per_km ? <Stat value={pace(a.avg_pace_s_per_km)} unit="/km" label={t("Pace")} /> : null}{a.avg_hr ? <Stat value={String(a.avg_hr)} unit="bpm" label={t("FC média")} /> : null}</div>
         </Card>
       )}
+      {a && <ActivityAnalysis a={a} />}
       <Card id="conversa" className="grid scroll-mt-20 gap-3 p-4"><h2 className="rf-text-title-sm">{t("Conversa com o treinador")}</h2><Thread clubId={club.id} workoutId={w.id} meMembershipId={ctx.membership.id} placeholder={t("Dúvida sobre o treino? Escreva aqui")} /></Card>
       <FeedbackDialog clubId={club.id} workout={w} activities={w.candidate_activities} open={fb} onOpenChange={setFb} />
     </div>

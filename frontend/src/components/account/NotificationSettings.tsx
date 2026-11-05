@@ -22,6 +22,7 @@ const INFO: Record<NotificationKind, { label: string; hint: string }> = {
   billing: { label: "Plano e cobrança", hint: "Limite de alunos e avisos do plano" },
   class_cancelled: { label: "Aula cancelada", hint: "Uma aula que você reservou foi cancelada" },
   waitlist_promoted: { label: "Vaga liberada", hint: "Você saiu da lista de espera de uma aula" },
+  activity_synced: { label: "Atividade sincronizada", hint: "Um treino seu chegou do Strava" },
 };
 const STUDENT: NotificationKind[] = ["week_released", "workout_assigned", "workout_changed", "comment", "message", "announcement"];
 const STAFF: NotificationKind[] = ["feedback", "comment", "message", "member_joined"];
@@ -33,6 +34,8 @@ function kindsFor(memberships: MembershipContext[]): NotificationKind[] {
   if (roles.has("student")) out.push(...STUDENT);
   // Aulas news only where a club the person studies at has classes (D-052).
   if (memberships.some((m) => m.membership.role === "student" && m.membership.status === "active" && has(m.club, "classes"))) out.push("class_cancelled", "waitlist_promoted");
+  // Each training that arrives from Strava (D-055), where a club the person studies at uses it.
+  if (memberships.some((m) => m.membership.role === "student" && m.membership.status === "active" && has(m.club, "strava"))) out.push("activity_synced");
   if (roles.has("trainer") || roles.has("owner")) out.push(...STAFF);
   if (roles.has("owner")) out.push("billing");
   return [...new Set(out)];

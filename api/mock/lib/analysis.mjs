@@ -84,9 +84,9 @@ function route(a, pts, r) {
   });
 }
 
-/** Laps, splits and the route a run gets stored with (null for anything else). */
+/** Laps, splits, the route and the matching max heart rate a run gets stored with (laps unchanged otherwise). */
 export function synthActivity(a) {
-  if (!isRun(a)) return { laps: a.laps ?? null, splits: null, route_polyline: null };
+  if (!isRun(a)) return { laps: a.laps ?? null, splits: null, max_hr: a.max_hr ?? null, route_polyline: null };
   const r = rng(a.id);
   const segs = segments(a, r);
   const pts = timeline(a, segs, r);
@@ -128,7 +128,9 @@ export function synthActivity(a) {
     }
   }
   const path = route(a, pts.filter((_, i) => i % 3 === 0), r);
-  return { laps, splits, route_polyline: a.source === "strava" ? encodePolyline(path) : null };
+  // The totals agree with the made-up series (Strava's max heart rate is the series' max).
+  const max_hr = a.avg_hr ? Math.round(Math.max(...pts.slice(1).map((p) => p.hr))) : a.max_hr;
+  return { laps, splits, max_hr, route_polyline: a.source === "strava" ? encodePolyline(path) : null };
 }
 
 /** The detail views' `analysis` {route_polyline, streams} (D-055), or null for activities without one. */

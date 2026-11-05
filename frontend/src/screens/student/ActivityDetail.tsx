@@ -1,9 +1,11 @@
-/** M4 · Atividade (detail): stats, per-km pace bars, matched workout. Route: /activities/$id */
+/** M4 · Atividade (detail): stats, the matched workout, then the analysis (D-055: heart rate, per-km splits or the
+ * named laps of a "tiros" session, the route). Route: /activities/$id */
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { ArrowLeft, Shuffle, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useDeleteActivity, useMyActivity } from "@/api/activities";
 import { ChangeMatchDialog, MatchQuestion } from "@/components/ActivityMatch";
+import { ActivityAnalysis } from "@/components/activity/ActivityAnalysis";
 import { SportChip } from "@/components/sport";
 import { StravaAttribution } from "@/components/strava";
 import { Stat } from "@/components/workout";
@@ -20,9 +22,6 @@ export function ActivityDetailScreen() {
   const a = q.data;
   if (q.isPending) return <Skeleton className="mx-auto h-80 max-w-2xl" />;
   if (!a) return <p className="text-fg-muted">{t("Atividade não encontrada.")}</p>;
-  const laps = a.laps ?? [];
-  const paces = laps.map((l) => l.duration_s / (l.distance_m / 1000));
-  const fastest = Math.min(...paces), slowest = Math.max(...paces);
   const m = a.matched_workout;
   return (
     <div className="mx-auto grid max-w-2xl gap-5">
@@ -55,25 +54,7 @@ export function ActivityDetailScreen() {
         </Card>
       )}
       <ChangeMatchDialog a={a} open={change} onOpenChange={setChange} />
-      {laps.length > 0 && (
-        <Card className="grid gap-3 p-5">
-          <div className="flex items-baseline justify-between"><h2 className="rf-text-title-md">{t("Parciais por km")}</h2><span className="text-xs text-fg-muted">{t("barra maior = mais rápido")}</span></div>
-          <ol className="grid gap-1.5">
-            {laps.map((l, i) => {
-              const p = paces[i]!;
-              const w = slowest === fastest ? 100 : 55 + ((slowest - p) / (slowest - fastest)) * 45;
-              return (
-                <li key={i} className="grid grid-cols-[28px_1fr_64px_56px] items-center gap-2 text-sm tabular-nums" title={t("km {n}: {p} /km", { n: i + 1, p: pace(p) })}>
-                  <span className="text-fg-muted">{i + 1}</span>
-                  <span className="h-5 rounded-r-[4px] bg-brand-text" style={{ width: `${w}%`, opacity: p === fastest ? 1 : 0.75 }} />
-                  <span className="text-right font-semibold">{pace(p)}</span>
-                  <span className="text-right text-fg-muted">{l.avg_hr ? `${l.avg_hr} bpm` : ""}</span>
-                </li>
-              );
-            })}
-          </ol>
-        </Card>
-      )}
+      <ActivityAnalysis a={a} />
       {a.source === "strava" && <StravaAttribution externalId={a.external_id} />}
       {a.source === "manual" && <Button variant="ghost" icon={<Trash2 />} className="w-fit" loading={del.isPending} onClick={() => del.mutate(a.id, { onSuccess: () => { toast.success(t("Atividade removida")); navigate({ to: "/activities" }); }, onError: toast.error })}>{t("Remover atividade")}</Button>}
     </div>

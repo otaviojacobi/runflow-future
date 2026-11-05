@@ -12,6 +12,7 @@ import { estimate, type Structure } from "@/domain/workout";
 import { t, tn } from "@/i18n";
 import { addDays, dayMonth, distance, duration, longDate, pace, timeOf } from "@/lib/format";
 import { Avatar, Button, DateInput, Dialog, Field, Input, Select, Skeleton, Textarea, toast } from "@/ui";
+import { ActivityAnalysis } from "@/components/activity/ActivityAnalysis";
 
 export const FEELING: Record<Feeling, string> = { great: "Ótimo", good: "Bem", ok: "Normal", bad: "Cansado", awful: "Muito mal" };
 
@@ -66,6 +67,7 @@ export function DetailDialog({ club, id, onClose, onEdit }: { club: Club; id: st
               {a.source === "strava" && <StravaAttribution externalId={a.external_id} />}
             </section>
           )}
+          {a && <ActivityAnalysis a={a} />}
           {w.comments_count > 0 && <p className="flex items-center gap-2 text-sm text-fg-muted"><MessageSquare className="size-4" />{tn(w.comments_count, "{n} comentário nesta conversa", "{n} comentários nesta conversa")}</p>}
           <div className="flex flex-wrap items-end gap-2 border-t border-line-subtle pt-4">
             <Field label={t("Mover para outro dia")} className="w-48">{(fid) => <DateInput id={fid} value={moveTo || w.date} onChange={setMoveTo} className="h-9" />}</Field>
