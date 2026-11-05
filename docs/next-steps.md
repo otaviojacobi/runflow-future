@@ -49,6 +49,16 @@ object storage for logos and avatars, e-mail, the web app (static files), TLS, b
 | **D. Serverless free tiers** (Cloud Run or Koyeb + Neon/Supabase Postgres + Upstash Redis) | $0 | No server to patch | Cold starts (against the SPEED pillar); Neon free is 0.5 GB and its São Paulo availability is unclear, Supabase free pauses idle projects; our worker needs an always-on process (LISTEN/NOTIFY), which scale-to-zero platforms don't give. Many moving parts. |
 | **E. All on Cloudflare** (Workers + Hyperdrive/D1 + Queues + R2) | $0 for Workers; **Containers need Workers Paid (US$ 5/month)** | Global, no servers | Our axum/sqlx/tokio backend doesn't run on Workers (WASM) without a large rewrite: compile-time sqlx queries, the job queue, Valkey. Cloudflare Containers could run the image as is, but aren't free. A later idea, not for the first release. |
 
+**Founder's leaning (2026-11-05):** a free-tier EC2 instance running QA's compose as it is, with the data kept on
+its disk. Not a decision yet (D-040 stays under review). Points to settle first:
+- Which free tier the AWS account has: accounts opened after 2025-07-15 get credits (about US$ 100–200 for 6 months,
+  then the account must upgrade); older ones get 750 h/month of a `t3.micro` (2 vCPU, **1 GB RAM**) for 12 months.
+  The public IPv4 (~US$ 3.65/month) and EBS beyond the allowance are billed either way.
+- Memory: QA's app containers use ~150 MB, but its self-hosted observability uses ~700 MB (Grafana ~350, Alloy ~125,
+  Loki ~115, Prometheus ~100, measured 2026-11-05). On 1 GB, production should send metrics and logs to Grafana Cloud's
+  free tier (only Alloy on the box; the same dashboards import there) or use a 2 GB instance.
+- Backups off the box (R2, §3) matter more on EC2 than anywhere: one instance, one disk.
+
 ### Recommendation
 1. **Use the free building blocks above in every case**: web on Pages, uploads and backups in R2, Grafana Cloud,
    Sentry, Resend, Expo/FCM, the Tunnel.
@@ -150,19 +160,33 @@ The founder made the switch on 2026-11-04, before the beta: testers use QA with 
 
 ## 7. Tracking: knowing what people do (free and LGPD-friendly)
 
-1. **Product numbers from our own database, no tracker needed:** signups, clubs created, invites sent/accepted,
-   workouts assigned, completions, Strava connections, per week. A small "Crescimento" dashboard (Grafana with a
-   read-only Postgres user, or a `/dev`-style admin page). Nothing leaves our servers.
-2. **Landing page visits: Cloudflare Web Analytics** (free, no cookies, so no consent banner; one switch on Pages):
-   page views, referrers, countries, devices, Core Web Vitals.
-3. **Funnels and click paths in the app (optional): PostHog** free (≈1M events/month). Use it cookieless (in-memory
-   persistence), no autocapture of inputs, no session replay at first, no personal data in events; mention it in the
-   privacy policy. Or self-host **Umami** on the VM (free, cookieless, data stays in Brazil) if we'd rather not add a
-   processor.
-4. Define the activation funnel now: landing → "Criar meu clube grátis" → club created → first invite → first workout
-   assigned → first completion by a student → second week planned. That's the number to improve.
+Selling needs two answers: **do clubs reach the moment Runflow is useful** (counts and funnels), and **where do they
+get stuck** (watching real use). Updated 2026-11-05 with the founder's idea of self-hosting Umami.
 
----
+1. **Product numbers from our own database, no tracker needed** (do this first): signups, clubs created, invites
+   sent/accepted, workouts assigned and released, completions, Strava connections, per week and per club. A Grafana
+   "Produto" dashboard on a read-only Postgres role (the dashboards-as-code script already exists). Nothing leaves our
+   servers and it answers the activation question directly.
+2. **Activation funnel** (define now, measure in 1): landing → "Criar meu clube grátis" → club created → first invite
+   → first workout assigned → first completion by a student → second week planned. That's the number to improve.
+3. **Web and app behaviour: Umami, self-hosted** (the founder's idea, and the best fit). Cookieless, so no consent
+   banner; data stays on our server in Brazil; one Node container (~150–250 MB) using its own database on the same
+   Postgres; page views, referrers, UTM campaigns, devices, custom events (`umami.track("treino_atribuido")`), and
+   funnel, journey and retention reports. The phone app has no SDK but can post the same events to Umami's
+   `/api/send`. Events carry no personal data (club size bucket, role, modality at most).
+4. **Landing page visits: Cloudflare Web Analytics** (free, no cookies, one switch on Pages) if the landing moves to
+   Pages; otherwise Umami covers it.
+5. **Seeing where people get stuck** (once the beta starts): at 3–5 clubs, watching beats counting.
+   - Moderated sessions: a 30-minute screen share with each new coach doing their first week; write down every hesitation.
+   - A "Mandar feedback" entry in the app menu (text + the current screen, stored in our own database).
+   - A one-question check-in after week 2 ("O que quase te fez desistir?").
+   - Session replay only if those leave gaps: **PostHog Cloud** free (~1M events and ~5k recordings/month, inputs
+     masked) or **Microsoft Clarity** (free, unlimited, heatmaps). Both set cookies and are another processor, so they
+     need consent and a line in the privacy policy; beta clubs only.
+
+**Considered and set aside for now:** Plausible CE (needs ClickHouse, over 1 GB of RAM: too heavy for a small VM),
+PostHog self-hosted (needs ~16 GB), Matomo (PHP + MySQL; heatmaps and funnels are paid plugins), OpenReplay
+self-hosted (heavy), GoatCounter (tiny, but page views only, no events or funnels).
 
 ## 8. SEO (the landing is a client-rendered SPA today)
 
@@ -225,7 +249,7 @@ The founder made the switch on 2026-11-04, before the beta: testers use QA with 
 | 5 | Web on Cloudflare Pages, `runflow.club` live with the app, `api.runflow.club` via the tunnel (P1b) | Agent + founder (accounts) | $0 |
 | 6 | Third-party production setup: Strava prod app, Google origin, Grafana Cloud, Sentry prod, FCM/EAS push (P1c) | Founder (consoles) + agent | $0 |
 | 7 | Incremental migrations from here (§4): freeze the bootstrap, expand/contract, QA migrates instead of resetting | Agent | $0 |
-| 8 | Tracking: Cloudflare Web Analytics + the activation dashboard from the database | Agent | $0 |
+| 8 | Tracking: the "Produto" dashboard from the database, then Umami self-hosted (events and funnels), §7 | Agent | $0 |
 | 9 | SEO: prerendered landing, meta/OG/sitemap/JSON-LD, the first content pages | Agent | $0 |
 | 10 | Beta: 3–5 friendly clubs, the marketing kit, weekly funnel review | Founder | $0 |
 | 11 | X16 native extras (Google sign-in, widget, Health) when the dev build and accounts exist | Agent | $0 |
@@ -237,8 +261,8 @@ The founder made the switch on 2026-11-04, before the beta: testers use QA with 
 
 1. Hosting for the first release: A (Oracle, São Paulo), B (the NUC), or C (AWS EC2, not free)?
 2. One domain (`runflow.club` for the landing and the app) or `app.runflow.club` for the app?
-3. Tracking: Cloudflare Web Analytics only, or also PostHog (another processor in the privacy policy), or self-hosted
-   Umami?
+3. Tracking (§7): the "Produto" dashboard from our database + Umami self-hosted? Session replay (PostHog Cloud or
+   Clarity) only once the beta shows gaps?
 4. Who are the first 3–5 clubs, and when do we invite them?
 5. Strava: create the production app now (it starts at 1 athlete; you can raise it to 10 yourself)?
 
