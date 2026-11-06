@@ -5,7 +5,7 @@
  * without a map provider; then heart rate over time, with a "tiros" session's work laps shaded behind it. The logic
  * is domain/activity.ts (a copy of the web's).
  */
-import { useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import type { Activity } from "@/api/types";
@@ -14,6 +14,7 @@ import { t } from "@/i18n";
 import { clock, distance, pace } from "@/lib/format";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Card, Text } from "@/ui";
+import { MapCredit, RouteMap } from "@/components/RouteMap";
 
 type Data = Pick<Activity, "laps" | "splits" | "polyline" | "avg_hr" | "max_hr" | "sport"> & { analysis?: Activity["analysis"] };
 
@@ -138,7 +139,10 @@ function RouteCard({ a }: { a: Data }) {
   const { theme } = useTheme();
   const c = theme.color;
   const [w, onLayout] = useWidth();
-  const pts = routePoints(a.analysis ?? null, a.polyline);
+  const pts = useMemo(() => routePoints(a.analysis ?? null, a.polyline), [a.analysis, a.polyline]);
+  // The map (MapLibre in a web view) replaces the drawing once it's ready; offline or without WebGL the drawing stays.
+  const [mapReady, setMapReady] = useState(false);
+  const onReady = useCallback(() => setMapReady(true), []);
   if (pts.length < 2) return null;
   const h = Math.round((w * 9) / 16);
   const margin = theme.space[3];
@@ -154,17 +158,19 @@ function RouteCard({ a }: { a: Data }) {
       <View onLayout={onLayout} accessible accessibilityLabel={t("Desenho do percurso")}
         style={{ borderRadius: theme.radius.md, backgroundColor: c.sunken, overflow: "hidden", minHeight: theme.space[20] }}>
         {w > 0 && (
-          <Svg width={w} height={h}>
+          <Svg width={w} height={h} style={mapReady && styles.hidden}>
             <Path d={d} fill="none" stroke={c.brand.text} strokeWidth={theme.space["0.5"] + theme.space["0.5"] / 2} strokeLinejoin="round" strokeLinecap="round" />
             {start && <Circle cx={start[0]} cy={start[1]} r={dot} fill={c.success.solid} />}
             {end && <Circle cx={end[0]} cy={end[1]} r={dot} fill={c.danger.solid} />}
           </Svg>
         )}
+        {w > 0 && <RouteMap points={pts} onReady={onReady} />}
       </View>
       <View style={[styles.row, { gap: theme.space[4] }]}>
         <Legend color={c.success.solid} label={t("Início")} />
         <Legend color={c.danger.solid} label={t("Fim")} />
       </View>
+      {mapReady && <MapCredit />}
     </Card>
   );
 }
@@ -186,4 +192,5 @@ const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
   right: { textAlign: "right" },
   tabular: { fontVariant: ["tabular-nums"] },
+  hidden: { opacity: 0 },
 });

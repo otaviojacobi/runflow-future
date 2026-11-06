@@ -167,3 +167,16 @@ export function routePoints(analysis: { route_polyline: string | null; streams: 
   if (ll && ll.length > 1) return ll;
   return summary ? decodePolyline(summary) : [];
 }
+
+/** The route map (founder, 2026-11-06): MapLibre over OpenFreeMap's styles, free with no key or limits; the map shows
+ * "© OpenStreetMap" itself. The app's web view loads the same MapLibre version from a CDN. */
+export const MAP_STYLES = { light: "https://tiles.openfreemap.org/styles/positron", dark: "https://tiles.openfreemap.org/styles/dark" } as const;
+export const MAPLIBRE_VERSION = "6.14.0";
+
+/** A route for a map: its points as [lng, lat] (GeoJSON order) and the box around them; null under two points. */
+export function routeGeo(points: [number, number][]): { line: [number, number][]; bounds: [[number, number], [number, number]] } | null {
+  if (points.length < 2) return null;
+  const line = points.map(([lat, lng]) => [lng, lat] as [number, number]);
+  const lngs = line.map((p) => p[0]), lats = line.map((p) => p[1]);
+  return { line, bounds: [[Math.min(...lngs), Math.min(...lats)], [Math.max(...lngs), Math.max(...lats)]] };
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { areaPath, decodePolyline, defaultView, lapsAreAutoKm, linePath, nameLaps, niceRange, routePath, routePoints, series, partials, tirosSummary, type Lap } from "./activity";
+import { areaPath, decodePolyline, defaultView, lapsAreAutoKm, linePath, nameLaps, niceRange, routePath, routePoints, series, partials, routeGeo, tirosSummary, type Lap } from "./activity";
 
 const km = (n: number, s: number): Lap => ({ n, distance_m: 1000, duration_s: s, avg_hr: 150 });
 
@@ -78,5 +78,12 @@ describe("completed-training analysis (D-055)", () => {
     expect(steady.rows.every((r) => !r.work && r.distance_m === 1000)).toBe(true);
     expect(tirosSummary(steady.rows)).toBeNull();
     expect(partials({ laps: null, splits }).from).toBe("splits");
+  });
+
+  it("hands a map the route in GeoJSON order with its bounds", () => {
+    const g = routeGeo([[-30.03, -51.21], [-30.04, -51.2], [-30.035, -51.22]])!;
+    expect(g.line[0]).toEqual([-51.21, -30.03]);
+    expect(g.bounds).toEqual([[-51.22, -30.04], [-51.2, -30.03]]);
+    expect(routeGeo([[-30, -51]])).toBeNull();
   });
 });

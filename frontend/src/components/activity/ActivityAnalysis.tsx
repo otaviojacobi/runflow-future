@@ -3,6 +3,7 @@
  * per-km splits; distance, time, pace, heart rate, the tiros highlighted), so a coach reads the session at a glance; then the route, drawn
  * without a map provider; then heart rate over time, with the tiros shaded behind it. The phone app has the same
  * blocks in the same order (mobile/src/components/ActivityAnalysis.tsx). */
+import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import type { Activity } from "@/api/types";
 import { areaPath, linePath, nameLaps, niceRange, partials, routePath, routePoints, series, tirosSummary, type NamedLap, type PartialRow } from "@/domain/activity";
 import { t } from "@/i18n";
@@ -70,8 +71,15 @@ function Partials({ rows }: { rows: PartialRow[] }) {
   );
 }
 
+// MapLibre (~250 KB) loads only when a route is on screen.
+const RouteMap = lazy(() => import("./RouteMap"));
+const MapCredit = lazy(() => import("./RouteMap").then((m) => ({ default: m.MapCredit })));
+
+/** The route on a map; the plain drawing shows until the map is ready, and stays if it never is (offline, no WebGL). */
 function Route({ a }: { a: Activity }) {
-  const pts = routePoints(a.analysis ?? null, a.polyline);
+  const pts = useMemo(() => routePoints(a.analysis ?? null, a.polyline), [a.analysis, a.polyline]);
+  const [mapReady, setMapReady] = useState(false);
+  const onReady = useCallback(() => setMapReady(true), []);
   if (pts.length < 2) return null;
   const RW = 320, RH = 180;
   const d = routePath(pts, RW, RH, 12);
@@ -80,12 +88,19 @@ function Route({ a }: { a: Activity }) {
   return (
     <Card className="grid min-w-0 gap-3 p-4 sm:p-5">
       <h2 className="rf-text-title-md">{t("Percurso")}</h2>
-      <svg viewBox={`0 0 ${RW} ${RH}`} className="aspect-video w-full rounded-md bg-sunken" role="img" aria-label={t("Desenho do percurso")}>
-        <path d={d} className="fill-none stroke-brand-text" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />
-        <circle cx={sx} cy={sy} r={5} className="fill-success stroke-surface" strokeWidth={2} />
-        <circle cx={ex} cy={ey} r={5} className="fill-danger stroke-surface" strokeWidth={2} />
-      </svg>
-      <p className="flex gap-4 text-xs text-fg-muted"><span className="flex items-center gap-1.5"><span className="inline-block size-2.5 rounded-full bg-success" />{t("início")}</span><span className="flex items-center gap-1.5"><span className="inline-block size-2.5 rounded-full bg-danger" />{t("fim")}</span></p>
+      <div className="relative aspect-video w-full overflow-hidden rounded-md bg-sunken">
+        <svg viewBox={`0 0 ${RW} ${RH}`} className={cn("absolute inset-0 size-full", mapReady && "invisible")} role="img" aria-label={t("Desenho do percurso")}>
+          <path d={d} className="fill-none stroke-brand-text" strokeWidth={3} strokeLinejoin="round" strokeLinecap="round" />
+          <circle cx={sx} cy={sy} r={5} className="fill-success stroke-surface" strokeWidth={2} />
+          <circle cx={ex} cy={ey} r={5} className="fill-danger stroke-surface" strokeWidth={2} />
+        </svg>
+        <Suspense fallback={null}><RouteMap points={pts} onReady={onReady} /></Suspense>
+      </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-muted">
+        <span className="flex items-center gap-1.5"><span className="inline-block size-2.5 rounded-full bg-success" />{t("início")}</span>
+        <span className="flex items-center gap-1.5"><span className="inline-block size-2.5 rounded-full bg-danger" />{t("fim")}</span>
+        {mapReady && <span className="ml-auto"><Suspense fallback={null}><MapCredit /></Suspense></span>}
+      </div>
     </Card>
   );
 }
