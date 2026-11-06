@@ -16,7 +16,7 @@ import { addDays, dayMonth, distance, duration, longDate, mondayOf, pace, shortD
 import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Badge, Button, Dialog, Field, IconButton, Input, ListItem, Skeleton, Text, Textarea, toast } from "@/ui";
-import { CalendarArrowUp, ChevronLeft, ChevronRight, EyeOff, MessageSquare, Pencil, Send, Trash2 } from "@/ui/icons";
+import { CalendarArrowUp, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, EyeOff, MessageSquare, Pencil, Send, Trash2 } from "@/ui/icons";
 import { Bubbles } from "@/components/workout/Thread";
 import { IntensityProfile, Stat, StatusBadge, feelingLabel } from "@/components/workout/workout";
 import { WorkoutSteps } from "@/components/workout/WorkoutSteps";
@@ -146,39 +146,46 @@ export function WorkoutSheet({ seed, onClose }: { seed: WorkoutSeed | null; onCl
             {estimateText(w) ? <Text variant="bodySm" tone="muted">{estimateText(w)}</Text> : null}
           </View>
           {!w.visible && <Text variant="bodySm" tone="muted">{t("O aluno ainda não vê este treino: a semana não foi liberada.")}</Text>}
-          <IntensityProfile structure={w.structure} sport={w.sport} />
-          <WorkoutSteps structure={w.structure} sport={w.sport} />
+          {/* Done with an activity: the plan folds to its profile so the splits or tiros (D-055) come up sooner. */}
+          {detail.data?.activity ? <FoldedPlan key={w.id} structure={w.structure} sport={w.sport} /> : (
+            <>
+              <IntensityProfile structure={w.structure} sport={w.sport} />
+              <WorkoutSteps structure={w.structure} sport={w.sport} />
+            </>
+          )}
           {w.notes ? (
             <View style={{ padding: theme.space[3], borderRadius: theme.radius.md, backgroundColor: c.brand.subtle }}>
               <Text variant="bodySm" color={c.brand.subtleFg}><Text variant="bodySm" color={c.brand.subtleFg} style={{ fontWeight: weight("bold") }}>{t("Recado:")}</Text>{` ${w.notes}`}</Text>
             </View>
           ) : null}
-          {w.completion && (
-            <View style={[styles.box, { gap: theme.space[3], padding: theme.space[4], borderRadius: theme.radius.lg, borderColor: c.line }]}>
-              <Text variant="titleSm" accessibilityRole="header">{t("Como foi")}</Text>
-              <View style={[styles.row, styles.wrap, { gap: theme.space[6] }]}>
-                {w.completion.compliance_pct != null && <Stat size="sm" value={`${w.completion.compliance_pct}%`} label={t("Cumprido")} />}
-                {w.completion.rpe != null && <Stat size="sm" value={String(w.completion.rpe)} unit="/10" label={t("Esforço (PSE)")} />}
-                {w.completion.feeling && <Stat size="sm" value={feelingLabel(w.completion.feeling)} label={t("Sensação")} />}
-              </View>
-              {w.completion.comment ? <Quote text={w.completion.comment} /> : null}
-            </View>
-          )}
-          {detail.data?.activity && (() => {
-            const a = detail.data.activity;
+          {(w.completion || detail.data?.activity) && (() => {
+            const a = detail.data?.activity;
+            const fb = w.completion;
+            const feedback = fb && (fb.compliance_pct != null || fb.rpe != null || fb.feeling);
+            // How it went in one box: the activity's numbers, then what the student said about it.
             return (
               <View style={[styles.box, { gap: theme.space[3], padding: theme.space[4], borderRadius: theme.radius.lg, borderColor: c.line }]}>
                 <View style={{ gap: theme.space["0.5"] }}>
-                  <Text variant="titleSm" accessibilityRole="header">{t("Atividade sincronizada")}</Text>
-                  <Text variant="caption" tone="muted">{`${a.source === "strava" ? "Strava" : t("Registro manual")} · ${timeOf(a.started_at, club.timezone)}`}</Text>
+                  <Text variant="titleSm" accessibilityRole="header">{t("Como foi")}</Text>
+                  {a && <Text variant="caption" tone="muted" numberOfLines={1}>{`${a.source === "strava" ? "Strava" : t("Registro manual")} · ${a.name} · ${timeOf(a.started_at, club.timezone)}`}</Text>}
                 </View>
-                <View style={[styles.row, styles.wrap, { gap: theme.space[6] }]}>
-                  {a.distance_m ? <Stat size="sm" value={distance(a.distance_m, { swim: a.sport === "swim" })} label={t("Distância")} /> : null}
-                  <Stat size="sm" value={duration(a.duration_s)} label={t("Tempo")} />
-                  {a.avg_pace_s_per_km && a.sport === "run" ? <Stat size="sm" value={pace(a.avg_pace_s_per_km)} unit="/km" label={t("Pace médio")} /> : null}
-                  {a.avg_hr ? <Stat size="sm" value={String(a.avg_hr)} unit="bpm" label={t("FC média")} /> : null}
-                </View>
-                {a.source === "strava" && <StravaAttribution externalId={a.external_id} />}
+                {a && (
+                  <View style={[styles.row, styles.wrap, { columnGap: theme.space[5], rowGap: theme.space[2] }]}>
+                    {a.distance_m ? <Stat size="sm" value={distance(a.distance_m, { swim: a.sport === "swim" })} label={t("Distância")} /> : null}
+                    <Stat size="sm" value={duration(a.duration_s)} label={t("Tempo")} />
+                    {a.avg_pace_s_per_km && a.sport === "run" ? <Stat size="sm" value={pace(a.avg_pace_s_per_km)} unit="/km" label={t("Pace médio")} /> : null}
+                    {a.avg_hr ? <Stat size="sm" value={String(a.avg_hr)} unit="bpm" label={t("FC média")} /> : null}
+                  </View>
+                )}
+                {feedback && (
+                  <View style={[styles.row, styles.wrap, { columnGap: theme.space[5], rowGap: theme.space[2] }]}>
+                    {fb.compliance_pct != null && <Stat size="sm" value={`${fb.compliance_pct}%`} label={t("Cumprido")} />}
+                    {fb.rpe != null && <Stat size="sm" value={String(fb.rpe)} unit="/10" label={t("Esforço (PSE)")} />}
+                    {fb.feeling && <Stat size="sm" value={feelingLabel(fb.feeling)} label={t("Sensação")} />}
+                  </View>
+                )}
+                {fb?.comment ? <Quote text={fb.comment} /> : null}
+                {a?.source === "strava" && <StravaAttribution externalId={a.external_id} />}
               </View>
             );
           })()}
@@ -230,6 +237,27 @@ export function WorkoutSheet({ seed, onClose }: { seed: WorkoutSeed | null; onCl
         </View>
       )}
     </Dialog>
+  );
+}
+
+/** A done workout's plan: its intensity profile, the steps a tap away. */
+function FoldedPlan({ structure, sport }: { structure: Structure; sport: PlannedWorkout["sport"] }) {
+  const { theme } = useTheme();
+  const [open, setOpen] = useState(false);
+  const Chevron = open ? ChevronUp : ChevronDown;
+  return (
+    <View style={{ gap: theme.space[3] }}>
+      <Pressable accessibilityRole="button" accessibilityState={{ expanded: open }} onPress={() => setOpen(!open)}
+        accessibilityLabel={open ? t("Esconder as etapas") : t("Ver as etapas")}
+        style={({ pressed }) => [{ gap: theme.space[2], minHeight: theme.size.touchMin, justifyContent: "center" }, pressed && styles.off]}>
+        <IntensityProfile structure={structure} sport={sport} height={theme.space[8]} />
+        <View style={[styles.row, { gap: theme.space[1] }]}>
+          <Text variant="caption" color={theme.color.brand.text}>{open ? t("Esconder as etapas") : t("Ver as etapas")}</Text>
+          <Chevron size={theme.size.iconSm} color={theme.color.brand.text} aria-hidden />
+        </View>
+      </Pressable>
+      {open && <WorkoutSteps structure={structure} sport={sport} />}
+    </View>
   );
 }
 

@@ -4,7 +4,7 @@ import { areaPath, decodePolyline, defaultView, lapsAreAutoKm, linePath, nameLap
 const km = (n: number, s: number): Lap => ({ n, distance_m: 1000, duration_s: s, avg_hr: 150 });
 
 describe("completed-training analysis (D-055)", () => {
-  it("names a tiros session: warm-up, tiros, recoveries, cool-down, and the time stopped", () => {
+  it("names a tiros session: warm-up, tiros, recoveries, cool-down", () => {
     const laps: Lap[] = [
       { distance_m: 1800, duration_s: 580, elapsed_s: 580, start_s: 0, avg_hr: 145 },
       { distance_m: 1000, duration_s: 244, elapsed_s: 244, start_s: 580, avg_hr: 168 },
@@ -17,10 +17,7 @@ describe("completed-training analysis (D-055)", () => {
     const named = nameLaps(laps);
     expect(named.map((l) => l.kind)).toEqual(["warmup", "work", "recovery", "work", "recovery", "work", "cooldown"]);
     expect(named.map((l) => l.rep)).toEqual([null, 1, null, 2, null, 3, null]);
-    // 39 s paused inside lap 3, then a 20 s gap before lap 4 started.
-    expect(named.map((l) => l.stopped_s)).toEqual([0, 0, 39, 0, 0, 0, 0]);
     expect(named[1]!.pace).toBe(244);
-    expect(nameLaps([...laps.slice(0, 3), { ...laps[3]!, start_s: 1004 }])[3]!.stopped_s).toBe(20);
     expect(defaultView({ laps, splits: [] })).toBe("laps");
   });
 

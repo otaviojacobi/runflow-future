@@ -1,8 +1,8 @@
 /** The completed-training analysis (D-055), shared by the activity detail (M4), the student's completed workout (M2)
- * and the trainer's workout dialog (W4): heart rate over time first (the founder's most important view on a concluído
- * treino), with the tiros shaded behind it; then the per-km splits or the laps (a "tiros" session's laps named:
- * aquecimento, tiros, recuperações, desaquecimento, and when the watch was stopped); then the route, drawn without a
- * map provider. The phone app has the same blocks (mobile/src/components/ActivityAnalysis.tsx). */
+ * and the trainer's workout dialog (W4): the per-km splits or the laps first (a "tiros" session's laps named:
+ * aquecimento, tiros, recuperações, desaquecimento), so a coach reads the session at a glance; then the route, drawn
+ * without a map provider; then heart rate over time, with the tiros shaded behind it. The phone app has the same
+ * blocks in the same order (mobile/src/components/ActivityAnalysis.tsx). */
 import { useState } from "react";
 import type { Activity } from "@/api/types";
 import { areaPath, defaultView, linePath, nameLaps, niceRange, paceOf, routePath, routePoints, series, type NamedLap, type Split } from "@/domain/activity";
@@ -91,7 +91,7 @@ function Laps({ laps }: { laps: NamedLap[] }) {
   return (
     <div className="grid gap-3">
       {works.length > 1 && (
-        <p className="rounded-md bg-brand-soft px-3 py-2 text-sm text-on-brand-soft">
+        <p className="text-sm text-fg-muted">
           {[t("{n} tiros", { n: works.length }), workDist ? t("pace médio {p} /km", { p: pace(workTime / (workDist / 1000)) }) : null, workHr ? t("FC média {h} bpm", { h: workHr }) : null].filter(Boolean).join(" · ")}
         </p>
       )}
@@ -99,10 +99,7 @@ function Laps({ laps }: { laps: NamedLap[] }) {
         <li className="grid grid-cols-[minmax(0,1fr)_3.5rem_3rem_4rem] sm:grid-cols-[minmax(0,1fr)_4.5rem_4rem_3.5rem_5rem] gap-2 px-2 text-xs text-fg-subtle"><span /><span className="text-right">{t("Distância")}</span><span className="hidden text-right sm:block">{t("Tempo")}</span><span className="text-right">{t("Pace")}</span><span className="text-right">{t("FC média/máx")}</span></li>
         {laps.map((l) => (
           <li key={l.n ?? l.start_s} className={cn("grid grid-cols-[minmax(0,1fr)_3.5rem_3rem_4rem] sm:grid-cols-[minmax(0,1fr)_4.5rem_4rem_3.5rem_5rem] items-center gap-2 rounded-md px-2 py-1.5 text-sm tabular-nums", l.kind === "work" && "bg-brand-soft text-on-brand-soft", l.kind === "recovery" && "text-fg-muted")}>
-            <span className="flex min-w-0 flex-wrap items-center gap-x-2">
-              <span className={cn("truncate", l.kind === "work" && "font-semibold")}><span className="sm:hidden">{lapLabel(l, works.length, true)}</span><span className="hidden sm:inline">{lapLabel(l, works.length)}</span></span>
-              {l.stopped_s >= 5 && <span className="rounded-full bg-warning-soft px-1.5 text-xs text-on-warning-soft">{t("parado {t}", { t: clock(l.stopped_s) })}</span>}
-            </span>
+            <span className={cn("min-w-0 truncate", l.kind === "work" && "font-semibold")}><span className="sm:hidden">{lapLabel(l, works.length, true)}</span><span className="hidden sm:inline">{lapLabel(l, works.length)}</span></span>
             <span className="text-right">{distance(l.distance_m)}</span>
             <span className="hidden text-right sm:block">{clock(l.duration_s)}</span>
             <span className="text-right font-semibold">{pace(l.pace)}</span>
@@ -144,7 +141,6 @@ export function ActivityAnalysis({ a }: { a: Activity }) {
   const showLaps = laps.length > 0 && (view === "laps" || !splits.length);
   return (
     <>
-      <HeartRate a={a} laps={laps} />
       {(splits.length > 0 || laps.length > 0) && (
         <Card className="grid min-w-0 gap-4 p-4 sm:p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -155,6 +151,7 @@ export function ActivityAnalysis({ a }: { a: Activity }) {
         </Card>
       )}
       <Route a={a} />
+      <HeartRate a={a} laps={laps} />
     </>
   );
 }

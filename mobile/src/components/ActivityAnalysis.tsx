@@ -1,9 +1,9 @@
 /**
- * The completed-training analysis (D-055; the web's components/activity/Analysis.tsx): what Strava's detailed
- * activity carries, read the way a coach reads it. Heart rate over time first (founder: the most important view on a
- * concluído treino), with a "tiros" session's work laps shaded behind it; then the per-km splits or the laps (named:
- * aquecimento, tiros, recuperações, desaquecimento, with the time the watch was stopped), whichever says more; then
- * the route, drawn without a map provider. The logic is domain/activity.ts (a copy of the web's).
+ * The completed-training analysis (D-055; the web's components/activity/ActivityAnalysis.tsx): what Strava's detailed
+ * activity carries, read the way a coach reads it. The per-km splits or the laps first (named: aquecimento, tiros,
+ * recuperações, desaquecimento), whichever says more, so they show on the first screen; then the route, drawn
+ * without a map provider; then heart rate over time, with a "tiros" session's work laps shaded behind it. The logic
+ * is domain/activity.ts (a copy of the web's).
  */
 import { useState } from "react";
 import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
@@ -22,9 +22,9 @@ export function ActivityAnalysis({ a }: { a: Data }) {
   const { theme } = useTheme();
   return (
     <View style={{ gap: theme.space[4] }}>
-      <HeartRate a={a} />
       <Parts a={a} />
       <RouteCard a={a} />
+      <HeartRate a={a} />
     </View>
   );
 }
@@ -178,18 +178,11 @@ function LapRows({ laps }: { laps: NamedLap[] }) {
           const muted = l.kind === "recovery";
           return (
             <View key={l.n ?? i} accessible
-              accessibilityLabel={[name, distance(l.distance_m), clock(l.duration_s), l.pace ? t("{p} por km", { p: pace(l.pace) }) : null, l.avg_hr ? `${l.avg_hr} bpm` : null, l.stopped_s >= 5 ? t("parado {x}", { x: clock(l.stopped_s) }) : null].filter(Boolean).join(", ")}
+              accessibilityLabel={[name, distance(l.distance_m), clock(l.duration_s), l.pace ? t("{p} por km", { p: pace(l.pace) }) : null, l.avg_hr ? `${l.avg_hr} bpm` : null].filter(Boolean).join(", ")}
               style={[styles.row, { gap: theme.space[2], paddingVertical: theme.space["1.5"], paddingHorizontal: theme.space[2], borderRadius: theme.radius.sm }, l.kind === "work" && { backgroundColor: c.brand.subtle }]}>
               <View style={styles.flex}>
                 <Text variant="labelSm" numberOfLines={1} color={l.kind === "work" ? c.brand.subtleFg : muted ? c.fgMuted : undefined}>{name}</Text>
-                <View style={[styles.row, { gap: theme.space["1.5"] }]}>
-                  <Text variant="caption" tone="muted" style={styles.tabular}>{distance(l.distance_m)} · {clock(l.duration_s)}</Text>
-                  {l.stopped_s >= 5 && (
-                    <View style={{ paddingHorizontal: theme.space["1.5"], borderRadius: theme.radius.full, backgroundColor: c.warning.subtle }}>
-                      <Text variant="caption" color={c.warning.subtleFg} style={styles.tabular}>{t("parado {x}", { x: clock(l.stopped_s) })}</Text>
-                    </View>
-                  )}
-                </View>
+                <Text variant="caption" tone="muted" style={styles.tabular}>{distance(l.distance_m)} · {clock(l.duration_s)}</Text>
               </View>
               <Text variant="labelMd" color={l.kind === "work" ? c.brand.subtleFg : muted ? c.fgMuted : undefined} style={[styles.tabular, styles.right, { width: theme.space[16] }]}>
                 {l.pace ? `${pace(l.pace)}` : "–"}<Text variant="caption" tone="muted"> /km</Text>

@@ -13,6 +13,7 @@ import { t, tn } from "@/i18n";
 import { addDays, dayMonth, distance, duration, longDate, pace, timeOf } from "@/lib/format";
 import { Avatar, Button, DateInput, Dialog, Field, Input, Select, Skeleton, Textarea, toast } from "@/ui";
 import { ActivityAnalysis } from "@/components/activity/ActivityAnalysis";
+import { FoldedPlan } from "@/components/FoldedPlan";
 
 export const FEELING: Record<Feeling, string> = { great: "Ótimo", good: "Bem", ok: "Normal", bad: "Cansado", awful: "Muito mal" };
 
@@ -41,30 +42,35 @@ export function DetailDialog({ club, id, onClose, onEdit }: { club: Club; id: st
             {c ? <StatusBadge status={c.status} /> : <StatusBadge status="planned" />}
             <span className="ml-auto text-sm text-fg-muted">{[w.est_duration_s && `≈ ${duration(w.est_duration_s)}`, w.est_distance_m && distance(w.est_distance_m, { swim: w.sport === "swim" })].filter(Boolean).join(" · ")}</span>
           </div>
-          <IntensityProfile structure={w.structure} sport={w.sport} height={56} />
-          <WorkoutSteps structure={w.structure} sport={w.sport} />
-          {w.notes && <p className="rounded-md bg-brand-soft px-3 py-2 text-sm text-on-brand-soft"><b>{t("Recado:")}</b> {w.notes}</p>}
-          {c && (
-            <section className="grid gap-3 rounded-lg border border-line p-4">
-              <h3 className="rf-text-title-sm">{t("Como foi")}</h3>
-              <div className="flex flex-wrap gap-6">
-                {c.compliance_pct != null && <Stat value={`${c.compliance_pct}%`} label={t("Cumprido")} size="sm" />}
-                {c.rpe != null && <Stat value={String(c.rpe)} unit="/10" label={t("Esforço (PSE)")} size="sm" />}
-                {c.feeling && <Stat value={t(FEELING[c.feeling])} label={t("Sensação")} size="sm" />}
-              </div>
-              {c.comment && <blockquote className="border-l-2 border-brand-line pl-3 text-sm italic text-fg-muted">“{c.comment}”</blockquote>}
-            </section>
+          {/* Done with an activity: the plan folds to its profile so the splits or tiros (D-055) come up sooner. */}
+          {a ? <FoldedPlan structure={w.structure} sport={w.sport} /> : (
+            <>
+              <IntensityProfile structure={w.structure} sport={w.sport} height={56} />
+              <WorkoutSteps structure={w.structure} sport={w.sport} />
+            </>
           )}
-          {a && (
+          {w.notes && <p className="rounded-md bg-brand-soft px-3 py-2 text-sm text-on-brand-soft"><b>{t("Recado:")}</b> {w.notes}</p>}
+          {(c || a) && (
+            // How it went in one box: the activity's numbers, then what the student said about it.
             <section className="grid gap-3 rounded-lg border border-line p-4">
-              <h3 className="flex items-center justify-between rf-text-title-sm">{t("Atividade sincronizada")}<span className="text-xs font-normal text-fg-muted">{a.source === "strava" ? "Strava" : t("Registro manual")} · {timeOf(a.started_at)}</span></h3>
-              <div className="flex flex-wrap gap-6">
-                {a.distance_m && <Stat value={distance(a.distance_m).replace(/ (km|m)$/, "")} unit={a.distance_m >= 1000 ? "km" : "m"} label={t("Distância")} size="sm" />}
-                <Stat value={duration(a.duration_s)} label={t("Tempo")} size="sm" />
-                {a.avg_pace_s_per_km && <Stat value={pace(a.avg_pace_s_per_km)} unit="/km" label={t("Pace médio")} size="sm" />}
-                {a.avg_hr && <Stat value={String(a.avg_hr)} unit="bpm" label={t("FC média")} size="sm" />}
-              </div>
-              {a.source === "strava" && <StravaAttribution externalId={a.external_id} />}
+              <h3 className="flex flex-wrap items-baseline justify-between gap-x-3 rf-text-title-sm">{t("Como foi")}{a && <span className="text-xs font-normal text-fg-muted">{a.source === "strava" ? "Strava" : t("Registro manual")} · {a.name} · {timeOf(a.started_at)}</span>}</h3>
+              {a && (
+                <div className="flex flex-wrap gap-x-6 gap-y-3">
+                  {a.distance_m && <Stat value={distance(a.distance_m).replace(/ (km|m)$/, "")} unit={a.distance_m >= 1000 ? "km" : "m"} label={t("Distância")} size="sm" />}
+                  <Stat value={duration(a.duration_s)} label={t("Tempo")} size="sm" />
+                  {a.avg_pace_s_per_km && <Stat value={pace(a.avg_pace_s_per_km)} unit="/km" label={t("Pace médio")} size="sm" />}
+                  {a.avg_hr && <Stat value={String(a.avg_hr)} unit="bpm" label={t("FC média")} size="sm" />}
+                </div>
+              )}
+              {c && (c.compliance_pct != null || c.rpe != null || c.feeling) && (
+                <div className="flex flex-wrap gap-x-6 gap-y-3">
+                  {c.compliance_pct != null && <Stat value={`${c.compliance_pct}%`} label={t("Cumprido")} size="sm" />}
+                  {c.rpe != null && <Stat value={String(c.rpe)} unit="/10" label={t("Esforço (PSE)")} size="sm" />}
+                  {c.feeling && <Stat value={t(FEELING[c.feeling])} label={t("Sensação")} size="sm" />}
+                </div>
+              )}
+              {c?.comment && <blockquote className="border-l-2 border-brand-line pl-3 text-sm italic text-fg-muted">“{c.comment}”</blockquote>}
+              {a?.source === "strava" && <StravaAttribution externalId={a.external_id} />}
             </section>
           )}
           {a && <ActivityAnalysis a={a} />}

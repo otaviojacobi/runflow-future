@@ -1,7 +1,7 @@
 /** The completed-training analysis (D-055): pure logic shared by the web and the phone app (the app keeps an identical
  * copy, checked by scripts/check-copies.mjs). What Strava sends is laps (the watch's lap presses or auto-laps: a "tiro"
  * and its recovery are separate laps), per-km splits, the route as an encoded polyline and time series. This decides
- * which view opens first, names the laps of a "tiros" session, finds the pauses, and turns series and routes into SVG
+ * which view opens first, names the laps of a "tiros" session, and turns series and routes into SVG
  * paths. No colors or text styles here: the screens bring those (tokens). */
 
 export interface Lap {
@@ -32,13 +32,12 @@ export function lapsAreAutoKm(laps: Lap[]): boolean {
 }
 
 export type LapKind = "warmup" | "work" | "recovery" | "cooldown" | "steady";
-export interface NamedLap extends Lap { kind: LapKind; rep: number | null; pace: number | null; stopped_s: number }
+export interface NamedLap extends Lap { kind: LapKind; rep: number | null; pace: number | null }
 
 /**
  * A "tiros" session's laps, named: when the laps' paces fall into two clear groups (the fastest group at least 12%
  * faster than the rest, two laps or more on each side), the fast ones are the work ("Tiro 1", "Tiro 2"…), the slow ones between them recoveries, and
  * slow laps before the first and after the last tiro the warm-up and cool-down. Otherwise every lap is "steady".
- * `stopped_s`: the time the watch was paused inside the lap, plus the gap before it.
  */
 export function nameLaps(laps: Lap[]): NamedLap[] {
   const paces = laps.map(paceOf);
@@ -58,12 +57,8 @@ export function nameLaps(laps: Lap[]): NamedLap[] {
   const first = work.indexOf(true), last = work.lastIndexOf(true);
   let rep = 0;
   return laps.map((l, i) => {
-    const prev = laps[i - 1];
-    const gap = prev && l.start_s != null && prev.start_s != null ? l.start_s - (prev.start_s + (prev.elapsed_s ?? prev.duration_s)) : 0;
-    const inside = (l.elapsed_s ?? l.duration_s) - l.duration_s;
-    const stopped_s = Math.max(0, Math.round(gap)) + Math.max(0, Math.round(inside));
     const kind: LapKind = threshold == null ? "steady" : work[i] ? "work" : i < first ? "warmup" : i > last ? "cooldown" : "recovery";
-    return { ...l, kind, rep: kind === "work" ? ++rep : null, pace: paces[i] ?? null, stopped_s };
+    return { ...l, kind, rep: kind === "work" ? ++rep : null, pace: paces[i] ?? null };
   });
 }
 
