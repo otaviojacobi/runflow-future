@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { areaPath, decodePolyline, defaultView, lapsAreAutoKm, linePath, nameLaps, niceRange, routePath, routePoints, series, splitBarPct, type Lap } from "./activity";
+import { areaPath, decodePolyline, defaultView, lapsAreAutoKm, linePath, nameLaps, niceRange, routePath, routePoints, series, partials, tirosSummary, type Lap } from "./activity";
 
 const km = (n: number, s: number): Lap => ({ n, distance_m: 1000, duration_s: s, avg_hr: 150 });
 
@@ -57,11 +57,26 @@ describe("completed-training analysis (D-055)", () => {
     expect(linePath(pts.slice(0, 1), 10, 10)).toBe("");
   });
 
-  it("draws a slower km as a longer bar (it took longer)", () => {
-    // 4:30 fastest, 5:30 slowest.
-    expect(splitBarPct(330, 270, 330)).toBe(100);
-    expect(splitBarPct(270, 270, 330)).toBe(40);
-    expect(splitBarPct(300, 270, 330)).toBe(70);
-    expect(splitBarPct(300, 300, 300)).toBe(100);
+  it("shows one Parciais table: the laps of a tiros session, else the per-km splits", () => {
+    const splits = [1, 2, 3].map((n) => ({ n, distance_m: 1000, duration_s: 300, avg_pace_s_per_km: 300, avg_hr: 150 }));
+    const tiros: Lap[] = [
+      { distance_m: 1500, duration_s: 540, avg_hr: 140 },
+      { distance_m: 1000, duration_s: 240, avg_hr: 168 },
+      { distance_m: 300, duration_s: 120, avg_hr: 155 },
+      { distance_m: 1000, duration_s: 250, avg_hr: 172 },
+      { distance_m: 1200, duration_s: 430, avg_hr: 145 },
+    ];
+    const t = partials({ laps: tiros, splits });
+    expect(t.from).toBe("laps");
+    expect(t.rows.map((r) => [r.distance_m, r.duration_s, r.pace, r.avg_hr, r.work])).toEqual([
+      [1500, 540, 360, 140, false], [1000, 240, 240, 168, true], [300, 120, 400, 155, false], [1000, 250, 250, 172, true], [1200, 430, 358, 145, false],
+    ]);
+    expect(tirosSummary(t.rows)).toEqual({ count: 2, pace: 245, avg_hr: 170 });
+    // A steady run (1 km auto-laps, or no laps at all): the splits, nothing flagged.
+    const steady = partials({ laps: splits.map((s) => ({ ...s })), splits });
+    expect(steady.from).toBe("splits");
+    expect(steady.rows.every((r) => !r.work && r.distance_m === 1000)).toBe(true);
+    expect(tirosSummary(steady.rows)).toBeNull();
+    expect(partials({ laps: null, splits }).from).toBe("splits");
   });
 });

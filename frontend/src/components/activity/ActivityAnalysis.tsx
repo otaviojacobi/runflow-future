@@ -1,25 +1,15 @@
 /** The completed-training analysis (D-055), shared by the activity detail (M4), the student's completed workout (M2)
- * and the trainer's workout dialog (W4): the per-km splits or the laps first (a "tiros" session's laps named:
- * aquecimento, tiros, recuperações, desaquecimento), so a coach reads the session at a glance; then the route, drawn
+ * and the trainer's workout dialog (W4): one "Parciais" table first (the watch's laps for a "tiros" session, else the
+ * per-km splits; distance, time, pace, heart rate, the tiros highlighted), so a coach reads the session at a glance; then the route, drawn
  * without a map provider; then heart rate over time, with the tiros shaded behind it. The phone app has the same
  * blocks in the same order (mobile/src/components/ActivityAnalysis.tsx). */
-import { useState } from "react";
 import type { Activity } from "@/api/types";
-import { areaPath, defaultView, linePath, nameLaps, niceRange, paceOf, routePath, routePoints, series, splitBarPct, type NamedLap, type Split } from "@/domain/activity";
+import { areaPath, linePath, nameLaps, niceRange, partials, routePath, routePoints, series, tirosSummary, type NamedLap, type PartialRow } from "@/domain/activity";
 import { t } from "@/i18n";
-import { clock, distance, number, pace } from "@/lib/format";
-import { Card, Segmented, cn } from "@/ui";
+import { clock, distance, pace } from "@/lib/format";
+import { Card, cn } from "@/ui";
 
 const W = 600, H = 150;
-
-/** "Tiro 3", "Recuperação", "Volta 2"… (`short`: what fits a phone's column). */
-function lapLabel(l: NamedLap, works: number, short = false): string {
-  if (l.kind === "work") return works === 1 ? t(short ? "Principal" : "Parte principal") : t("Tiro {n}", { n: l.rep ?? 0 });
-  if (l.kind === "warmup") return t(short ? "Aquec." : "Aquecimento");
-  if (l.kind === "cooldown") return t(short ? "Desaq." : "Desaquecimento");
-  if (l.kind === "recovery") return t(short ? "Recup." : "Recuperação");
-  return t("Volta {n}", { n: l.n ?? 0 });
-}
 
 function HeartRate({ a, laps }: { a: Activity; laps: NamedLap[] }) {
   const s = a.analysis?.streams;
@@ -54,51 +44,25 @@ function HeartRate({ a, laps }: { a: Activity; laps: NamedLap[] }) {
   );
 }
 
-/** Rows with a pace bar: longer = took longer (splitBarPct). */
-function Splits({ splits }: { splits: Split[] }) {
-  const paces = splits.map((s) => paceOf(s)).filter((p): p is number => p != null);
-  const fastest = Math.min(...paces), slowest = Math.max(...paces);
-  return (
-    <ol className="grid gap-1.5" aria-label={t("Parciais por km")}>
-      <li className="grid grid-cols-[2.75rem_minmax(0,1fr)_3rem_3.75rem_3rem] sm:grid-cols-[3.5rem_minmax(0,1fr)_3.5rem_4rem_3.5rem] gap-2 text-xs text-fg-subtle"><span>{t("Km")}</span><span /><span className="text-right">{t("Pace")}</span><span className="text-right">{t("FC")}<span className="sm:hidden"> {t("bpm")}</span></span><span className="text-right">{t("Elev.")}</span></li>
-      {splits.map((s) => {
-        const p = paceOf(s);
-        const full = s.distance_m >= 950;
-        return (
-          <li key={s.n} className="grid grid-cols-[2.75rem_minmax(0,1fr)_3rem_3.75rem_3rem] sm:grid-cols-[3.5rem_minmax(0,1fr)_3.5rem_4rem_3.5rem] items-center gap-2 text-sm tabular-nums">
-            <span className="whitespace-nowrap text-fg-muted">{full ? s.n : <>{number(s.distance_m / 1000, 2)}<span className="hidden sm:inline"> km</span></>}</span>
-            <span className="h-4 rounded-r-[4px] bg-brand-text" style={{ width: `${p == null ? 0 : splitBarPct(p, fastest, slowest)}%`, opacity: p === fastest ? 1 : 0.7 }} />
-            <span className="text-right font-semibold">{pace(p)}</span>
-            <span className="text-right text-fg-muted">{s.avg_hr ? <>{s.avg_hr}<span className="hidden sm:inline"> bpm</span></> : "–"}</span>
-            <span className="text-right text-fg-muted">{s.elevation_diff_m == null ? "–" : `${s.elevation_diff_m > 0 ? "+" : ""}${s.elevation_diff_m} m`}</span>
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-function Laps({ laps }: { laps: NamedLap[] }) {
-  const works = laps.filter((l) => l.kind === "work");
-  const workDist = works.reduce((s, l) => s + l.distance_m, 0), workTime = works.reduce((s, l) => s + l.duration_s, 0);
-  const hrLaps = works.filter((l) => l.avg_hr);
-  const workHr = hrLaps.length ? Math.round(hrLaps.reduce((s, l) => s + l.avg_hr! * l.duration_s, 0) / Math.max(1, hrLaps.reduce((s, l) => s + l.duration_s, 0))) : null;
+/** The one "Parciais" table (`partials`): distance, time, pace and average heart rate per row; tiros highlighted. */
+function Partials({ rows }: { rows: PartialRow[] }) {
+  const sum = tirosSummary(rows);
+  const cols = "grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] gap-2";
   return (
     <div className="grid gap-3">
-      {works.length > 1 && (
+      {sum && (
         <p className="text-sm text-fg-muted">
-          {[t("{n} tiros", { n: works.length }), workDist ? t("pace médio {p} /km", { p: pace(workTime / (workDist / 1000)) }) : null, workHr ? t("FC média {h} bpm", { h: workHr }) : null].filter(Boolean).join(" · ")}
+          {[t("{n} tiros", { n: sum.count }), sum.pace ? t("pace médio {p} /km", { p: pace(sum.pace) }) : null, sum.avg_hr ? t("FC média {h} bpm", { h: sum.avg_hr }) : null].filter(Boolean).join(" · ")}
         </p>
       )}
-      <ol className="grid gap-1" aria-label={t("Voltas")}>
-        <li className="grid grid-cols-[minmax(0,1fr)_3.5rem_3rem_4rem] sm:grid-cols-[minmax(0,1fr)_4.5rem_4rem_3.5rem_5rem] gap-2 px-2 text-xs text-fg-subtle"><span /><span className="text-right">{t("Distância")}</span><span className="hidden text-right sm:block">{t("Tempo")}</span><span className="text-right">{t("Pace")}</span><span className="text-right">{t("FC média/máx")}</span></li>
-        {laps.map((l) => (
-          <li key={l.n ?? l.start_s} className={cn("grid grid-cols-[minmax(0,1fr)_3.5rem_3rem_4rem] sm:grid-cols-[minmax(0,1fr)_4.5rem_4rem_3.5rem_5rem] items-center gap-2 rounded-md px-2 py-1.5 text-sm tabular-nums", l.kind === "work" && "bg-brand-soft text-on-brand-soft", l.kind === "recovery" && "text-fg-muted")}>
-            <span className={cn("min-w-0 truncate", l.kind === "work" && "font-semibold")}><span className="sm:hidden">{lapLabel(l, works.length, true)}</span><span className="hidden sm:inline">{lapLabel(l, works.length)}</span></span>
-            <span className="text-right">{distance(l.distance_m)}</span>
-            <span className="hidden text-right sm:block">{clock(l.duration_s)}</span>
-            <span className="text-right font-semibold">{pace(l.pace)}</span>
-            <span className="text-right">{l.avg_hr ? <>{l.avg_hr}{l.max_hr ? <span className="text-xs opacity-70">/{l.max_hr}</span> : null}</> : "–"}</span>
+      <ol className="grid gap-1" aria-label={t("Parciais")}>
+        <li className={cn(cols, "px-2 text-xs text-fg-subtle")}><span>{t("Distância")}</span><span className="text-right">{t("Tempo")}</span><span className="text-right">{t("Pace")}</span><span className="text-right">{t("FC")}</span></li>
+        {rows.map((r) => (
+          <li key={r.n} className={cn(cols, "items-center rounded-md px-2 py-1.5 text-sm tabular-nums", r.work && "bg-brand-soft font-semibold text-on-brand-soft")}>
+            <span>{distance(r.distance_m)}</span>
+            <span className="text-right">{clock(r.duration_s)}</span>
+            <span className="text-right">{pace(r.pace)}</span>
+            <span className="text-right">{r.avg_hr ? `${r.avg_hr} bpm` : "–"}</span>
           </li>
         ))}
       </ol>
@@ -129,20 +93,13 @@ function Route({ a }: { a: Activity }) {
 /** Everything a completed activity can show; renders nothing for an activity without detail (manual, older imports). */
 export function ActivityAnalysis({ a }: { a: Activity }) {
   const laps = nameLaps(a.laps ?? []);
-  const splits = a.splits ?? [];
-  const works = laps.filter((l) => l.kind === "work").length;
-  const [view, setView] = useState(() => defaultView(a));
-  const both = splits.length > 0 && laps.length > 1;
-  const showLaps = laps.length > 0 && (view === "laps" || !splits.length);
+  const { rows } = partials(a);
   return (
     <>
-      {(splits.length > 0 || laps.length > 0) && (
+      {rows.length > 0 && (
         <Card className="grid min-w-0 gap-4 p-4 sm:p-5">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h2 className="rf-text-title-md">{showLaps ? (works > 1 ? t("Tiros") : t("Voltas")) : t("Parciais por km")}</h2>
-            {both && <Segmented size="sm" label={t("Ver parciais ou voltas")} value={view} onChange={setView} options={[{ value: "splits", label: t("Parciais") }, { value: "laps", label: works > 1 ? t("Tiros") : t("Voltas") }]} />}
-          </div>
-          {showLaps ? <Laps laps={laps} /> : <Splits splits={splits} />}
+          <h2 className="rf-text-title-md">{t("Parciais")}</h2>
+          <Partials rows={rows} />
         </Card>
       )}
       <Route a={a} />

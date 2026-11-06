@@ -1,7 +1,7 @@
 /**
  * The completed-training analysis (D-055; the web's components/activity/ActivityAnalysis.tsx): what Strava's detailed
- * activity carries, read the way a coach reads it. The per-km splits or the laps first (named: aquecimento, tiros,
- * recuperações, desaquecimento), whichever says more, so they show on the first screen; then the route, drawn
+ * activity carries, read the way a coach reads it. One "Parciais" table first (the watch's laps for a "tiros" session,
+ * else the per-km splits; distance, time, pace, heart rate, the tiros highlighted), so it shows on the first screen; then the route, drawn
  * without a map provider; then heart rate over time, with a "tiros" session's work laps shaded behind it. The logic
  * is domain/activity.ts (a copy of the web's).
  */
@@ -9,11 +9,11 @@ import { useState } from "react";
 import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import type { Activity } from "@/api/types";
-import { areaPath, defaultView, linePath, nameLaps, niceRange, routePath, routePoints, series, splitBarPct, type NamedLap, type Split } from "@/domain/activity";
+import { areaPath, linePath, nameLaps, niceRange, partials, routePath, routePoints, series, tirosSummary } from "@/domain/activity";
 import { t } from "@/i18n";
-import { clock, distance, number, pace } from "@/lib/format";
+import { clock, distance, pace } from "@/lib/format";
 import { useTheme } from "@/theme/ThemeProvider";
-import { Card, Segmented, Text } from "@/ui";
+import { Card, Text } from "@/ui";
 
 type Data = Pick<Activity, "laps" | "splits" | "polyline" | "avg_hr" | "max_hr" | "sport"> & { analysis?: Activity["analysis"] };
 
@@ -90,111 +90,45 @@ function HeartRate({ a }: { a: Data }) {
 
 // ---------------------------------------------------------------- splits and laps
 
+/** The one "Parciais" table (`partials`): distance, time, pace and average heart rate per row; tiros highlighted. */
 function Parts({ a }: { a: Data }) {
   const { theme } = useTheme();
-  const splits = (a.splits ?? []).filter((s) => s.distance_m > 0);
-  const laps = nameLaps((a.laps ?? []).filter((l) => l.distance_m > 0));
-  const tiros = laps.some((l) => l.kind === "work");
-  const [view, setView] = useState<"splits" | "laps">(() => defaultView({ laps: a.laps, splits: a.splits }));
-  if (!splits.length && !laps.length) return null;
-  const shown = !splits.length ? "laps" : !laps.length ? "splits" : view;
-  const lapsLabel = tiros ? t("Tiros") : t("Voltas");
+  const c = theme.color;
+  const { rows } = partials(a);
+  if (!rows.length) return null;
+  const sum = tirosSummary(rows);
+  const cell = [styles.flex, styles.tabular, styles.right];
   return (
     <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>
-      <View style={[styles.between, { gap: theme.space[2] }]}>
-        <Text variant="titleSm" accessibilityRole="header">{shown === "splits" ? t("Parciais por km") : lapsLabel}</Text>
-      </View>
-      {splits.length > 0 && laps.length > 0 && (
-        <Segmented size="sm" label={t("Ver parciais ou voltas")} value={shown} onChange={setView}
-          options={[{ value: "splits", label: t("Parciais") }, { value: "laps", label: lapsLabel }]} />
-      )}
-      {shown === "splits" ? <SplitRows splits={splits} /> : <LapRows laps={laps} />}
-    </Card>
-  );
-}
-
-function SplitRows({ splits }: { splits: Split[] }) {
-  const { theme } = useTheme();
-  const c = theme.color;
-  const paces = splits.map((s) => s.avg_pace_s_per_km ?? s.duration_s / (s.distance_m / 1000));
-  const fastest = Math.min(...paces), slowest = Math.max(...paces);
-  return (
-    <View accessibilityRole="list" style={{ gap: theme.space["1.5"] }}>
-      {splits.map((s, i) => {
-        const p = paces[i]!;
-        const w = splitBarPct(p, fastest, slowest);
-        const partial = s.distance_m < 950;
-        const label = partial ? `${number(s.distance_m / 1000, 2)} km` : String(s.n);
-        const elev = s.elevation_diff_m;
-        return (
-          <View key={s.n} accessible style={[styles.row, { gap: theme.space[2] }]}
-            accessibilityLabel={t("km {n}: {p} por km", { n: label, p: pace(p) }) + (s.avg_hr ? `, ${s.avg_hr} bpm` : "")}>
-            <Text variant="caption" tone="muted" style={[styles.tabular, { width: theme.space[12] }]}>{label}</Text>
-            <View style={styles.flex}>
-              <View style={{ width: `${w}%`, height: theme.space[5], borderTopRightRadius: theme.radius.xs, borderBottomRightRadius: theme.radius.xs, backgroundColor: c.brand.text, opacity: p === fastest ? 1 : 0.75 }} />
-            </View>
-            <Text variant="labelSm" style={[styles.tabular, styles.right, { width: theme.space[10] }]}>{pace(p)}</Text>
-            <Text variant="caption" tone="muted" style={[styles.tabular, styles.right, { width: theme.space[12] }]}>{s.avg_hr ? `${s.avg_hr} bpm` : ""}</Text>
-            <Text variant="caption" tone="muted" style={[styles.tabular, styles.right, { width: theme.space[10] }]}>
-              {elev == null ? "" : elev > 0 ? `+${elev} m` : elev < 0 ? `−${Math.abs(elev)} m` : "0 m"}
-            </Text>
-          </View>
-        );
-      })}
-    </View>
-  );
-}
-
-/** "Aquecimento", "Tiro 2", "Recuperação", "Desaquecimento", "Volta 3" ("Parte principal" for a single work lap). */
-function lapName(l: NamedLap, i: number, works: number): string {
-  switch (l.kind) {
-    case "warmup": return t("Aquecimento");
-    case "work": return works === 1 ? t("Parte principal") : t("Tiro {n}", { n: l.rep ?? i + 1 });
-    case "recovery": return t("Recuperação");
-    case "cooldown": return t("Desaquecimento");
-    default: return t("Volta {n}", { n: l.n ?? i + 1 });
-  }
-}
-
-function LapRows({ laps }: { laps: NamedLap[] }) {
-  const { theme } = useTheme();
-  const c = theme.color;
-  const work = laps.filter((l) => l.kind === "work");
-  const workM = work.reduce((s, l) => s + l.distance_m, 0), workS = work.reduce((s, l) => s + l.duration_s, 0);
-  const hrLaps = work.filter((l) => l.avg_hr != null);
-  const hrS = hrLaps.reduce((s, l) => s + l.duration_s, 0);
-  const workHr = hrS > 0 ? Math.round(hrLaps.reduce((s, l) => s + l.avg_hr! * l.duration_s, 0) / hrS) : null;
-  return (
-    <View style={{ gap: theme.space[2] }}>
-      {work.length > 1 && (
+      <Text variant="titleSm" accessibilityRole="header">{t("Parciais")}</Text>
+      {sum && (
         <Text variant="bodySm" tone="muted">
-          {[t("{n} tiros", { n: work.length }), workM > 0 ? t("pace médio {p} /km", { p: pace(workS / (workM / 1000)) }) : null, workHr ? t("FC média {x} bpm", { x: workHr }) : null].filter(Boolean).join(" · ")}
+          {[t("{n} tiros", { n: sum.count }), sum.pace ? t("pace médio {p} /km", { p: pace(sum.pace) }) : null, sum.avg_hr ? t("FC média {x} bpm", { x: sum.avg_hr }) : null].filter(Boolean).join(" · ")}
         </Text>
       )}
       <View accessibilityRole="list" style={{ gap: theme.space[1] }}>
-        {laps.map((l, i) => {
-          const name = lapName(l, i, work.length);
-          const muted = l.kind === "recovery";
+        <View style={[styles.row, { gap: theme.space[2], paddingHorizontal: theme.space[2] }]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
+          <Text variant="caption" tone="subtle" style={styles.flex}>{t("Distância")}</Text>
+          <Text variant="caption" tone="subtle" style={[styles.flex, styles.right]}>{t("Tempo")}</Text>
+          <Text variant="caption" tone="subtle" style={[styles.flex, styles.right]}>{t("Pace")}</Text>
+          <Text variant="caption" tone="subtle" style={[styles.flex, styles.right]}>{t("FC")}</Text>
+        </View>
+        {rows.map((r) => {
+          const color = r.work ? c.brand.subtleFg : undefined;
+          const variant = r.work ? "labelSm" : "bodySm";
           return (
-            <View key={l.n ?? i} accessible
-              accessibilityLabel={[name, distance(l.distance_m), clock(l.duration_s), l.pace ? t("{p} por km", { p: pace(l.pace) }) : null, l.avg_hr ? `${l.avg_hr} bpm` : null].filter(Boolean).join(", ")}
-              style={[styles.row, { gap: theme.space[2], paddingVertical: theme.space["1.5"], paddingHorizontal: theme.space[2], borderRadius: theme.radius.sm }, l.kind === "work" && { backgroundColor: c.brand.subtle }]}>
-              <View style={styles.flex}>
-                <Text variant="labelSm" numberOfLines={1} color={l.kind === "work" ? c.brand.subtleFg : muted ? c.fgMuted : undefined}>{name}</Text>
-                <Text variant="caption" tone="muted" style={styles.tabular}>{distance(l.distance_m)} · {clock(l.duration_s)}</Text>
-              </View>
-              <Text variant="labelMd" color={l.kind === "work" ? c.brand.subtleFg : muted ? c.fgMuted : undefined} style={[styles.tabular, styles.right, { width: theme.space[16] }]}>
-                {l.pace ? `${pace(l.pace)}` : "–"}<Text variant="caption" tone="muted"> /km</Text>
-              </Text>
-              <View style={[styles.end, { width: theme.space[16] }]}>
-                <Text variant="labelSm" color={muted ? c.fgMuted : undefined} style={styles.tabular}>{l.avg_hr ? `${l.avg_hr} bpm` : ""}</Text>
-                {l.max_hr ? <Text variant="caption" tone="muted" style={styles.tabular}>{t("máx {x}", { x: l.max_hr })}</Text> : null}
-              </View>
+            <View key={r.n} accessible
+              accessibilityLabel={[r.work ? t("Tiro") : null, distance(r.distance_m), clock(r.duration_s), r.pace ? t("{p} por km", { p: pace(r.pace) }) : null, r.avg_hr ? `${r.avg_hr} bpm` : null].filter(Boolean).join(", ")}
+              style={[styles.row, { gap: theme.space[2], paddingVertical: theme.space["1.5"], paddingHorizontal: theme.space[2], borderRadius: theme.radius.sm }, r.work && { backgroundColor: c.brand.subtle }]}>
+              <Text variant={variant} color={color} style={[styles.flex, styles.tabular]}>{distance(r.distance_m)}</Text>
+              <Text variant={variant} color={color} style={cell}>{clock(r.duration_s)}</Text>
+              <Text variant={variant} color={color} style={cell}>{pace(r.pace)}</Text>
+              <Text variant={variant} color={color} style={cell}>{r.avg_hr ? `${r.avg_hr} bpm` : "–"}</Text>
             </View>
           );
         })}
       </View>
-    </View>
+    </Card>
   );
 }
 
@@ -250,7 +184,6 @@ const styles = StyleSheet.create({
   between: { flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap" },
   axis: { justifyContent: "space-between", alignItems: "flex-end" },
   flex: { flex: 1, minWidth: 0 },
-  end: { alignItems: "flex-end" },
   right: { textAlign: "right" },
   tabular: { fontVariant: ["tabular-nums"] },
 });

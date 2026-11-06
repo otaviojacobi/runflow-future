@@ -70,10 +70,34 @@ export function defaultView(a: { laps: Lap[] | null; splits: Split[] | null }): 
   return splits.length ? "splits" : "laps";
 }
 
-/** A split's bar width in % of the row: longer = took longer (slower pace), from 40% for the fastest km to 100% for
- * the slowest, so every bar stays visible and the differences read at a glance. 100% when all paces are equal. */
-export function splitBarPct(pace: number, fastest: number, slowest: number): number {
-  return slowest === fastest ? 100 : 40 + ((pace - fastest) / (slowest - fastest)) * 60;
+/** A row of the "Parciais" table: distance, moving time, pace and average heart rate; `work` marks a tiro. */
+export interface PartialRow { n: number; distance_m: number; duration_s: number; pace: number | null; avg_hr: number | null; work: boolean }
+
+/**
+ * The one "Parciais" table (founder, 2026-11-06): the watch's laps when they say more than the per-km splits (a
+ * "tiros" session, laps pressed by hand: `defaultView`), else Strava's per-km splits. Same columns either way; the
+ * tiros are flagged so the screens can highlight them. Empty rows are dropped.
+ */
+export function partials(a: { laps: Lap[] | null; splits: Split[] | null }): { from: "laps" | "splits"; rows: PartialRow[] } {
+  const from = defaultView(a);
+  const rows: PartialRow[] = from === "laps"
+    ? nameLaps((a.laps ?? []).filter((l) => l.distance_m > 0)).map((l, i) => ({ n: l.n ?? i + 1, distance_m: l.distance_m, duration_s: l.duration_s, pace: l.pace, avg_hr: l.avg_hr, work: l.kind === "work" }))
+    : (a.splits ?? []).filter((s) => s.distance_m > 0).map((s) => ({ n: s.n, distance_m: s.distance_m, duration_s: s.duration_s, pace: paceOf(s), avg_hr: s.avg_hr, work: false }));
+  return { from, rows };
+}
+
+/** A "tiros" session in one line: how many, their pace (total time over total distance) and their heart rate
+ * (weighted by time). Null with fewer than two tiros. */
+export function tirosSummary(rows: PartialRow[]): { count: number; pace: number | null; avg_hr: number | null } | null {
+  const work = rows.filter((r) => r.work);
+  if (work.length < 2) return null;
+  const m = work.reduce((s, r) => s + r.distance_m, 0), sec = work.reduce((s, r) => s + r.duration_s, 0);
+  const hr = work.filter((r) => r.avg_hr != null), hrSec = hr.reduce((s, r) => s + r.duration_s, 0);
+  return {
+    count: work.length,
+    pace: m > 0 ? Math.round(sec / (m / 1000)) : null,
+    avg_hr: hrSec > 0 ? Math.round(hr.reduce((s, r) => s + r.avg_hr! * r.duration_s, 0) / hrSec) : null,
+  };
 }
 
 /** Points of one series against time, nulls dropped: [{x: seconds, y}]. */
