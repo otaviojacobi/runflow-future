@@ -134,6 +134,25 @@ Network.getNetworkStateAsync().then((s) => setOsOnline(s.isConnected !== false))
 Network.addNetworkStateListener((s) => setOsOnline(s.isConnected !== false));
 AppState.addEventListener("change", (s) => { if (s === "active" && !reachability.get()) { stopProbe(); scheduleProbe(true); } });
 
+/**
+ * Pull to refresh checks the connection at once (founder, 2026-11-06: "Sem internet" stayed on after the network was
+ * back, waiting for the next probe or a missed network event). Reads the OS's state afresh and asks /health now,
+ * outside the backoff. Any HTTP answer proves the connection, even if the OS's last event said otherwise, so the
+ * banner clears; no answer goes back to probing. Calls while one is running share it.
+ */
+let rechecking: Promise<void> | null = null;
+export function recheckConnection(): Promise<void> {
+  rechecking ??= (async () => {
+    const s = await Network.getNetworkStateAsync().catch(() => null);
+    if (s) setOsOnline(s.isConnected !== false);
+    stopProbe();
+    const answered = await api.get("/health").then(() => true, (e: unknown) => !isOfflineError(e));
+    if (answered) setOsOnline(true);
+    else scheduleProbe();
+  })().finally(() => { rechecking = null; });
+  return rechecking;
+}
+
 /** False while the device has no network or the API doesn't answer (the "Sem internet" banner, prefetches). */
 export function useOnline() {
   return useSyncExternalStore((l) => { listeners.add(l); return () => { listeners.delete(l); }; }, () => osOnline && reachability.get());

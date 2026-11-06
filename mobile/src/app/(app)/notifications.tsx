@@ -4,6 +4,7 @@
  * into the app when a screen here opens that path (switching to the notification's club first), else on the web
  * (desktop tools such as Plano e cobrança).
  */
+import { recheckConnection } from "@/lib/offline";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Pressable, SectionList, StyleSheet, View } from "react-native";
@@ -77,6 +78,7 @@ export default function NotificationsScreen() {
   };
   const refresh = async () => {
     setPulling(true);
+    void recheckConnection();
     await Promise.all([q.refetch(), queryClient.invalidateQueries({ queryKey: meKey })]).catch(() => undefined);
     setPulling(false);
   };

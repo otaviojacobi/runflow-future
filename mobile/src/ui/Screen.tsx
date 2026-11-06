@@ -1,9 +1,11 @@
 /**
- * Screen body: canvas background, the standard gutters (16 pt) and vertical rhythm, optional pull to refresh.
+ * Screen body: canvas background, the standard gutters (16 pt) and vertical rhythm, optional pull to refresh (which
+ * also rechecks the connection: recheckConnection).
  * `insetTop`/`insetBottom` add the safe-area padding when no header or tab bar already does. The keyboard never covers
  * an input: the body pads itself above it and scrolls the focused input into view (ui/keyboard.tsx).
  */
 import { useRef, type ReactNode } from "react";
+import { recheckConnection } from "@/lib/offline";
 import { RefreshControl, ScrollView, View, type ScrollViewInstance, type StyleProp, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -31,7 +33,7 @@ export function Screen({ children, scroll = true, insetTop, insetBottom, refresh
           style={{ flex: 1 }}
           contentContainerStyle={[pad, contentStyle]}
           keyboardShouldPersistTaps="handled"
-          refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={onRefresh} tintColor={theme.color.brand.solid} colors={[theme.color.brand.solid]} progressBackgroundColor={theme.color.surface} /> : undefined}
+          refreshControl={onRefresh ? <RefreshControl refreshing={!!refreshing} onRefresh={() => { void recheckConnection(); onRefresh(); }} tintColor={theme.color.brand.solid} colors={[theme.color.brand.solid]} progressBackgroundColor={theme.color.surface} /> : undefined}
         >
           {children}
         </ScrollView>

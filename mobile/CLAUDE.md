@@ -150,7 +150,9 @@ Preview every change at `/dev/components` (light and dark side by side, demo clu
   conversation (`openWorkout(id, { conversation: true })` → `?conversa=1`, the reply notification's link too).
 - **"Sem internet" comes from the global connection state, never from one query's error.** `useOnline()` = the OS is
   connected AND the API answered last time (`lib/reachability`); after a request gets no answer the app probes
-  `/health` (2, 5, 10, 20, 30, 60 s) and refetches on the first answer, so the banner clears by itself. A thrown
+  `/health` (2, 5, 10, 20, 30, 60 s) and refetches on the first answer, so the banner clears by itself. Pull to refresh
+  checks at once (`recheckConnection`: the OS's state read afresh and `/health` asked now; an answer clears the banner
+  even if the OS's last network event said offline): `Screen`'s refresh does it, and so must any other pull to refresh. A thrown
   fetch logs `[api] network error <method> <path> <error>` (logcat `ReactNativeJS`).
 - **Phones run Hermes, not a browser:** the web preview hides engine gaps. Hermes has no `Intl.PluralRules` (`i18n.ts`
   writes the pt-BR rule out) and React Native's `URLSearchParams` is partial (use `lib/query.ts`). Before a release

@@ -26,6 +26,7 @@ import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
 import { dayMonth, duration, km, pace, timeOf, today as todayFn } from "@/lib/format";
 import { followNewest, isAtEnd } from "@/lib/live";
+import { recheckConnection } from "@/lib/offline";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar, Button, Card, Divider, EmptyState, KeyboardAvoid, Skeleton, Text, useFocusedInputVisible } from "@/ui";
 import { ChevronDown, ChevronUp, CircleCheck, Link2, SearchX } from "@/ui/icons";
@@ -57,7 +58,7 @@ function WorkoutBody({ id, openConversation }: { id: string; openConversation: b
   const w = q.data;
   const gone = q.error instanceof ApiError && q.error.status === 404 ? q.error : null;
 
-  const refresh = async () => { setRefreshing(true); await q.refetch(); setRefreshing(false); };
+  const refresh = async () => { setRefreshing(true); void recheckConnection(); await q.refetch(); setRefreshing(false); };
 
   let body;
   if (gone) {

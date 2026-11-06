@@ -1,5 +1,6 @@
 /** Hooks shared by the Mensagens screens. */
 import { useEffect, useRef, useState } from "react";
+import { recheckConnection } from "@/lib/offline";
 
 /**
  * Tab screens stay mounted when you leave them, and the Mensagens screens only poll while on screen: coming back
@@ -18,6 +19,7 @@ export function usePullToRefresh(...refetches: (() => Promise<unknown>)[]) {
   const [refreshing, setRefreshing] = useState(false);
   const onRefresh = () => {
     setRefreshing(true);
+    void recheckConnection();
     void Promise.allSettled(refetches.map((r) => r())).finally(() => setRefreshing(false));
   };
   return { refreshing, onRefresh };
