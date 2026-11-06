@@ -59,7 +59,7 @@ function Partials({ rows }: { rows: PartialRow[] }) {
       <ol className="grid gap-1" aria-label={t("Parciais")}>
         <li className={cn(cols, "px-2 text-xs text-fg-subtle")}><span>{t("Distância")}</span><span className="text-right">{t("Tempo")}</span><span className="text-right">{t("Pace")}</span><span className="text-right">{t("FC")}</span></li>
         {rows.map((r) => (
-          <li key={r.n} className={cn(cols, "items-center rounded-md px-2 py-1.5 text-sm tabular-nums", r.work && "bg-brand-soft font-semibold text-on-brand-soft")}>
+          <li key={r.n} className={cn(cols, "items-center rounded-md px-2 py-1.5 text-sm tabular-nums", r.shade && "bg-brand-soft text-on-brand-soft", r.work && "font-semibold")}>
             <span>{distance(r.distance_m)}</span>
             <span className="text-right">{clock(r.duration_s)}</span>
             <span className="text-right">{pace(r.pace)}</span>

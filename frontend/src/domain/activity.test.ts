@@ -76,6 +76,9 @@ describe("completed-training analysis (D-055)", () => {
     const steady = partials({ laps: splits.map((s) => ({ ...s })), splits });
     expect(steady.from).toBe("splits");
     expect(steady.rows.every((r) => !r.work && r.distance_m === 1000)).toBe(true);
+    // Every other row shaded, the same color as the tiros, so a long table is easy to follow across.
+    expect(steady.rows.map((r) => r.shade)).toEqual([true, false, true]);
+    expect(t.rows.map((r) => r.shade)).toEqual([false, true, false, true, false]);
     expect(tirosSummary(steady.rows)).toBeNull();
     expect(partials({ laps: null, splits }).from).toBe("splits");
   });

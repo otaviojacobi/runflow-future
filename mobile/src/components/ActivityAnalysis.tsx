@@ -115,12 +115,12 @@ function Parts({ a }: { a: Data }) {
           <Text variant="caption" tone="subtle" style={[styles.flex, styles.right]}>{t("FC")}</Text>
         </View>
         {rows.map((r) => {
-          const color = r.work ? c.brand.subtleFg : undefined;
+          const color = r.shade ? c.brand.subtleFg : undefined;
           const variant = r.work ? "labelSm" : "bodySm";
           return (
             <View key={r.n} accessible
               accessibilityLabel={[r.work ? t("Tiro") : null, distance(r.distance_m), clock(r.duration_s), r.pace ? t("{p} por km", { p: pace(r.pace) }) : null, r.avg_hr ? `${r.avg_hr} bpm` : null].filter(Boolean).join(", ")}
-              style={[styles.row, { gap: theme.space[2], paddingVertical: theme.space["1.5"], paddingHorizontal: theme.space[2], borderRadius: theme.radius.sm }, r.work && { backgroundColor: c.brand.subtle }]}>
+              style={[styles.row, { gap: theme.space[2], paddingVertical: theme.space["1.5"], paddingHorizontal: theme.space[2], borderRadius: theme.radius.sm }, r.shade && { backgroundColor: c.brand.subtle }]}>
               <Text variant={variant} color={color} style={[styles.flex, styles.tabular]}>{distance(r.distance_m)}</Text>
               <Text variant={variant} color={color} style={cell}>{clock(r.duration_s)}</Text>
               <Text variant={variant} color={color} style={cell}>{pace(r.pace)}</Text>

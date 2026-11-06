@@ -70,8 +70,10 @@ export function defaultView(a: { laps: Lap[] | null; splits: Split[] | null }): 
   return splits.length ? "splits" : "laps";
 }
 
-/** A row of the "Parciais" table: distance, moving time, pace and average heart rate; `work` marks a tiro. */
-export interface PartialRow { n: number; distance_m: number; duration_s: number; pace: number | null; avg_hr: number | null; work: boolean }
+/** A row of the "Parciais" table: distance, moving time, pace and average heart rate; `work` marks a tiro; `shade`
+ * paints the row's background: the tiros of a "tiros" session, else every other row (founder, 2026-11-06: easier to
+ * follow across). */
+export interface PartialRow { n: number; distance_m: number; duration_s: number; pace: number | null; avg_hr: number | null; work: boolean; shade: boolean }
 
 /**
  * The one "Parciais" table (founder, 2026-11-06): the watch's laps when they say more than the per-km splits (a
@@ -80,10 +82,11 @@ export interface PartialRow { n: number; distance_m: number; duration_s: number;
  */
 export function partials(a: { laps: Lap[] | null; splits: Split[] | null }): { from: "laps" | "splits"; rows: PartialRow[] } {
   const from = defaultView(a);
-  const rows: PartialRow[] = from === "laps"
+  const rows: Omit<PartialRow, "shade">[] = from === "laps"
     ? nameLaps((a.laps ?? []).filter((l) => l.distance_m > 0)).map((l, i) => ({ n: l.n ?? i + 1, distance_m: l.distance_m, duration_s: l.duration_s, pace: l.pace, avg_hr: l.avg_hr, work: l.kind === "work" }))
     : (a.splits ?? []).filter((s) => s.distance_m > 0).map((s) => ({ n: s.n, distance_m: s.distance_m, duration_s: s.duration_s, pace: paceOf(s), avg_hr: s.avg_hr, work: false }));
-  return { from, rows };
+  const tiros = rows.some((r) => r.work);
+  return { from, rows: rows.map((r, i) => ({ ...r, shade: tiros ? r.work : i % 2 === 0 })) };
 }
 
 /** A "tiros" session in one line: how many, their pace (total time over total distance) and their heart rate
