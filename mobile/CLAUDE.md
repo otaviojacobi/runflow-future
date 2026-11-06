@@ -11,6 +11,7 @@ The Runflow app for Android and iOS: Expo SDK 58 (React Native 0.88, new archite
 | `cd mobile && npx expo install <pkg>` | Add a dependency with the SDK-compatible version. Never plain `npm i` for Expo/RN packages |
 | `cd mobile && npx expo export --platform android` | Bundle check without a device |
 | `npm run apk` | An installable Android APK pointed at QA, built on Expo's servers (EAS, `eas.json` profile `preview`; project `@otaviorunflows-team/runflow`); prints the install link and QR. Needs `EXPO_TOKEN` in the root `.env` |
+| `npm run apk:local` | The same QA APK built on this computer (`eas build --local`, no EAS cloud build spent): **try it first**. JDK 17 at `~/.local/share/jdk-17` (or `JAVA_HOME_17`), the Android SDK at `~/Android/Sdk`; the APK lands in `~/Desktop/runflow-builds/` (`RUNFLOW_BUILDS`) |
 | `npm run eas -- <args>` | Any EAS CLI command with that token (`build:list`, `credentials`, …) |
 
 On a physical phone, point the app at your computer: `EXPO_PUBLIC_API_URL=http://<your-ip>:8787/v1 npm run dev:mobile`.
