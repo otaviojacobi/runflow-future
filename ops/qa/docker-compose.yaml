@@ -253,7 +253,8 @@ services:
       - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana:/var/lib/grafana
     depends_on: [loki, prometheus]
-    mem_limit: 512m
+    # Grafana sat at ~94% of 512 MB with eleven dashboards (Runflow · Memory, 2026-11-06); the NUC has 16 GB.
+    mem_limit: 1g
 
 volumes:
   pgdata:
