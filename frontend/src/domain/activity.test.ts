@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { areaPath, decodePolyline, defaultView, lapsAreAutoKm, linePath, nameLaps, niceRange, routePath, routePoints, series, type Lap } from "./activity";
+import { areaPath, decodePolyline, defaultView, lapsAreAutoKm, linePath, nameLaps, niceRange, routePath, routePoints, series, splitBarPct, type Lap } from "./activity";
 
 const km = (n: number, s: number): Lap => ({ n, distance_m: 1000, duration_s: s, avg_hr: 150 });
 
@@ -55,5 +55,13 @@ describe("completed-training analysis (D-055)", () => {
     expect(linePath(pts, 180, 40, range)).toBe("M0.0 40.0 L120.0 0.0 L180.0 20.0");
     expect(areaPath(pts, 180, 40, range)).toBe("M0.0 40.0 L120.0 0.0 L180.0 20.0 L180 40 L0 40 Z");
     expect(linePath(pts.slice(0, 1), 10, 10)).toBe("");
+  });
+
+  it("draws a slower km as a longer bar (it took longer)", () => {
+    // 4:30 fastest, 5:30 slowest.
+    expect(splitBarPct(330, 270, 330)).toBe(100);
+    expect(splitBarPct(270, 270, 330)).toBe(40);
+    expect(splitBarPct(300, 270, 330)).toBe(70);
+    expect(splitBarPct(300, 300, 300)).toBe(100);
   });
 });

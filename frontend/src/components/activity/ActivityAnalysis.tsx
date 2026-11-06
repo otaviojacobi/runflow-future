@@ -5,7 +5,7 @@
  * blocks in the same order (mobile/src/components/ActivityAnalysis.tsx). */
 import { useState } from "react";
 import type { Activity } from "@/api/types";
-import { areaPath, defaultView, linePath, nameLaps, niceRange, paceOf, routePath, routePoints, series, type NamedLap, type Split } from "@/domain/activity";
+import { areaPath, defaultView, linePath, nameLaps, niceRange, paceOf, routePath, routePoints, series, splitBarPct, type NamedLap, type Split } from "@/domain/activity";
 import { t } from "@/i18n";
 import { clock, distance, number, pace } from "@/lib/format";
 import { Card, Segmented, cn } from "@/ui";
@@ -54,27 +54,22 @@ function HeartRate({ a, laps }: { a: Activity; laps: NamedLap[] }) {
   );
 }
 
-/** Rows with a pace bar: longer = faster. */
-function bar(p: number | null, fastest: number, slowest: number) {
-  if (p == null) return 0;
-  return slowest === fastest ? 100 : 40 + ((slowest - p) / (slowest - fastest)) * 60;
-}
-
+/** Rows with a pace bar: longer = took longer (splitBarPct). */
 function Splits({ splits }: { splits: Split[] }) {
   const paces = splits.map((s) => paceOf(s)).filter((p): p is number => p != null);
   const fastest = Math.min(...paces), slowest = Math.max(...paces);
   return (
     <ol className="grid gap-1.5" aria-label={t("Parciais por km")}>
-      <li className="grid grid-cols-[2.75rem_minmax(0,1fr)_3rem_3.75rem_3rem] sm:grid-cols-[3.5rem_minmax(0,1fr)_3.5rem_4rem_3.5rem] gap-2 text-xs text-fg-subtle"><span>{t("Km")}</span><span /><span className="text-right">{t("Pace")}</span><span className="text-right">{t("FC")}</span><span className="text-right">{t("Elev.")}</span></li>
+      <li className="grid grid-cols-[2.75rem_minmax(0,1fr)_3rem_3.75rem_3rem] sm:grid-cols-[3.5rem_minmax(0,1fr)_3.5rem_4rem_3.5rem] gap-2 text-xs text-fg-subtle"><span>{t("Km")}</span><span /><span className="text-right">{t("Pace")}</span><span className="text-right">{t("FC")}<span className="sm:hidden"> {t("bpm")}</span></span><span className="text-right">{t("Elev.")}</span></li>
       {splits.map((s) => {
         const p = paceOf(s);
         const full = s.distance_m >= 950;
         return (
           <li key={s.n} className="grid grid-cols-[2.75rem_minmax(0,1fr)_3rem_3.75rem_3rem] sm:grid-cols-[3.5rem_minmax(0,1fr)_3.5rem_4rem_3.5rem] items-center gap-2 text-sm tabular-nums">
-            <span className="text-fg-muted">{full ? s.n : `${number(s.distance_m / 1000, 2)} km`}</span>
-            <span className="h-4 rounded-r-[4px] bg-brand-text" style={{ width: `${bar(p, fastest, slowest)}%`, opacity: p === fastest ? 1 : 0.7 }} />
+            <span className="whitespace-nowrap text-fg-muted">{full ? s.n : <>{number(s.distance_m / 1000, 2)}<span className="hidden sm:inline"> km</span></>}</span>
+            <span className="h-4 rounded-r-[4px] bg-brand-text" style={{ width: `${p == null ? 0 : splitBarPct(p, fastest, slowest)}%`, opacity: p === fastest ? 1 : 0.7 }} />
             <span className="text-right font-semibold">{pace(p)}</span>
-            <span className="text-right text-fg-muted">{s.avg_hr ? `${s.avg_hr} bpm` : "–"}</span>
+            <span className="text-right text-fg-muted">{s.avg_hr ? <>{s.avg_hr}<span className="hidden sm:inline"> bpm</span></> : "–"}</span>
             <span className="text-right text-fg-muted">{s.elevation_diff_m == null ? "–" : `${s.elevation_diff_m > 0 ? "+" : ""}${s.elevation_diff_m} m`}</span>
           </li>
         );

@@ -9,7 +9,7 @@ import { useState } from "react";
 import { StyleSheet, View, type LayoutChangeEvent } from "react-native";
 import Svg, { Circle, Line, Path, Rect } from "react-native-svg";
 import type { Activity } from "@/api/types";
-import { areaPath, defaultView, linePath, nameLaps, niceRange, routePath, routePoints, series, type NamedLap, type Split } from "@/domain/activity";
+import { areaPath, defaultView, linePath, nameLaps, niceRange, routePath, routePoints, series, splitBarPct, type NamedLap, type Split } from "@/domain/activity";
 import { t } from "@/i18n";
 import { clock, distance, number, pace } from "@/lib/format";
 import { useTheme } from "@/theme/ThemeProvider";
@@ -103,7 +103,6 @@ function Parts({ a }: { a: Data }) {
     <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>
       <View style={[styles.between, { gap: theme.space[2] }]}>
         <Text variant="titleSm" accessibilityRole="header">{shown === "splits" ? t("Parciais por km") : lapsLabel}</Text>
-        {shown === "splits" && <Text variant="caption" tone="muted">{t("barra maior = mais rápido")}</Text>}
       </View>
       {splits.length > 0 && laps.length > 0 && (
         <Segmented size="sm" label={t("Ver parciais ou voltas")} value={shown} onChange={setView}
@@ -123,7 +122,7 @@ function SplitRows({ splits }: { splits: Split[] }) {
     <View accessibilityRole="list" style={{ gap: theme.space["1.5"] }}>
       {splits.map((s, i) => {
         const p = paces[i]!;
-        const w = slowest === fastest ? 100 : 55 + ((slowest - p) / (slowest - fastest)) * 45;
+        const w = splitBarPct(p, fastest, slowest);
         const partial = s.distance_m < 950;
         const label = partial ? `${number(s.distance_m / 1000, 2)} km` : String(s.n);
         const elev = s.elevation_diff_m;

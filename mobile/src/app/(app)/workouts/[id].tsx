@@ -24,7 +24,7 @@ import { IntensityProfile, Stat, StatusBadge, feelingLabel } from "@/components/
 import { t } from "@/i18n";
 import { ApiError } from "@/lib/api";
 import { useClub } from "@/lib/club";
-import { duration, km, longDate, pace, timeOf, today as todayFn, upperFirst } from "@/lib/format";
+import { dayMonth, duration, km, pace, timeOf, today as todayFn } from "@/lib/format";
 import { followNewest, isAtEnd } from "@/lib/live";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Avatar, Button, Card, Divider, EmptyState, KeyboardAvoid, Skeleton, Text, useFocusedInputVisible } from "@/ui";
@@ -115,7 +115,7 @@ function Detail({ w, placeholder, clubTz, professor, onFeedback, thread }: { w: 
     <View style={{ gap: theme.space[2] }}>
       <View style={[styles.wrap, { gap: theme.space[2] }]}>
         <SportChip sport={w.sport} />
-        <Text variant="bodySm" tone="muted">{upperFirst(longDate(w.date))}</Text>
+        <Text variant="bodySm" tone="muted">{dayMonth(w.date)}</Text>
         {c ? <StatusBadge status={c.status} /> : past ? <StatusBadge status="unlogged" /> : null}
       </View>
       <Text variant="displaySm" accessibilityRole="header">{w.title}</Text>
@@ -152,9 +152,7 @@ function Detail({ w, placeholder, clubTz, professor, onFeedback, thread }: { w: 
         <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>
           <View style={[styles.row, { gap: theme.space[2] }]}>
             <CircleCheck size={theme.size.iconSm} color={theme.color.success.text} aria-hidden />
-            <Text variant="labelMd" style={styles.flex} numberOfLines={1}>
-              {auto ? (chosen ? t("Concluído com a sua atividade") : t("Concluído automaticamente")) : t("Concluído")}
-            </Text>
+            <Text variant="labelMd" style={styles.flex} numberOfLines={1}>{t("Concluído")}</Text>
             {a.source === "strava" ? <PoweredByStrava /> : <Text variant="caption" tone="muted">{t("manual")}</Text>}
           </View>
           <Text variant="caption" tone="muted" numberOfLines={1}>{a.name} · {timeOf(a.started_at)}{auto ? done : ""}</Text>

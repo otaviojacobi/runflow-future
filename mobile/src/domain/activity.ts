@@ -70,6 +70,12 @@ export function defaultView(a: { laps: Lap[] | null; splits: Split[] | null }): 
   return splits.length ? "splits" : "laps";
 }
 
+/** A split's bar width in % of the row: longer = took longer (slower pace), from 40% for the fastest km to 100% for
+ * the slowest, so every bar stays visible and the differences read at a glance. 100% when all paces are equal. */
+export function splitBarPct(pace: number, fastest: number, slowest: number): number {
+  return slowest === fastest ? 100 : 40 + ((pace - fastest) / (slowest - fastest)) * 60;
+}
+
 /** Points of one series against time, nulls dropped: [{x: seconds, y}]. */
 export function series(s: Streams, key: "heartrate" | "altitude" | "velocity"): { x: number; y: number }[] {
   const ys = s[key];
