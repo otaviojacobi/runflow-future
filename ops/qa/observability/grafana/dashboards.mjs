@@ -276,6 +276,15 @@ function dashboard({ uid, title, description, tags = [], templating = [], time =
 const HTTP = 'http_server_request_duration_seconds_count{job="runflow"}';
 const HTTP_B = 'http_server_request_duration_seconds_bucket{job="runflow"}';
 const RI = "$__rate_interval";
+
+// Host memory in bytes: "used" is what can't be reclaimed (total − available: the page cache the kernel gives back on
+// demand doesn't count), the same base as the percentage panels.
+const MEM_TOTAL = "max(node_memory_MemTotal_bytes)";
+const MEM_USED = "(max(node_memory_MemTotal_bytes) - max(node_memory_MemAvailable_bytes))";
+const MEM_USED_TOTAL = [
+  { expr: MEM_USED, legend: "used" },
+  { expr: MEM_TOTAL, legend: "total" },
+];
 const quant = (q, by, metric, range = RI) =>
   `histogram_quantile(${q}, sum by (${["le", ...by].join(", ")}) (rate(${metric}[${range}])))`;
 const WORKER_LOGS = '{service="api"} |= "\\"target\\":\\"runflow_jobs"';
@@ -292,6 +301,7 @@ const UIDS = {
   tunnel: "runflow-tunnel",
   host: "runflow-host",
   product: "runflow-product",
+  memory: "runflow-memory",
 };
 
 // ---------------------------------------------------------------- the dashboards
@@ -353,10 +363,11 @@ const overview = dashboard({
     ts("Database connections (API pool)", { expr: "sum by (db_client_connection_state) (db_client_connection_count)", legend: "{{db_client_connection_state}}" }, { w: 8 }),
 
     row("Host"),
-    ts("CPU", '100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[$__rate_interval])))', { w: 6, unit: "percent", min: 0, max: 100 }),
-    ts("Memory", "100 * (1 - max(node_memory_MemAvailable_bytes) / max(node_memory_MemTotal_bytes))", { w: 6, unit: "percent", min: 0, max: 100 }),
-    ts("Disk (/)", '100 * (1 - max(node_filesystem_avail_bytes{mountpoint="/"}) / max(node_filesystem_size_bytes{mountpoint="/"}))', { w: 6, unit: "percent", min: 0, max: 100 }),
-    ts("Temperature", "max(node_thermal_zone_temp) or max(node_hwmon_temp_celsius)", { w: 6, unit: "celsius" }),
+    ts("CPU", '100 * (1 - avg(rate(node_cpu_seconds_total{mode="idle"}[$__rate_interval])))', { w: 8, unit: "percent", min: 0, max: 100 }),
+    ts("Memory", "100 * (1 - max(node_memory_MemAvailable_bytes) / max(node_memory_MemTotal_bytes))", { w: 8, unit: "percent", min: 0, max: 100 }),
+    ts("Memory used of total", MEM_USED_TOTAL, { w: 8, unit: "bytes", min: 0, desc: "In bytes. By service: the Memory dashboard." }),
+    ts("Disk (/)", '100 * (1 - max(node_filesystem_avail_bytes{mountpoint="/"}) / max(node_filesystem_size_bytes{mountpoint="/"}))', { w: 12, unit: "percent", min: 0, max: 100 }),
+    ts("Temperature", "max(node_thermal_zone_temp) or max(node_hwmon_temp_celsius)", { w: 12, unit: "celsius" }),
 
     row("Logs"),
     logVolume("Log volume by service", 'sum by (service) (count_over_time({environment="qa"}[$__auto]))', { w: 24, legend: "{{service}}" }),
@@ -845,6 +856,47 @@ const host = dashboard({
   ],
 });
 
+const CMEM = `sum by (service) (${C("container_memory_working_set_bytes")})`;
+const CMEM_ALL = `sum(${C("container_memory_working_set_bytes")})`;
+const memory = dashboard({
+  uid: UIDS.memory,
+  title: "Runflow · Memory",
+  description:
+    "The host's memory in bytes and in percent: used against the total, what each compose service holds and what's left outside the containers (the OS, Docker, the NUC's own services).",
+  tags: ["host", "containers", "memory"],
+  panels: [
+    row("Now"),
+    stat("Used", MEM_USED, { unit: "bytes", decimals: 1, desc: "Total − available: what can't be reclaimed right now." }),
+    stat("Total", MEM_TOTAL, { unit: "bytes", decimals: 1, graph: false }),
+    stat("Available", "max(node_memory_MemAvailable_bytes)", { unit: "bytes", decimals: 1, desc: "Free memory plus the cache the kernel can give back." }),
+    stat("Used %", `100 * ${MEM_USED} / ${MEM_TOTAL}`, { unit: "percent", decimals: 0, steps: [["green", null], ["orange", 80], ["red", 92]] }),
+    stat("All containers", CMEM_ALL, { unit: "bytes", decimals: 1, desc: "The compose services' working sets together (cAdvisor)." }),
+    stat("Swap used", "max(node_memory_SwapTotal_bytes) - max(node_memory_SwapFree_bytes)", { unit: "bytes", decimals: 1, steps: [["green", null], ["orange", 268435456]], desc: "Swapping slows everything: anything above a few hundred MB is worth a look." }),
+
+    row("Host over time"),
+    ts("Used of total", [...MEM_USED_TOTAL, { expr: "max(node_memory_MemAvailable_bytes)", legend: "available" }], { unit: "bytes", min: 0 }),
+    ts("Used %", `100 * ${MEM_USED} / ${MEM_TOTAL}`, { unit: "percent", min: 0, max: 100 }),
+    ts("Where the memory is", [
+      { expr: MEM_USED, legend: "used" },
+      { expr: "max(node_memory_Buffers_bytes) + max(node_memory_Cached_bytes) + max(node_memory_SReclaimable_bytes) - max(node_memory_Shmem_bytes)", legend: "cache (reclaimable)" },
+      { expr: "max(node_memory_MemFree_bytes)", legend: "free" },
+    ], { unit: "bytes", stack: true, min: 0, desc: "Stacked, adds up to about the total. A large cache is normal: Linux keeps recently read files in memory and gives it back on demand." }),
+    ts("Swap", { expr: "max(node_memory_SwapTotal_bytes) - max(node_memory_SwapFree_bytes)", legend: "swap used" }, { unit: "bytes", min: 0 }),
+
+    row("By service"),
+    ts("Used, by service", [
+      { expr: CMEM, legend: "{{service}}" },
+      { expr: `clamp_min(${MEM_USED} - ${CMEM_ALL}, 0)`, legend: "outside containers" },
+    ], { unit: "bytes", stack: true, min: 0, desc: "Stacked: each compose service's working set, plus what the host uses outside them; the top is about the host's used memory." }),
+    bars("Now, by service", { expr: `sort_desc(${CMEM})`, legend: "{{service}}" }, { unit: "bytes", decimals: 1 }),
+    bars("Share of the host's total, by service", { expr: `sort_desc(${CMEM} / scalar(${MEM_TOTAL}))`, legend: "{{service}}" }, { unit: "percentunit", decimals: 1 }),
+    bars("Against the container's limit", {
+      expr: `${CMEM} / sum by (service) (${C("container_spec_memory_limit_bytes")} > 0)`,
+      legend: "{{service}}",
+    }, { unit: "percentunit", steps: [["green", null], ["orange", 0.8], ["red", 0.95]], desc: "Only services with a mem_limit in the compose file." }),
+  ],
+});
+
 // Clubs that count: not closed. Smoke-test clubs (D-034) are closed by the suite itself.
 const LIVE_CLUBS = "SELECT id FROM clubs WHERE deleted_at IS NULL";
 const DONE = "wc.status IN ('completed', 'partial')";
@@ -952,6 +1004,7 @@ const FILES = {
   "tunnel.json": tunnel,
   "host.json": host,
   "product.json": product,
+  "memory.json": memory,
 };
 
 const check = process.argv.includes("--check");

@@ -201,7 +201,8 @@ built-in exporters, Garage's admin `:3903/metrics`, Caddy's `:9180/metrics`, clo
 compose network only), reads per-container usage with cAdvisor (host cgroup and PID namespaces, Docker's data dir and
 containerd's socket, read-only) and adds the host's metrics. Configs live in `ops/qa/observability/`; the data sources
 and the dashboards are provisioned from there: "Runflow QA" (the overview, whose service tiles open the others) and one
-per service (API, Worker, Postgres, Valkey, Garage, Web, Tunnel, Host and containers). The dashboards are code: edit
+per service (API, Worker, Postgres, Valkey, Garage, Web, Tunnel, Host and containers), plus Memory (used of total in
+bytes and percent, by service, outside the containers) and Product. The dashboards are code: edit
 `grafana/dashboards.mjs`, run `node ops/qa/observability/grafana/dashboards.mjs`, and push (`npm run check:ops` fails
 on stale JSON; changes made in Grafana's UI are lost on the next restart).
 

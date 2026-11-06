@@ -1181,7 +1181,7 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
+        "w": 8,
         "x": 0,
         "y": 30
       }
@@ -1231,13 +1231,73 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 6,
+        "w": 8,
+        "x": 8,
         "y": 30
       }
     },
     {
       "id": 23,
+      "type": "timeseries",
+      "title": "Memory used of total",
+      "description": "In bytes. By service: the Memory dashboard.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "(max(node_memory_MemTotal_bytes) - max(node_memory_MemAvailable_bytes))",
+          "legendFormat": "used"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "max(node_memory_MemTotal_bytes)",
+          "legendFormat": "total"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "min": 0,
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "spanNulls": true
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 30
+      }
+    },
+    {
+      "id": 24,
       "type": "timeseries",
       "title": "Disk (/)",
       "datasource": {
@@ -1281,13 +1341,13 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 12,
-        "y": 30
+        "w": 12,
+        "x": 0,
+        "y": 38
       }
     },
     {
-      "id": 24,
+      "id": 25,
       "type": "timeseries",
       "title": "Temperature",
       "datasource": {
@@ -1329,13 +1389,13 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 6,
-        "x": 18,
-        "y": 30
+        "w": 12,
+        "x": 12,
+        "y": 38
       }
     },
     {
-      "id": 25,
+      "id": 26,
       "type": "row",
       "title": "Logs",
       "collapsed": false,
@@ -1343,12 +1403,12 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 38
+        "y": 46
       },
       "panels": []
     },
     {
-      "id": 26,
+      "id": 27,
       "type": "timeseries",
       "title": "Log volume by service",
       "datasource": {
@@ -1398,11 +1458,11 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 39
+        "y": 47
       }
     },
     {
-      "id": 27,
+      "id": 28,
       "type": "logs",
       "title": "API errors and warnings",
       "datasource": {
@@ -1431,11 +1491,11 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 47
+        "y": 55
       }
     },
     {
-      "id": 28,
+      "id": 29,
       "type": "logs",
       "title": "API logs",
       "datasource": {
@@ -1464,7 +1524,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 57
+        "y": 65
       }
     }
   ]
