@@ -29,13 +29,13 @@ pub async fn access(
     .await
 }
 
-/// A member used the club (D-056): their membership was last active now, and the club too unless another member
-/// stamped it in the last 5 minutes (a big club's row isn't rewritten for each of its students).
+/// A member used the club (D-056), kept by the day: the membership's first use today stamps it, and the club unless
+/// another member already did today (a big club's row is written once a day, not once per student).
 pub async fn touch_membership(db: impl PgExecutor<'_>, membership_id: Uuid) -> sqlx::Result<()> {
     sqlx::query!(
-        "WITH m AS (UPDATE memberships SET last_active_at = now() WHERE id = $1 RETURNING club_id)
+        "WITH m AS (UPDATE memberships SET last_active_at = now() WHERE id = $1 AND last_active_at < current_date RETURNING club_id)
          UPDATE clubs SET last_active_at = now()
-          WHERE id = (SELECT club_id FROM m) AND last_active_at < now() - interval '5 minutes'",
+          WHERE id = (SELECT club_id FROM m) AND last_active_at < current_date",
         membership_id
     )
     .execute(db)

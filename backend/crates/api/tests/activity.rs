@@ -6,18 +6,18 @@ use common::TestApp;
 use serde_json::json;
 use sqlx::PgPool;
 
-/// Pushes every activity stamp an hour back, and lets the next touch through Valkey's throttle.
+/// Pushes every activity stamp (and the session's last use) two days back: the next use is a new day's.
 async fn age(app: &TestApp) {
     for table in ["users", "memberships", "clubs"] {
         // Table names from the fixed list above.
         sqlx::query(sqlx::AssertSqlSafe(format!(
-            "UPDATE {table} SET last_active_at = now() - interval '1 hour'"
+            "UPDATE {table} SET last_active_at = now() - interval '2 days'"
         )))
         .execute(app.db())
         .await
         .unwrap();
     }
-    sqlx::query("UPDATE sessions SET last_seen_at = now() - interval '1 hour'")
+    sqlx::query("UPDATE sessions SET last_seen_at = now() - interval '2 days'")
         .execute(app.db())
         .await
         .unwrap();
@@ -79,7 +79,7 @@ async fn sign_ins_attempts_and_use_are_kept(db: PgPool) {
         .unwrap();
     assert_eq!(users, 1);
 
-    // Using a session (past its 5-minute throttle) is activity.
+    // Using a session is activity, kept by the day.
     age(&app).await;
     app.get("/v1/me", Some(&ana)).await.ok();
     assert!(recent(&app, &ana_user.replace("{}", "last_active_at")).await);
@@ -105,14 +105,14 @@ async fn club_requests_mark_the_membership_and_the_club(db: PgPool) {
     assert!(eventually_recent(&app, "SELECT last_active_at FROM memberships").await);
     assert!(eventually_recent(&app, "SELECT last_active_at FROM clubs").await);
 
-    // Written at most every 5 minutes per membership: a second request right after leaves the stamps alone.
+    // Kept by the day: another request today (the API remembers this membership was seen) writes nothing.
     age(&app).await;
     app.get(&format!("/v1/clubs/{id}"), Some(&owner)).await.ok();
     tokio::time::sleep(std::time::Duration::from_millis(300)).await;
     assert!(!recent(&app, "SELECT last_active_at FROM memberships").await);
 
-    // A club already stamped in the last 5 minutes isn't rewritten for another member (big clubs stay cheap).
-    sqlx::query("UPDATE clubs SET last_active_at = now() - interval '2 minutes'")
+    // A club already stamped today isn't rewritten for another member (a big club: one write a day).
+    sqlx::query("UPDATE clubs SET last_active_at = date_trunc('day', now())")
         .execute(app.db())
         .await
         .unwrap();
@@ -123,6 +123,28 @@ async fn club_requests_mark_the_membership_and_the_club(db: PgPool) {
     runflow_db::clubs::touch_membership(app.db(), membership)
         .await
         .unwrap();
-    assert!(!recent(&app, "SELECT last_active_at FROM clubs").await);
     assert!(recent(&app, "SELECT last_active_at FROM memberships").await);
+    let untouched: bool =
+        sqlx::query_scalar("SELECT last_active_at = date_trunc('day', now()) FROM clubs")
+            .fetch_one(app.db())
+            .await
+            .unwrap();
+    assert!(untouched);
+
+    // The person's row too: a session used again the same day doesn't rewrite it.
+    sqlx::query("UPDATE users SET last_active_at = date_trunc('day', now())")
+        .execute(app.db())
+        .await
+        .unwrap();
+    sqlx::query("UPDATE sessions SET last_seen_at = now() - interval '1 hour'")
+        .execute(app.db())
+        .await
+        .unwrap();
+    app.get("/v1/me", Some(&owner)).await.ok();
+    let same_day: bool =
+        sqlx::query_scalar("SELECT last_active_at = date_trunc('day', now()) FROM users")
+            .fetch_one(app.db())
+            .await
+            .unwrap();
+    assert!(same_day);
 }

@@ -5,6 +5,9 @@ use axum::extract::Request;
 use axum::http::{Method, StatusCode};
 use axum::middleware::Next;
 use axum::response::Response;
+use std::collections::HashSet;
+use std::sync::{LazyLock, Mutex};
+
 use uuid::Uuid;
 
 use crate::session::Auth;
@@ -89,12 +92,9 @@ pub async fn member(
             },
         ));
     }
-    // Account activity (D-056): this membership and its club were used. At most every TOUCH_EVERY per membership
-    // (one Valkey SET NX decides), written off the request path so nobody waits for it.
-    if runflow_kv::sessions::membership_touch_due(&state.kv, a.membership_id, TOUCH_EVERY)
-        .await
-        .unwrap_or(true)
-    {
+    // Account activity (D-056), by the day: this membership's first club request today in this API process stamps
+    // it and its club, off the request path. No Valkey or database work on the other requests.
+    if first_today(a.membership_id) {
         let (db, id) = (state.db.clone(), a.membership_id);
         tokio::spawn(async move {
             if let Err(err) = runflow_db::clubs::touch_membership(&db, id).await {
@@ -110,8 +110,21 @@ pub async fn member(
     })
 }
 
-/// How often a membership's (and its club's) `last_active_at` may be written.
-const TOUCH_EVERY: std::time::Duration = std::time::Duration::from_secs(5 * 60);
+/// The memberships this process has already stamped today (D-056): a set in memory, emptied when the day (UTC)
+/// changes, a few bytes per active membership. Another process or a restart stamps once more at most, and the
+/// database's own guard (`last_active_at < current_date`) makes that a no-op.
+type Seen = (chrono::NaiveDate, HashSet<Uuid>);
+static SEEN_TODAY: LazyLock<Mutex<Seen>> =
+    LazyLock::new(|| Mutex::new((chrono::NaiveDate::MIN, HashSet::new())));
+
+fn first_today(membership_id: Uuid) -> bool {
+    let today = chrono::Utc::now().date_naive();
+    let mut seen = SEEN_TODAY.lock().unwrap_or_else(|e| e.into_inner());
+    if seen.0 != today {
+        *seen = (today, HashSet::new());
+    }
+    seen.1.insert(membership_id)
+}
 
 /// `409 plan.limit_reached` when `adding` more of `role` don't fit the plan's hard limits (Free, Pro; Max bills
 /// extra seats instead), like the mock's `ensureSeat`.

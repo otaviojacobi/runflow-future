@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH m AS (UPDATE memberships SET last_active_at = now() WHERE id = $1 AND last_active_at < current_date RETURNING club_id)\n         UPDATE clubs SET last_active_at = now()\n          WHERE id = (SELECT club_id FROM m) AND last_active_at < current_date",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "65c505692facb0e9b43e752fbcc504dd4196594a324da3cf67074fb9f345efec"
+}

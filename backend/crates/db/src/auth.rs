@@ -170,12 +170,13 @@ pub async fn session_by_token(
     .await
 }
 
-/// Sliding expiry: a session in use stays alive for `ttl` after its last use; its person was active (D-056).
+/// Sliding expiry: a session in use stays alive for `ttl` after its last use. Its person's activity (D-056) is kept
+/// by the day: their row is written on the first use of each day only.
 pub async fn touch_session(db: impl PgExecutor<'_>, id: Uuid, ttl: Duration) -> sqlx::Result<()> {
     sqlx::query!(
         "WITH s AS (UPDATE sessions SET last_seen_at = now(), expires_at = now() + $2::interval WHERE id = $1 RETURNING user_id)
          UPDATE users SET last_active_at = now()
-          WHERE id = (SELECT user_id FROM s) AND last_active_at < now() - interval '5 minutes'",
+          WHERE id = (SELECT user_id FROM s) AND last_active_at < current_date",
         id,
         pg_interval(ttl)
     )
