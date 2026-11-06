@@ -130,8 +130,11 @@ pub async fn create_session(
     ttl: Duration,
 ) -> sqlx::Result<Uuid> {
     let id = Uuid::now_v7();
+    // A new session is a sign-in: the account's activity (D-056) moves with it.
     sqlx::query!(
-        "INSERT INTO sessions (id, user_id, token_hash, kind, user_agent, expires_at) VALUES ($1, $2, $3, $4, $5, $6)",
+        "WITH s AS (INSERT INTO sessions (id, user_id, token_hash, kind, user_agent, expires_at)
+                    VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id)
+         UPDATE users SET last_sign_in_at = now(), last_active_at = now() WHERE id = (SELECT user_id FROM s)",
         id,
         user_id,
         token_hash,
@@ -167,10 +170,12 @@ pub async fn session_by_token(
     .await
 }
 
-/// Sliding expiry: a session in use stays alive for `ttl` after its last use.
+/// Sliding expiry: a session in use stays alive for `ttl` after its last use; its person was active (D-056).
 pub async fn touch_session(db: impl PgExecutor<'_>, id: Uuid, ttl: Duration) -> sqlx::Result<()> {
     sqlx::query!(
-        "UPDATE sessions SET last_seen_at = now(), expires_at = now() + $2::interval WHERE id = $1",
+        "WITH s AS (UPDATE sessions SET last_seen_at = now(), expires_at = now() + $2::interval WHERE id = $1 RETURNING user_id)
+         UPDATE users SET last_active_at = now()
+          WHERE id = (SELECT user_id FROM s) AND last_active_at < now() - interval '5 minutes'",
         id,
         pg_interval(ttl)
     )
@@ -235,4 +240,16 @@ fn pg_interval(d: Duration) -> sqlx::postgres::types::PgInterval {
         days: 0,
         microseconds: d.num_microseconds().unwrap_or(i64::MAX),
     }
+}
+
+/// A sign-in code was asked for this address (D-056): an attempt counts as activity for an inactivity policy, even
+/// if the code is never used. Addresses without an account are left alone (nothing is stored for them).
+pub async fn record_sign_in_attempt(db: impl PgExecutor<'_>, email: &str) -> sqlx::Result<()> {
+    sqlx::query!(
+        "UPDATE users SET last_sign_in_attempt_at = now() WHERE lower(email) = lower($1) AND deleted_at IS NULL",
+        email
+    )
+    .execute(db)
+    .await?;
+    Ok(())
 }

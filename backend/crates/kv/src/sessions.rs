@@ -107,3 +107,22 @@ pub async fn touch_due(kv: &Kv, token_hash: &[u8], every: Duration) -> Result<bo
         .await?;
     Ok(set.is_some())
 }
+
+/// Whether this request should write a membership's `last_active_at` (D-056): true at most once per `every` for a
+/// membership, like `touch_due` for sessions.
+pub async fn membership_touch_due(
+    kv: &Kv,
+    membership_id: uuid::Uuid,
+    every: Duration,
+) -> Result<bool> {
+    let key = kv.key(format_args!("mtouch:{membership_id}"));
+    let set: Option<String> = redis::cmd("SET")
+        .arg(key)
+        .arg(1)
+        .arg("NX")
+        .arg("PX")
+        .arg(ms(every))
+        .query_async(&mut kv.conn())
+        .await?;
+    Ok(set.is_some())
+}

@@ -106,6 +106,8 @@ async fn email_start(
         }
     }
 
+    // Asking for a code counts as activity for an existing account (D-056), even if it's never used.
+    db::record_sign_in_attempt(&state.db, &email).await?;
     if let Err(err) = state.mailer.send(&code_email(&email, &code)).await {
         tracing::error!(error = %err, "sign-in code e-mail failed");
         return Err(Problem::new(

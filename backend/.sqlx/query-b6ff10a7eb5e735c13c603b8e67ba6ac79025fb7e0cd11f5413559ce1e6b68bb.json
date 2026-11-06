@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH s AS (INSERT INTO sessions (id, user_id, token_hash, kind, user_agent, expires_at)\n                    VALUES ($1, $2, $3, $4, $5, $6) RETURNING user_id)\n         UPDATE users SET last_sign_in_at = now(), last_active_at = now() WHERE id = (SELECT user_id FROM s)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Bytea",
+        "Text",
+        "Text",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b6ff10a7eb5e735c13c603b8e67ba6ac79025fb7e0cd11f5413559ce1e6b68bb"
+}

@@ -17,7 +17,13 @@ CREATE TABLE users (
   locale        text NOT NULL DEFAULT 'pt-BR',
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now(),
-  deleted_at    timestamptz
+  deleted_at    timestamptz,
+  -- Account activity (D-056), for an inactivity policy decided later (warnings, then deletion; nothing acts yet):
+  -- any use of a session (written at most every 5 min) or sign-in; the last sign-in; the last time a sign-in code
+  -- was asked for this account, even if never used. Not indexed: they change often (see the migration 0004).
+  last_active_at           timestamptz NOT NULL DEFAULT now(),
+  last_sign_in_at          timestamptz,
+  last_sign_in_attempt_at  timestamptz
 );
 CREATE UNIQUE INDEX users_email_key ON users (lower(email)) WHERE deleted_at IS NULL;
 
@@ -80,7 +86,9 @@ CREATE TABLE clubs (
   release_mode          text NOT NULL DEFAULT 'weekly' CHECK (release_mode IN ('immediate', 'weekly')),
   auto_release_weekday  smallint DEFAULT 7 CHECK (auto_release_weekday BETWEEN 1 AND 7),
   auto_release_time     time DEFAULT '18:00',
-  CHECK ((auto_release_weekday IS NULL) = (auto_release_time IS NULL))
+  CHECK ((auto_release_weekday IS NULL) = (auto_release_time IS NULL)),
+  -- Any member's last request in the club (D-056; with memberships.last_active_at): an inactive club is one nobody uses.
+  last_active_at timestamptz NOT NULL DEFAULT now()
 );
 ALTER TABLE assets ADD CONSTRAINT assets_club_fk FOREIGN KEY (club_id) REFERENCES clubs (id);
 
@@ -107,6 +115,8 @@ CREATE TABLE memberships (
   is_billing_owner  boolean NOT NULL DEFAULT false,
   joined_at         timestamptz NOT NULL DEFAULT now(),
   left_at           timestamptz,
+  -- This person's last request in this club (D-056; at most every 5 min): who still uses which club, by role.
+  last_active_at    timestamptz NOT NULL DEFAULT now(),
   UNIQUE (club_id, user_id)
 );
 CREATE INDEX memberships_user_idx ON memberships (user_id);

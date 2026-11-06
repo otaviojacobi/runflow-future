@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "WITH s AS (UPDATE sessions SET last_seen_at = now(), expires_at = now() + $2::interval WHERE id = $1 RETURNING user_id)\n         UPDATE users SET last_active_at = now()\n          WHERE id = (SELECT user_id FROM s) AND last_active_at < now() - interval '5 minutes'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Interval"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5e5017ae51ef82c3bd63bc1adc87c8a6dc5080db280092950fec8f1274301055"
+}

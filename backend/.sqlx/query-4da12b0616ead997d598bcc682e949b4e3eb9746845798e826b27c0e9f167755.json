@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users SET last_sign_in_attempt_at = now() WHERE lower(email) = lower($1) AND deleted_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "4da12b0616ead997d598bcc682e949b4e3eb9746845798e826b27c0e9f167755"
+}

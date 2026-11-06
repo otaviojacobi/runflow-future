@@ -89,6 +89,19 @@ pub async fn member(
             },
         ));
     }
+    // Account activity (D-056): this membership and its club were used. At most every TOUCH_EVERY per membership
+    // (one Valkey SET NX decides), written off the request path so nobody waits for it.
+    if runflow_kv::sessions::membership_touch_due(&state.kv, a.membership_id, TOUCH_EVERY)
+        .await
+        .unwrap_or(true)
+    {
+        let (db, id) = (state.db.clone(), a.membership_id);
+        tokio::spawn(async move {
+            if let Err(err) = runflow_db::clubs::touch_membership(&db, id).await {
+                tracing::warn!(error = %err, membership_id = %id, "membership activity not recorded");
+            }
+        });
+    }
     Ok(Member {
         user_id: auth.user_id,
         club_id,
@@ -96,6 +109,9 @@ pub async fn member(
         role: a.role,
     })
 }
+
+/// How often a membership's (and its club's) `last_active_at` may be written.
+const TOUCH_EVERY: std::time::Duration = std::time::Duration::from_secs(5 * 60);
 
 /// `409 plan.limit_reached` when `adding` more of `role` don't fit the plan's hard limits (Free, Pro; Max bills
 /// extra seats instead), like the mock's `ensureSeat`.
