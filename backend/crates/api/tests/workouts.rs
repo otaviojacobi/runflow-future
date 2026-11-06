@@ -251,14 +251,16 @@ async fn assign_list_edit_move_and_remove(db: PgPool) {
     )
     .await
     .problem(422, "validation.failed");
+    // To a day of a week the student already sees: yesterday (UTC) is never past the club's today (Brazil runs
+    // behind UTC). "In 3 days" fell in next week, still a draft, from Friday to Sunday, so nothing was announced.
     let moved = app
         .patch(
             &format!("{path}/{fid}"),
             Some(&c.owner),
-            json!({ "date": day(3) }),
+            json!({ "date": day(-1) }),
         )
         .await;
-    assert_eq!(moved.ok()["date"], day(3));
+    assert_eq!(moved.ok()["date"], day(-1));
     assert_eq!(
         app.get("/v1/me/notifications", Some(&c.ana.0)).await.ok()["items"][0]["title"],
         "Um treino mudou de dia"
