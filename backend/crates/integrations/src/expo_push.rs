@@ -32,9 +32,6 @@ pub struct Message<'a> {
     pub data: Value,
     /// Seconds Expo keeps it while the phone is offline.
     pub ttl_s: u32,
-    /// A picture shown with it (Expo's `richContent.image`; the club's logo, D-057). Android shows it as is; iOS
-    /// would need a Notification Service Extension, which the app doesn't have yet.
-    pub image: Option<&'a str>,
 }
 
 /// What Expo said about one message.
@@ -88,12 +85,8 @@ impl ExpoPush {
         let body: Vec<Value> = messages
             .iter()
             .map(|m| {
-                let mut v = json!({ "to": m.to, "title": m.title, "body": m.body, "data": m.data, "sound": "default",
-                        "priority": "high", "ttl": m.ttl_s, "channelId": "default" });
-                if let Some(image) = m.image {
-                    v["richContent"] = json!({ "image": image });
-                }
-                v
+                json!({ "to": m.to, "title": m.title, "body": m.body, "data": m.data, "sound": "default",
+                        "priority": "high", "ttl": m.ttl_s, "channelId": "default" })
             })
             .collect();
         let mut req = self

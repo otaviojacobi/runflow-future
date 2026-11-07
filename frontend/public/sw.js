@@ -53,7 +53,7 @@ self.addEventListener("push", (e) => {
   let m = {};
   try { m = e.data ? e.data.json() : {}; } catch { m = { body: e.data ? e.data.text() : "" }; }
   // One notification per id: a repeated delivery replaces the first.
-  e.waitUntil(self.registration.showNotification(m.title || "Runflow", { body: m.body || undefined, icon: m.icon || "/icons/icon-192.png", badge: "/icons/icon-192.png", tag: m.id || undefined, data: { link: m.link || "/" } }));
+  e.waitUntil(self.registration.showNotification(m.title || "Runflow", { body: m.body || undefined, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png", tag: m.id || undefined, data: { link: m.link || "/" } }));
 });
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();

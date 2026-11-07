@@ -89,10 +89,9 @@ pub async fn pending(
 }
 
 /// Whose name a push carries (D-057): the notice's club, or the person's only active club for a personal notice (a
-/// Strava sync); none when that's ambiguous. `logo` only when it's an image phones show (PNG, JPEG, WebP).
+/// Strava sync); none when that's ambiguous.
 pub struct Brand {
     pub name: String,
-    pub logo: Option<Uuid>,
 }
 
 pub async fn brand(
@@ -102,10 +101,7 @@ pub async fn brand(
 ) -> sqlx::Result<Option<Brand>> {
     sqlx::query_as!(
         Brand,
-        r#"SELECT c.name, a.id AS "logo?"
-             FROM clubs c
-             LEFT JOIN club_branding b ON b.club_id = c.id
-             LEFT JOIN assets a ON a.id = b.logo_asset_id AND a.content_type IN ('image/png', 'image/jpeg', 'image/webp')
+        r#"SELECT c.name FROM clubs c
             WHERE c.deleted_at IS NULL
               AND c.id = coalesce($1, (SELECT min(m.club_id::text)::uuid FROM memberships m
                                         WHERE m.user_id = $2 AND m.status = 'active' HAVING count(*) = 1))"#,

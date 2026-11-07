@@ -1,8 +1,8 @@
 //! Push (S7b, X10, D-045): `push.send {notification_id}` is queued when a notification is created with push on, and
 //! sends it to each of the person's devices: Web Push for the installed web app, Expo push for the phone app.
 //! Skipped when it was read in the app meanwhile; devices the push service no longer knows are forgotten.
-//! Signed by the club (D-057): its name is the title, the notice's own title and text the body, its logo the picture
-//! (the person should feel it's their club's app; Android still names the installed app above it). A retry may reach a device twice: the service worker shows one
+//! Signed by the club (D-057): its name is the title, the notice's own title and text the body (the person should feel
+//! it's their club's app; Android still names the installed app above it). No logo: the founder found it too much. A retry may reach a device twice: the service worker shows one
 //! notification per id (`tag`), so the second replaces the first.
 
 use runflow_db::push;
@@ -26,28 +26,17 @@ fn clip(s: &str, max: usize) -> String {
     }
 }
 
-/// The push's title, body and picture (D-057): "Pace Forte" over "Marcos respondeu: Bora treinar amanhã?" with the
-/// club's logo; without a club to sign it (a personal notice of someone in several clubs), the notice as it is.
-async fn signed(
-    w: &Worker,
-    n: &push::Pending,
-) -> Result<(String, Option<String>, Option<String>), JobError> {
+/// The push's title and body (D-057): "Pace Forte" over "Marcos respondeu: Bora treinar amanhã?"; without a club to
+/// sign it (a personal notice of someone in several clubs), the notice as it is.
+async fn signed(w: &Worker, n: &push::Pending) -> Result<(String, Option<String>), JobError> {
     let Some(brand) = push::brand(&w.db, n.club_id, n.user_id).await? else {
-        return Ok((
-            clip(&n.title, 120),
-            n.body.as_deref().map(|b| clip(b, 400)),
-            None,
-        ));
+        return Ok((clip(&n.title, 120), n.body.as_deref().map(|b| clip(b, 400))));
     };
     let body = match n.body.as_deref() {
         Some(b) if !b.is_empty() => format!("{}: {b}", n.title),
         _ => n.title.clone(),
     };
-    let logo = brand
-        .logo
-        .zip(w.public_api_url.as_deref())
-        .map(|(id, base)| format!("{base}/v1/assets/{id}"));
-    Ok((clip(&brand.name, 60), Some(clip(&body, 400)), logo))
+    Ok((clip(&brand.name, 60), Some(clip(&body, 400))))
 }
 
 pub(crate) async fn send(w: &Worker, payload: &Value) -> Result<(), JobError> {
@@ -61,12 +50,11 @@ pub(crate) async fn send(w: &Worker, payload: &Value) -> Result<(), JobError> {
     if n.pushed_at.is_some() || n.read_at.is_some() {
         return Ok(());
     }
-    let (title, body, logo) = signed(w, &n).await?;
+    let (title, body) = signed(w, &n).await?;
     let message = json!({
         "id": id,
         "title": title,
         "body": body,
-        "icon": logo,
         "link": n.link,
         "club_id": n.club_id,
     })
@@ -87,7 +75,6 @@ pub(crate) async fn send(w: &Worker, payload: &Value) -> Result<(), JobError> {
                     body: body.as_deref(),
                     data: data.clone(),
                     ttl_s: TTL_S,
-                    image: logo.as_deref(),
                 })
                 .collect();
             match expo.send(&messages).await {

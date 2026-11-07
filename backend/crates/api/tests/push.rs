@@ -435,7 +435,7 @@ async fn phones_get_pushes_through_expo(db: PgPool) {
             .await;
         assert_eq!(r.status.as_u16(), 204);
     }
-    // The club's logo goes along as the notification's picture (D-057).
+    // A club with a logo: it doesn't go along (D-057: the name is enough).
     let logo = app
         .post(
             &format!("/v1/clubs/{club}/assets"),
@@ -466,13 +466,10 @@ async fn phones_get_pushes_through_expo(db: PgPool) {
         .iter()
         .find(|m| m["to"] == "ExponentPushToken[ana-phone]")
         .unwrap();
-    // Signed by the club: its name, the notice in the body, its logo as the picture.
+    // Signed by the club: its name, the notice in the body, no picture.
     assert_eq!(m["title"], "Pace Forte");
     assert_eq!(m["body"], "Marcos respondeu: Bora treinar amanhã?");
-    assert_eq!(
-        m["richContent"]["image"],
-        format!("http://localhost:3000/v1/assets/{logo}")
-    );
+    assert!(m.get("richContent").is_none());
     assert!(m["data"]["link"].as_str().unwrap().starts_with("/messages"));
     assert!(m["data"]["id"].is_string());
     // The club, so the app opens the link in the right one.

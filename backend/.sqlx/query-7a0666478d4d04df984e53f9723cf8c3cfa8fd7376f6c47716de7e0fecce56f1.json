@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT c.name FROM clubs c\n            WHERE c.deleted_at IS NULL\n              AND c.id = coalesce($1, (SELECT min(m.club_id::text)::uuid FROM memberships m\n                                        WHERE m.user_id = $2 AND m.status = 'active' HAVING count(*) = 1))",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "clubs",
+            "name": "name"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "7a0666478d4d04df984e53f9723cf8c3cfa8fd7376f6c47716de7e0fecce56f1"
+}
