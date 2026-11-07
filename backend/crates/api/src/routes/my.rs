@@ -29,7 +29,7 @@ pub fn routes() -> Router<AppState> {
         .route("/clubs/{club_id}/my/workouts/{id}", get(one))
         .route(
             "/clubs/{club_id}/my/workouts/{id}/completion",
-            put(complete),
+            put(complete).delete(undo),
         )
         .route("/clubs/{club_id}/my/summary", get(summary))
 }
@@ -324,6 +324,29 @@ async fn complete(
             },
         )
         .await?;
+    }
+    tx.commit().await?;
+    Ok(Json(
+        workouts::one(&state.db, m.club_id, m.membership_id, w.id)
+            .await?
+            .ok_or_else(not_found)?,
+    ))
+}
+
+/// "Desfazer conclusão" (D-060): a workout marked done by mistake goes back to not done. Its feedback goes (the
+/// conversation stays); an activity it had stays without a workout, dismissed so the engine doesn't link it straight
+/// back (the student can still place it). No notification. Answers the workout, as the completion route does.
+async fn undo(
+    State(state): State<AppState>,
+    auth: Auth,
+    Path((club_id, id)): Path<(String, String)>,
+) -> Result<Json<Workout>, Problem> {
+    let m = member(&state, &auth, &club_id, STUDENT).await?;
+    let w = mine(&state, &m, &id).await?;
+    let mut tx = state.db.begin().await?;
+    matching::lock(&mut tx, auth.user_id).await?;
+    if let Some(activity) = db::delete_completion(&mut tx, w.id).await? {
+        matching::settle(&mut tx, activity, "dismissed").await?;
     }
     tx.commit().await?;
     Ok(Json(

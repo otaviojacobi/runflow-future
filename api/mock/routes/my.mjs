@@ -89,6 +89,19 @@ export default function register(h) {
     if (coach && first) h.notify({ id: h.uuid("n"), user_id: coach.user_id, club_id: p.club_id, kind: "feedback", title: `${student.name} ${b.status === "missed" ? "não fez o treino" : "registrou o treino"}`, body: c.comment || p.title, link: `/feedback?workout=${p.id}`, read_at: null, created_at: now });
     return h.workoutOut(p, m.id);
   });
+  // "Desfazer conclusão" (D-060): marked done by mistake → not done again. The feedback goes; an activity it had stays
+  // without a workout, dismissed so the matching doesn't link it straight back.
+  h.delete("/v1/clubs/:club_id/my/workouts/:id/completion", (ctx) => {
+    const m = mine(ctx);
+    const p = getMine(m, ctx.params.id);
+    const c = h.db.workout_completions.find((x) => x.planned_workout_id === p.id);
+    if (c) {
+      h.db.workout_completions = h.db.workout_completions.filter((x) => x !== c);
+      const act = c.activity_id ? h.db.activities.find((a) => a.id === c.activity_id) : null;
+      if (act) { act.match_state = "dismissed"; h.clearMatchOptions(act.id); }
+    }
+    return h.workoutOut(p, m.id);
+  });
   h.get("/v1/clubs/:club_id/my/summary", (ctx) => {
     const m = mine(ctx);
     const today = h.today();

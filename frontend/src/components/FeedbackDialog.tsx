@@ -1,6 +1,8 @@
-/** M5 · Feedback sheet: did it? effort (PSE), feeling, comment, activity link. */
+/** M5 · Feedback sheet: did it? effort (PSE), feeling, comment, activity link; once done, "Desfazer conclusão" (D-060),
+ * confirmed in place (what goes and what stays) before the workout goes back to not done. */
+import { Undo2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useSaveCompletion } from "@/api/my";
+import { useSaveCompletion, useUndoCompletion } from "@/api/my";
 import type { Activity, CompletionStatus, Feeling, PlannedWorkout } from "@/api/types";
 import { t } from "@/i18n";
 import { distance, duration, timeOf } from "@/lib/format";
@@ -19,13 +21,30 @@ export function FeedbackDialog({ clubId, workout, activities = [], open, onOpenC
   const [comment, setComment] = useState(c?.comment ?? "");
   const [activityId, setActivityId] = useState<string | null>(c?.activity_id ?? null);
   const save = useSaveCompletion(clubId);
-  useEffect(() => { if (open) { setStatus(c?.status ?? "completed"); setRpe(c?.rpe ?? 6); setFeeling(c?.feeling ?? null); setComment(c?.comment ?? ""); setActivityId(c?.activity_id ?? null); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
+  const undo = useUndoCompletion(clubId);
+  const [undoing, setUndoing] = useState(false);
+  useEffect(() => { if (open) { setUndoing(false); setStatus(c?.status ?? "completed"); setRpe(c?.rpe ?? 6); setFeeling(c?.feeling ?? null); setComment(c?.comment ?? ""); setActivityId(c?.activity_id ?? null); } }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const did = status === "completed" || status === "partial";
   const submit = () =>
     save.mutate({ id: workout.id, status, rpe: did ? rpe : null, feeling: did ? feeling : null, comment, activity_id: did ? activityId : null }, {
       onSuccess: () => { toast.success(did ? t("Treino registrado. Boa!") : t("Tudo bem, registramos."), t("Seu treinador foi avisado.")); onOpenChange(false); },
       onError: toast.error,
     });
+  if (undoing) {
+    const linked = c?.activity_id ? activities.find((a) => a.id === c.activity_id) : null;
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange} title={t("Desfazer conclusão?")} description={workout.title}
+        footer={<>
+          <Button variant="ghost" onClick={() => setUndoing(false)}>{t("Voltar")}</Button>
+          <Button variant="danger" loading={undo.isPending} onClick={() => undo.mutate(workout.id, { onSuccess: () => { toast.success(t("Conclusão desfeita")); onOpenChange(false); }, onError: toast.error })}>{t("Desfazer")}</Button>
+        </>}>
+        <p className="text-fg-muted">
+          {t("O treino volta a ficar como não feito, e o que você registrou (esforço, sensação e comentário) é apagado. A conversa com o treinador continua.")}
+          {c?.activity_id ? " " + (linked ? t("A atividade “{x}” continua na sua lista, sem treino ligado.", { x: linked.name }) : t("A atividade ligada continua na sua lista, sem treino ligado.")) : ""}
+        </p>
+      </Dialog>
+    );
+  }
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title={t("Como foi o treino?")} description={workout.title}
       footer={<><Button variant="secondary" onClick={() => onOpenChange(false)}>{t("Cancelar")}</Button><Button size="lg" onClick={submit} loading={save.isPending}>{t("Salvar")}</Button></>}>
@@ -64,6 +83,8 @@ export function FeedbackDialog({ clubId, workout, activities = [], open, onOpenC
         <Field label={did ? t("Quer contar algo ao treinador?") : t("O que aconteceu?")} optional>
           {(id) => <Textarea id={id} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={did ? t("Ex.: senti a panturrilha no final") : t("Ex.: plantão no trabalho, compenso amanhã")} />}
         </Field>
+        {/* Marked done by mistake: back to not done (D-060), after a confirmation. */}
+        {c && <Button variant="ghost" size="sm" icon={<Undo2 />} className="w-fit text-danger-text" onClick={() => setUndoing(true)}>{t("Desfazer conclusão")}</Button>}
       </div>
     </Dialog>
   );

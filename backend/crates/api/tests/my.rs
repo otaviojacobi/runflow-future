@@ -256,6 +256,78 @@ async fn the_student_sees_their_workouts_with_personal_targets_and_gives_feedbac
 }
 
 #[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn a_completion_marked_by_mistake_is_undone(db: PgPool) {
+    let app = TestApp::new(db);
+    let c = setup(&app).await;
+    let my = format!("/v1/clubs/{}/my/workouts", c.id);
+
+    // Marked done by hand by mistake (D-060): undone, it's not done again and its feedback is gone.
+    let w = assign(&app, &c, &c.ana.1, &day(0), "Rodagem").await;
+    let done = format!("{my}/{w}/completion");
+    app.call(
+        Method::PUT,
+        &done,
+        Some(&c.ana.0),
+        Some(json!({ "status": "completed", "rpe": 6 })),
+        &[],
+    )
+    .await
+    .ok();
+    app.delete(&done, Some(&c.bia.0))
+        .await
+        .problem(404, "workout.not_found");
+    let undone = app
+        .call(Method::DELETE, &done, Some(&c.ana.0), None, &[])
+        .await;
+    assert!(undone.ok()["completion"].is_null());
+    assert!(app.get(&format!("{my}/{w}"), Some(&c.ana.0)).await.ok()["completion"].is_null());
+    // Nothing to undo: the same answer.
+    assert!(
+        app.call(Method::DELETE, &done, Some(&c.ana.0), None, &[])
+            .await
+            .ok()["completion"]
+            .is_null()
+    );
+
+    // Done with a run: the run stays, without a workout, and the matching doesn't put it straight back.
+    app.post(
+        "/v1/me/consents",
+        Some(&c.ana.0),
+        json!({ "kind": "share_training_data", "club_id": c.id }),
+    )
+    .await
+    .ok();
+    let tiros = assign(&app, &c, &c.ana.1, &day(-1), "Tiros").await;
+    let run = activity(&app, "ana@email.com", &day(-1), "run", 10000).await;
+    let path = format!("{my}/{tiros}/completion");
+    let linked = app
+        .call(
+            Method::PUT,
+            &path,
+            Some(&c.ana.0),
+            Some(json!({ "status": "completed" })),
+            &[],
+        )
+        .await;
+    assert_eq!(
+        linked.ok()["completion"]["activity_id"].as_str(),
+        Some(run.as_str())
+    );
+    app.call(Method::DELETE, &path, Some(&c.ana.0), None, &[])
+        .await
+        .ok();
+    app.run_jobs().await;
+    assert!(app.get(&format!("{my}/{tiros}"), Some(&c.ana.0)).await.ok()["completion"].is_null());
+    let state: String =
+        sqlx::query_scalar("SELECT match_state FROM activities WHERE id = $1::uuid")
+            .bind(&run)
+            .fetch_one(app.db())
+            .await
+            .unwrap();
+    assert_eq!(state, "dismissed");
+}
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
 async fn todays_summary_counts_the_week_and_the_streak(db: PgPool) {
     let app = TestApp::new(db);
     let c = setup(&app).await;

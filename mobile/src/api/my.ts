@@ -126,6 +126,18 @@ export const useSaveCompletion = (clubId: string) =>
     },
   });
 
+/** "Desfazer conclusão" (D-060): a workout marked done by mistake goes back to not done; its activity, if any, stays
+ * without a workout. */
+export const useUndoCompletion = (clubId: string) =>
+  useMutation({
+    mutationFn: (id: ID) => api.del<PlannedWorkout>(`/clubs/${clubId}/my/workouts/${id}/completion`),
+    onSuccess: (w) => {
+      patchWorkout(clubId, w.id, { completion: null, updated_at: w.updated_at });
+      void queryClient.invalidateQueries({ queryKey: myKey(clubId) });
+      void queryClient.invalidateQueries({ queryKey: actKey });
+    },
+  });
+
 // ---------- thread (student ⇄ trainers)
 /**
  * GET marks the thread as read, so the workout's unread count goes to zero everywhere. While its screen is focused

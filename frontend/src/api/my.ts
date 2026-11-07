@@ -29,6 +29,14 @@ export const useSaveCompletion = (clubId: string) =>
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: myKey(clubId) }); queryClient.invalidateQueries({ queryKey: ["me", "activities"] }); },
   });
 
+/** "Desfazer conclusão" (D-060): a workout marked done by mistake goes back to not done; its activity, if any, stays
+ * without a workout. */
+export const useUndoCompletion = (clubId: string) =>
+  useMutation({
+    mutationFn: (id: string) => api.del<PlannedWorkout>(`/clubs/${clubId}/my/workouts/${id}/completion`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: myKey(clubId) }); queryClient.invalidateQueries({ queryKey: ["me", "activities"] }); },
+  });
+
 /**
  * A workout's conversation (student ⇄ staff). It stays current while on screen (lib/live: polled every 10 s, again on
  * focus); the GET marks it read, so when something new arrives the bell, the Feedbacks count, the inbox and the

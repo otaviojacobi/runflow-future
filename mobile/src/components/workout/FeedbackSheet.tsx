@@ -4,14 +4,14 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { PanResponder, Pressable, StyleSheet, View, type GestureResponderEvent } from "react-native";
-import { useSaveCompletion } from "@/api/my";
+import { useSaveCompletion, useUndoCompletion } from "@/api/my";
 import type { Activity, CompletionStatus, Feeling, PlannedWorkout } from "@/api/types";
 import { t } from "@/i18n";
 import { distance, duration, timeOf } from "@/lib/format";
 import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Button, Dialog, Field, Segmented, Text, Textarea, toast } from "@/ui";
-import { Check } from "@/ui/icons";
+import { Check, Undo2 } from "@/ui/icons";
 import { rpeZone } from "@/domain/workout";
 import { FEELINGS, RPE_LABEL } from "./workout";
 
@@ -142,9 +142,12 @@ export function FeedbackSheet({ clubId, workout, activities = [], open, onOpenCh
   const [comment, setComment] = useState(c?.comment ?? "");
   const [activityId, setActivityId] = useState<string | null>(c?.activity_id ?? null);
   const save = useSaveCompletion(clubId);
+  const undo = useUndoCompletion(clubId);
+  const [undoing, setUndoing] = useState(false);
   // Each opening starts from what was saved.
   useEffect(() => {
     if (!open) return;
+    setUndoing(false);
     setStatus(initial()); setRpe(c?.rpe ?? 6); setFeeling(c?.feeling ?? null); setComment(c?.comment ?? ""); setActivityId(c?.activity_id ?? null);
   }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   const did = status !== "missed";
@@ -153,6 +156,23 @@ export function FeedbackSheet({ clubId, workout, activities = [], open, onOpenCh
       onSuccess: () => { toast.success(did ? t("Treino registrado. Boa!") : t("Tudo bem, registramos."), t("Seu treinador foi avisado.")); onOpenChange(false); },
       onError: toast.error,
     });
+  // "Desfazer conclusão" (D-060), confirmed in place: what goes and what stays, then back to not done.
+  if (undoing) {
+    const linked = c?.activity_id ? activities.find((a) => a.id === c.activity_id) : null;
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange} title={t("Desfazer conclusão?")} description={workout.title}
+        footer={<>
+          <Button variant="ghost" size="lg" onPress={() => setUndoing(false)}>{t("Voltar")}</Button>
+          <Button variant="danger" size="lg" style={styles.flex} loading={undo.isPending}
+            onPress={() => undo.mutate(workout.id, { onSuccess: () => { toast.success(t("Conclusão desfeita")); onOpenChange(false); }, onError: toast.error })}>{t("Desfazer")}</Button>
+        </>}>
+        <Text tone="muted">
+          {t("O treino volta a ficar como não feito, e o que você registrou (esforço, sensação e comentário) é apagado. A conversa com o treinador continua.")}
+          {c?.activity_id ? " " + (linked ? t("A atividade “{x}” continua na sua lista, sem treino ligado.", { x: linked.name }) : t("A atividade ligada continua na sua lista, sem treino ligado.")) : ""}
+        </Text>
+      </Dialog>
+    );
+  }
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title={t("Como foi o treino?")} description={workout.title}
       footer={<>
@@ -169,6 +189,8 @@ export function FeedbackSheet({ clubId, workout, activities = [], open, onOpenCh
           {(a) => <Textarea {...a} value={comment} onChangeText={setComment} maxLength={2000}
             placeholder={did ? t("Ex.: senti a panturrilha no final") : t("Ex.: plantão no trabalho, compenso amanhã")} />}
         </Field>
+        {/* Marked done by mistake: back to not done (D-060), after a confirmation. */}
+        {c ? <Button variant="ghost" size="sm" icon={Undo2} onPress={() => setUndoing(true)} style={styles.start}>{t("Desfazer conclusão")}</Button> : null}
       </View>
     </Dialog>
   );
@@ -184,5 +206,6 @@ const styles = StyleSheet.create({
   radio: { alignItems: "center", justifyContent: "center", borderWidth: 2 },
   flex: { flex: 1, minWidth: 0 },
   stretch: { alignSelf: "stretch" },
+  start: { alignSelf: "flex-start" },
   bold: { fontWeight: weight("semibold") },
 });

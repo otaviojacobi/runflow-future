@@ -70,6 +70,20 @@ pub struct CompletionInput<'a> {
     pub comment: Option<&'a str>,
 }
 
+/// "Desfazer conclusão" (D-060): the completion goes; returns the activity it had, if any.
+pub async fn delete_completion(
+    tx: &mut PgConnection,
+    workout_id: Uuid,
+) -> sqlx::Result<Option<Uuid>> {
+    Ok(sqlx::query_scalar!(
+        "DELETE FROM workout_completions WHERE planned_workout_id = $1 RETURNING activity_id",
+        workout_id
+    )
+    .fetch_optional(&mut *tx)
+    .await?
+    .flatten())
+}
+
 /// The student's report: create or replace the completion; `reported_at` is set the first time.
 pub async fn upsert_completion(
     tx: &mut PgConnection,

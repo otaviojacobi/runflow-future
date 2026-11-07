@@ -156,3 +156,29 @@ test("groups: create one on Alunos, move students in, and take one out on the st
   await expect(page.getByText("· 1 aluno")).toBeVisible();
   await expect(page.getByRole("link", { name: /Carla Mendes/ })).toHaveCount(0);
 });
+
+test("a workout marked done by mistake is undone, after a confirmation (D-060)", async ({ page, request }) => {
+  const API = "http://localhost:8788/v1";
+  await request.post(`${API}/auth/email/start`, { data: { email: STUDENT } });
+  const token = (await (await request.post(`${API}/auth/email/verify`, { data: { email: STUDENT, code: "000000" } })).json()).token as string;
+  const as = { headers: { authorization: `Bearer ${token}` } };
+  const me = await (await request.get(`${API}/me`, as)).json();
+  const clubId = me.memberships.find((m: { membership: { role: string } }) => m.membership.role === "student").club.id;
+  const day = (n: number) => new Date(Date.now() - 3 * 3600_000 + n * 86_400_000).toISOString().slice(0, 10);
+  const calendar = await (await request.get(`${API}/clubs/${clubId}/my/workouts?from=${day(1)}&to=${day(10)}`, as)).json();
+  const workout = calendar.items.find((w: { completion: unknown }) => !w.completion);
+  expect(workout, "the student has a workout not done yet").toBeTruthy();
+
+  await signIn(page, STUDENT);
+  await page.goto(`/workouts/${workout.id}`);
+  await page.getByRole("button", { name: "Concluir treino" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Salvar" }).click();
+  await expect(page.getByRole("button", { name: "Editar feedback" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Editar feedback" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Desfazer conclusão" }).click();
+  // The confirmation says what goes; "Voltar" keeps it.
+  await expect(page.getByRole("dialog").getByText("é apagado")).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "Desfazer", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Concluir treino" })).toBeVisible();
+});
