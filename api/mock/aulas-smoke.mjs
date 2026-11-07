@@ -113,7 +113,10 @@ export async function runAulasSmoke() {
     expect("booking a cancelled session is refused", (await call(carla, "POST", `/clubs/${club}/class-sessions/${far.body.id}/bookings`, {})).body.code === "session.cancelled");
 
     // Recurring rule: sessions for 8 weeks; ending it cancels the future ones.
-    const rule = await call(marcos, "POST", `/clubs/${club}/class-schedules`, { class_type_id: type.body.id, weekdays: [6], start_time: "08:00" });
+    // On the weekday two days from now (club time), so none of its sessions has already started today: a fixed Saturday
+    // failed every Saturday after 08:00 (one session in the past, not cancelled).
+    const inTwoDays = new Date(`${local(48 * 60).date}T12:00:00Z`).getUTCDay();
+    const rule = await call(marcos, "POST", `/clubs/${club}/class-schedules`, { class_type_id: type.body.id, weekdays: [inTwoDays === 0 ? 7 : inTwoDays], start_time: "08:00" });
     expect("a weekly rule creates about 8 weeks of sessions", rule.status === 201 && rule.body.items.length === 1 && rule.body.sessions >= 8 && rule.body.sessions <= 9, rule.body);
     const ended = await call(marcos, "DELETE", `/clubs/${club}/class-schedules/${rule.body.items[0].id}`);
     expect("ending a rule cancels its future sessions", ended.body.cancelled_sessions === rule.body.sessions, ended.body);

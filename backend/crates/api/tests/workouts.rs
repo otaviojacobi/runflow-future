@@ -105,6 +105,12 @@ fn next_monday() -> chrono::NaiveDate {
 async fn assign_list_edit_move_and_remove(db: PgPool) {
     let app = TestApp::new(db);
     let c = setup(&app).await;
+    // Every day released at once: this test is about assigning, editing and moving, and with weekly release its
+    // "tomorrow" and "in 2 days" fall in next week's draft from Saturday on (week release has its own tests).
+    sqlx::query("UPDATE clubs SET release_mode = 'immediate'")
+        .execute(app.db())
+        .await
+        .unwrap();
     let path = format!("/v1/clubs/{}/planned-workouts", c.id);
     let template = app
         .get(
