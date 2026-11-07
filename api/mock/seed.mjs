@@ -108,10 +108,10 @@ export function estimate(sport, structure) {
 export const LIB = {
   easy6: ["run", "Rodagem leve 6 km", S([step("active", dist(6000), zone(2))]), ["base"]],
   regen5: ["run", "Regenerativo 5 km", S([step("active", dist(5000), zone(1), { note: "Bem leve, conversando." })]), ["recuperação"]],
-  int6x1k: ["run", "Intervalado 6×1 km", S([step("warmup", time(600), zone(2)), rep(6, [step("active", dist(1000), pace(265, 275)), step("recovery", time(120), open, { note: "trote" })]), step("cooldown", time(600), zone(1))]), ["intervalado", "vo2"]],
-  int8x400: ["run", "Intervalado 8×400 m", S([step("warmup", time(900), zone(2)), rep(8, [step("active", dist(400), pace(235, 245)), step("recovery", time(90), open, { note: "trote" })]), step("cooldown", time(600), zone(1))]), ["intervalado", "velocidade"]],
+  int6x1k: ["run", "Intervalado 6×1 km", S([step("warmup", time(600), zone(2)), rep(6, [step("active", dist(1000), pace(270, 270)), step("recovery", time(120), open, { note: "trote" })]), step("cooldown", time(600), zone(1))]), ["intervalado", "vo2"]],
+  int8x400: ["run", "Intervalado 8×400 m", S([step("warmup", time(900), zone(2)), rep(8, [step("active", dist(400), pace(240, 240)), step("recovery", time(90), open, { note: "trote" })]), step("cooldown", time(600), zone(1))]), ["intervalado", "velocidade"]],
   fartlek: ["run", "Fartlek 40′", S([step("warmup", time(600), zone(2)), rep(8, [step("active", time(60), zone(5)), step("recovery", time(120), zone(2))]), step("cooldown", time(360), zone(1))]), ["fartlek"]],
-  tempo: ["run", "Tempo run 30′", S([step("warmup", time(600), zone(2)), step("active", time(1800), pace(280, 290)), step("cooldown", time(600), zone(1))]), ["limiar"]],
+  tempo: ["run", "Tempo run 30′", S([step("warmup", time(600), zone(2)), step("active", time(1800), pace(285, 285)), step("cooldown", time(600), zone(1))]), ["limiar"]],
   long: ["run", "Longão 18 km", S([step("active", dist(18000), zone(2), { note: "Hidratação a cada 5 km." })]), ["longão"]],
   prog10: ["run", "Progressivo 10 km", S([step("active", dist(4000), zone(2)), step("active", dist(3000), zone(3)), step("active", dist(3000), zone(4))]), ["progressivo"]],
   test5k: ["run", "Teste de 5 km", S([step("warmup", time(900), zone(2)), step("active", dist(5000), { type: "rpe", value: 9 }, { note: "Forte e constante." }), step("cooldown", time(600), zone(1))]), ["teste"]],

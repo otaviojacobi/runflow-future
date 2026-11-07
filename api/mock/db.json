@@ -1,7 +1,7 @@
 {
  "meta": {
   "anchor_date": "2026-11-03",
-  "generated_at": "2026-11-05T22:14:07.557Z",
+  "generated_at": "2026-11-07T13:42:19.160Z",
   "version": 1
  },
  "users": [
@@ -2899,8 +2899,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 265,
-         "max_s": 275
+         "min_s": 270,
+         "max_s": 270
         }
        },
        {
@@ -2978,8 +2978,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 235,
-         "max_s": 245
+         "min_s": 240,
+         "max_s": 240
         }
        },
        {
@@ -3132,8 +3132,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -3845,8 +3845,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -4098,8 +4098,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -4351,8 +4351,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -4604,8 +4604,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -4749,8 +4749,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 235,
-         "max_s": 245
+         "min_s": 240,
+         "max_s": 240
         }
        },
        {
@@ -4859,8 +4859,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -4996,8 +4996,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 265,
-         "max_s": 275
+         "min_s": 270,
+         "max_s": 270
         }
        },
        {
@@ -5106,8 +5106,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -5243,8 +5243,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 235,
-         "max_s": 245
+         "min_s": 240,
+         "max_s": 240
         }
        },
        {
@@ -5353,8 +5353,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -5490,8 +5490,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 265,
-         "max_s": 275
+         "min_s": 270,
+         "max_s": 270
         }
        },
        {
@@ -5600,8 +5600,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -5737,8 +5737,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 235,
-         "max_s": 245
+         "min_s": 240,
+         "max_s": 240
         }
        },
        {
@@ -5847,8 +5847,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -5984,8 +5984,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 265,
-         "max_s": 275
+         "min_s": 270,
+         "max_s": 270
         }
        },
        {
@@ -6094,8 +6094,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -6231,8 +6231,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 235,
-         "max_s": 245
+         "min_s": 240,
+         "max_s": 240
         }
        },
        {
@@ -6341,8 +6341,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -6478,8 +6478,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 265,
-         "max_s": 275
+         "min_s": 270,
+         "max_s": 270
         }
        },
        {
@@ -6588,8 +6588,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -6725,8 +6725,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 235,
-         "max_s": 245
+         "min_s": 240,
+         "max_s": 240
         }
        },
        {
@@ -6835,8 +6835,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -6972,8 +6972,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 265,
-         "max_s": 275
+         "min_s": 270,
+         "max_s": 270
         }
        },
        {
@@ -7082,8 +7082,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -7219,8 +7219,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 235,
-         "max_s": 245
+         "min_s": 240,
+         "max_s": 240
         }
        },
        {
@@ -7329,8 +7329,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -7466,8 +7466,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 265,
-         "max_s": 275
+         "min_s": 270,
+         "max_s": 270
         }
        },
        {
@@ -7576,8 +7576,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -9063,8 +9063,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 235,
-         "max_s": 245
+         "min_s": 240,
+         "max_s": 240
         }
        },
        {
@@ -9173,8 +9173,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -9310,8 +9310,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 265,
-         "max_s": 275
+         "min_s": 270,
+         "max_s": 270
         }
        },
        {
@@ -9420,8 +9420,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -9557,8 +9557,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 235,
-         "max_s": 245
+         "min_s": 240,
+         "max_s": 240
         }
        },
        {
@@ -9667,8 +9667,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -9804,8 +9804,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 265,
-         "max_s": 275
+         "min_s": 270,
+         "max_s": 270
         }
        },
        {
@@ -9914,8 +9914,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -10051,8 +10051,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 235,
-         "max_s": 245
+         "min_s": 240,
+         "max_s": 240
         }
        },
        {
@@ -10161,8 +10161,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -10298,8 +10298,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 265,
-         "max_s": 275
+         "min_s": 270,
+         "max_s": 270
         }
        },
        {
@@ -10408,8 +10408,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -13272,8 +13272,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 235,
-         "max_s": 245
+         "min_s": 240,
+         "max_s": 240
         }
        },
        {
@@ -13382,8 +13382,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -13519,8 +13519,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 265,
-         "max_s": 275
+         "min_s": 270,
+         "max_s": 270
         }
        },
        {
@@ -13629,8 +13629,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -13766,8 +13766,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 235,
-         "max_s": 245
+         "min_s": 240,
+         "max_s": 240
         }
        },
        {
@@ -13876,8 +13876,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -14013,8 +14013,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 265,
-         "max_s": 275
+         "min_s": 270,
+         "max_s": 270
         }
        },
        {
@@ -14123,8 +14123,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -14260,8 +14260,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 235,
-         "max_s": 245
+         "min_s": 240,
+         "max_s": 240
         }
        },
        {
@@ -14370,8 +14370,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
@@ -14507,8 +14507,8 @@
         },
         "target": {
          "type": "pace",
-         "min_s": 265,
-         "max_s": 275
+         "min_s": 270,
+         "max_s": 270
         }
        },
        {
@@ -14617,8 +14617,8 @@
       },
       "target": {
        "type": "pace",
-       "min_s": 280,
-       "max_s": 290
+       "min_s": 285,
+       "max_s": 285
       }
      },
      {
