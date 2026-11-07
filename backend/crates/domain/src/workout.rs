@@ -9,6 +9,8 @@ pub const SPORTS: [&str; 6] = ["run", "swim", "bike", "strength", "mobility", "o
 #[derive(Debug, Deserialize)]
 pub struct Structure {
     pub v: u8,
+    /// The coach's words about the whole workout ("obs: …", D-059), shown at the top of its steps.
+    pub note: Option<String>,
     pub blocks: Vec<Block>,
 }
 
@@ -186,6 +188,9 @@ pub fn validate(value: &Value) -> Result<Structure, StructureError> {
         .map_err(|e| StructureError::Invalid(e.to_string()))?;
     if s.v != 1 {
         return Err(StructureError::Invalid(format!("unknown version {}", s.v)));
+    }
+    if s.note.as_ref().is_some_and(|n| n.chars().count() > 500) {
+        return Err(StructureError::Invalid("note over 500 characters".into()));
     }
     if s.blocks.is_empty() {
         return Err(StructureError::Empty);

@@ -79,7 +79,7 @@ export function WorkoutBuilder({ sport, structure, onChange, onTags, compact }: 
       </Card>
       <View style={{ gap: theme.space[2] }}>
         <Text variant="titleSm" accessibilityRole="header">{sport === "strength" ? t("Exercícios") : t("Etapas")}</Text>
-        <BlockList blocks={structure.blocks} sport={sport} onChange={(blocks) => onChange({ v: 1, blocks })} />
+        <BlockList blocks={structure.blocks} sport={sport} onChange={(blocks) => onChange({ ...structure, blocks })} />
       </View>
       {!compact && structure.blocks.length > 0 && <WorkoutSummary structure={structure} sport={sport} />}
     </View>

@@ -29,7 +29,9 @@ export interface Repeat { kind: "repeat"; count: number; max_count?: number; unt
 export interface Load { type: "kg" | "pct_1rm" | "bodyweight" | "rpe"; value?: number }
 export interface Exercise { kind: "exercise"; name: string; sets: number; reps: string; load?: Load; rest_s?: number; tempo?: string; note?: string; exercise_id?: string }
 export type Block = Step | Repeat | Exercise;
-export interface Structure { v: 1; blocks: Block[] }
+/** `note`: the coach's words for the athlete about the whole workout ("obs: os 2 primeiros mais lentos"), shown at
+ * the top of its steps (founder, 2026-11-07). */
+export interface Structure { v: 1; note?: string; blocks: Block[] }
 
 export const INTENT_LABEL: Record<Intent, string> = {
   warmup: "Aquecimento", active: "Principal", recovery: "Recuperação", rest: "Descanso", cooldown: "Desaquecimento", other: "Livre",

@@ -1683,6 +1683,26 @@
    "structure": {"v":1,"blocks":[
     {"kind":"repeat","count":5,"until_m":5000,"steps":[{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"rpe","value":2,"label":"caminhada"}},{"kind":"step","intent":"active","duration":{"type":"time","s":240},"target":{"type":"rpe","value":5,"label":"moderado"}}]}
    ]}
+  },
+  {
+   "text": "6x1km @4:30 c/ 2' trote\nobs: os 2 primeiros um pouco mais lentos para sentir se está tudo bem",
+   "sport": "run",
+   "comment": "Founder, 2026-11-07 (D-059): a line for the athlete (obs:, nota:, dica:, atenção:) is the workout's note, not a step and not a warning.",
+   "name": "Intervalado 6×1 km",
+   "structure": {"v":1,"note":"os 2 primeiros um pouco mais lentos para sentir se está tudo bem","blocks":[
+    {"kind":"repeat","count":6,"steps":[{"kind":"step","intent":"active","duration":{"type":"distance","m":1000},"target":{"type":"pace","min_s":270,"max_s":270}},{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"rpe","value":3,"label":"trote"}}]}
+   ]}
+  },
+  {
+   "text": "Dica - hidrate-se bem antes\n10' aquec + 5km moderado (os primeiros 2 km mais leves) + 10' desaq",
+   "sport": "run",
+   "comment": "A note line with \"-\", and a step's own note in parentheses (shown under that step).",
+   "name": "Corrida moderada 5 km",
+   "structure": {"v":1,"note":"hidrate-se bem antes","blocks":[
+    {"kind":"step","intent":"warmup","duration":{"type":"time","s":600},"target":{"type":"open"}},
+    {"kind":"step","intent":"active","duration":{"type":"distance","m":5000},"target":{"type":"rpe","value":5,"label":"moderado"},"note":"os primeiros 2 km mais leves"},
+    {"kind":"step","intent":"cooldown","duration":{"type":"time","s":600},"target":{"type":"open"}}
+   ]}
   }
  ]
 }

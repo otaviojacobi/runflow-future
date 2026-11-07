@@ -37,6 +37,7 @@ compares the backend (`backend/CLAUDE.md`). Run it after changing the grammar.
 | Swim | strokes `crawl`/`livre`, `costas`, `peito`, `borboleta`, `medley`, `escolha`, `pernada`, `educativo` · equipment `palmar`, `pull`/`pull buoy`, `nadadeira`/`pé de pato`, `prancha`, `snorkel` · send-off `@1:45`, `saída 1:10`, `a cada 2'` · pace per 100 m `1:40/100m` |
 | Strength, mobility | one exercise per piece: `Agachamento 4x8 70% desc 90"`, `4 séries de 10 agachamentos com 20 kg`, `Supino 4x8-10 a 30kg`, `Flexão 3x máx`, `Prancha 3x45s pc`, `Remada 3x10 tempo 3-1-1`, `PSE 8`, `peso do corpo`, `80% 1RM`, `por perna`, `cada lado`, `(notes)`. Rest: `desc 90"`, `descanso de 1 minuto`, `intervalo de 2'` |
 | Parentheses | a target alone stays a target (`(4:35/km)`, `(leve)`); `(2'30 \| 4:10/km)` is one target written two ways (rep time \| pace): the pace counts. A pace in parentheses after a pause (`400m \| p: 1' (1'36" \| 4:00/km)`) is the run's, before the pause |
+| Workout note | a line starting with `obs:`, `nota:`, `dica:` or `atenção:` (also `Dica - …`) is the workout's `note` for the athlete, not a step (D-059); the text written back from a structure ends with `obs: …` |
 | Notes | `(text in parentheses)`, `subida` (terrain: `60-80m subida leve` is uphill with PSE leve), `esteira`, `educativos` (run) |
 
 ## PSE (intensity words)

@@ -1485,12 +1485,21 @@ function nameOf(blocks, meta, sport, hints) {
 }
 
 /**
+ * "obs: os 2 primeiros mais lentos", "Dica - hidrate-se": a line for the athlete, not a step → the workout's note
+ * (`structure.note`, shown at the top of its steps; founder, 2026-11-07). The marker word and its ":" or "-" go.
+ */
+const NOTE_LINE = /^(obs|observação|observacao|nota|dica|atenção|atencao)\s*[:-]\s*(\S.*)$/i;
+const noteOf = (line) => NOTE_LINE.exec(line)?.[2].trim() ?? null;
+
+/**
  * Free text → `{structure, warnings, tags, name}`. `warnings`: the pieces that weren't understood, as typed;
  * `tags`: the #hashtags (normalized); `name`: a suggested workout name.
  */
 export function parseWorkoutText(raw, sport) {
   const tags = [];
-  const lines = String(raw ?? "").replace(/\r/g, "").split("\n").map((l) => { const x = extractTags(l); tags.push(...x.tags); return stripListMarker(normalizeLine(x.text)); });
+  const notes = [];
+  const lines = String(raw ?? "").replace(/\r/g, "").split("\n").map((l) => { const x = extractTags(l); tags.push(...x.tags); return stripListMarker(normalizeLine(x.text)); })
+    .filter((l) => { const n = noteOf(l); if (n) notes.push(n); return !n; });
   const toks = pauseMarks(numberWords(tokenize(lines.join("\n"))));
   const hints = {
     long: toks.some((t) => W(t, "longão", "longao", "longo", "longa")),
@@ -1501,5 +1510,5 @@ export function parseWorkoutText(raw, sport) {
   };
   const warnings = [];
   const { blocks, meta } = assemble(dashSets(segment(toks)), sport, warnings, hints);
-  return { structure: { v: 1, blocks }, warnings, tags: cleanTags(tags), name: nameOf(blocks, meta, sport, hints) };
+  return { structure: { v: 1, ...(notes.length && { note: notes.join(" ") }), blocks }, warnings, tags: cleanTags(tags), name: nameOf(blocks, meta, sport, hints) };
 }

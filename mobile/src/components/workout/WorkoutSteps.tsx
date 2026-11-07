@@ -17,7 +17,7 @@ function StepRow({ step, sport }: { step: Step; sport: Sport }) {
   const { theme } = useTheme();
   const zone = zoneOf(step, sport);
   const target = targetText(step.target, sport, step.duration);
-  const extras = [stepExtras(step), step.note].filter(Boolean).join(" · ");
+  const extras = stepExtras(step);
   return (
     <View style={[styles.row, { gap: theme.space[3], paddingVertical: theme.space["1.5"] }]}>
       <View style={{ paddingTop: theme.space["1.5"] }}><ZoneDot zone={zone} /></View>
@@ -25,6 +25,8 @@ function StepRow({ step, sport }: { step: Step; sport: Sport }) {
         <Text variant="labelMd">{stepWhat(step, sport)}</Text>
         {target ? <Text variant="bodySm" color={theme.color.zone[zone].text} style={styles.strong}>{target}</Text> : null}
         {extras ? <Text variant="bodySm" tone="muted">{extras}</Text> : null}
+        {/* The coach's note on this step, in italics under it (D-059). */}
+        {step.note ? <Text variant="bodySm" tone="muted" style={styles.italic}>{step.note}</Text> : null}
       </View>
     </View>
   );
@@ -35,6 +37,8 @@ export function WorkoutSteps({ structure, sport }: { structure: Structure; sport
   const c = theme.color;
   return (
     <View accessibilityRole="list" style={{ gap: theme.space[2] }}>
+      {/* The coach's words about the whole workout ("obs: …", D-059), first. */}
+      {structure.note ? <Text variant="bodySm" tone="muted" style={[styles.italic, { paddingHorizontal: theme.space[1] }]}>{structure.note}</Text> : null}
       {structure.blocks.map((b, i) =>
         b.kind === "exercise" ? (
           <View key={i} accessibilityRole="none" style={[styles.row, { gap: theme.space[3], padding: theme.space[3], borderRadius: theme.radius.md, backgroundColor: c.sunken }]}>
@@ -62,6 +66,7 @@ export function WorkoutSteps({ structure, sport }: { structure: Structure; sport
 }
 
 const styles = StyleSheet.create({
+  italic: { fontStyle: "italic" },
   row: { flexDirection: "row", alignItems: "flex-start" },
   center: { alignItems: "center" },
   flex: { flex: 1, minWidth: 0 },

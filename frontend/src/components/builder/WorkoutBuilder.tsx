@@ -110,7 +110,7 @@ export function WorkoutBuilder({ sport, structure, onChange, onTags, compact }: 
         </Card>
         <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-2">
           <h2 className="rf-text-title-sm">{sport === "strength" ? t("Exercícios") : t("Etapas")}</h2>
-          <BlockEditor blocks={structure.blocks} sport={sport} onChange={(blocks) => onChange({ v: 1, blocks })} />
+          <BlockEditor blocks={structure.blocks} sport={sport} onChange={(blocks) => onChange({ ...structure, blocks })} />
         </section>
       </div>
       {!compact && <div className="lg:sticky lg:top-6"><WorkoutSummary structure={structure} sport={sport} /></div>}

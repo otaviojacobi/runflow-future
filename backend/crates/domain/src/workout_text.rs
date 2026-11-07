@@ -3877,9 +3877,20 @@ fn extract_tags(line: &str) -> (String, Vec<String>) {
     (rest, clean_tags(found.iter().map(String::as_str)))
 }
 
+/// "obs: os 2 primeiros mais lentos", "Dica - hidrate-se": a line for the athlete, not a step → the workout's note
+/// (`structure.note`, shown at the top of its steps; founder, 2026-11-07). The marker word and its ":" or "-" go.
+static NOTE_LINE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?i)^(obs|observação|observacao|nota|dica|atenção|atencao)\s*[:-]\s*(\S.*)$")
+        .expect("valid pattern")
+});
+fn note_of(line: &str) -> Option<String> {
+    NOTE_LINE.captures(line).map(|c| c[2].trim().to_string())
+}
+
 /// Free text → structure, warnings (the pieces that weren't understood, as typed), #tags and a suggested name.
 pub fn parse(raw: &str, sport: &str) -> Parsed {
     let mut tags_found: Vec<String> = Vec::new();
+    let mut notes: Vec<String> = Vec::new();
     let lines: Vec<String> = raw
         .replace('\r', "")
         .split('\n')
@@ -3887,6 +3898,13 @@ pub fn parse(raw: &str, sport: &str) -> Parsed {
             let (text, t) = extract_tags(l);
             tags_found.extend(t);
             strip_list_marker(normalize_line(&text))
+        })
+        .filter(|l| match note_of(l) {
+            Some(n) => {
+                notes.push(n);
+                false
+            }
+            None => true,
         })
         .collect();
     let toks = pause_marks(number_words(&tokenize(&lines.join("\n"))));
@@ -3905,7 +3923,14 @@ pub fn parse(raw: &str, sport: &str) -> Parsed {
     let (blocks, meta) = assemble(&dash_sets(segment(&toks)), sport, &mut warnings, &mut hints);
     let name = name_of(&blocks, &meta, sport, &hints);
     Parsed {
-        structure: json!({ "v": 1, "blocks": blocks.iter().map(Block::json).collect::<Vec<_>>() }),
+        structure: {
+            let mut v =
+                json!({ "v": 1, "blocks": blocks.iter().map(Block::json).collect::<Vec<_>>() });
+            if !notes.is_empty() {
+                v["note"] = json!(notes.join(" "));
+            }
+            v
+        },
         warnings,
         tags: clean_tags(tags_found.iter().map(String::as_str)),
         name,

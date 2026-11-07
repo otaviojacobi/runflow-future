@@ -48,7 +48,7 @@ const j = (v) => JSON.stringify(v);
 function formatExample(ex) {
   const lines = [];
   for (const [k, v] of Object.entries(ex)) {
-    if (k === "structure" && v?.blocks?.length) lines.push(`   "structure": {"v":${j(v.v)},"blocks":[\n${v.blocks.map((b) => "    " + j(b)).join(",\n")}\n   ]}`);
+    if (k === "structure" && v?.blocks?.length) lines.push(`   "structure": {"v":${j(v.v)},${v.note !== undefined ? `"note":${j(v.note)},` : ""}"blocks":[\n${v.blocks.map((b) => "    " + j(b)).join(",\n")}\n   ]}`);
     else lines.push(`   ${j(k)}: ${j(v)}`);
   }
   return `  {\n${lines.join(",\n")}\n  }`;
