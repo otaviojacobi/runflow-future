@@ -20,19 +20,20 @@ export { ASSESSMENT_NAME } from "@/components/assessments";
 export const assessmentHeadline = (kind: AssessmentKind, r: AssessmentResult, d: AssessmentData): string => headline(kind, r, d).text;
 
 // ---------- notifications (D-045)
-export const KIND_INFO: Record<NotificationKind, { label: string; hint: string }> = {
-  workout_assigned: { label: "Treino novo", hint: "Um treino entrou na sua agenda" },
-  workout_changed: { label: "Treino alterado", hint: "Mudou de dia ou de conteúdo" },
-  week_released: { label: "Semana liberada", hint: "Os treinos da semana ficaram disponíveis" },
-  comment: { label: "Comentários", hint: "Respostas nos treinos" },
-  message: { label: "Mensagens", hint: "Conversas no app" },
-  announcement: { label: "Mural", hint: "Avisos do clube" },
-  feedback: { label: "Feedbacks dos alunos", hint: "Um aluno registrou ou comentou um treino" },
-  member_joined: { label: "Novos membros", hint: "Alguém entrou no clube" },
-  billing: { label: "Plano e cobrança", hint: "Limite de alunos e avisos do plano" },
-  class_cancelled: { label: "Aula cancelada", hint: "Uma aula que você reservou foi cancelada" },
-  waitlist_promoted: { label: "Vaga liberada", hint: "Você saiu da lista de espera de uma aula" },
-  activity_synced: { label: "Atividade sincronizada", hint: "Um treino seu chegou do Strava" },
+/** Notification kinds by name only (founder, 2026-11-07: the names say it, no explanations). */
+export const KIND_LABEL: Record<NotificationKind, string> = {
+  workout_assigned: "Treino novo",
+  workout_changed: "Treino alterado",
+  week_released: "Semana liberada",
+  comment: "Comentários",
+  message: "Mensagens",
+  announcement: "Mural",
+  feedback: "Feedbacks dos alunos",
+  member_joined: "Novos membros",
+  billing: "Plano e cobrança",
+  class_cancelled: "Aula cancelada",
+  waitlist_promoted: "Vaga liberada",
+  activity_synced: "Atividade sincronizada",
 };
 const STUDENT_KINDS: NotificationKind[] = ["week_released", "workout_assigned", "workout_changed", "comment", "message", "announcement"];
 const STAFF_KINDS: NotificationKind[] = ["feedback", "comment", "message", "member_joined"];

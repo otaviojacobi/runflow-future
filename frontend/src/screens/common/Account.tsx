@@ -127,7 +127,7 @@ function InstallApp() {
 function Notifications() {
   const { me } = useClub();
   return (
-    <Section id="notifications" title={t("Notificações")} description={t("Tudo aparece na central do app. Escolha o que também chega como notificação no seu aparelho.")}>
+    <Section id="notifications" title={t("Notificações")}>
       <NotificationSettings memberships={me?.memberships ?? []} />
     </Section>
   );
