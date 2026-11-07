@@ -33,11 +33,11 @@ function StaffMessages({ club, myId }: { club: Club; myId: string }) {
   };
   const unread = items.reduce((n, c) => n + c.unread_count, 0);
   return (
-    <div className="mx-auto grid max-w-6xl gap-4">
+    <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-4">
       <PageHeader title={t("Mensagens")} subtitle={t("Conversas com os alunos e o mural do clube")} />
       <Segmented label={t("Seção")} value={tab} onChange={setTab} className="w-fit" options={[{ value: "chats", label: unread ? t("Conversas ({n})", { n: unread }) : t("Conversas") }, { value: "mural", label: t("Mural") }]} />
       {tab === "mural" ? <div className="max-w-3xl"><Mural club={club} staff /></div> : (
-        <Card className="grid h-[calc(100dvh-15rem)] min-h-[480px] overflow-hidden lg:grid-cols-[320px_minmax(0,1fr)]">
+        <Card className="grid h-[calc(100dvh-15rem)] min-h-[480px] grid-cols-[minmax(0,1fr)] overflow-hidden lg:grid-cols-[320px_minmax(0,1fr)]">
           <aside className={cn("flex min-h-0 flex-col border-line lg:border-r", open && "max-lg:hidden")} aria-label={t("Alunos")}>
             <div className="relative border-b border-line p-3"><Search className="pointer-events-none absolute left-6 top-1/2 size-4 -translate-y-1/2 text-fg-subtle" /><Input aria-label={t("Buscar aluno")} placeholder={t("Buscar aluno")} value={q} onChange={(e) => setQ(e.target.value)} className="h-9 pl-9" /></div>
             <ul className="min-h-0 flex-1 overflow-y-auto">
@@ -72,7 +72,7 @@ function StudentMessages({ club, myId }: { club: Club; myId: string }) {
   const conv = list.data?.[0];
   const staffLabel = club.trainer_label === "professor" ? t("Professores") : t("Treinadores");
   return (
-    <div className="mx-auto grid max-w-2xl gap-4">
+    <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)] gap-4">
       <PageHeader title={t("Mensagens")} subtitle={club.name} />
       <Segmented label={t("Seção")} value={tab} onChange={setTab} className="w-fit" options={[{ value: "mural", label: t("Mural") }, { value: "chat", label: conv?.unread_count ? t("{who} ({n})", { who: staffLabel, n: conv.unread_count }) : staffLabel }]} />
       {tab === "mural" ? <Mural club={club} staff={false} /> : (

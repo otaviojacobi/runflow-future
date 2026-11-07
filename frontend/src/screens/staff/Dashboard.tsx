@@ -58,7 +58,7 @@ export function DashboardScreen() {
   const strava = has(club, "strava");
   const alerts = (x?.alerts ?? []).filter((al) => strava || al.kind !== "no_sync");
   return (
-    <div className="mx-auto grid max-w-6xl gap-6">
+    <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div><p className="text-sm text-fg-muted first-letter:uppercase">{x ? longDate(x.date) : " "}</p><h1 className="rf-text-display-sm">{t(greet())}, {me.user.name.split(" ")[0]}</h1></div>
         <div className="flex flex-wrap gap-2"><Button variant="secondary" icon={<UserPlus />} onClick={() => setInvite(true)}>{t("Convidar")}</Button><ButtonLink to="/library/new" variant="secondary" icon={<Plus />}>{t("Novo treino")}</ButtonLink><ButtonLink to="/planning" icon={<ArrowRight />}>{t("Planejamento")}</ButtonLink></div>
@@ -72,8 +72,8 @@ export function DashboardScreen() {
             <Kpi label={t("Feedbacks para ver")} value={String(x.feedback.length)} sub={t("últimos 7 dias")} to="/feedback" />
             <Kpi label={t("Alunos ativos")} value={String(x.students)} sub={x.subscription.student_limit === null ? t("{n} incluídos no plano", { n: x.subscription.included_students }) : t("de {n} no plano", { n: x.subscription.student_limit })} to="/students" />
           </div>
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
-            <div className="grid content-start gap-6">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-6">
               <Card className="grid gap-3 p-5">
                 <div className="flex items-center justify-between"><h2 className="rf-text-title-md">{t("Hoje")}</h2><Link to="/planning" className="text-sm font-semibold text-brand-text">{t("Ver semana")}</Link></div>
                 {x.today.items.length === 0 ? <p className="text-fg-muted">{t("Nenhum treino marcado para hoje.")}</p> : (
@@ -95,7 +95,7 @@ export function DashboardScreen() {
                 <div className="flex flex-wrap gap-6 border-t border-line-subtle pt-3 text-sm"><span className="text-fg-muted">{t("Esta semana:")} <b className="text-fg tabular-nums">{duration(x.week.duration_s)}</b> {t("planejadas")}{x.week.distance_m ? <> · <b className="text-fg tabular-nums">{km(x.week.distance_m)} km</b></> : null}</span></div>
               </Card>
             </div>
-            <div className="grid content-start gap-6">
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-start gap-6">
               <Card className="grid gap-3 p-5">
                 <h2 className="rf-text-title-md">{t("Atenção")}</h2>
                 {alerts.length === 0 ? <p className="flex items-center gap-2 text-fg-muted"><Check className="size-5 text-success-text" />{t("Tudo em dia por aqui.")}</p> : (

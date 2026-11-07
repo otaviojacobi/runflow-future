@@ -46,7 +46,7 @@ export function ClassesScreen() {
   const closeLinked = () => navigate({ to: "/classes", search: {}, replace: true });
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-6">
+    <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-6">
       <PageHeader title={t("Aulas")} subtitle={t("Reserve sua vaga e faça check-in no local")} />
       {now && (
         <Card tone="brand" className="flex flex-wrap items-center gap-4 p-4">
@@ -192,7 +192,7 @@ function History({ club, sessions }: { club: Club; sessions: ClassSession[] }) {
   if (!done.length) return null;
   const attended = done.filter((s) => s.my_booking?.status === "attended").length;
   return (
-    <section className="grid gap-3" aria-labelledby="hist-h">
+    <section className="grid grid-cols-[minmax(0,1fr)] gap-3" aria-labelledby="hist-h">
       <div className="flex flex-wrap items-baseline justify-between gap-2"><h2 id="hist-h" className="rf-text-title-md">{t("Histórico")}</h2><span className="text-sm text-fg-muted">{t("{a} de {n} aulas nas últimas 8 semanas", { a: attended, n: done.length })}</span></div>
       <Card className="divide-y divide-line-subtle">
         {done.slice(0, 12).map((s) => (

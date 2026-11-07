@@ -30,7 +30,7 @@ export function ScheduleScreen() {
   const days = Array.from({ length: view === "week" ? 7 : Math.round((Date.parse(last) - Date.parse(first)) / 86400000) + 1 }, (_, i) => addDays(first, i));
 
   return (
-    <div className="mx-auto grid max-w-3xl gap-5">
+    <div className="mx-auto grid max-w-3xl grid-cols-[minmax(0,1fr)] gap-5">
       <PageHeader title={t("Agenda")} actions={<div data-print="hide" className="flex items-center gap-2"><IconButton variant="secondary" label={t("Imprimir")} onClick={() => window.print()}><Printer /></IconButton><Segmented label={t("Visão")} value={view} onChange={setView} options={[{ value: "week", label: t("Semana") }, { value: "month", label: t("Mês") }]} /></div>} />
       <div className="flex items-center gap-2"><IconButton variant="secondary" label={t("Anterior")} onClick={() => move(-1)}><ChevronLeft /></IconButton><span className="min-w-40 text-center font-semibold first-letter:uppercase">{title}</span><IconButton variant="secondary" label={t("Próximo")} onClick={() => move(1)}><ChevronRight /></IconButton><button className="ml-2 text-sm font-semibold text-brand-text" onClick={() => setAnchor(today)}>{t("Hoje")}</button></div>
       {preparing ? (
@@ -42,13 +42,13 @@ export function ScheduleScreen() {
           </EmptyState>
         </Card>
       ) : view === "week" ? (
-        <div className="grid gap-2">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-2">
           {days.map((d) => {
             const ws = byDay.get(d) ?? [];
             return (
-              <div key={d} className={cn("grid grid-cols-[56px_1fr] gap-3 rounded-lg border bg-surface p-3", d === today ? "border-brand-ring" : "border-line")}>
+              <div key={d} className={cn("grid grid-cols-[56px_minmax(0,1fr)] gap-3 rounded-lg border bg-surface p-3", d === today ? "border-brand-ring" : "border-line")}>
                 <div className="text-center"><div className={cn("text-xs font-bold uppercase", d === today ? "text-brand-text" : "text-fg-muted")}>{weekdayShort(d)}</div><div className="font-display text-xl font-bold tabular-nums">{Number(d.slice(8))}</div></div>
-                <div className="grid content-center gap-2">
+                <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] content-center gap-2">
                   {ws.length ? ws.map((w) => (
                     <Link key={w.id} to="/workouts/$id" params={{ id: w.id }} hash={w.unread_count ? "conversa" : undefined} className="flex items-center gap-3 rounded-md p-1 hover:bg-soft">
                       <span className={cn("h-9 w-1 rounded-full", sportBar[w.sport])} />

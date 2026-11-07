@@ -182,3 +182,14 @@ test("a workout marked done by mistake is undone, after a confirmation (D-060)",
   await page.getByRole("dialog").getByRole("button", { name: "Desfazer", exact: true }).click();
   await expect(page.getByRole("button", { name: "Concluir treino" })).toBeVisible();
 });
+
+test("signing out from Minha conta, on a phone (regression, 2026-11-07: no way to sign out on the web)", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 });
+  await signIn(page, STUDENT);
+  await page.goto("/account");
+  await page.getByRole("button", { name: "Sair da conta" }).click();
+  await expect(page).toHaveURL(/\/login/);
+  // Signed out for real: the app sends a signed-out visitor back to the login.
+  await page.goto("/today");
+  await expect(page).toHaveURL(/\/login/);
+});

@@ -76,7 +76,9 @@ export function ActivitiesScreen() {
     return [...m.entries()].sort((a, b) => b[0].localeCompare(a[0]));
   }, [list.data]);
   return (
-    <div className="mx-auto grid max-w-2xl gap-5">
+    // Columns that can shrink (minmax(0,1fr)): a long line inside (a match question's options) must not widen the
+    // page past a phone's screen (founder, 2026-11-07: the page ran off the right edge and cut "Registrar").
+    <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)] gap-5">
       <PageHeader title={t("Atividades")} actions={<Button icon={<Plus />} onClick={() => setLog(true)}>{t("Registrar")}</Button>} />
       {conns.data && !strava && (
         <Card className="grid gap-4 p-4"><div className="flex items-center gap-3"><Activity className="size-6 shrink-0 text-fg-muted" /><p className="min-w-0 flex-1 text-sm">{t("Conecte o Strava e suas atividades chegam sozinhas, já ligadas aos treinos.")}</p></div><StravaConnectPanel /></Card>
@@ -87,7 +89,7 @@ export function ActivitiesScreen() {
         const dm = acts.reduce((s, a) => s + (a.distance_m && a.sport !== "swim" ? a.distance_m : 0), 0);
         const ds = acts.reduce((s, a) => s + a.duration_s, 0);
         return (
-          <section key={mon} className="grid gap-2">
+          <section key={mon} className="grid grid-cols-[minmax(0,1fr)] gap-2">
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 px-1"><h2 className="text-sm font-bold">{mon === mondayOf(todayFn()) ? t("Esta semana") : `${dayMonth(mon)} – ${dayMonth(addDays(mon, 6))}`}</h2><span className="text-xs text-fg-muted tabular-nums">{tn(acts.length, "{n} atividade", "{n} atividades")} · {duration(ds)}{dm ? ` · ${km(dm)} km` : ""}</span></div>
             <Card className="divide-y divide-line-subtle p-1">{acts.map((a) => a.match_state === "pending" && a.match_options.length ? (
               <div key={a.id}><ActivityRow a={a} /><MatchQuestion a={a} embedded withActivity={false} heading="h3" /></div>

@@ -47,11 +47,12 @@ export function ReportsScreen() {
   const onClasses = classes && tab === "classes";
   const exportCsv = () => (onClasses ? attendance.data && csvAttendance(club, attendance.data) : training.data && csvTraining(club, training.data));
   return (
-    <div className="mx-auto grid max-w-6xl gap-5">
+    <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-5">
       <PageHeader title={t("Relatórios")} subtitle={<span>{fullDate(f.from)} – {fullDate(f.to)} · {groupName}</span>}
         actions={<div data-print="hide" className="flex gap-2"><Button variant="secondary" icon={<Download />} onClick={exportCsv}>{t("Exportar CSV")}</Button><Button variant="secondary" icon={<Printer />} onClick={() => window.print()}>{t("Imprimir ou PDF")}</Button></div>} />
       <div data-print="hide" className="flex flex-wrap items-end gap-3">
-        <Segmented label={t("Período")} value={preset} onChange={setPreset} size="sm" options={[{ value: "4w", label: t("4 semanas") }, { value: "month", label: t("Este mês") }, { value: "last_month", label: t("Mês passado") }, { value: "3m", label: t("3 meses") }, { value: "custom", label: t("Outro") }]} />
+        {/* Six periods don't fit a phone: the row scrolls sideways there instead of running off the page. */}
+        <div className="max-w-full overflow-x-auto"><Segmented label={t("Período")} value={preset} onChange={setPreset} size="sm" options={[{ value: "4w", label: t("4 semanas") }, { value: "month", label: t("Este mês") }, { value: "last_month", label: t("Mês passado") }, { value: "3m", label: t("3 meses") }, { value: "custom", label: t("Outro") }]} /></div>
         {preset === "custom" && <div className="flex gap-2"><Field label={t("De")}>{(id) => <DateInput id={id} value={custom.from} max={custom.to} onChange={(from) => from && setCustom({ ...custom, from })} className="h-9" />}</Field><Field label={t("Até")}>{(id) => <DateInput id={id} value={custom.to} min={custom.from} max={today} onChange={(to) => to && setCustom({ ...custom, to })} className="h-9" />}</Field></div>}
         <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("Grupo")}>
           {[{ id: "", name: t("Todos") }, ...(groups.data ?? [])].map((g) => <button key={g.id} onClick={() => setGroup(g.id)} aria-pressed={group === g.id} className={cn("h-8 rounded-full border px-3 text-[13px] font-semibold", group === g.id ? "border-brand-ring bg-brand-soft text-on-brand-soft" : "border-line bg-surface text-fg-muted hover:bg-soft")}>{g.name}</button>)}

@@ -84,7 +84,7 @@ export function StudioScreen() {
   };
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-6 pb-24">
+    <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)] gap-6 pb-24">
       <PageHeader title={t("Club Studio")} subtitle={t("Logo e cores do {club}. O Runflow cuida do contraste no modo claro e escuro.", { club: club.name })} />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <div className="grid content-start gap-6">
@@ -143,7 +143,7 @@ export function StudioScreen() {
       </div>
 
       <div className={cn("fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-30 border-t border-line bg-raised/95 px-4 py-3 shadow-lg backdrop-blur transition-transform lg:bottom-0 lg:left-[248px]", dirty ? "translate-y-0" : "invisible pointer-events-none translate-y-[200%]")} role="region" aria-label={t("Alterações")}>
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <span className="text-sm font-semibold">{t("Alterações não salvas")}</span>
           <div className="flex gap-2"><Button variant="ghost" icon={<RotateCcw />} onClick={reset}>{t("Descartar")}</Button><Button icon={<Check />} loading={upload.isPending || save.isPending} onClick={submit}>{t("Salvar visual")}</Button></div>
         </div>

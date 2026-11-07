@@ -40,7 +40,7 @@ export function AccountScreen() {
   const stravaConnected = !!conns.data?.find((c) => c.provider === "strava")?.connection;
   const showConnections = anyClubHas(me.memberships, "strava") || stravaConnected;
   return (
-    <div className="mx-auto grid max-w-2xl gap-6">
+    <div className="mx-auto grid max-w-2xl grid-cols-[minmax(0,1fr)] gap-6">
       <PageHeader title={t("Minha conta")} subtitle={me.user.email} />
       {role === "student" && (
         <nav aria-label={t("Seu perfil")} className="grid divide-y divide-line-subtle overflow-hidden rounded-lg border border-line bg-surface shadow-sm">
@@ -61,9 +61,24 @@ export function AccountScreen() {
       <Privacy memberships={me.memberships} />
       <Clubs memberships={me.memberships} />
       <Devices />
+      <SignOut />
       <DeleteAccount />
     </div>
   );
+}
+
+/**
+ * "Sair da conta" in plain sight (founder, 2026-11-07: no way to sign out on a phone's browser, which has no sidebar
+ * and its account menu; on a computer it was only in that menu).
+ */
+function SignOut() {
+  const navigate = useNavigate();
+  const [busy, setBusy] = useState(false);
+  const go = async () => {
+    setBusy(true);
+    try { await signOut(); navigate({ to: "/login" }); } finally { setBusy(false); }
+  };
+  return <Button variant="secondary" icon={<LogOut />} loading={busy} className="justify-self-start" onClick={go}>{t("Sair da conta")}</Button>;
 }
 
 function Profile({ user }: { user: User }) {

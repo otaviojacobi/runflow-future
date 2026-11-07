@@ -60,7 +60,7 @@ export function MembersScreen() {
   );
 
   return (
-    <div className="mx-auto grid max-w-4xl gap-6">
+    <div className="mx-auto grid max-w-4xl grid-cols-[minmax(0,1fr)] gap-6">
       <PageHeader title={t("Membros e convites")} subtitle={t("Quem participa do {club}. Só entra quem recebe um convite por e-mail.", { club: club.name })} actions={<><Button variant="secondary" icon={<FileSpreadsheet />} onClick={() => setImporting(true)}>{t("Importar planilha")}</Button><Button icon={<Mail />} onClick={() => setNewInvite(true)}>{t("Convidar por e-mail")}</Button></>} />
       <ImportStudentsDialog club={club} open={importing} onOpenChange={setImporting} />
       <GroupPickerDialog clubId={club.id} open={!!grouping} onOpenChange={(v) => !v && setGrouping(null)}
