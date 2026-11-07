@@ -6,6 +6,8 @@ mod common;
 
 use std::sync::{Arc, Mutex};
 
+use base64::engine::general_purpose::STANDARD;
+
 use aws_lc_rs::aead::{AES_128_GCM, Aad, LessSafeKey, Nonce, UnboundKey};
 use aws_lc_rs::agreement::{self, ECDH_P256, PrivateKey, UnparsedPublicKey};
 use aws_lc_rs::error::Unspecified;
@@ -236,7 +238,14 @@ async fn devices_register_and_get_pushes(db: PgPool) {
             .starts_with("vapid t=")
     );
     let msg = phone.decrypt(body);
-    assert_eq!(msg["title"], "Marcos respondeu");
+    // Signed by the club (D-057): its name over the notice.
+    assert_eq!(msg["title"], "Pace Forte");
+    assert!(
+        msg["body"]
+            .as_str()
+            .unwrap()
+            .starts_with("Marcos respondeu: ")
+    );
     assert!(msg["link"].as_str().unwrap().starts_with("/messages"));
     assert!(msg["id"].is_string());
     assert!(msg["club_id"].is_string());
@@ -336,7 +345,43 @@ async fn pause_and_reading_first(db: PgPool) {
     app.run_jobs().await;
     let received = std::mem::take(&mut fake.lock().unwrap().received);
     assert_eq!(received.len(), 1);
-    assert_eq!(phone.decrypt(&received[0].2)["body"], "Voltou");
+    assert_eq!(
+        phone.decrypt(&received[0].2)["body"],
+        "Marcos respondeu: Voltou"
+    );
+}
+
+/// A PNG's signature and header: enough for the asset check.
+const PNG: &[u8] = &[
+    0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13, b'I', b'H', b'D', b'R',
+];
+
+#[sqlx::test(migrator = "runflow_db::MIGRATOR")]
+async fn a_personal_notice_is_signed_by_the_only_club(db: PgPool) {
+    let app = TestApp::new(db);
+    let (_club, _owner, ana) = setup(&app).await;
+    let user: uuid::Uuid = sqlx::query_scalar("SELECT id FROM users WHERE email = 'ana@email.com'")
+        .fetch_one(app.db())
+        .await
+        .unwrap();
+    // A Strava sync has no club: Ana studies at one, so it's signed by it.
+    let brand = runflow_db::push::brand(app.db(), None, user).await.unwrap();
+    assert_eq!(brand.map(|b| b.name).as_deref(), Some("Pace Forte"));
+    // In two clubs, no club speaks for a personal notice: it goes out as it is.
+    let other = app
+        .post(
+            "/v1/clubs",
+            Some(&ana),
+            json!({ "name": "Outro Clube", "modalities": ["run"] }),
+        )
+        .await;
+    assert_eq!(other.status, StatusCode::CREATED);
+    assert!(
+        runflow_db::push::brand(app.db(), None, user)
+            .await
+            .unwrap()
+            .is_none()
+    );
 }
 
 type ExpoSeen = Arc<Mutex<Vec<Value>>>;
@@ -390,6 +435,28 @@ async fn phones_get_pushes_through_expo(db: PgPool) {
             .await;
         assert_eq!(r.status.as_u16(), 204);
     }
+    // The club's logo goes along as the notification's picture (D-057).
+    let logo = app
+        .post(
+            &format!("/v1/clubs/{club}/assets"),
+            Some(&owner),
+            json!({ "data_url": format!("data:image/png;base64,{}", STANDARD.encode(PNG)), "width": 512, "height": 512 }),
+        )
+        .await
+        .body["id"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    let b = app
+        .call(
+            Method::PUT,
+            &format!("/v1/clubs/{club}/branding"),
+            Some(&owner),
+            Some(json!({ "primary_color": "#D62828", "logo_asset_id": logo })),
+            &[],
+        )
+        .await;
+    assert_eq!(b.status, StatusCode::OK);
     message(&app, &club, &owner, &ana, "Bora treinar amanhã?").await;
     app.run_jobs().await;
 
@@ -399,8 +466,13 @@ async fn phones_get_pushes_through_expo(db: PgPool) {
         .iter()
         .find(|m| m["to"] == "ExponentPushToken[ana-phone]")
         .unwrap();
-    assert_eq!(m["title"], "Marcos respondeu");
-    assert_eq!(m["body"], "Bora treinar amanhã?");
+    // Signed by the club: its name, the notice in the body, its logo as the picture.
+    assert_eq!(m["title"], "Pace Forte");
+    assert_eq!(m["body"], "Marcos respondeu: Bora treinar amanhã?");
+    assert_eq!(
+        m["richContent"]["image"],
+        format!("http://localhost:3000/v1/assets/{logo}")
+    );
     assert!(m["data"]["link"].as_str().unwrap().starts_with("/messages"));
     assert!(m["data"]["id"].is_string());
     // The club, so the app opens the link in the right one.

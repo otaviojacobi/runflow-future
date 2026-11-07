@@ -88,6 +88,34 @@ pub async fn pending(
     .await
 }
 
+/// Whose name a push carries (D-057): the notice's club, or the person's only active club for a personal notice (a
+/// Strava sync); none when that's ambiguous. `logo` only when it's an image phones show (PNG, JPEG, WebP).
+pub struct Brand {
+    pub name: String,
+    pub logo: Option<Uuid>,
+}
+
+pub async fn brand(
+    db: impl PgExecutor<'_>,
+    club_id: Option<Uuid>,
+    user_id: Uuid,
+) -> sqlx::Result<Option<Brand>> {
+    sqlx::query_as!(
+        Brand,
+        r#"SELECT c.name, a.id AS "logo?"
+             FROM clubs c
+             LEFT JOIN club_branding b ON b.club_id = c.id
+             LEFT JOIN assets a ON a.id = b.logo_asset_id AND a.content_type IN ('image/png', 'image/jpeg', 'image/webp')
+            WHERE c.deleted_at IS NULL
+              AND c.id = coalesce($1, (SELECT min(m.club_id::text)::uuid FROM memberships m
+                                        WHERE m.user_id = $2 AND m.status = 'active' HAVING count(*) = 1))"#,
+        club_id,
+        user_id
+    )
+    .fetch_optional(db)
+    .await
+}
+
 pub async fn mark_pushed(db: impl PgExecutor<'_>, notification_id: Uuid) -> sqlx::Result<()> {
     sqlx::query!(
         "UPDATE notifications SET pushed_at = now() WHERE id = $1",
