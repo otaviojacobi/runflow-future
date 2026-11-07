@@ -22,7 +22,7 @@ function StepLine({ step, sport, onPress, menu, nested }: { step: Step; sport: S
   const c = theme.color;
   const z = zoneOf(step, sport);
   const what = stepWhat(step, sport);
-  const target = targetText(step.target, sport);
+  const target = targetText(step.target, sport, step.duration);
   const extra = [stepExtras(step), step.note].filter(Boolean).join(" · ");
   return (
     <View style={[styles.row, { minHeight: theme.size.touchMin + theme.space[2], borderRadius: theme.radius.md, borderWidth: 1, borderColor: c.line, backgroundColor: nested ? c.canvas : c.surface }]}>

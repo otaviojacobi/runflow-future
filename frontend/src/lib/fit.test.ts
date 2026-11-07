@@ -59,4 +59,10 @@ describe("FIT workout", () => {
     const workout = msgs.find((m) => m.global === 26)!.values;
     expect(new TextDecoder().decode(workout.get(8)!).replace(/\0+$/, "")).toBe("Intervalado 6×1 km");
   });
+  it("gives an exact pace ±5 s on the watch, which needs a range", () => {
+    const exact: Structure = { v: 1, blocks: [{ kind: "step", intent: "active", duration: { type: "distance", m: 1000 }, target: { type: "pace", min_s: 290, max_s: 290 } }] };
+    const step = decode(encodeFitWorkout("Progressivo", "run", exact, () => "", new Date("2026-11-07T12:00:00Z"))).msgs.filter((m) => m.global === 27)[0]!.values;
+    const u32 = (f: number) => new DataView(step.get(f)!.buffer).getUint32(0, true);
+    expect([u32(5), u32(6)]).toEqual([Math.round(1e6 / 295), Math.round(1e6 / 285)]);
+  });
 });

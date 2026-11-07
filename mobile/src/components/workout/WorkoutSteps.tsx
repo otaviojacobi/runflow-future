@@ -16,7 +16,7 @@ import { ZoneDot } from "./workout";
 function StepRow({ step, sport }: { step: Step; sport: Sport }) {
   const { theme } = useTheme();
   const zone = zoneOf(step, sport);
-  const target = targetText(step.target, sport);
+  const target = targetText(step.target, sport, step.duration);
   const extras = [stepExtras(step), step.note].filter(Boolean).join(" · ");
   return (
     <View style={[styles.row, { gap: theme.space[3], paddingVertical: theme.space["1.5"] }]}>

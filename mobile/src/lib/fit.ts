@@ -50,9 +50,11 @@ interface FitStep { name: string; durationType: number; durationValue: number; t
 
 function target(t: Target): Pick<FitStep, "targetType" | "targetValue" | "low" | "high"> {
   const speed = (paceS: number) => Math.round(1e6 / paceS); // m/s × 1000
-  if (t.type === "pace") return { targetType: 0, targetValue: 0, low: speed(t.max_s), high: speed(t.min_s) };
-  if (t.type === "hr") return { targetType: 1, targetValue: 0, low: t.min + 100, high: t.max + 100 };
-  if (t.type === "power") return { targetType: 4, targetValue: 0, low: t.min + 1000, high: t.max + 1000 };
+  // An exact value (what the coach wrote, D-058) gets ±5 on the watch, which needs a range to alert on.
+  const widen = (a: number, b: number) => (a === b ? [Math.max(1, a - 5), b + 5] as const : [a, b] as const);
+  if (t.type === "pace") { const [a, b] = widen(t.min_s, t.max_s); return { targetType: 0, targetValue: 0, low: speed(b), high: speed(a) }; }
+  if (t.type === "hr") { const [a, b] = widen(t.min, t.max); return { targetType: 1, targetValue: 0, low: a + 100, high: b + 100 }; }
+  if (t.type === "power") { const [a, b] = widen(t.min, t.max); return { targetType: 4, targetValue: 0, low: a + 1000, high: b + 1000 }; }
   if (t.type === "zone") {
     if (t.metric === "pace" && t.resolved?.min_s && t.resolved.max_s) return { targetType: 0, targetValue: 0, low: speed(t.resolved.max_s), high: speed(t.resolved.min_s) };
     if (t.metric === "hr") return { targetType: 1, targetValue: t.zone, low: 0, high: 0 };

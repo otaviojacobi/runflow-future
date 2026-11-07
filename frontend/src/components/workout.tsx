@@ -1,22 +1,22 @@
 import { Check, Circle, CircleDashed, Minus, X } from "lucide-react";
 import type { Sport, Zone } from "@/api/types";
-import { segments, type Structure, type ZoneN } from "@/domain/workout";
+import { profileHeights, segments, type Structure, type ZoneN } from "@/domain/workout";
 import { t } from "@/i18n";
 import { pace } from "@/lib/format";
 import { Badge, cn, type Tone } from "@/ui";
 
 const ZONE_BG: Record<ZoneN, string> = { 1: "bg-z1", 2: "bg-z2", 3: "bg-z3", 4: "bg-z4", 5: "bg-z5" };
-const ZONE_H: Record<ZoneN, number> = { 1: 30, 2: 46, 3: 62, 4: 82, 5: 100 };
 export const zoneBg = ZONE_BG;
 
-/** Intensity profile: one bar per segment, width = time, height + color = zone. */
+/** Intensity profile: one bar per segment, width = time, color = zone, height = how hard within the workout (profileHeights). */
 export function IntensityProfile({ structure, sport, height = 48, className }: { structure: Structure; sport: Sport; height?: number; className?: string }) {
   const segs = segments(structure, sport);
+  const heights = profileHeights(segs);
   if (!segs.length) return <div className={cn("grid place-items-center rounded-md border border-dashed border-line text-xs text-fg-subtle", className)} style={{ height }}>{t("Sem etapas ainda")}</div>;
   return (
     <div role="img" aria-label={t("Perfil de intensidade")} className={cn("flex items-end gap-[2px]", className)} style={{ height }}>
       {segs.map((s, i) => (
-        <span key={i} className={cn("min-w-[3px] rounded-t-[3px] rounded-b-[1px]", ZONE_BG[s.zone])} style={{ flex: `${s.seconds} 1 0`, height: `${ZONE_H[s.zone]}%` }} />
+        <span key={i} className={cn("min-w-[3px] rounded-t-[3px] rounded-b-[1px]", ZONE_BG[s.zone])} style={{ flex: `${s.seconds} 1 0`, height: `${heights[i]}%` }} />
       ))}
     </div>
   );

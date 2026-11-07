@@ -58,16 +58,56 @@ function secPerMeter(step: Step, sport: Sport): number {
   return (tg.type === "pace" ? (tg.min_s + tg.max_s) / 2 : RUN_ZONE_PACE[zoneOf(step, sport)]) / 1000;
 }
 
-export interface Segment { seconds: number; zone: ZoneN; intent: Intent }
+/** `level`: how hard on a continuous 1–5 scale (levelOf), null without a target; the profile's heights. */
+export interface Segment { seconds: number; zone: ZoneN; intent: Intent; level: number | null }
+
+/**
+ * How hard a step is on a continuous 1–5 scale, for the intensity profile's heights (founder, 2026-11-07: a progression
+ * 4:50 → 4:20 must climb, not show five equal Z4 bars). A pace between two zones' generic paces sits between them; PSE
+ * 1–10 is halved; zones, heart rate and power count as their zone. Null for a step without a target (an open warm-up).
+ */
+export function levelOf(step: Step, sport: Sport): number | null {
+  const tg = step.target;
+  if (tg.type === "open") return null;
+  if (tg.type === "rpe") return Math.min(5, Math.max(1, tg.value / 2));
+  if (tg.type === "pace" && sport !== "bike") {
+    const mid = (tg.min_s + tg.max_s) / 2;
+    const table = sport === "swim" ? SWIM_ZONE_PACE : RUN_ZONE_PACE;
+    if (mid >= table[1]) return 1;
+    if (mid <= table[5]) return 5;
+    for (const z of [1, 2, 3, 4] as const) {
+      const a = table[z], b = table[(z + 1) as ZoneN];
+      if (mid <= a && mid >= b) return z + (a - mid) / (a - b);
+    }
+  }
+  return zoneOf(step, sport);
+}
+
+const PROFILE_MIN = 24;
+const ZONE_HEIGHT: Record<ZoneN, number> = { 1: 30, 2: 46, 3: 62, 4: 82, 5: 100 };
+/**
+ * The profile's bar heights (% of its height): half the absolute scale (how fast or hard: Z1 low, Z5 full) and half
+ * the session's own range (its easiest step low, its hardest full), so a progression or a fartlek's changes show
+ * while an easy run still looks easy (founder, 2026-11-07: "a combination of max/min of that session and max/min as
+ * current"). Steps without a target sit at the bottom; nothing with a target: heights by zone.
+ */
+export function profileHeights(segs: Segment[]): number[] {
+  const levels = segs.flatMap((s) => (s.level === null ? [] : [s.level]));
+  if (!levels.length) return segs.map((s) => ZONE_HEIGHT[s.zone]);
+  const lo = Math.min(...levels), hi = Math.max(...levels);
+  const absolute = (l: number) => PROFILE_MIN + ((100 - PROFILE_MIN) * (l - 1)) / 4;
+  const relative = (l: number) => (hi > lo ? PROFILE_MIN + ((100 - PROFILE_MIN) * (l - lo)) / (hi - lo) : absolute(l));
+  return segs.map((s) => (s.level === null ? PROFILE_MIN : Math.round(((absolute(s.level) + relative(s.level)) / 2) * 10) / 10));
+}
 /** Flatten repeats into timed segments (exercises become one block each). */
 export function segments(structure: Structure, sport: Sport): Segment[] {
   const out: Segment[] = [];
   const stepSeconds = (st: Step) =>
     st.duration.type === "time" ? st.duration.s : st.duration.type === "distance" ? st.duration.m * secPerMeter(st, sport) : 300;
   for (const b of structure.blocks) {
-    if (b.kind === "repeat") for (let i = 0; i < b.count; i++) for (const st of b.steps) out.push({ seconds: stepSeconds(st), zone: zoneOf(st, sport), intent: st.intent });
-    else if (b.kind === "exercise") out.push({ seconds: b.sets * (45 + (b.rest_s ?? 60)), zone: 3, intent: "active" });
-    else out.push({ seconds: stepSeconds(b), zone: zoneOf(b, sport), intent: b.intent });
+    if (b.kind === "repeat") for (let i = 0; i < b.count; i++) for (const st of b.steps) out.push({ seconds: stepSeconds(st), zone: zoneOf(st, sport), intent: st.intent, level: levelOf(st, sport) });
+    else if (b.kind === "exercise") out.push({ seconds: b.sets * (45 + (b.rest_s ?? 60)), zone: 3, intent: "active", level: null });
+    else out.push({ seconds: stepSeconds(b), zone: zoneOf(b, sport), intent: b.intent, level: levelOf(b, sport) });
   }
   return out;
 }
@@ -109,19 +149,34 @@ export function durationText(d: Duration, sport: Sport): string {
 }
 /** "6×", "15–20×". */
 export const countText = (r: Repeat) => (r.max_count !== undefined ? `${r.count}–${r.max_count}` : String(r.count));
-export function targetText(tg: Target, sport: Sport): string | null {
+/** "54″", "1′36″": a rep's time. */
+const repClock = (s: number) => (s < 60 ? `${s}″` : `${Math.floor(s / 60)}′${s % 60 ? String(s % 60).padStart(2, "0") + "″" : ""}`);
+/** "4:50", or "4:20–4:30" for a range the coach wrote (a single value is exact: no margin, founder 2026-11-07). */
+const span = (a: number, b: number, f: (x: number) => string) => (a === b ? f(a) : `${f(a)}–${f(b)}`);
+/**
+ * A target as the athlete reads it: exactly what the coach wrote ("4:50 /km", "150 bpm"); a range when they wrote one.
+ * `d`: the step's duration; a run rep under 1 km shows its time first, the way coaches think about tiros
+ * ("54″ (4:30 /km)", "53–58″ (4:25–4:50 /km)").
+ */
+export function targetText(tg: Target, sport: Sport, d?: Duration): string | null {
   switch (tg.type) {
     case "open": return null;
     case "zone": {
       const base = `Z${tg.zone}${tg.metric === "hr" ? " " + t("FC") : tg.metric === "power" ? " " + t("potência") : ""}`;
       const r = tg.resolved;
-      if (r?.min_s && r.max_s) return `${base} · ${fmtPace(r.min_s)}–${fmtPace(r.max_s)} ${sport === "swim" ? "/100 m" : "/km"}`;
-      if (r?.min && r.max) return `${base} · ${r.min}–${r.max} bpm`;
+      if (r?.min_s && r.max_s) return `${base} · ${span(r.min_s, r.max_s, fmtPace)} ${sport === "swim" ? "/100 m" : "/km"}`;
+      if (r?.min && r.max) return `${base} · ${span(r.min, r.max, String)} bpm`;
       return base;
     }
-    case "pace": return `${fmtPace(tg.min_s)}–${fmtPace(tg.max_s)} ${sport === "swim" ? "/100 m" : "/km"}`;
-    case "hr": return `${tg.min}–${tg.max} bpm`;
-    case "power": return `${tg.min}–${tg.max} W`;
+    case "pace": {
+      const pace = `${span(tg.min_s, tg.max_s, fmtPace)} ${sport === "swim" ? "/100 m" : "/km"}`;
+      if (sport !== "run" || d?.type !== "distance" || d.max_m !== undefined || d.m >= 1000) return pace;
+      const rep = (p: number) => Math.round((p * d.m) / 1000);
+      const time = tg.min_s === tg.max_s ? repClock(rep(tg.min_s)) : `${repClock(rep(tg.min_s)).replace(/″$/, "")}–${repClock(rep(tg.max_s))}`;
+      return `${time} (${pace})`;
+    }
+    case "hr": return `${span(tg.min, tg.max, String)} bpm`;
+    case "power": return `${span(tg.min, tg.max, String)} W`;
     // The coach's word leads ("PSE forte (8)"); the number alone when there's none.
     case "rpe": return tg.label ? t("PSE {label} ({n})", { label: tg.label, n: tg.value }) : t("PSE {n}", { n: tg.value });
   }
@@ -131,7 +186,7 @@ export function stepText(st: Step, sport: Sport): string {
   const parts = [durationText(st.duration, sport)];
   if (st.intent !== "active") parts[0] += " " + t(INTENT_LABEL[st.intent]).toLowerCase();
   if (st.stroke) parts[0] += " " + t(STROKE_LABEL[st.stroke]);
-  const tgt = targetText(st.target, sport);
+  const tgt = targetText(st.target, sport, st.duration);
   if (tgt) parts.push(tgt);
   if (st.send_off_s) parts.push(t("saída {t}", { t: clock(st.send_off_s) }));
   if (st.equipment?.length) parts.push(st.equipment.map((e) => t(EQUIPMENT_LABEL[e])).join(", "));

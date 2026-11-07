@@ -9,13 +9,12 @@ import { useTheme } from "@/theme/ThemeProvider";
 import { Badge, Text, type Tone } from "@/ui";
 import { Check, Circle, CircleDashed, Minus, X, type Icon } from "@/ui/icons";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
-import { segments, type Structure, type ZoneN } from "@/domain/workout";
-
-const ZONE_H: Record<ZoneN, `${number}%`> = { 1: "30%", 2: "46%", 3: "62%", 4: "82%", 5: "100%" };
+import { profileHeights, segments, type Structure, type ZoneN } from "@/domain/workout";
 
 export function IntensityProfile({ structure, sport, height, style }: { structure: Structure; sport: Sport; height?: number; style?: StyleProp<ViewStyle> }) {
   const { theme } = useTheme();
   const segs = segments(structure, sport);
+  const heights = profileHeights(segs);
   const h = height ?? theme.space[12];
   if (!segs.length) {
     return (
@@ -28,7 +27,7 @@ export function IntensityProfile({ structure, sport, height, style }: { structur
     <View accessibilityRole="image" accessibilityLabel={t("Perfil de intensidade")} style={[styles.profile, { height: h, gap: theme.space["0.5"] }, style]}>
       {segs.map((s, i) => (
         <View key={i} style={{
-          flexGrow: s.seconds, flexShrink: 1, flexBasis: 0, minWidth: theme.space[1], height: ZONE_H[s.zone], backgroundColor: theme.color.zone[s.zone].solid,
+          flexGrow: s.seconds, flexShrink: 1, flexBasis: 0, minWidth: theme.space[1], height: `${heights[i]}%`, backgroundColor: theme.color.zone[s.zone].solid,
           borderTopLeftRadius: theme.radius.xs, borderTopRightRadius: theme.radius.xs,
         }} />
       ))}
