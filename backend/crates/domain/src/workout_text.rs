@@ -79,7 +79,7 @@ const INTENSITY_PHRASES: &[(&[&str], i64, &str)] = &[
     (&["bem", "leve"], 2, "bem leve"), (&["muito", "leve"], 2, "muito leve"), (&["bem", "levinho"], 2, "bem leve"), (&["muito", "forte"], 9, "muito forte"),
     (&["ritmo", "de", "meia", "maratona"], 7, "ritmo de meia"), (&["ritmo", "de", "meia"], 7, "ritmo de meia"), (&["ritmo", "de", "maratona"], 6, "ritmo de maratona"),
 ];
-/// The nouns ("rodagem", "longão") come last.
+/// The nouns ("rodagem", "longão") come last (`INTENSITY_NOUNS`).
 #[rustfmt::skip]
 const INTENSITY_WORDS: &[(&[&str], i64, &str)] = &[
     (&["regenerativo", "regenerativa", "regenerativos", "recuperativo", "recuperativa"], 2, "regenerativo"), (&["soltinho"], 2, "soltinho"), (&["levinho"], 2, "levinho"),
@@ -87,8 +87,9 @@ const INTENSITY_WORDS: &[(&[&str], i64, &str)] = &[
     (&["moderado", "moderada"], 5, "moderado"), (&["médio", "medio"], 5, "médio"), (&["steady"], 5, "steady"),
     (&["limiar", "threshold"], 7, "limiar"), (&["forte", "fortes"], 8, "forte"), (&["intenso", "intensa"], 8, "intenso"), (&["fortíssimo", "fortissimo"], 9, "fortíssimo"),
     (&["máximo", "maximo", "máxima", "maxima", "máx", "max"], 10, "máximo"), (&["sprint", "sprints"], 10, "sprint"),
-    (&["rodagem", "longão", "longao", "longo", "longa"], 3, "leve"),
 ];
+#[rustfmt::skip]
+const INTENSITY_NOUNS: &[(&[&str], i64, &str)] = &[(&["rodagem", "longão", "longao", "longo", "longa"], 3, "leve")];
 /// Recovery words that also say how easy: "2' trote" (PSE 3), "3' andando" (PSE 2).
 fn is_jog(t: &Tok) -> bool {
     t.k == K::Word && t.low.starts_with("trot")
@@ -513,6 +514,24 @@ fn number_words(toks: &[Tok]) -> Vec<Tok> {
     res
 }
 
+/// "p: 1'30\"", "P: 1'": some coaches write a pause (pausa) this way.
+fn pause_marks(toks: Vec<Tok>) -> Vec<Tok> {
+    let mut out = Vec::with_capacity(toks.len());
+    let mut it = toks.into_iter().peekable();
+    while let Some(t) = it.next() {
+        if w(Some(&t), &["p"]) && p(it.peek(), ":") {
+            it.next();
+            out.push(Tok {
+                low: "pausa".into(),
+                ..t
+            });
+            continue;
+        }
+        out.push(t);
+    }
+    out
+}
+
 // ------------------------------------------------------------------------------------ pieces
 
 #[derive(Clone)]
@@ -554,7 +573,7 @@ fn slash_pair(toks: &[Tok], i: usize) -> bool {
 fn soft_at(toks: &[Tok], i: usize) -> bool {
     let t = toks.get(i);
     let next_sp = toks.get(i + 1).is_some_and(|x| x.sp);
-    if p(t, ",") || p(t, ".") {
+    if p(t, ",") || p(t, ".") || p(t, "|") {
         return true;
     }
     if p(t, "-") {
@@ -571,6 +590,32 @@ fn soft_at(toks: &[Tok], i: usize) -> bool {
         return !range_e(toks, i);
     }
     w(t, SOFT_WORDS)
+}
+/// Words a ":" belongs to ("tempo: 3-1-1", "desc: 1'"), so it doesn't split there.
+fn colon_keep(l: &str) -> bool {
+    [
+        "tempo",
+        "cadência",
+        "cadencia",
+        "pse",
+        "rpe",
+        "fc",
+        "pace",
+        "ritmo",
+        "zona",
+    ]
+    .contains(&l)
+        || DESC_WORDS.contains(&l)
+        || REST_WORDS.contains(&l)
+}
+/// "2' caminhada: 4' corrida leve", "3' (4:35/km) : 5' (4:18/km)": a ":" between two amounts alternates them (a
+/// soft split), unless it's inside a repeat ("11x 100m (leve): 300m", one round: parse_repeat) or after a label word.
+fn colon_split(toks: &[Tok], i: usize, cur: &[Tok]) -> bool {
+    let prev = get(toks, i as isize - 1);
+    if !n(toks.get(i + 1)) || prev.is_some_and(|x| x.k == K::Word && colon_keep(&x.low)) {
+        return false;
+    }
+    find_anchor(cur).is_none()
 }
 /// Split on "+", ";" and new lines (hard), and on soft separators once the piece has a number.
 fn segment(toks: &[Tok]) -> Vec<Piece> {
@@ -603,7 +648,9 @@ fn segment(toks: &[Tok]) -> Vec<Piece> {
                 flush(&mut pieces, &mut cur, &mut soft, false);
                 continue;
             }
-            if soft_at(toks, i) && cur.iter().any(|x| numish(Some(x))) {
+            if (soft_at(toks, i) || (p(t1, ":") && colon_split(toks, i, &cur)))
+                && cur.iter().any(|x| numish(Some(x)))
+            {
                 flush(&mut pieces, &mut cur, &mut soft, true);
                 continue;
             }
@@ -611,11 +658,71 @@ fn segment(toks: &[Tok]) -> Vec<Piece> {
         cur.push(t.clone());
     }
     flush(&mut pieces, &mut cur, &mut soft, false);
+    pause_parens(pieces)
+}
+/// "600m | p: 1'30\" (2'30 | 4:10/km)": the pace in parentheses after a pause is the run's, before it (a pause has
+/// no pace). Moved to the end of the run's piece.
+fn pause_parens(mut pieces: Vec<Piece>) -> Vec<Piece> {
+    for k in 1..pieces.len() {
+        let pc = &pieces[k];
+        if !pc.soft || !w(pc.toks.first(), &["pausa"]) {
+            continue;
+        }
+        let Some(a) = pc.toks.iter().position(|t| p(Some(t), "(")) else {
+            continue;
+        };
+        let (mut d, mut b) = (0, a);
+        while b < pc.toks.len() {
+            let x = Some(&pc.toks[b]);
+            if p(x, "(") {
+                d += 1;
+            } else if p(x, ")") {
+                d -= 1;
+                if d == 0 {
+                    break;
+                }
+            }
+            b += 1;
+        }
+        let close = (b + 1).min(pc.toks.len());
+        if !pc.toks[a..close].iter().any(|t| t.k == K::Clock)
+            || pieces[k - 1].toks.iter().any(|t| p(Some(t), "("))
+        {
+            continue;
+        }
+        let group: Vec<Tok> = pieces[k].toks.drain(a..close).collect();
+        pieces[k - 1].toks.extend(group);
+    }
     pieces
 }
 
-/// Parenthesized text: a note, or (when it only holds a target) inline tokens.
-fn take_parens(toks0: &[Tok]) -> (Vec<Tok>, Vec<String>) {
+/// The words of `INTENSITY_WORDS`, `INTENSITY_PHRASES` and `EASY_WORDS` (not the nouns).
+fn intensity_only(l: &str) -> bool {
+    INTENSITY_WORDS.iter().any(|(ws, ..)| ws.contains(&l))
+        || INTENSITY_PHRASES.iter().any(|(ws, ..)| ws.contains(&l))
+        || EASY_WORDS.contains(&l)
+}
+/// "(2'30 | 4:10/km)": the same target written two ways (the rep's time | its pace) → the part with the pace.
+fn pick_alternative(inner: &[Tok]) -> Vec<Tok> {
+    if !inner.iter().any(|t| p(Some(t), "|")) {
+        return inner.to_vec();
+    }
+    let mut parts: Vec<Vec<Tok>> = vec![Vec::new()];
+    for t in inner {
+        if p(Some(t), "|") {
+            parts.push(Vec::new());
+        } else {
+            parts.last_mut().expect("a part").push(t.clone());
+        }
+    }
+    let paced = parts
+        .iter()
+        .position(|q| (0..q.len()).any(|i| p(q.get(i), "/") && w(q.get(i + 1), KM)));
+    parts.swap_remove(paced.unwrap_or(0))
+}
+/// Parenthesized text: a note, or (when it only holds a target) inline tokens. `words`: an intensity word alone
+/// ("(leve)") is a target too (runs, rides, swims; for exercises it stays a note).
+fn take_parens(toks0: &[Tok], words: bool) -> (Vec<Tok>, Vec<String>) {
     let (mut toks, mut notes) = (Vec::new(), Vec::new());
     let mut i = 0;
     while i < toks0.len() {
@@ -642,20 +749,26 @@ fn take_parens(toks0: &[Tok]) -> (Vec<Tok>, Vec<String>) {
             }
             j += 1;
         }
-        let inner = &toks0[i + 1..j.min(toks0.len())];
+        let inner = pick_alternative(&toks0[i + 1..j.min(toks0.len())]);
         let inline = inner
             .iter()
             .all(|t| t.k != K::Word || INLINE_WORDS.contains(&t.low.as_str()));
-        if !inner.is_empty()
-            && inline
-            && (inner.iter().any(|t| numish(Some(t)))
-                || inner
-                    .iter()
-                    .any(|t| w(Some(t), HR_WORDS) || w(Some(t), POWER_WORDS)))
+        let intensity = words
+            && !inner.is_empty()
+            && inner
+                .iter()
+                .all(|t| t.k == K::Word && intensity_only(&t.low));
+        if intensity
+            || (!inner.is_empty()
+                && inline
+                && (inner.iter().any(|t| numish(Some(t)))
+                    || inner
+                        .iter()
+                        .any(|t| w(Some(t), HR_WORDS) || w(Some(t), POWER_WORDS))))
         {
-            toks.extend(inner.iter().cloned());
+            toks.extend(inner);
         } else {
-            let s = text_of(inner);
+            let s = text_of(&inner);
             let s = s.trim();
             if !s.is_empty() {
                 notes.push(s.to_string());
@@ -1061,7 +1174,7 @@ struct StepsResult {
 /// `from_word` (an intent word), `between` ("entre os tiros" / "entre séries"), `modifier_only` (only a target,
 /// stroke, equipment, send-off or note: it can complete the previous block), `progression`.
 fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -> StepsResult {
-    let (toks, paren_notes) = take_parens(toks0);
+    let (toks, paren_notes) = take_parens(toks0, true);
     let toks = &toks[..];
     let mut used = vec![false; toks.len()];
     let nn = toks.len() as isize;
@@ -1230,10 +1343,7 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
         claim(&mut used, i, j + 1);
         let a = whole(round(tv(i)));
         power = Some(match b {
-            None => Tgt::Power {
-                min: (a - 5).max(0),
-                max: a + 5,
-            },
+            None => Tgt::Power { min: a, max: a },
             Some(b) => {
                 let b = whole(round(b));
                 Tgt::Power {
@@ -1306,10 +1416,7 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
         claim(&mut used, i, k);
         let a = whole(round(val(t)));
         hr = Some(match b {
-            None => Tgt::Hr {
-                min: a - 5,
-                max: a + 5,
-            },
+            None => Tgt::Hr { min: a, max: a },
             Some(b) => {
                 let b = whole(round(b));
                 Tgt::Hr {
@@ -1673,10 +1780,7 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
         }
         let a = whole(a);
         target = Some(match b {
-            None => Tgt::Pace {
-                min: (a - 5).max(0),
-                max: a + 5,
-            },
+            None => Tgt::Pace { min: a, max: a },
             Some(b) => {
                 let b = whole(b);
                 Tgt::Pace {
@@ -1692,22 +1796,16 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
         let p = whole(round(
             ts * if sport == "swim" { 100.0 } else { 1000.0 } / m as f64,
         ));
-        target = Some(Tgt::Pace {
-            min: (p - 5).max(0),
-            max: p + 5,
-        });
+        target = Some(Tgt::Pace { min: p, max: p });
     } else if let (Some((ts, true)), None, "run") = (total, dur, sport) {
         let t = whole(ts);
-        target = Some(Tgt::Pace {
-            min: (t - 5).max(0),
-            max: t + 5,
-        });
+        target = Some(Tgt::Pace { min: t, max: t });
     } else if let Some((m, a, b)) = rep_time {
         let per = |s: i64| whole(round(s as f64 * 1000.0 / m as f64));
         target = Some(match b {
             None => Tgt::Pace {
-                min: (per(a) - 5).max(0),
-                max: per(a) + 5,
+                min: per(a),
+                max: per(a),
             },
             Some(b) => Tgt::Pace {
                 min: per(a),
@@ -1764,7 +1862,7 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
                 i += 1;
             }
         }
-        for (ws, v, label) in INTENSITY_WORDS {
+        for (ws, v, label) in INTENSITY_WORDS.iter().chain(INTENSITY_NOUNS) {
             if word.is_none() && words(&mut used, &|w| ws.contains(&w)) {
                 word = Some((*v, label));
             }
@@ -1838,10 +1936,7 @@ fn parse_steps(toks0: &[Tok], sport: &str, fallback: &'static str, bare: Bare) -
                 (0..3)
                     .map(|k| {
                         let p = whole(round(a + (b - a) * k as f64 / 2.0));
-                        Tgt::Pace {
-                            min: (p - 5).max(0),
-                            max: p + 5,
-                        }
+                        Tgt::Pace { min: p, max: p }
                     })
                     .collect(),
             );
@@ -2152,6 +2247,63 @@ fn group_pieces(pieces: &[Piece], sport: &str, warnings: &mut Vec<String>) -> Gr
     )
 }
 
+/// Alternating parts in one go: "100m (leve): 300m (3:50/km)", "2' caminhada: 4' corrida leve" → their steps in
+/// order (each part one step with an amount); an easy part beside one that isn't easy is the recovery. `None` when
+/// there's no ":" between amounts or a part isn't one step. → (steps, warnings).
+fn colon_parts(toks: &[Tok], sport: &str) -> Option<(Vec<Step>, Vec<String>)> {
+    let mut parts: Vec<Vec<Tok>> = vec![Vec::new()];
+    let mut depth = 0usize;
+    for t in toks {
+        let t1 = Some(t);
+        if p(t1, "(") {
+            depth += 1;
+        } else if p(t1, ")") {
+            depth = depth.saturating_sub(1);
+        }
+        if depth == 0 && p(t1, ":") {
+            parts.push(Vec::new());
+        } else {
+            parts.last_mut().expect("a part").push(t.clone());
+        }
+    }
+    if parts.len() < 2 {
+        return None;
+    }
+    let mut parsed = Vec::with_capacity(parts.len());
+    for q in &parts {
+        let none = vec![false; q.len()];
+        let i = q.iter().position(|t| numish(Some(t)))?;
+        amount_at(q, &none, i as isize, sport, Bare::No)?;
+        let r = parse_steps(q, sport, "active", bare_of(q, sport));
+        if !r.understood
+            || r.steps.len() != 1
+            || !r.has_duration
+            || r.progression
+            || r.between.is_some()
+        {
+            return None;
+        }
+        parsed.push(r);
+    }
+    let mut steps: Vec<Step> = parsed.iter().map(|r| r.steps[0].clone()).collect();
+    if steps.iter().any(|st| !is_easy(st) && !is_rest(Some(st))) {
+        for (k, st) in steps.iter_mut().enumerate() {
+            if !parsed[k].from_word && st.intent == "active" && is_easy(st) {
+                st.intent = rest_intent(sport);
+            }
+        }
+    }
+    let warnings = parsed.into_iter().flat_map(|r| r.leftovers).collect();
+    Some((steps, warnings))
+}
+fn colon_round(body: &[Tok], sport: &str) -> Option<(Vec<Step>, Vec<String>)> {
+    if body.iter().any(|t| p(Some(t), ":")) {
+        colon_parts(body, sport)
+    } else {
+        None
+    }
+}
+
 /// A repeat piece → the repeat, `Err` (not understood), or `None` (no "N x").
 fn parse_repeat(toks: &[Tok], sport: &str) -> Option<Result<RepeatResult, ()>> {
     let an = find_anchor(toks)?;
@@ -2227,6 +2379,15 @@ fn parse_repeat(toks: &[Tok], sport: &str) -> Option<Result<RepeatResult, ()>> {
         }
         nested = Some(r.count);
         last_from_inner = is_rest(steps.last());
+    } else if colon_round(body, sport).is_some() {
+        // A label before the count ("Tiros: 11x 100m (leve): 300m") isn't a part of the round: without it, then.
+        let with_prefix: Vec<Tok> = prefix.iter().chain(body).cloned().collect();
+        let Some((s, w)) = colon_round(&with_prefix, sport).or_else(|| colon_round(body, sport))
+        else {
+            return Some(Err(()));
+        };
+        steps = s;
+        warnings.extend(w);
     } else {
         let split = recovery_split(body, sport);
         let head: Vec<Tok> = prefix
@@ -2582,7 +2743,8 @@ fn header_set(pieces: &[Piece], k: usize, sport: &str) -> Option<SetResult> {
             stop = e;
             break;
         }
-        if desc_line(&pc.toks, sport).is_some() {
+        // A "Desc." line closes the set; a pause beside a run ("400m | p: 1'") is that run's rest.
+        if !pc.soft && desc_line(&pc.toks, sport).is_some() {
             d = Some(e);
             break;
         }
@@ -2641,6 +2803,156 @@ fn header_set(pieces: &[Piece], k: usize, sport: &str) -> Option<SetResult> {
         warnings,
         end: next,
         named: None,
+    })
+}
+
+/// "3x-600m | p: 1'30\"" + "400m | p: 1'" + "200m | P: 1'": a count tied to the first run by "-" opens a set over the
+/// lines below it, like a "3x" line above them → the count as its own piece and the run as the set's first line.
+fn dash_sets(pieces: Vec<Piece>) -> Vec<Piece> {
+    let mut out = Vec::with_capacity(pieces.len());
+    for pc in pieces {
+        let c = if pc.soft { None } else { count_at(&pc.toks, 0) };
+        if let Some((_, _, wi)) = c
+            && p(pc.toks.get(wi + 1), "-")
+            && wi + 2 < pc.toks.len()
+            && numish(pc.toks.get(wi + 2))
+        {
+            out.push(Piece {
+                toks: pc.toks[..=wi].to_vec(),
+                soft: false,
+            });
+            out.push(Piece {
+                toks: pc.toks[wi + 2..].to_vec(),
+                soft: false,
+            });
+        } else {
+            out.push(pc);
+        }
+    }
+    out
+}
+
+/// s/km by zone 1–5, the estimates' generic athlete (domain/workout.ts).
+const RUN_ZONE_PACE: [f64; 5] = [390.0, 345.0, 310.0, 285.0, 260.0];
+/// Meters a run step covers: its distance, or its time at its pace (else the zone's generic pace).
+fn step_meters(st: &Step) -> f64 {
+    let s = match st.duration {
+        Dur::Distance(m) => return m as f64,
+        Dur::Time(s) => s as f64,
+        Dur::Open => 0.0,
+    };
+    let pace = match st.target {
+        Tgt::Pace { min, max } => (min + max) as f64 / 2.0,
+        ref t => RUN_ZONE_PACE[(zone_of(t) - 1).clamp(0, 4) as usize],
+    };
+    s * 1000.0 / pace
+}
+/// A total and an alternating pair on one line: "3.5km 2' caminhada: 4' corrida leve", "4.5km - 3' (4:35/km) : 5'
+/// (4:18/km)", "40' - 3' forte : 2' leve" → the pair repeated to cover the total. Same unit: as often as it fits. A
+/// distance of timed parts (runs): as many rounds as it takes at their paces (written, else the zones' generic
+/// ones), with "até completar 4,5 km" as the note.
+fn total_pair(pieces: &[Piece], k: usize, sport: &str) -> Option<SetResult> {
+    let pc = &pieces[k];
+    if pc.soft || find_anchor(&pc.toks).is_some() || repeat_header(&pc.toks).is_some() {
+        return None;
+    }
+    let none = vec![false; pc.toks.len()];
+    let tot = amount_at(&pc.toks, &none, 0, sport, Bare::No)?;
+    if !matches!(tot.dur, Dur::Distance(_) | Dur::Time(_)) {
+        return None;
+    }
+    let rest_toks = &pc.toks[tot.end as usize..];
+    let (parts, end) = if rest_toks.is_empty() {
+        (
+            [
+                pieces.get(k + 1).map(|x| &x.toks[..]),
+                pieces.get(k + 2).map(|x| &x.toks[..]),
+            ],
+            k + 3,
+        )
+    } else {
+        (
+            [Some(rest_toks), pieces.get(k + 1).map(|x| &x.toks[..])],
+            k + 2,
+        )
+    };
+    let [Some(qa), Some(qb)] = parts else {
+        return None;
+    };
+    if pieces[k + 1..end].iter().any(|x| !x.soft) || pieces.get(end).is_some_and(|x| x.soft) {
+        return None;
+    }
+    let one = |q: &[Tok]| {
+        let none = vec![false; q.len()];
+        if !numish(q.first()) || amount_at(q, &none, 0, sport, Bare::No).is_none() {
+            return None;
+        }
+        let r = parse_steps(q, sport, "active", bare_of(q, sport));
+        (r.understood
+            && r.steps.len() == 1
+            && r.has_duration
+            && !r.progression
+            && r.between.is_none())
+        .then_some(r)
+    };
+    let pair = [one(qa)?, one(qb)?];
+    let mut ab = [pair[0].steps[0].clone(), pair[1].steps[0].clone()];
+    if is_rest(Some(&ab[0])) && is_rest(Some(&ab[1])) {
+        return None;
+    }
+    let total = tot.dur.amount();
+    let (count, note) = match steps_amount(&ab, tot.dur).filter(|&x| x != 0) {
+        Some(same) => ((total as f64 / same as f64).floor(), None),
+        None if matches!(tot.dur, Dur::Distance(_))
+            && sport == "run"
+            && matches!(ab[0].duration, Dur::Time(_))
+            && matches!(ab[1].duration, Dur::Time(_)) =>
+        {
+            (
+                (total as f64 / (step_meters(&ab[0]) + step_meters(&ab[1])) - 1e-9).ceil(),
+                Some(format!("até completar {}", amount_text(tot.dur))),
+            )
+        }
+        None => return None,
+    };
+    if !(1.0..=200.0).contains(&count) {
+        return None;
+    }
+    // An easy part beside a harder one is its recovery ("40' - 3' forte : 2' leve"); a walk already is.
+    for i in 0..2 {
+        let other = &ab[1 - i];
+        let harder = !is_easy(other) && !is_rest(Some(other));
+        let st = &ab[i];
+        if !pair[i].from_word && st.intent == "active" && is_easy(st) && harder {
+            ab[i].intent = rest_intent(sport);
+        }
+    }
+    let walk = ab
+        .iter()
+        .any(|st| matches!(st.target, Tgt::Rpe(_, Some("caminhada"))));
+    let warnings = pair.into_iter().flat_map(|r| r.leftovers).collect();
+    Some(SetResult {
+        block: Some((
+            Block::Repeat {
+                count: whole(count),
+                max_count: None,
+                note,
+                steps: ab.to_vec(),
+            },
+            Meta::default(),
+        )),
+        steps: Vec::new(),
+        warnings,
+        end,
+        named: Some(Named {
+            name: if walk {
+                "Caminhada e corrida"
+            } else {
+                "Fartlek"
+            }
+            .into(),
+            total: tot.dur,
+        }),
     })
 }
 
@@ -2762,7 +3074,7 @@ struct Attrs {
 /// Load, rest, tempo and notes of an exercise. `all`: nothing else in the tokens (a piece that only adds to the
 /// previous exercise).
 fn parse_attrs(toks0: &[Tok]) -> Attrs {
-    let (toks, paren_notes) = take_parens(toks0);
+    let (toks, paren_notes) = take_parens(toks0, false);
     let toks = &toks[..];
     let mut used = vec![false; toks.len()];
     let nn = toks.len() as isize;
@@ -3095,13 +3407,16 @@ fn assemble(
                 continue;
             }
         } else {
-            // Sets over several lines: "Fartlek 28min" + "7x" + lines, "3x" + lines + "Desc. 1' & 2'".
-            let set = named_block(pieces, k - 1, sport).or_else(|| {
-                repeat_header(&piece.toks)
-                    .is_some()
-                    .then(|| header_set(pieces, k - 1, sport))
-                    .flatten()
-            });
+            // A total and an alternating pair: "4.5km - 3' (4:35/km) : 5' (4:18/km)". Sets over several lines:
+            // "Fartlek 28min" + "7x" + lines, "3x" + lines + "Desc. 1' & 2'".
+            let set = total_pair(pieces, k - 1, sport)
+                .or_else(|| named_block(pieces, k - 1, sport))
+                .or_else(|| {
+                    repeat_header(&piece.toks)
+                        .is_some()
+                        .then(|| header_set(pieces, k - 1, sport))
+                        .flatten()
+                });
             if let Some(set) = set {
                 warnings.extend(set.warnings);
                 match set.block {
@@ -3562,7 +3877,7 @@ pub fn parse(raw: &str, sport: &str) -> Parsed {
             strip_list_marker(normalize_line(&text))
         })
         .collect();
-    let toks = number_words(&tokenize(&lines.join("\n")));
+    let toks = pause_marks(number_words(&tokenize(&lines.join("\n"))));
     let mut hints = Hints {
         long: toks
             .iter()
@@ -3575,7 +3890,7 @@ pub fn parse(raw: &str, sport: &str) -> Parsed {
         named: None,
     };
     let mut warnings = Vec::new();
-    let (blocks, meta) = assemble(&segment(&toks), sport, &mut warnings, &mut hints);
+    let (blocks, meta) = assemble(&dash_sets(segment(&toks)), sport, &mut warnings, &mut hints);
     let name = name_of(&blocks, &meta, sport, &hints);
     Parsed {
         structure: json!({ "v": 1, "blocks": blocks.iter().map(Block::json).collect::<Vec<_>>() }),

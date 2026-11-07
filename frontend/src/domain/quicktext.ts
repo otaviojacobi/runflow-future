@@ -212,6 +212,16 @@ function numberWords(toks: Tok[]): Tok[] {
   return res;
 }
 
+/** "p: 1'30"", "P: 1'": some coaches write a pause (pausa) this way. */
+function pauseMarks(toks: Tok[]): Tok[] {
+  const out: Tok[] = [];
+  for (let i = 0; i < toks.length; i++) {
+    if (W(toks[i], "p") && P(toks[i + 1], ":")) { out.push({ ...toks[i]!, low: "pausa" }); i++; continue; }
+    out.push(toks[i]!);
+  }
+  return out;
+}
+
 // ---------------------------------------------------------------- pieces
 interface Piece { toks: Tok[]; sep: "hard" | "soft" }
 
@@ -232,11 +242,22 @@ function slashPair(toks: Tok[], i: number): boolean {
 }
 function softAt(toks: Tok[], i: number): boolean {
   const t = toks[i];
-  if (P(t, ",") || P(t, ".")) return true;
+  if (P(t, ",") || P(t, ".") || P(t, "|")) return true;
   if (P(t, "-")) return t.sp && !!toks[i + 1]?.sp && !(numish(toks[i - 1]) && numish(toks[i + 1]) && !W(toks[i + 2], ...REPEAT_WORDS));
   if (P(t, "/")) return (t.sp && !!toks[i + 1]?.sp) || slashPair(toks, i);
   if (W(t, "e")) return !rangeE(toks, i);
   return W(t, ...SOFT_WORDS);
+}
+/** Words a ":" belongs to ("tempo: 3-1-1", "desc: 1'"), so it doesn't split there. */
+const COLON_KEEP = ["tempo", "cadência", "cadencia", "pse", "rpe", "fc", "pace", "ritmo", "zona", ...DESC_WORDS, ...REST_WORDS];
+/**
+ * "2' caminhada: 4' corrida leve", "3' (4:35/km) : 5' (4:18/km)": a ":" between two amounts alternates them (a soft
+ * split), unless it's inside a repeat ("11x 100m (leve): 300m", one round: parseRepeat) or after a label word.
+ */
+function colonSplit(toks: Tok[], i: number, cur: Tok[]): boolean {
+  const prev = toks[i - 1];
+  if (!N(toks[i + 1]) || (prev !== undefined && prev.k === "word" && COLON_KEEP.includes(prev.low))) return false;
+  return !findAnchor(cur);
 }
 /** Split on "+", ";" and new lines (hard), and on soft separators once the piece has a number. */
 function segment(toks: Tok[]): Piece[] {
@@ -253,16 +274,50 @@ function segment(toks: Tok[]): Piece[] {
     else if (P(t, ")")) depth = Math.max(0, depth - 1);
     else if (depth === 0) {
       if (P(t, "+") || P(t, ";")) { flush("hard"); continue; }
-      if (softAt(toks, i) && cur.some(numish)) { flush("soft"); continue; }
+      if ((softAt(toks, i) || (P(t, ":") && colonSplit(toks, i, cur))) && cur.some(numish)) { flush("soft"); continue; }
     }
     cur.push(t);
   }
   flush("hard");
+  return pauseParens(pieces);
+}
+/**
+ * "600m | p: 1'30" (2'30 | 4:10/km)": the pace in parentheses after a pause is the run's, before it (a pause has no
+ * pace). Moved to the end of the run's piece.
+ */
+function pauseParens(pieces: Piece[]): Piece[] {
+  for (let k = 1; k < pieces.length; k++) {
+    const p = pieces[k]!;
+    if (p.sep !== "soft" || !W(p.toks[0], "pausa")) continue;
+    const a = p.toks.findIndex((t) => P(t, "("));
+    if (a < 0) continue;
+    let d = 0, b = a;
+    for (; b < p.toks.length; b++) {
+      if (P(p.toks[b], "(")) d++;
+      else if (P(p.toks[b], ")") && --d === 0) break;
+    }
+    const group = p.toks.slice(a, b + 1);
+    const prev = pieces[k - 1]!;
+    if (!group.some((t) => t.k === "clock") || prev.toks.some((t) => P(t, "("))) continue;
+    pieces[k - 1] = { ...prev, toks: [...prev.toks, ...group] };
+    pieces[k] = { ...p, toks: [...p.toks.slice(0, a), ...p.toks.slice(b + 1)] };
+  }
   return pieces;
 }
 
-/** Parenthesized text: a note, or (when it only holds a target) inline tokens. */
-function takeParens(toks0: Tok[]): { toks: Tok[]; notes: string[] } {
+const INTENSITY_ONLY = new Set([...INTENSITY_WORDS.flatMap(([ws]) => ws), ...INTENSITY_PHRASES.flatMap(([ws]) => ws), ...EASY_WORDS]);
+/** "(2'30 | 4:10/km)": the same target written two ways (the rep's time | its pace) → the part with the pace. */
+function pickAlternative(inner: Tok[]): Tok[] {
+  if (!inner.some((t) => P(t, "|"))) return inner;
+  const parts: Tok[][] = [[]];
+  for (const t of inner) { if (P(t, "|")) parts.push([]); else parts[parts.length - 1]!.push(t); }
+  return parts.find((q) => q.some((t, i) => P(t, "/") && W(q[i + 1], ...KM))) ?? parts[0]!;
+}
+/**
+ * Parenthesized text: a note, or (when it only holds a target) inline tokens. `words`: an intensity word alone
+ * ("(leve)") is a target too (runs, rides, swims; for exercises it stays a note).
+ */
+function takeParens(toks0: Tok[], words = false): { toks: Tok[]; notes: string[] } {
   const toks: Tok[] = [], notes: string[] = [];
   for (let i = 0; i < toks0.length; i++) {
     if (P(toks0[i], ")")) continue;
@@ -272,9 +327,10 @@ function takeParens(toks0: Tok[]): { toks: Tok[]; notes: string[] } {
       if (P(toks0[j], "(")) d++;
       else if (P(toks0[j], ")") && --d === 0) break;
     }
-    const inner = toks0.slice(i + 1, j);
+    const inner = pickAlternative(toks0.slice(i + 1, j));
     const inline = inner.every((t) => t.k !== "word" || INLINE_WORDS.includes(t.low));
-    if (inner.length && inline && (inner.some(numish) || inner.some((t) => W(t, ...HR_WORDS, ...POWER_WORDS)))) toks.push(...inner);
+    const intensity = words && inner.length > 0 && inner.every((t) => t.k === "word" && INTENSITY_ONLY.has(t.low));
+    if (intensity || (inner.length && inline && (inner.some(numish) || inner.some((t) => W(t, ...HR_WORDS, ...POWER_WORDS))))) toks.push(...inner);
     else { const s = textOf(inner).trim(); if (s) notes.push(s); }
     i = j;
   }
@@ -392,7 +448,7 @@ interface StepsResult { steps: Step[]; understood: boolean; fromWord: boolean; b
  * equipment, send-off or note: it can complete the previous block), `progression`.
  */
 function parseSteps(toks0: Tok[], sport: Sport, fallback: Intent, bare: Bare): StepsResult {
-  const { toks, notes: parenNotes } = takeParens(toks0);
+  const { toks, notes: parenNotes } = takeParens(toks0, true);
   const used = toks.map(() => false);
   const at = (j: number): T => (used[j] ? undefined : toks[j]);
   const claim = (a: number, b: number) => { for (let k = a; k < b; k++) used[k] = true; };
@@ -462,7 +518,7 @@ function parseSteps(toks0: Tok[], sport: Sport, fallback: Intent, bare: Bare): S
     if (!W(at(j), "w", "watts", "watt") || toks[i]!.v > 3000 || (b !== null && b > 3000)) continue;
     claim(i, j + 1);
     const a = round(toks[i]!.v);
-    power = b === null ? { type: "power", min: Math.max(0, a - 5), max: a + 5 } : { type: "power", min: Math.min(a, round(b)), max: Math.max(a, round(b)) };
+    power = b === null ? { type: "power", min: a, max: a } : { type: "power", min: Math.min(a, round(b)), max: Math.max(a, round(b)) };
   }
   // "FC até 150", "FC máx 160": a cap, kept as a note.
   for (let i = 0; i < n; i++) {
@@ -493,7 +549,7 @@ function parseSteps(toks0: Tok[], sport: Sport, fallback: Intent, bare: Bare): S
     else if (j === i) continue; // a bare number needs "bpm"
     claim(i, k);
     const a = round(t.v);
-    hr = b === null ? { type: "hr", min: a - 5, max: a + 5 } : { type: "hr", min: Math.min(a, round(b)), max: Math.max(a, round(b)) };
+    hr = b === null ? { type: "hr", min: a, max: a } : { type: "hr", min: Math.min(a, round(b)), max: Math.max(a, round(b)) };
   }
   for (let i = 0; i < n && !rpe; i++) {
     if (!W(at(i), "pse", "rpe")) continue;
@@ -638,14 +694,14 @@ function parseSteps(toks0: Tok[], sport: Sport, fallback: Intent, bare: Bare): S
     let a = pace.a, b = pace.b;
     // Under 2:30 it can't be a pace per km: it's the time for the rep ("8x400 @1:35").
     if (total === null && sport === "run" && dur?.type === "distance" && dur.m > 0 && Math.min(a, b ?? a) < 150) { const m = dur.m; a = round((a * 1000) / m); b = b === null ? null : round((b * 1000) / m); }
-    target = b === null ? { type: "pace", min_s: Math.max(0, a - 5), max_s: a + 5 } : { type: "pace", min_s: Math.min(a, b), max_s: Math.max(a, b) };
+    target = b === null ? { type: "pace", min_s: a, max_s: a } : { type: "pace", min_s: Math.min(a, b), max_s: Math.max(a, b) };
   } else if (total !== null && dur?.type === "distance" && dur.m > 0 && (sport === "run" || sport === "swim")) {
     const p = round((total.s * (sport === "swim" ? 100 : 1000)) / dur.m);
-    target = { type: "pace", min_s: Math.max(0, p - 5), max_s: p + 5 };
-  } else if (total !== null && total.clock && !dur && sport === "run") target = { type: "pace", min_s: Math.max(0, total.s - 5), max_s: total.s + 5 };
+    target = { type: "pace", min_s: p, max_s: p };
+  } else if (total !== null && total.clock && !dur && sport === "run") target = { type: "pace", min_s: total.s, max_s: total.s };
   else if (repTime) {
     const rt = repTime, per = (s: number) => round((s * 1000) / rt.m);
-    target = rt.b === null ? { type: "pace", min_s: Math.max(0, per(rt.a) - 5), max_s: per(rt.a) + 5 } : { type: "pace", min_s: per(rt.a), max_s: per(rt.b) };
+    target = rt.b === null ? { type: "pace", min_s: per(rt.a), max_s: per(rt.a) } : { type: "pace", min_s: per(rt.a), max_s: per(rt.b) };
   }
   else if (power) target = power;
   else if (ftp) target = { type: "zone", metric: "power", zone: ftpZone((ftp.a + ftp.b) / 2) };
@@ -689,7 +745,7 @@ function parseSteps(toks0: Tok[], sport: Sport, fallback: Intent, bare: Bare): S
     let targets: Target[] | null = null;
     if (pace && pace.b !== null && total === null) {
       const a = pace.a, b = pace.b;
-      targets = [0, 1, 2].map((k): Target => { const p = round(a + ((b - a) * k) / 2); return { type: "pace", min_s: Math.max(0, p - 5), max_s: p + 5 }; });
+      targets = [0, 1, 2].map((k): Target => { const p = round(a + ((b - a) * k) / 2); return { type: "pace", min_s: p, max_s: p }; });
     } else if (zone && zone.b !== null && !pace && !power && !ftp && !hr) {
       const step = zone.b >= zone.a ? 1 : -1;
       targets = [];
@@ -830,6 +886,34 @@ function groupPieces(pieces: Piece[], sport: Sport, warnings: string[]): Group {
   return { steps, nested: others === 0 ? nested : null, lastFromInner };
 }
 
+/**
+ * Alternating parts in one go: "100m (leve): 300m (3:50/km)", "2' caminhada: 4' corrida leve" → their steps in
+ * order (each part one step with an amount); an easy part beside one that isn't easy is the recovery. Null when
+ * there's no ":" between amounts or a part isn't one step.
+ */
+function colonParts(toks: Tok[], sport: Sport): { steps: Step[]; warnings: string[] } | null {
+  const parts: Tok[][] = [[]];
+  let depth = 0;
+  for (const t of toks) {
+    if (P(t, "(")) depth++;
+    else if (P(t, ")")) depth = Math.max(0, depth - 1);
+    if (depth === 0 && P(t, ":")) parts.push([]);
+    else parts[parts.length - 1]!.push(t);
+  }
+  if (parts.length < 2) return null;
+  const none = (q: Tok[]) => q.map(() => false);
+  const parsed = parts.map((q) => {
+    const i = q.findIndex(numish);
+    return i < 0 || !amountAt(q, none(q), i, sport, null) ? null : parseSteps(q, sport, "active", bareOf(q, sport));
+  });
+  if (parsed.some((r) => !r || !r.understood || r.steps.length !== 1 || !r.hasDuration || r.progression || r.between)) return null;
+  const ok = parsed as StepsResult[];
+  const steps = ok.map((r) => r.steps[0]!);
+  if (steps.some((st) => !isEasy(st) && !isRest(st))) for (const [k, st] of steps.entries()) if (!ok[k]!.fromWord && st.intent === "active" && isEasy(st)) st.intent = restIntent(sport);
+  return { steps, warnings: ok.flatMap((r) => r.leftovers) };
+}
+const colonRound = (body: Tok[], sport: Sport) => (body.some((t) => P(t, ":")) ? colonParts(body, sport) : null);
+
 /** A repeat piece → the repeat, `{type: "unknown"}`, or null (no "N x"). */
 function parseRepeat(toks: Tok[], sport: Sport): RepeatResult | { type: "unknown" } | null {
   const an = findAnchor(toks);
@@ -868,6 +952,11 @@ function parseRepeat(toks: Tok[], sport: Sport): RepeatResult | { type: "unknown
       for (let k = 0; k < r.count; k++) steps.push(...r.steps.map(clone));
       nested = r.count;
       lastFromInner = isRest(steps[steps.length - 1]);
+    } else if (colonRound(body, sport)) {
+      // A label before the count ("Tiros: 11x 100m (leve): 300m") isn't a part of the round: without it, then.
+      const c = (colonRound([...prefix, ...body], sport) ?? colonRound(body, sport))!;
+      steps = c.steps;
+      warnings.push(...c.warnings);
     } else {
       const split = recoverySplit(body, sport);
       const a = parseSteps([...prefix, ...(split < 0 ? body : body.slice(0, split))], sport, "active", "active");
@@ -1031,7 +1120,8 @@ function headerSet(pieces: Piece[], k: number, sport: Sport): SetResult | null {
   let d = -1, stop = pieces.length;
   for (let e = k + 1; e < pieces.length; e++) {
     if (repeatHeader(pieces[e]!.toks)) { stop = e; break; }
-    if (descLine(pieces[e]!.toks, sport)) { d = e; break; }
+    // A "Desc." line closes the set; a pause beside a run ("400m | p: 1'") is that run's rest.
+    if (pieces[e]!.sep === "hard" && descLine(pieces[e]!.toks, sport)) { d = e; break; }
   }
   let end = d >= 0 ? d : stop;
   if (d < 0 && stop === pieces.length) {
@@ -1053,6 +1143,70 @@ function headerSet(pieces: Piece[], k: number, sport: Sport): SetResult | null {
   const meta: Meta = { nested: g.nested, lastFromInner: g.lastFromInner && d < 0, set: true };
   if (hdr.count === 1 && hdr.max === null) return { steps, warnings, end: next };
   return { block: { kind: "repeat", count: hdr.count, ...(hdr.max !== null && { max_count: hdr.max }), steps }, meta, warnings, end: next };
+}
+
+/**
+ * "3x-600m | p: 1'30"" + "400m | p: 1'" + "200m | P: 1'": a count tied to the first run by "-" opens a set over the
+ * lines below it, like a "3x" line above them → the count as its own piece and the run as the set's first line.
+ */
+function dashSets(pieces: Piece[]): Piece[] {
+  const out: Piece[] = [];
+  for (const p of pieces) {
+    const c = p.sep === "hard" ? countAt(p.toks, 0) : null;
+    if (c && P(p.toks[c.w + 1], "-") && c.w + 2 < p.toks.length && numish(p.toks[c.w + 2])) {
+      out.push({ toks: p.toks.slice(0, c.w + 1), sep: "hard" }, { toks: p.toks.slice(c.w + 2), sep: "hard" });
+    } else out.push(p);
+  }
+  return out;
+}
+
+const RUN_ZONE_PACE: Record<number, number> = { 1: 390, 2: 345, 3: 310, 4: 285, 5: 260 }; // s/km, the estimates' generic athlete (domain/workout.ts)
+/** Meters a run step covers: its distance, or its time at its pace (else the zone's generic pace). */
+function stepMeters(st: Step): number {
+  if (st.duration.type === "distance") return st.duration.m;
+  const t = st.target;
+  const pace = t.type === "pace" ? (t.min_s + t.max_s) / 2 : RUN_ZONE_PACE[zoneOfTarget(t)]!;
+  return ((st.duration.type === "time" ? st.duration.s : 0) * 1000) / pace;
+}
+/**
+ * A total and an alternating pair on one line: "3.5km 2' caminhada: 4' corrida leve", "4.5km - 3' (4:35/km) : 5'
+ * (4:18/km)", "40' - 3' forte : 2' leve" → the pair repeated to cover the total. Same unit: as often as it fits. A
+ * distance of timed parts (runs): as many rounds as it takes at their paces (written, else the zones' generic
+ * ones), with "até completar 4,5 km" as the note.
+ */
+function totalPair(pieces: Piece[], k: number, sport: Sport): { block: Repeat; warnings: string[]; end: number; named: Named } | null {
+  const p = pieces[k]!;
+  if (p.sep !== "hard" || findAnchor(p.toks) || repeatHeader(p.toks)) return null;
+  const tot = amountAt(p.toks, p.toks.map(() => false), 0, sport, null);
+  if (!tot || (tot.dur.type !== "distance" && tot.dur.type !== "time") || (tot.dur.type === "time" && tot.dur.max_s !== undefined) || (tot.dur.type === "distance" && tot.dur.max_m !== undefined)) return null;
+  const restToks = p.toks.slice(tot.end);
+  const parts = restToks.length ? [restToks, pieces[k + 1]?.toks] : [pieces[k + 1]?.toks, pieces[k + 2]?.toks];
+  const end = restToks.length ? k + 2 : k + 3;
+  if (parts.some((q) => !q) || pieces.slice(k + 1, end).some((q) => q.sep !== "soft") || (pieces[end] && pieces[end].sep !== "hard")) return null;
+  const pair = (parts as Tok[][]).map((q) => (numish(q[0]) && amountAt(q, q.map(() => false), 0, sport, null) ? parseSteps(q, sport, "active", bareOf(q, sport)) : null));
+  if (pair.some((r) => !r || !r.understood || r.steps.length !== 1 || !r.hasDuration || r.progression || r.between)) return null;
+  const ok = pair as StepsResult[];
+  const [a, b] = ok.map((r) => r.steps[0]!) as [Step, Step];
+  if (isRest(a) && isRest(b)) return null;
+  const type = tot.dur.type, total = tot.dur.type === "distance" ? tot.dur.m : tot.dur.s;
+  const same = stepsAmount([a, b], type);
+  let count: number, note: string | undefined;
+  if (same) count = Math.floor(total / same);
+  else if (type === "distance" && sport === "run" && a.duration.type === "time" && b.duration.type === "time") {
+    count = Math.ceil(total / (stepMeters(a) + stepMeters(b)) - 1e-9);
+    note = `até completar ${amountText(tot.dur)}`;
+  } else return null;
+  if (count < 1 || count > 200) return null;
+  // An easy part beside a harder one is its recovery ("40' - 3' forte : 2' leve"); a walk already is.
+  const ab = [a, b];
+  for (const [i, st] of ab.entries()) if (!ok[i]!.fromWord && st.intent === "active" && isEasy(st) && !isEasy(ab[1 - i]!) && !isRest(ab[1 - i])) st.intent = restIntent(sport);
+  const walk = ab.some((st) => st.target.type === "rpe" && st.target.label === "caminhada");
+  return {
+    block: { kind: "repeat", count, ...(note && { note }), steps: [a, b] },
+    warnings: [...ok[0]!.leftovers, ...ok[1]!.leftovers],
+    end,
+    named: { name: walk ? "Caminhada e corrida" : "Fartlek", total: tot.dur },
+  };
 }
 
 // ---------------------------------------------------------------- exercises (strength, mobility)
@@ -1222,6 +1376,16 @@ function assemble(pieces: Piece[], sport: Sport, warnings: string[], hints: Hint
         continue;
       }
     } else {
+      // A total and an alternating pair: "4.5km - 3' (4:35/km) : 5' (4:18/km)".
+      const tp = totalPair(pieces, k, sport);
+      if (tp) {
+        warnings.push(...tp.warnings);
+        blocks.push(tp.block);
+        meta.push({ nested: null, lastFromInner: false, set: false });
+        if (!hints.named) hints.named = tp.named;
+        k = tp.end - 1;
+        continue;
+      }
       // Sets over several lines: "Fartlek 28min" + "7x" + lines, "3x" + lines + "Desc. 1' & 2'".
       const set = namedBlock(pieces, k, sport) ?? (repeatHeader(piece.toks) ? headerSet(pieces, k, sport) : null);
       if (set) {
@@ -1359,7 +1523,7 @@ function nameOf(blocks: Block[], meta: Meta[], sport: Sport, hints: Hints): stri
 export function parseQuickText(raw: string, sport: Sport): ParseResult {
   const tags: string[] = [];
   const lines = String(raw ?? "").replace(/\r/g, "").split("\n").map((l) => { const x = extractTags(l); tags.push(...x.tags); return stripListMarker(normalizeLine(x.text)); });
-  const toks = numberWords(tokenize(lines.join("\n")));
+  const toks = pauseMarks(numberWords(tokenize(lines.join("\n"))));
   const hints: Hints = {
     long: toks.some((t) => W(t, "longão", "longao", "longo", "longa")),
     fartlek: toks.some((t) => W(t, "fartlek")),
@@ -1368,7 +1532,7 @@ export function parseQuickText(raw: string, sport: Sport): ParseResult {
     named: null,
   };
   const warnings: string[] = [];
-  const { blocks, meta } = assemble(segment(toks), sport, warnings, hints);
+  const { blocks, meta } = assemble(dashSets(segment(toks)), sport, warnings, hints);
   return { structure: { v: 1, blocks }, warnings, tags: cleanTags(tags), name: nameOf(blocks, meta, sport, hints) };
 }
 
@@ -1392,11 +1556,12 @@ function tgtText(t: Target, sport: Sport): string {
   switch (t.type) {
     case "zone": return `Z${t.zone}${t.metric === defaultMetric(sport) || t.metric === "pace" ? "" : t.metric === "hr" ? " fc" : " potência"}`;
     case "pace": {
-      const v = t.max_s - t.min_s === 10 ? fmtClock(t.min_s + 5) : `${fmtClock(t.min_s)}-${fmtClock(t.max_s)}`;
+      // An exact value as itself; a 10-wide range was a single value with the old ±5 margin.
+      const v = t.max_s === t.min_s ? fmtClock(t.min_s) : t.max_s - t.min_s === 10 ? fmtClock(t.min_s + 5) : `${fmtClock(t.min_s)}-${fmtClock(t.max_s)}`;
       return sport === "swim" ? `${v}/100m` : `@${v}`;
     }
-    case "hr": return `fc ${t.min}-${t.max}`;
-    case "power": return t.max - t.min === 10 ? `${t.min + 5}w` : `${t.min}-${t.max}w`;
+    case "hr": return t.max === t.min ? `fc ${t.min}` : `fc ${t.min}-${t.max}`;
+    case "power": return t.max === t.min ? `${t.min}w` : t.max - t.min === 10 ? `${t.min + 5}w` : `${t.min}-${t.max}w`;
     case "rpe": return t.label !== undefined && LABEL_PSE.get(t.label) === t.value ? t.label : `pse ${t.value}`;
     default: return "";
   }

@@ -21,21 +21,22 @@ compares the backend (`backend/CLAUDE.md`). Run it after changing the grammar.
 
 | | Examples |
 |---|---|
-| Separators | `+`, `;` and new lines always split; `,` `.` ` e ` `depois` ` - ` ` / ` split once the piece has a number ("entre 4:30 e 4:40" stays together), and so does `/` between a word and an amount (`2’ Limiar/ 1’ Trote`). `1)`/`2.` list numbers and `#tags` are taken out first |
+| Separators | `+`, `;` and new lines always split; `,` `.` `|` ` e ` `depois` ` - ` ` / ` split once the piece has a number, and so does a `:` between two amounts (`2' caminhada: 4' corrida leve`; not after a label like `Aquece:` or `tempo:`, and inside a repeat it joins the round's parts: below) ("entre 4:30 e 4:40" stays together), and so does `/` between a word and an amount (`2’ Limiar/ 1’ Trote`). `1)`/`2.` list numbers and `#tags` are taken out first |
 | Typography | `’ ‘ ′ ´` → `'`, `” “ ″` → `"`, `×` → `x`, `– —` → `-`. `1’00` (no closing mark) is 1:00, `1’30”` 1:30, `1min` one minute |
 | Amounts | `10'` `10 min` `1h20` `1 hora e meia` `meia hora` `90"` `1'30"` `1:23:45` · `1km` `1,5 km` `800 m` `800 metros` `1.500 m` · number words (`seis tiros`, `vinte minutos`, `dois mil metros`) |
 | Ranges | the athlete picks by feel: `30 a 40 min`, `6 a 8 km`, `60-80m`, `1h a 1h30` → `{s, max_s}` / `{m, max_m}`; `15-20x`, `15 a 20 tiros` → `count` + `max_count`. Estimates, the intensity profile and FIT export use the **lower** bound; names show the range (`Intervalado 15–20×60–80 m`) |
 | Bare numbers | swim: meters (`400 livre`); run reps: meters from 100 (`10x400`); after a recovery marker: under 100 is seconds, else meters (`c/ 60`, `c/ 200`) |
 | Repeats | `6x1km`, `6 x 1 km`, `6 vezes`, `seis tiros de 800 m`, `3 séries de`, `6 acelerações de 20"`, `3x(2km Z4 + 3' Z1)`. Nested repeats (`3x(4x400 c/ 1' + 3' entre séries)`, `2 séries de 5x400`, `4x4x150m`) are written out, since the structure has one level of repeats; the rest between series replaces the last rest. Sets over several lines: below |
-| Recoveries | after `c/`, `com`, `int`, `rec`, `pausa`, `descanso`, `/`, ` - `; or a second amount with a recovery word (`2' trote`, `15" desc`, `1' parado`, `3 min de caminhada`) or an easy word (`10x1' forte 1' leve`). `entre os tiros` / `entre séries` attach a later piece to the repeat. Intent: `recovery` (`rest` in the pool or with `descanso`, `parado`, `pausa`) |
+| Recoveries | after `c/`, `com`, `int`, `rec`, `pausa`, `p:`/`P:` (`600m \| p: 1'30"`), `descanso`, `/`, ` - `; or a second amount with a recovery word (`2' trote`, `15" desc`, `1' parado`, `3 min de caminhada`) or an easy word (`10x1' forte 1' leve`). `entre os tiros` / `entre séries` attach a later piece to the repeat. Intent: `recovery` (`rest` in the pool or with `descanso`, `parado`, `pausa`) |
 | Intents | `aquec`/`aquecimento`/`aquecendo` → warm-up · `desaq`/`desaquecimento`/`soltar`/`solto`/`volta à calma` → cool-down · `trote`, `caminhada`, `andando`, `rec` → recovery · `descanso`, `parado`, `pausa` → rest · else active. The easy steps after the main work are the cool-down (below) |
-| Paces | `@4:30`, `a 4:30`, `ritmo de 4:30`, `pace 4:30`, `4:30/km`, `5'30"/km`, `4:20-4:30`, `entre 5:00 e 5:10`; ±5 s around a single value. Run rep times: a clock under 2:30 on a distance is the rep's time (`8x400 @1:35` → 3:58/km); so is a time right after a run distance (`15x200m 53-58seg` → 4:25–4:50/km, `400m 1'30"`, `10km 50min`; `seg`, `s`, `sec`, `"`). The structure has no per-rep time target, so a rep time becomes the pace range it means. `5 km em 25 min`, `4 x 1600 m em 6:40` → pace |
+| Paces | `@4:30`, `a 4:30`, `ritmo de 4:30`, `pace 4:30`, `4:30/km`, `5'30"/km`, `4:20-4:30`, `entre 5:00 e 5:10`. A single value is exact, as written (`@4:50` is 4:50, not 4:45–4:55; D-058); heart rate and power too (`150 bpm`, `300W`). Only the watch export (FIT) widens an exact value by ±5, since a watch alerts on a range. Run rep times: a clock under 2:30 on a distance is the rep's time (`8x400 @1:35` → 3:58/km); so is a time right after a run distance (`15x200m 53-58seg` → 4:25–4:50/km, `400m 1'30"`, `10km 50min`; `seg`, `s`, `sec`, `"`). The structure has no per-rep time target, so a rep time becomes the pace range it means. `5 km em 25 min`, `4 x 1600 m em 6:40` → pace |
 | Zones | written zones only: `Z1`–`Z5`, `zona 3`, `Z2 FC` (heart rate), `Z2 de potência`; default metric: pace (heart rate on the bike). A range (`Z4-Z5`) takes the first zone and notes the range |
 | Words → PSE | `leve`, `moderado`, `forte`, `limiar`, `trote`, `andando`… become a PSE target with the word as its label, never a zone (§ PSE) |
 | RPE, HR, power | `PSE 7`, `PSE 6-7` (note), `RPE 8/10` (no label) · `FC 140-150`, `FC entre 145 e 155 bpm`, `150 bpm`, `FC até 150` (note) · `300W`, `200-250 watts`, `95% FTP` / `90-95% do FTP` (power zone + note), `90 rpm`, `30 km/h` (notes) |
 | Progressions | `progressivo de 10 km de 5:30 a 4:50` (3 paces), `Progressivo 12 km Z2 a Z4` (one part per zone), `progressivo 9 km` (Z2→Z4); parts in whole km/minutes, the remainder on the first |
 | Swim | strokes `crawl`/`livre`, `costas`, `peito`, `borboleta`, `medley`, `escolha`, `pernada`, `educativo` · equipment `palmar`, `pull`/`pull buoy`, `nadadeira`/`pé de pato`, `prancha`, `snorkel` · send-off `@1:45`, `saída 1:10`, `a cada 2'` · pace per 100 m `1:40/100m` |
 | Strength, mobility | one exercise per piece: `Agachamento 4x8 70% desc 90"`, `4 séries de 10 agachamentos com 20 kg`, `Supino 4x8-10 a 30kg`, `Flexão 3x máx`, `Prancha 3x45s pc`, `Remada 3x10 tempo 3-1-1`, `PSE 8`, `peso do corpo`, `80% 1RM`, `por perna`, `cada lado`, `(notes)`. Rest: `desc 90"`, `descanso de 1 minuto`, `intervalo de 2'` |
+| Parentheses | a target alone stays a target (`(4:35/km)`, `(leve)`); `(2'30 \| 4:10/km)` is one target written two ways (rep time \| pace): the pace counts. A pace in parentheses after a pause (`400m \| p: 1' (1'36" \| 4:00/km)`) is the run's, before the pause |
 | Notes | `(text in parentheses)`, `subida` (terrain: `60-80m subida leve` is uphill with PSE leve), `esteira`, `educativos` (run) |
 
 ## PSE (intensity words)
@@ -91,6 +92,14 @@ Desc. 1’00 & 2’00”
 
   The words are only a label (there is no list of training names): they become the repeat's `note` and name the
   workout (`Cruise Interval 51'`). When the lines don't fill the total in the same unit, the line is an ordinary step.
+- **A count tied to the first run by `-`** (`3x-600m | p: 1'30"` + `400m | p: 1'` + `200m | P: 1'`) opens a set over
+  the lines below, like a `3x` line above them; each run's `p:` is its rest.
+- **Rounds of alternating parts** in one repeat: `11x 100m (leve): 300m (3:50/km)` is 11 × (100 m easy, then 300 m), in
+  the order written; an easy part beside a harder one is the recovery.
+- **A total and an alternating pair on one line**: `40' - 3' forte : 2' leve` (same unit: repeated as often as it fits,
+  8×), `4.5km - 3' (4:35/km) : 5' (4:18/km)` and `3.5km 2' caminhada: 4' corrida leve` (a run distance of timed parts:
+  as many rounds as it takes at their paces, written or else the estimates' generic zone paces, rounded up, with
+  `até completar 4,5 km` as the repeat's note). Named `Fartlek 4,5 km`, or `Caminhada e corrida 3,5 km` with a walk.
 - **Where a set ends**: at its `Desc.` line; else where its total is reached; else at the next count line; else at the
   end of the text minus the trailing easy lines (the cool-down). When several easy lines trail, the first one, if it
   is short (≤ 5 min or 1 km, not a cool-down word), stays in the set as its recovery

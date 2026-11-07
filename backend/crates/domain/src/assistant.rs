@@ -406,7 +406,8 @@ mod tests {
         let paced = crate::workout_text::parse("5 km a 5:30", "run").structure;
         assert_eq!(
             paced["blocks"][0]["target"],
-            json!({"type":"pace","min_s":325,"max_s":335})
+            // Exact, as written (D-058).
+            json!({"type":"pace","min_s":330,"max_s":330})
         );
         assert_eq!(estimate("run", &paced), (1680, Some(5000)));
         for sport in ["run", "swim", "bike", "strength", "mobility", "other"] {
