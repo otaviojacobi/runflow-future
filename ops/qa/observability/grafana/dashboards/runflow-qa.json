@@ -28,7 +28,33 @@
     }
   ],
   "templating": {
-    "list": []
+    "list": [
+      {
+        "name": "health",
+        "label": "/v1/health",
+        "type": "custom",
+        "description": "The Docker healthcheck calls /v1/health every 15 s; hidden by default so the panels show real traffic.",
+        "query": "hidden : /v1/health,shown : -",
+        "options": [
+          {
+            "text": "hidden",
+            "value": "/v1/health",
+            "selected": true
+          },
+          {
+            "text": "shown",
+            "value": "-",
+            "selected": false
+          }
+        ],
+        "current": {
+          "text": "hidden",
+          "value": "/v1/health"
+        },
+        "includeAll": false,
+        "multi": false
+      }
+    ]
   },
   "annotations": {
     "list": []
@@ -700,7 +726,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (http_response_status_code) (rate(http_server_request_duration_seconds_count{job=\"runflow\"}[$__rate_interval]))",
+          "expr": "sum by (http_response_status_code) (rate(http_server_request_duration_seconds_count{job=\"runflow\",http_route!=\"$health\"}[$__rate_interval]))",
           "legendFormat": "{{http_response_status_code}}"
         }
       ],
@@ -749,7 +775,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "histogram_quantile(0.95, sum by (le, http_route) (rate(http_server_request_duration_seconds_bucket{job=\"runflow\"}[$__rate_interval])))",
+          "expr": "histogram_quantile(0.95, sum by (le, http_route) (rate(http_server_request_duration_seconds_bucket{job=\"runflow\",http_route!=\"$health\"}[$__rate_interval])))",
           "legendFormat": "{{http_route}}"
         }
       ],
@@ -798,7 +824,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "round(sum(increase(http_server_request_duration_seconds_count{job=\"runflow\",http_response_status_code=~\"5..\"}[5m])) or vector(0))"
+          "expr": "round(sum(increase(http_server_request_duration_seconds_count{job=\"runflow\",http_route!=\"$health\",http_response_status_code=~\"5..\"}[5m])) or vector(0))"
         }
       ],
       "fieldConfig": {
@@ -856,7 +882,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "round(sum(increase(http_server_request_duration_seconds_count{job=\"runflow\"}[1h])) or vector(0))"
+          "expr": "round(sum(increase(http_server_request_duration_seconds_count{job=\"runflow\",http_route!=\"$health\"}[1h])) or vector(0))"
         }
       ],
       "fieldConfig": {
@@ -910,7 +936,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "round(topk(10, sum by (http_route) (increase(http_server_request_duration_seconds_count{job=\"runflow\"}[1h]))))",
+          "expr": "round(topk(10, sum by (http_route) (increase(http_server_request_duration_seconds_count{job=\"runflow\",http_route!=\"$health\"}[1h]))))",
           "legendFormat": "{{http_route}}",
           "instant": true
         }

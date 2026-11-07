@@ -273,8 +273,24 @@ function dashboard({ uid, title, description, tags = [], templating = [], time =
 
 // ---------------------------------------------------------------- shared queries
 
-const HTTP = 'http_server_request_duration_seconds_count{job="runflow"}';
-const HTTP_B = 'http_server_request_duration_seconds_bucket{job="runflow"}';
+// API traffic leaves out the Docker healthcheck's /v1/health (every 15 s, ~20x any real route) unless the dashboard's
+// "/v1/health" switch shows it ($health: the route to drop, or a name no route has).
+const HTTP = 'http_server_request_duration_seconds_count{job="runflow",http_route!="$health"}';
+const HTTP_B = 'http_server_request_duration_seconds_bucket{job="runflow",http_route!="$health"}';
+const HEALTH_SWITCH = {
+  name: "health",
+  label: "/v1/health",
+  type: "custom",
+  description: "The Docker healthcheck calls /v1/health every 15 s; hidden by default so the panels show real traffic.",
+  query: "hidden : /v1/health,shown : -",
+  options: [
+    { text: "hidden", value: "/v1/health", selected: true },
+    { text: "shown", value: "-", selected: false },
+  ],
+  current: { text: "hidden", value: "/v1/health" },
+  includeAll: false,
+  multi: false,
+};
 const RI = "$__rate_interval";
 
 // Host memory in bytes: "used" is what can't be reclaimed (total − available: the page cache the kernel gives back on
@@ -310,6 +326,7 @@ const overview = dashboard({
   uid: UIDS.overview,
   title: "Runflow QA",
   description: "QA at a glance: every service's health (click a tile for its dashboard), the API, worker, host and logs.",
+  templating: [HEALTH_SWITCH],
   panels: [
     row("Services (click a tile for its dashboard)"),
     up("API", '(count(target_info{job="runflow"}) > bool 0) or vector(0)', {
@@ -381,6 +398,7 @@ const api = dashboard({
   title: "Runflow · API",
   description: "The Rust API (axum): traffic, latency and errors by route, the Valkey caches and the database pool.",
   tags: ["api"],
+  templating: [HEALTH_SWITCH],
   panels: [
     row("Now"),
     stat("Requests per second (5 min)", `sum(rate(${HTTP}[5m])) or vector(0)`, { unit: "reqps", decimals: 2 }),
