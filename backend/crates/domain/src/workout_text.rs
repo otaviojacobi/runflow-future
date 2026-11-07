@@ -2637,6 +2637,7 @@ fn named_block(pieces: &[Piece], k: usize, sport: &str) -> Option<SetResult> {
         let block = Block::Repeat {
             count: r.count,
             max_count: r.max,
+            until_m: None,
             note: Some(hdr.name.clone()),
             steps: r.steps,
         };
@@ -2677,6 +2678,7 @@ fn named_block(pieces: &[Piece], k: usize, sport: &str) -> Option<SetResult> {
         let block = Block::Repeat {
             count,
             max_count: max,
+            until_m: None,
             note: Some(hdr.name.clone()),
             steps,
         };
@@ -2720,6 +2722,7 @@ fn named_block(pieces: &[Piece], k: usize, sport: &str) -> Option<SetResult> {
     let block = Block::Repeat {
         count,
         max_count: None,
+        until_m: None,
         note: Some(hdr.name.clone()),
         steps: vec![a, b],
     };
@@ -2794,6 +2797,7 @@ fn header_set(pieces: &[Piece], k: usize, sport: &str) -> Option<SetResult> {
     let block = Block::Repeat {
         count,
         max_count: max,
+        until_m: None,
         note: None,
         steps,
     };
@@ -2850,7 +2854,7 @@ fn step_meters(st: &Step) -> f64 {
 /// A total and an alternating pair on one line: "3.5km 2' caminhada: 4' corrida leve", "4.5km - 3' (4:35/km) : 5'
 /// (4:18/km)", "40' - 3' forte : 2' leve" → the pair repeated to cover the total. Same unit: as often as it fits. A
 /// distance of timed parts (runs): as many rounds as it takes at their paces (written, else the zones' generic
-/// ones), with "até completar 4,5 km" as the note.
+/// ones), repeated until the distance (`until_m`).
 fn total_pair(pieces: &[Piece], k: usize, sport: &str) -> Option<SetResult> {
     let pc = &pieces[k];
     if pc.soft || find_anchor(&pc.toks).is_some() || repeat_header(&pc.toks).is_some() {
@@ -2901,7 +2905,7 @@ fn total_pair(pieces: &[Piece], k: usize, sport: &str) -> Option<SetResult> {
         return None;
     }
     let total = tot.dur.amount();
-    let (count, note) = match steps_amount(&ab, tot.dur).filter(|&x| x != 0) {
+    let (count, until_m) = match steps_amount(&ab, tot.dur).filter(|&x| x != 0) {
         Some(same) => ((total as f64 / same as f64).floor(), None),
         None if matches!(tot.dur, Dur::Distance(_))
             && sport == "run"
@@ -2910,7 +2914,7 @@ fn total_pair(pieces: &[Piece], k: usize, sport: &str) -> Option<SetResult> {
         {
             (
                 (total as f64 / (step_meters(&ab[0]) + step_meters(&ab[1])) - 1e-9).ceil(),
-                Some(format!("até completar {}", amount_text(tot.dur))),
+                Some(total),
             )
         }
         None => return None,
@@ -2936,7 +2940,8 @@ fn total_pair(pieces: &[Piece], k: usize, sport: &str) -> Option<SetResult> {
             Block::Repeat {
                 count: whole(count),
                 max_count: None,
-                note,
+                until_m,
+                note: None,
                 steps: ab.to_vec(),
             },
             Meta::default(),
@@ -3328,10 +3333,12 @@ fn merge_attrs(ex: &mut Exercise, at: Attrs) {
 #[derive(Clone, Debug)]
 enum Block {
     Step(Step),
-    /// `max_count`: "15-20x" (the athlete picks); `note`: a named block's label ("Bloco do sábado").
+    /// `max_count`: "15-20x" (the athlete picks); `until_m`: repeated until that distance; `note`: a named block's
+    /// label ("Bloco do sábado").
     Repeat {
         count: i64,
         max_count: Option<i64>,
+        until_m: Option<i64>,
         note: Option<String>,
         steps: Vec<Step>,
     },
@@ -3345,12 +3352,16 @@ impl Block {
             Block::Repeat {
                 count,
                 max_count,
+                until_m,
                 note,
                 steps,
             } => {
                 let mut v = json!({ "kind": "repeat", "count": count, "steps": steps.iter().map(Step::json).collect::<Vec<_>>() });
                 if let Some(max) = max_count {
                     v["max_count"] = json!(max);
+                }
+                if let Some(m) = until_m {
+                    v["until_m"] = json!(m);
                 }
                 if let Some(note) = note {
                     v["note"] = json!(note);
@@ -3469,6 +3480,7 @@ fn assemble(
                         blocks.push(Block::Repeat {
                             count: r.count,
                             max_count: r.max,
+                            until_m: None,
                             note: None,
                             steps: r.steps,
                         });

@@ -1144,7 +1144,7 @@ function stepMeters(st) {
  * A total and an alternating pair on one line: "3.5km 2' caminhada: 4' corrida leve", "4.5km - 3' (4:35/km) : 5'
  * (4:18/km)", "40' - 3' forte : 2' leve" → the pair repeated to cover the total. Same unit: as often as it fits. A
  * distance of timed parts (runs): as many rounds as it takes at their paces (written, else the zones' generic
- * ones), with "até completar 4,5 km" as the note. → {block, warnings, end, named} or null.
+ * ones), repeated until the distance (`until_m`; count = the rounds that cover it). → {block, warnings, end, named} or null.
  */
 function totalPair(pieces, k, sport) {
   const p = pieces[k];
@@ -1161,18 +1161,18 @@ function totalPair(pieces, k, sport) {
   if (isRest(a) && isRest(b)) return null;
   const type = tot.dur.type, total = type === "distance" ? tot.dur.m : tot.dur.s;
   const same = stepsAmount([a, b], type);
-  let count, note;
+  let count, until;
   if (same) count = Math.floor(total / same);
   else if (type === "distance" && sport === "run" && a.duration.type === "time" && b.duration.type === "time") {
     count = Math.ceil(total / (stepMeters(a) + stepMeters(b)) - 1e-9);
-    note = `até completar ${amountText(tot.dur)}`;
+    until = total;
   } else return null;
   if (count < 1 || count > 200) return null;
   // An easy part beside a harder one is its recovery ("40' - 3' forte : 2' leve"); a walk already is.
   for (const [i, st] of [a, b].entries()) if (!pair[i].fromWord && st.intent === "active" && isEasy(st) && !isEasy([a, b][1 - i]) && !isRest([a, b][1 - i])) st.intent = restIntent(sport);
   const walk = [a, b].some((st) => st.target.type === "rpe" && st.target.label === "caminhada");
   return {
-    block: { kind: "repeat", count, ...(note && { note }), steps: [a, b] },
+    block: { kind: "repeat", count, ...(until !== undefined && { until_m: until }), steps: [a, b] },
     warnings: [...pair[0].leftovers, ...pair[1].leftovers],
     end,
     named: { name: walk ? "Caminhada e corrida" : "Fartlek", total: tot.dur },

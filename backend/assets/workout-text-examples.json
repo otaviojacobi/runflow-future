@@ -1644,7 +1644,7 @@
    "comment": "Alternate 2' walking and 4' easy running until 3.5 km: the pair repeated as many times as the generic paces need, with the total as the note.",
    "name": "Caminhada e corrida 3,5 km",
    "structure": {"v":1,"blocks":[
-    {"kind":"repeat","count":4,"note":"até completar 3,5 km","steps":[{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"rpe","value":2,"label":"caminhada"}},{"kind":"step","intent":"active","duration":{"type":"time","s":240},"target":{"type":"rpe","value":3,"label":"leve"}}]}
+    {"kind":"repeat","count":4,"until_m":3500,"steps":[{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"rpe","value":2,"label":"caminhada"}},{"kind":"step","intent":"active","duration":{"type":"time","s":240},"target":{"type":"rpe","value":3,"label":"leve"}}]}
    ]}
   },
   {
@@ -1653,7 +1653,7 @@
    "comment": "Alternate 3' at 4:35 and 5' at 4:18 until 4.5 km (rounds from the written paces).",
    "name": "Fartlek 4,5 km",
    "structure": {"v":1,"blocks":[
-    {"kind":"repeat","count":3,"note":"até completar 4,5 km","steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":180},"target":{"type":"pace","min_s":275,"max_s":275}},{"kind":"step","intent":"active","duration":{"type":"time","s":300},"target":{"type":"pace","min_s":258,"max_s":258}}]}
+    {"kind":"repeat","count":3,"until_m":4500,"steps":[{"kind":"step","intent":"active","duration":{"type":"time","s":180},"target":{"type":"pace","min_s":275,"max_s":275}},{"kind":"step","intent":"active","duration":{"type":"time","s":300},"target":{"type":"pace","min_s":258,"max_s":258}}]}
    ]}
   },
   {
@@ -1673,6 +1673,15 @@
    "name": "Intervalado 11×300 m",
    "structure": {"v":1,"blocks":[
     {"kind":"repeat","count":11,"steps":[{"kind":"step","intent":"recovery","duration":{"type":"distance","m":100},"target":{"type":"rpe","value":3,"label":"leve"}},{"kind":"step","intent":"active","duration":{"type":"distance","m":300},"target":{"type":"pace","min_s":230,"max_s":230}}]}
+   ]}
+  },
+  {
+   "text": "5 km - 2'caminhando : 4'corrida moderada",
+   "sport": "run",
+   "comment": "Founder, 2026-11-07: 5 km is the workout's distance, not the rounds' (until_m): \"5 km\", not 5.4 km.",
+   "name": "Caminhada e corrida 5 km",
+   "structure": {"v":1,"blocks":[
+    {"kind":"repeat","count":5,"until_m":5000,"steps":[{"kind":"step","intent":"recovery","duration":{"type":"time","s":120},"target":{"type":"rpe","value":2,"label":"caminhada"}},{"kind":"step","intent":"active","duration":{"type":"time","s":240},"target":{"type":"rpe","value":5,"label":"moderado"}}]}
    ]}
   }
  ]

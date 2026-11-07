@@ -7,7 +7,7 @@ import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import type { Sport } from "@/api/types";
 import { cloneBlock, move, newExercise, newRepeat, newStep } from "@/domain/builder";
-import { countText, exerciseText, stepExtras, stepWhat, targetText, zoneOf, type Block, type Exercise, type Repeat, type Step } from "@/domain/workout";
+import { countText, exerciseText, repeatTitle, stepExtras, stepWhat, targetText, zoneOf, type Block, type Exercise, type Repeat, type Step } from "@/domain/workout";
 import { t } from "@/i18n";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Button, IconButton, Menu, Text, type MenuItem } from "@/ui";
@@ -116,7 +116,7 @@ export function BlockList({ blocks, sport, onChange }: { blocks: Block[]; sport:
                 accessibilityLabel={[t("Série: {n} vezes", { n: countText(r) }), r.note].filter(Boolean).join(", ")}
                 style={({ pressed }) => [styles.row, styles.flex, { gap: theme.space[2], minHeight: theme.size.touchMin, paddingHorizontal: theme.space[2], borderRadius: theme.radius.md, backgroundColor: pressed ? c.soft : "transparent" }]}>
                 <RepeatIcon size={theme.size.iconSm} color={c.fgMuted} aria-hidden />
-                <Text variant="labelMd">{t("{n}× série", { n: countText(r) })}</Text>
+                <Text variant="labelMd">{repeatTitle(r)}</Text>
                 {r.note ? <Text variant="bodySm" tone="muted" numberOfLines={1} style={styles.flex}>· {r.note}</Text> : null}
               </Pressable>
               {menu(i, t("série"))}

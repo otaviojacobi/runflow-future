@@ -82,7 +82,14 @@ export function estimate(sport, structure) {
   };
   const walk = (blocks, mult) => {
     for (const b of blocks) {
-      if (b.kind === "repeat") walk(b.steps, mult * b.count);
+      if (b.kind === "repeat" && b.until_m) {
+        // Until a distance (D-058): one round's time and meters, scaled to the distance.
+        const s0 = s, m0 = m;
+        walk(b.steps, 1);
+        const rs = s - s0, rm = m - m0;
+        s = s0; m = m0;
+        if (rm > 0) { s += mult * rs * (b.until_m / rm); m += mult * b.until_m; } else walk(b.steps, mult * b.count);
+      } else if (b.kind === "repeat") walk(b.steps, mult * b.count);
       else if (b.kind === "exercise") s += mult * b.sets * (45 + (b.rest_s || 60));
       else if (b.duration.type === "time") {
         s += mult * b.duration.s;

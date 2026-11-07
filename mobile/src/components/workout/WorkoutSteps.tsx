@@ -10,7 +10,7 @@ import { weight } from "@/theme/theme";
 import { useTheme } from "@/theme/ThemeProvider";
 import { Text } from "@/ui";
 import { Repeat } from "@/ui/icons";
-import { countText, exerciseText, stepExtras, stepWhat, targetText, zoneOf, type Step, type Structure } from "@/domain/workout";
+import { exerciseText, repeatTitle, stepExtras, stepWhat, targetText, zoneOf, type Step, type Structure } from "@/domain/workout";
 import { ZoneDot } from "./workout";
 
 function StepRow({ step, sport }: { step: Step; sport: Sport }) {
@@ -48,7 +48,7 @@ export function WorkoutSteps({ structure, sport }: { structure: Structure; sport
           <View key={i} style={[styles.repeat, { gap: theme.space["0.5"], padding: theme.space[3], paddingTop: theme.space[2], borderRadius: theme.radius.md, borderColor: c.lineStrong }]}>
             <View style={[styles.row, styles.center, { gap: theme.space["1.5"] }]}>
               <Repeat size={theme.size.iconSm} color={c.fgMuted} aria-hidden />
-              <Text variant="labelSm">{t("{n}× série", { n: countText(b) })}</Text>
+              <Text variant="labelSm">{repeatTitle(b)}</Text>
               {b.note ? <Text variant="bodySm" tone="muted" style={styles.flex}>· {b.note}</Text> : null}
             </View>
             {b.steps.map((s, j) => <StepRow key={j} step={s} sport={sport} />)}

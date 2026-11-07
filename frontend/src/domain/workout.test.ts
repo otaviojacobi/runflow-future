@@ -13,6 +13,17 @@ const intervals: Structure = { v: 1, blocks: [
 const prev = (xs: number[], i: number) => xs[i - 1]!;
 
 describe("workout structure", () => {
+  it("estimates a repeat until a distance by that distance, not count × round (\"5 km - 2' caminhando : 4' corrida\")", () => {
+    const walkRun: Structure = { v: 1, blocks: [{ kind: "repeat", count: 5, until_m: 5000, steps: [
+      { kind: "step", intent: "recovery", duration: { type: "time", s: 120 }, target: { type: "rpe", value: 2, label: "caminhada" } },
+      { kind: "step", intent: "active", duration: { type: "time", s: 240 }, target: { type: "rpe", value: 5, label: "moderado" } },
+    ] }] };
+    const e = estimate(walkRun, "run");
+    expect(e.distance_m).toBe(5000);
+    // The time scales with it: 5 km at this round's mix (≈ 1,082 m in 6′) is about 28′, not the 30′ of 5 rounds.
+    expect(e.duration_s).toBeGreaterThan(26 * 60);
+    expect(e.duration_s).toBeLessThan(30 * 60);
+  });
   it("shows targets exactly as the coach wrote them, and a short rep's time first", () => {
     const pace = (min_s: number, max_s: number) => ({ type: "pace" as const, min_s, max_s });
     expect(targetText(pace(290, 290), "run", { type: "distance", m: 1000 })).toBe("4:50 /km");

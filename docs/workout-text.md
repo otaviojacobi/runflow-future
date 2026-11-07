@@ -98,8 +98,8 @@ Desc. 1’00 & 2’00”
   the order written; an easy part beside a harder one is the recovery.
 - **A total and an alternating pair on one line**: `40' - 3' forte : 2' leve` (same unit: repeated as often as it fits,
   8×), `4.5km - 3' (4:35/km) : 5' (4:18/km)` and `3.5km 2' caminhada: 4' corrida leve` (a run distance of timed parts:
-  as many rounds as it takes at their paces, written or else the estimates' generic zone paces, rounded up, with
-  `até completar 4,5 km` as the repeat's note). Named `Fartlek 4,5 km`, or `Caminhada e corrida 3,5 km` with a walk.
+  as many rounds as it takes at their paces, written or else the estimates' generic zone paces, rounded up, and the
+  distance as the repeat's `until_m`: estimates say 4,5 km, not the rounds' 5,4 km; the apps head it "Até completar 4,5 km"). Named `Fartlek 4,5 km`, or `Caminhada e corrida 3,5 km` with a walk.
 - **Where a set ends**: at its `Desc.` line; else where its total is reached; else at the next count line; else at the
   end of the text minus the trailing easy lines (the cool-down). When several easy lines trail, the first one, if it
   is short (≤ 5 min or 1 km, not a cool-down word), stays in the set as its recovery

@@ -23,7 +23,9 @@ export type Stroke = "free" | "back" | "breast" | "fly" | "im" | "choice" | "kic
 export type Equipment = "pullbuoy" | "kickboard" | "fins" | "paddles" | "snorkel";
 export interface Step { kind: "step"; intent: Intent; duration: Duration; target: Target; note?: string; stroke?: Stroke; equipment?: Equipment[]; send_off_s?: number }
 /** `max_count`: "15–20×" (the athlete picks; estimates use `count`). `note`: the block's name ("Cruise Interval"). */
-export interface Repeat { kind: "repeat"; count: number; max_count?: number; note?: string; steps: Step[] }
+/** `until_m`: repeat the rounds until this distance ("5 km de 2' caminhada : 4' corrida"); `count` is the rounds that
+ * cover it at the estimated paces (watches, the profile), the estimates use the distance itself. */
+export interface Repeat { kind: "repeat"; count: number; max_count?: number; until_m?: number; note?: string; steps: Step[] }
 export interface Load { type: "kg" | "pct_1rm" | "bodyweight" | "rpe"; value?: number }
 export interface Exercise { kind: "exercise"; name: string; sets: number; reps: string; load?: Load; rest_s?: number; tempo?: string; note?: string; exercise_id?: string }
 export type Block = Step | Repeat | Exercise;
@@ -128,7 +130,14 @@ export function estimate(structure: Structure, sport: Sport): { duration_s: numb
   let s = 0, m = 0, free = false;
   const walk = (blocks: Block[], mult: number) => {
     for (const b of blocks) {
-      if (b.kind === "repeat") walk(b.steps, mult * b.count);
+      if (b.kind === "repeat" && b.until_m) {
+        // Until a distance: one round's time and meters, scaled to the distance (not count × the round).
+        const s0 = s, m0 = m;
+        walk(b.steps, 1);
+        const rs = s - s0, rm = m - m0;
+        s = s0; m = m0;
+        if (rm > 0) { s += mult * rs * (b.until_m / rm); m += mult * b.until_m; } else walk(b.steps, mult * b.count);
+      } else if (b.kind === "repeat") walk(b.steps, mult * b.count);
       else if (b.kind === "exercise") s += mult * b.sets * (45 + (b.rest_s ?? 60));
       else if (b.duration.type === "time") { s += mult * b.duration.s; m += (mult * b.duration.s) / secPerMeter(b, sport); free ||= isFreeTime(b); }
       else if (b.duration.type === "distance") { m += mult * b.duration.m; s += mult * b.duration.m * secPerMeter(b, sport); }
@@ -156,6 +165,8 @@ export function durationText(d: Duration, sport: Sport): string {
 }
 /** "6×", "15–20×". */
 export const countText = (r: Repeat) => (r.max_count !== undefined ? `${r.count}–${r.max_count}` : String(r.count));
+/** A repeat's heading: "6× série", or "Até completar 5 km" for one that runs to a distance. */
+export const repeatTitle = (r: Repeat) => (r.until_m ? t("Até completar {d}", { d: fmtDistance(r.until_m) }) : t("{n}× série", { n: countText(r) }));
 /** "54″", "1′36″": a rep's time. */
 const repClock = (s: number) => (s < 60 ? `${s}″` : `${Math.floor(s / 60)}′${s % 60 ? String(s % 60).padStart(2, "0") + "″" : ""}`);
 /** "4:50", or "4:20–4:30" for a range the coach wrote (a single value is exact: no margin, founder 2026-11-07). */

@@ -32,10 +32,12 @@ pub struct Step {
 }
 
 /// `max_count`: "15–20×" (the athlete picks; estimates use `count`). `note`: the block's name ("Cruise Interval").
+/// `until_m`: repeated until that distance (estimates use it; `count` is the rounds that cover it).
 #[derive(Debug, Deserialize)]
 pub struct Repeat {
     pub count: u32,
     pub max_count: Option<u32>,
+    pub until_m: Option<u32>,
     pub note: Option<String>,
     pub steps: Vec<Step>,
 }
@@ -202,6 +204,11 @@ pub fn validate(value: &Value) -> Result<Structure, StructureError> {
                         "repeat max_count out of count..200".into(),
                     ));
                 }
+                if r.until_m.is_some_and(|m| m == 0 || m > 1_000_000) {
+                    return Err(StructureError::Invalid(
+                        "repeat until_m out of 1..1000000".into(),
+                    ));
+                }
                 for st in &r.steps {
                     check_step(st).map_err(StructureError::Invalid)?;
                 }
@@ -303,12 +310,20 @@ fn walk(sport: &str, blocks: &[Value], mult: f64, total: &mut (f64, f64, bool)) 
         match b.get("kind").and_then(Value::as_str) {
             Some("repeat") => {
                 let steps = b.get("steps").and_then(Value::as_array);
-                walk(
-                    sport,
-                    steps.map_or(&[], Vec::as_slice),
-                    mult * number(b, "count"),
-                    total,
-                );
+                let steps = steps.map_or(&[][..], Vec::as_slice);
+                // Until a distance (D-058): one round's time and meters, scaled to the distance.
+                let until = number(b, "until_m");
+                let mut round = (0.0, 0.0, false);
+                if until > 0.0 {
+                    walk(sport, steps, 1.0, &mut round);
+                }
+                if round.1 > 0.0 {
+                    total.0 += mult * round.0 * (until / round.1);
+                    total.1 += mult * until;
+                    total.2 |= round.2;
+                } else {
+                    walk(sport, steps, mult * number(b, "count"), total);
+                }
             }
             Some("exercise") => {
                 let rest = Some(number(b, "rest_s"))
@@ -361,6 +376,19 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+
+    #[test]
+    fn a_repeat_until_a_distance_is_estimated_by_it() {
+        let walk_run = json!({ "v": 1, "blocks": [{ "kind": "repeat", "count": 5, "until_m": 5000, "steps": [
+            { "kind": "step", "intent": "recovery", "duration": { "type": "time", "s": 120 }, "target": { "type": "rpe", "value": 2, "label": "caminhada" } },
+            { "kind": "step", "intent": "active", "duration": { "type": "time", "s": 240 }, "target": { "type": "rpe", "value": 5, "label": "moderado" } } ] }] });
+        assert!(validate(&walk_run).is_ok());
+        let (s, m) = estimate("run", &walk_run);
+        assert_eq!(m, Some(5000));
+        assert!((26 * 60..30 * 60).contains(&s), "{s}");
+        let zero = json!({ "v": 1, "blocks": [{ "kind": "repeat", "count": 5, "until_m": 0, "steps": walk_run["blocks"][0]["steps"] }] });
+        assert!(validate(&zero).is_err());
+    }
 
     #[test]
     fn accepts_the_contract_example_and_rejects_garbage() {
