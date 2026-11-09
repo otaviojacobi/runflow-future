@@ -40,7 +40,6 @@ export function ActivityDetailScreen() {
         <div className="grid gap-2">
           <Link to="/workouts/$id" params={{ id: m.id }} className="flex items-center gap-4 rounded-lg border border-brand-line bg-brand-soft p-4">
             <div className="min-w-0 flex-1"><div className="text-xs font-semibold text-on-brand-soft">{t("Treino planejado")} · {shortDate(m.date)}</div><div className="truncate font-semibold text-on-brand-soft">{m.title}</div><div className="text-sm text-on-brand-soft">{t("Planejado: {x}", { x: [m.est_distance_m && distance(m.est_distance_m), m.est_duration_s && duration(m.est_duration_s)].filter(Boolean).join(" · ") })}</div></div>
-            {m.compliance_pct != null && <div className="text-right"><div className="font-display text-2xl font-bold tabular-nums text-on-brand-soft">{m.compliance_pct}%</div><div className="text-xs text-on-brand-soft">{t("cumprido")}</div></div>}
           </Link>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1">
             <span className="flex-1 text-sm text-fg-muted">{m.matched_by === "student" ? t("Você escolheu este treino.") : t("Ligada automaticamente pelo dia e pelo tamanho do treino.")}</span>

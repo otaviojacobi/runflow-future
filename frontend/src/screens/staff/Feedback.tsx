@@ -37,7 +37,6 @@ function Detail({ item, clubId, meId, onBack }: { item: FeedbackItem; clubId: st
         <IntensityProfile structure={item.workout.structure} sport={item.workout.sport} height={40} />
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           {c ? <StatusBadge status={c.status} /> : <StatusBadge status="planned" />}
-          {c?.compliance_pct != null && <Stat size="sm" value={`${c.compliance_pct}%`} label={t("Cumprido")} />}
           {c?.rpe && <Stat size="sm" value={String(c.rpe)} unit="/10" label={t("PSE")} />}
           {c?.feeling && <Stat size="sm" value={t(FEELING[c.feeling])} label={t("Sensação")} />}
           {w?.activity?.distance_m && <Stat size="sm" value={distance(w.activity.distance_m)} label={t("Distância")} />}

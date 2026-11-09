@@ -104,14 +104,11 @@ function Detail({ w, placeholder, clubTz, professor, onFeedback, thread }: { w: 
   const c = w.completion;
   const est = estimateText(w);
   const past = w.date < todayFn(clubTz);
-  // Compliance means something only for what was done.
-  const compliance = c && (c.status === "completed" || c.status === "partial") ? c.compliance_pct : null;
   // Completed from an activity (by the matching engine, or the student's answer to "qual treino?"), with nothing
   // heard from the student yet (D-049). Strictly null: an API without the field (older) means a reported one.
   const auto = c?.reported_at === null;
   const chosen = c?.matched_by === "student";
-  const done = compliance != null ? t(" ({n}% do planejado)", { n: compliance }) : "";
-  const feedback = c && !auto ? [c.rpe ? t("PSE {n}/10", { n: c.rpe }) : null, c.feeling ? feelingLabel(c.feeling) : null, compliance != null ? t("{n}% cumprido", { n: compliance }) : null].filter(Boolean).join(" · ") : "";
+  const feedback = c && !auto ? [c.rpe ? t("PSE {n}/10", { n: c.rpe }) : null, c.feeling ? feelingLabel(c.feeling) : null].filter(Boolean).join(" · ") : "";
   const header = (
     <View style={{ gap: theme.space[2] }}>
       <View style={[styles.wrap, { gap: theme.space[2] }]}>
@@ -156,7 +153,7 @@ function Detail({ w, placeholder, clubTz, professor, onFeedback, thread }: { w: 
             <Text variant="labelMd" style={styles.flex} numberOfLines={1}>{t("Concluído")}</Text>
             {a.source === "strava" ? <PoweredByStrava /> : <Text variant="caption" tone="muted">{t("manual")}</Text>}
           </View>
-          <Text variant="caption" tone="muted" numberOfLines={1}>{a.name} · {timeOf(a.started_at)}{auto ? done : ""}</Text>
+          <Text variant="caption" tone="muted" numberOfLines={1}>{a.name} · {timeOf(a.started_at)}</Text>
           <ActivityStats a={a} />
           {feedback ? <Text variant="bodySm">{feedback}</Text> : null}
           {c?.comment && !auto ? <Text variant="bodySm" tone="muted" numberOfLines={2}>“{c.comment}”</Text> : null}
@@ -207,13 +204,12 @@ function Detail({ w, placeholder, clubTz, professor, onFeedback, thread }: { w: 
         <Button size="lg" block icon={CircleCheck} variant={c ? "secondary" : "primary"} onPress={onFeedback}>{c ? t("Editar feedback") : t("Concluir treino")}</Button>
       )}
 
-      {c && !auto && (c.rpe || c.feeling || c.comment || compliance != null) ? (
+      {c && !auto && (c.rpe || c.feeling || c.comment) ? (
         <Card style={{ padding: theme.space[4], gap: theme.space[3] }}>
           <Text variant="titleSm" accessibilityRole="header">{t("Seu feedback")}</Text>
           <View style={[styles.row, { gap: theme.space[3] }]}>
             {c.rpe ? <Stat style={styles.flex} value={String(c.rpe)} unit="/10" label={t("Esforço (PSE)")} /> : null}
             {c.feeling ? <Stat style={styles.flex} value={feelingLabel(c.feeling)} label={t("Sensação")} /> : null}
-            {compliance != null ? <Stat style={styles.flex} value={`${compliance}%`} label={t("Cumprido")} /> : null}
           </View>
           {c.comment ? <Text tone="muted">“{c.comment}”</Text> : null}
         </Card>

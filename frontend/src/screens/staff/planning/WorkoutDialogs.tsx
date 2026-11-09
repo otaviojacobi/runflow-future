@@ -62,9 +62,8 @@ export function DetailDialog({ club, id, onClose, onEdit }: { club: Club; id: st
                   {a.avg_hr && <Stat value={String(a.avg_hr)} unit="bpm" label={t("FC média")} size="sm" />}
                 </div>
               )}
-              {c && (c.compliance_pct != null || c.rpe != null || c.feeling) && (
+              {c && (c.rpe != null || c.feeling) && (
                 <div className="flex flex-wrap gap-x-6 gap-y-3">
-                  {c.compliance_pct != null && <Stat value={`${c.compliance_pct}%`} label={t("Cumprido")} size="sm" />}
                   {c.rpe != null && <Stat value={String(c.rpe)} unit="/10" label={t("Esforço (PSE)")} size="sm" />}
                   {c.feeling && <Stat value={t(FEELING[c.feeling])} label={t("Sensação")} size="sm" />}
                 </div>

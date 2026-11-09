@@ -161,7 +161,7 @@ export function WorkoutSheet({ seed, onClose }: { seed: WorkoutSeed | null; onCl
           {(w.completion || detail.data?.activity) && (() => {
             const a = detail.data?.activity;
             const fb = w.completion;
-            const feedback = fb && (fb.compliance_pct != null || fb.rpe != null || fb.feeling);
+            const feedback = fb && (fb.rpe != null || fb.feeling);
             // How it went in one box: the activity's numbers, then what the student said about it.
             return (
               <View style={[styles.box, { gap: theme.space[3], padding: theme.space[4], borderRadius: theme.radius.lg, borderColor: c.line }]}>
@@ -179,7 +179,6 @@ export function WorkoutSheet({ seed, onClose }: { seed: WorkoutSeed | null; onCl
                 )}
                 {feedback && (
                   <View style={[styles.row, styles.wrap, { columnGap: theme.space[5], rowGap: theme.space[2] }]}>
-                    {fb.compliance_pct != null && <Stat size="sm" value={`${fb.compliance_pct}%`} label={t("Cumprido")} />}
                     {fb.rpe != null && <Stat size="sm" value={String(fb.rpe)} unit="/10" label={t("Esforço (PSE)")} />}
                     {fb.feeling && <Stat size="sm" value={feelingLabel(fb.feeling)} label={t("Sensação")} />}
                   </View>
@@ -225,7 +224,6 @@ export function WorkoutSheet({ seed, onClose }: { seed: WorkoutSeed | null; onCl
                 <StatusBadge status={w.completion.status} />
                 {w.completion.rpe != null && <Badge>{t("PSE {n}", { n: w.completion.rpe })}</Badge>}
                 {w.completion.feeling && <Badge>{feelingLabel(w.completion.feeling)}</Badge>}
-                {w.completion.compliance_pct != null && (w.completion.status === "completed" || w.completion.status === "partial") && <Badge>{t("{p}% cumprido", { p: w.completion.compliance_pct })}</Badge>}
               </View>
               {w.completion.comment ? <Quote text={w.completion.comment} /> : null}
             </View>

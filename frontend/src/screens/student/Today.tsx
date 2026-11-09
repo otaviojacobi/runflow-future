@@ -40,7 +40,7 @@ export function WorkoutCard({ w, clubId, onFeedback }: { w: PlannedWorkout; club
       {w.notes && <p className="rounded-md bg-brand-soft px-3 py-2 text-sm text-on-brand-soft">{w.notes}</p>}
       {c && !c.reported_at ? (
         // Completed by the activity matching (D-049): the PSE and how it felt are still the student's to say.
-        <div className="flex flex-wrap items-center gap-2"><StatusBadge status={c.status} /><span className="text-sm text-fg-muted">{t("pela sua atividade")}{c.compliance_pct != null ? ` · ${c.compliance_pct}%` : ""}</span>
+        <div className="flex flex-wrap items-center gap-2"><StatusBadge status={c.status} /><span className="text-sm text-fg-muted">{t("pela sua atividade")}</span>
           <Button size="sm" className="ml-auto" icon={<MessageSquare />} onClick={onFeedback}>{t("Conte como foi")}</Button></div>
       ) : c ? (
         <div className="flex flex-wrap items-center gap-2"><StatusBadge status={c.status} />{c.feeling && <span className="text-sm text-fg-muted">{t(FEELING[c.feeling])}</span>}{c.rpe && <span className="text-sm text-fg-muted">· {t("PSE {n}", { n: c.rpe })}</span>}

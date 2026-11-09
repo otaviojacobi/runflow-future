@@ -81,12 +81,6 @@ export default function ActivityScreen() {
               <Text variant="bodySm" color={c.brand.subtleFg}>{t("Planejado: {x}", { x: [m.est_distance_m && distance(m.est_distance_m), m.est_duration_s && duration(m.est_duration_s)].filter(Boolean).join(" · ") })}</Text>
             ) : null}
           </View>
-          {m.compliance_pct != null && (
-            <View style={styles.end}>
-              <Text variant="metricMd" color={c.brand.subtleFg}>{m.compliance_pct}%</Text>
-              <Text variant="caption" color={c.brand.subtleFg}>{t("cumprido")}</Text>
-            </View>
-          )}
           <ChevronRight size={theme.size.iconSm} color={c.brand.subtleFg} aria-hidden />
         </Pressable>
       )}

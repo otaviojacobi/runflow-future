@@ -65,7 +65,7 @@ export function WorkoutScreen() {
               // What the student said, beside the button that edits it.
               <div className="flex items-center gap-3">
                 <div className="grid min-w-0 flex-1 gap-0.5 text-sm">
-                  <span>{[c.rpe && t("PSE {n}/10", { n: c.rpe }), c.feeling && t(FEELING[c.feeling]), c.compliance_pct != null && t("{n}% cumprido", { n: c.compliance_pct })].filter(Boolean).join(" · ") || t("Seu feedback")}</span>
+                  <span>{[c.rpe && t("PSE {n}/10", { n: c.rpe }), c.feeling && t(FEELING[c.feeling])].filter(Boolean).join(" · ") || t("Seu feedback")}</span>
                   {c.comment && <span className="truncate text-fg-muted">“{c.comment}”</span>}
                 </div>
                 <Button size="sm" variant="secondary" icon={<Pencil />} onClick={() => setFb(true)}>{t("Editar feedback")}</Button>
@@ -98,7 +98,7 @@ export function WorkoutScreen() {
           <FitButton size="lg" name={w.title} sport={w.sport} structure={w.structure} />
         </div>
         {c && (c.feeling || c.comment || c.rpe) && (
-          <Card className="grid gap-2 p-4"><h2 className="rf-text-title-sm">{t("Seu feedback")}</h2><div className="flex flex-wrap gap-6">{c.rpe && <Stat value={String(c.rpe)} unit="/10" label={t("Esforço (PSE)")} size="sm" />}{c.feeling && <Stat value={t(FEELING[c.feeling])} label={t("Sensação")} size="sm" />}{c.compliance_pct != null && <Stat value={`${c.compliance_pct}%`} label={t("Cumprido")} size="sm" />}</div>{c.comment && <p className="text-fg-muted">“{c.comment}”</p>}</Card>
+          <Card className="grid gap-2 p-4"><h2 className="rf-text-title-sm">{t("Seu feedback")}</h2><div className="flex flex-wrap gap-6">{c.rpe && <Stat value={String(c.rpe)} unit="/10" label={t("Esforço (PSE)")} size="sm" />}{c.feeling && <Stat value={t(FEELING[c.feeling])} label={t("Sensação")} size="sm" />}</div>{c.comment && <p className="text-fg-muted">“{c.comment}”</p>}</Card>
         )}
         </>
       )}
